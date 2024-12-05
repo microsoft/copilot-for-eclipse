@@ -26,5 +26,9 @@ replay_pid*
 # Mac files
 .DS_Store
 
-## Maven
+# Maven
 **/target/
+
+# Copilot agent
+**/node_modules/
+**/copilot-agent/native/

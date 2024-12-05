@@ -1,0 +1,17 @@
+{
+  "name": "github-copilot-eclipse",
+  "version": "0.0.1",
+  "description": "Sub package for managing @github/copilot-language-server dependency",
+  "publisher": "GitHub",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/copilot-eclipse.git"
+  },
+  "scripts": {
+    "postinstall": "npx --yes copyfiles -u 3 'node_modules/@github/copilot-language-server/native/**/*' '.'"
+  },
+  "dependencies": {
+    "@github/copilot-language-server": "^1.244.0"
+  }
+}
