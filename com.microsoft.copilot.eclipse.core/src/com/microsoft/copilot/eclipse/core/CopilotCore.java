@@ -42,7 +42,9 @@ public class CopilotCore extends Plugin {
 
   @Override
   public void stop(BundleContext context) throws Exception {
-
+    if (copilotLanguageServer != null) {
+      copilotLanguageServer.stop();
+    }
   }
 
   @SuppressWarnings("restriction")

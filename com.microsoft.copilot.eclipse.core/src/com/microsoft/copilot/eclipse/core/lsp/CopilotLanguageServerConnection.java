@@ -41,4 +41,11 @@ public class CopilotLanguageServerConnection {
     return this.languageServerWrapper.execute(fn);
   }
 
+  /**
+   * Stop the language server.
+   */
+  public void stop() {
+    this.languageServerWrapper.stop();
+  }
+
 }

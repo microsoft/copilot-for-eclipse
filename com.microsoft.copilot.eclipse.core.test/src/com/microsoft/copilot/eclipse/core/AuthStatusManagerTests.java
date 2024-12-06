@@ -1,33 +1,33 @@
 package com.microsoft.copilot.eclipse.core;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
 
-@RunWith(MockitoJUnitRunner.class)
-public class AuthStatusManagerTests {
+@ExtendWith(MockitoExtension.class)
+class AuthStatusManagerTests {
 
   @Mock
   CopilotLanguageServerConnection mockConnection;
   AuthStatusManager authStatusManager;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     authStatusManager = new AuthStatusManager(mockConnection);
   }
 
   @Test
-  public void testAuthStatusResultOnSuccess() {
+  void testAuthStatusResultOnSuccess() {
     AuthStatusResult expectedResult = new AuthStatusResult();
     expectedResult.setStatus(AuthStatusResult.OK);
     when(mockConnection.checkStatus(false)).thenReturn(CompletableFuture.completedFuture(expectedResult));

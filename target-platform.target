@@ -11,7 +11,7 @@
 			<unit id="org.eclipse.lsp4e" version="0.0.0" />
 			<unit id="org.eclipse.jdt.annotation" version="0.0.0" />
 			<unit id="org.eclipse.pde.junit.runtime" version="0.0.0" />
-			<unit id="org.eclipse.jdt.junit4.runtime" version="0.0.0" />
+			<unit id="org.eclipse.jdt.junit5.runtime" version="0.0.0" />
 			<repository
 				location="https://download.eclipse.org/releases/2024-09/" />
 		</location>
@@ -42,6 +42,12 @@
 					<version>5.14.2</version>
 				</dependency>
 				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-junit-jupiter</artifactId>
+					<version>5.14.2</version>
+				</dependency>
+				<dependency>
+					<!-- required by mockito -->
 					<groupId>org.objenesis</groupId>
 					<artifactId>objenesis</artifactId>
 					<version>3.4</version>

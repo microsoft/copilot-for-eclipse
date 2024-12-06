@@ -1,17 +1,17 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 
-public class LsStreamConnectionProviderTests {
+class LsStreamConnectionProviderTests {
 
   @Test
-  public void testInitializationOptions() {
+  void testInitializationOptions() {
     LsStreamConnectionProvider provider = new LsStreamConnectionProvider();
 
     InitializationOptions options = (InitializationOptions) provider.getInitializationOptions(null);
@@ -21,7 +21,7 @@ public class LsStreamConnectionProviderTests {
   }
 
   @Test
-  public void testStartLanguageServer() throws IOException {
+  void testStartLanguageServer() throws IOException {
     LsStreamConnectionProvider provider = new LsStreamConnectionProvider();
     try {
       provider.start();
