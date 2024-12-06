@@ -18,6 +18,7 @@
 
 	<modules>
 		<module>com.microsoft.copilot.eclipse.core</module>
+		<module>com.microsoft.copilot.eclipse.core.test</module>
 		<module>com.microsoft.copilot.eclipse.ui</module>
 	</modules>
 

@@ -313,7 +313,8 @@
     <module name="CustomImportOrder">
       <property name="sortImportsInGroupAlphabetically" value="true"/>
       <property name="separateLineBetweenGroups" value="true"/>
-      <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>
+      <property name="customImportOrderRules" value="STATIC, STANDARD_JAVA_PACKAGE, THIRD_PARTY_PACKAGE, SPECIAL_IMPORTS"/>
+      <property name="specialImportsRegExp" value="^com\.microsoft\."/>
       <property name="tokens" value="IMPORT, STATIC_IMPORT, PACKAGE_DEF"/>
     </module>
     <module name="MethodParamPad">
