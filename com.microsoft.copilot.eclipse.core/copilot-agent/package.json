@@ -9,7 +9,7 @@
     "url": "https://github.com/microsoft/copilot-eclipse.git"
   },
   "scripts": {
-    "postinstall": "npx --yes copyfiles -u 3 'node_modules/@github/copilot-language-server/native/**/*' '.'"
+    "postinstall": "npx --yes copyfiles -u 3 \"node_modules/@github/copilot-language-server/native/**/*\" \".\""
   },
   "dependencies": {
     "@github/copilot-language-server": "^1.244.0"
