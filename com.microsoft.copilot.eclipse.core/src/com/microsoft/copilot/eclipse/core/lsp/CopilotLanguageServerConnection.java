@@ -1,8 +1,11 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -12,7 +15,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 /**
  * Language Server for Copilot agent.
  */
-@SuppressWarnings("restriction")
+@SuppressWarnings({ "restriction", "null" })
 public class CopilotLanguageServerConnection {
 
   public static final String SERVER_ID = "com.microsoft.copilot.eclipse.ls";
@@ -29,9 +32,30 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
+   * Connect the document to the language server. The LSP4E will take care of all the document lifecycle events after
+   * that.
+   */
+  public void connectDocument(IDocument document) throws IOException {
+    this.languageServerWrapper.connectDocument(document);
+  }
+
+  /**
+   * Disconnect the document from the language server.
+   */
+  public void disconnectDocument(URI uri) {
+    this.languageServerWrapper.disconnect(uri);
+  }
+
+  /**
+   * Get the document version for the given URI.
+   */
+  public int getDocumentVersion(URI uri) {
+    return this.languageServerWrapper.getTextDocumentVersion(uri);
+  }
+
+  /**
    * Check the login status for current machine.
    */
-  @SuppressWarnings("null")
   public CompletableFuture<AuthStatusResult> checkStatus(Boolean localCheckOnly) {
     Function<LanguageServer, CompletableFuture<AuthStatusResult>> fn = server -> {
       CheckStatusParams param = new CheckStatusParams();

@@ -31,7 +31,7 @@ public class CopilotCore extends Plugin {
     COPILOT_CORE_PLUGIN = this;
   }
 
-  public static Plugin getPlugin() {
+  public static CopilotCore getPlugin() {
     return COPILOT_CORE_PLUGIN;
   }
 

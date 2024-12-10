@@ -59,7 +59,6 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     commands.add(binary.toString());
     commands.add("--stdio");
     this.setCommands(commands);
-    // TODO: will it have permission issue on Unix based OS?
     super.start();
   }
 
