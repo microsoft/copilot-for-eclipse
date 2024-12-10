@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
@@ -93,7 +95,12 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       return null;
     }
 
-    return Path.of(FileLocator.toFileURL(url).getPath());
+    try {
+      return URIUtil.toFile(URIUtil.toURI(FileLocator.toFileURL(url))).toPath();
+    } catch (URISyntaxException | IOException e) {
+      // TODO: Log exception via telemetry.
+      return null;
+    }
   }
 
 }
