@@ -11,11 +11,13 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 
 /**
  * Language Server for Copilot agent.
  */
-@SuppressWarnings({ "restriction", "null" })
+@SuppressWarnings({ "restriction" })
 public class CopilotLanguageServerConnection {
 
   public static final String SERVER_ID = "com.microsoft.copilot.eclipse.ls";
@@ -62,6 +64,15 @@ public class CopilotLanguageServerConnection {
       param.setLocalChecksOnly(localCheckOnly);
       return ((CopilotLanguageServer) server).checkStatus(param);
     };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Get single completion for the given parameters.
+   */
+  public CompletableFuture<CompletionResult> getCompletions(CompletionParams params) {
+    Function<LanguageServer, CompletableFuture<CompletionResult>> fn = server -> ((CopilotLanguageServer) server)
+        .getCompletions(params);
     return this.languageServerWrapper.execute(fn);
   }
 

@@ -10,7 +10,7 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.ui.Constants;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -26,8 +26,8 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
 
     Shell shell = PlatformUI.getWorkbench().getDisplay().getActiveShell();
     MenuManager menuManager = new MenuManager();
-    ImageDescriptor icon = UiUtils.resizeIcon("/icons/copilot.png", Constants.TOOLBAR_ICON_WIDTH_IN_PIEXL,
-        Constants.TOOLBAR_ICON_HEIGHT_IN_PIEXL);
+    ImageDescriptor icon = UiUtils.resizeIcon("/icons/copilot.png", UiConstants.TOOLBAR_ICON_WIDTH_IN_PIEXL,
+        UiConstants.TOOLBAR_ICON_HEIGHT_IN_PIEXL);
 
     // TODO: Add GitHub sign-in states to the menu
     Action signInAction = new Action("Sign In to GitHub", icon) {

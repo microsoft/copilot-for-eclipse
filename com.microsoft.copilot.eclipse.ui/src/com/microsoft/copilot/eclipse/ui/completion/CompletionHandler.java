@@ -3,37 +3,49 @@ package com.microsoft.copilot.eclipse.ui.completion;
 import java.io.IOException;
 import java.net.URI;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
+import org.eclipse.core.runtime.jobs.IJobChangeListener;
+import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextListener;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Handle completion for an ITextEditor.
  */
-public class CompletionHandler implements ITextListener, CaretListener {
+public class CompletionHandler implements ITextListener, CaretListener, IJobChangeListener {
 
   private CopilotLanguageServerConnection lsConnection;
   private ITextEditor editor;
   private ITextViewer textViewer;
   private IDocument document;
   private URI documentUri;
-  private int documentVersion;
+  private volatile int documentVersion;
+
+  private CompletionJob completionJob;
 
   /**
    * Creates a new completion handler.
    */
   public CompletionHandler(CopilotLanguageServerConnection lsConnection, ITextEditor editor) {
     this.lsConnection = lsConnection;
+    this.completionJob = new CompletionJob(lsConnection);
+    this.completionJob.addJobChangeListener(this);
     this.editor = editor;
     this.textViewer = (ITextViewer) this.editor.getAdapter(ITextOperationTarget.class);
     this.document = LSPEclipseUtils.getDocument(editor);
@@ -58,7 +70,7 @@ public class CompletionHandler implements ITextListener, CaretListener {
       // TODO: remove ghost text
     } else {
       this.documentVersion = currentVersion;
-      // TODO: trigger completion
+      triggerCompletion();
     }
 
   }
@@ -75,6 +87,8 @@ public class CompletionHandler implements ITextListener, CaretListener {
    * Disposes the resources of this completion handler.
    */
   public void dispose() {
+    this.completionJob.cancel();
+    this.completionJob.removeJobChangeListener(this);
     lsConnection.disconnectDocument(this.documentUri);
     if (this.textViewer != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
@@ -97,6 +111,74 @@ public class CompletionHandler implements ITextListener, CaretListener {
       this.textViewer.getTextWidget().addCaretListener(this);
       this.textViewer.addTextListener(this);
     });
+  }
+
+  void triggerCompletion() {
+    CompletionParams completionParam = null;
+    try {
+      completionParam = this.createCompletionParams(UiUtils.getCaretOffset(this.editor));
+    } catch (BadLocationException e) {
+      // TODO: log & send telemetry
+      return;
+    }
+    this.completionJob.cancel();
+    this.completionJob.setCompletionParams(completionParam);
+    this.completionJob.schedule();
+  }
+
+  CompletionParams createCompletionParams(int offset) throws BadLocationException {
+    String uriString = this.documentUri.toASCIIString();
+    Position position = LSPEclipseUtils.toPosition(offset, this.document);
+    CompletionDocument completionDoc = new CompletionDocument(uriString, position);
+    completionDoc.setVersion(this.documentVersion);
+    // TODO: following format options are hard-coded, need to revisit later when
+    // implementing the multi-line completion
+    completionDoc.setInsertSpaces(true);
+    completionDoc.setTabSize(4);
+    return new CompletionParams(completionDoc);
+  }
+
+  @Override
+  public void aboutToRun(IJobChangeEvent event) {
+    // do nothing
+  }
+
+  @Override
+  public void awake(IJobChangeEvent event) {
+    // do nothing
+  }
+
+  @Override
+  public void done(IJobChangeEvent event) {
+    IStatus jobStatus = this.completionJob.getResult();
+    if (jobStatus != null && !jobStatus.isOK()) {
+      return;
+      // TODO: log & send telemetry
+    }
+    CompletionResult result = this.completionJob.getCompletionResult();
+    if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
+      return;
+    }
+    // ignore the result if the document version is out-dated.
+    if (this.documentVersion != result.getCompletions().get(0).getDocVersion()) {
+      return;
+    }
+    // TODO: render completion items
+  }
+
+  @Override
+  public void running(IJobChangeEvent event) {
+    // do nothing
+  }
+
+  @Override
+  public void scheduled(IJobChangeEvent event) {
+    // do nothing
+  }
+
+  @Override
+  public void sleeping(IJobChangeEvent event) {
+    // do nothing
   }
 
 }
