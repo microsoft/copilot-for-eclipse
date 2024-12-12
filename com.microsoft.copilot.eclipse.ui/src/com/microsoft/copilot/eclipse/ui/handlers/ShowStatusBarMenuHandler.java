@@ -11,6 +11,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -30,7 +31,7 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
         UiConstants.TOOLBAR_ICON_HEIGHT_IN_PIEXL);
 
     // TODO: Add GitHub sign-in states to the menu
-    Action signInAction = new Action("Sign In to GitHub", icon) {
+    Action signInAction = new Action(Messages.INFO_signToGitHub, icon) {
       @Override
       public void run() {
         // Handle sign-in action
@@ -38,7 +39,7 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
     };
 
     // TODO: Add GitHub sign-out states to the menu
-    Action signOutAction = new Action("Sign Out from GitHub", icon) {
+    Action signOutAction = new Action(Messages.INFO_signOutFromGitHub, icon) {
       @Override
       public void run() {
         // Handle sign-out action

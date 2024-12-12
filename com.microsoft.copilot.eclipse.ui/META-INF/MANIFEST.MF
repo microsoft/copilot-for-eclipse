@@ -4,7 +4,8 @@ Bundle-Name: com.microsoft.copilot.eclipse.ui
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui;singleton:=true
 Bundle-Version: 0.1.0.qualifier
 Export-Package: com.microsoft.copilot.eclipse.ui,
- com.microsoft.copilot.eclipse.ui.completion
+ com.microsoft.copilot.eclipse.ui.completion,
+ com.microsoft.copilot.eclipse.ui.i18n
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui
