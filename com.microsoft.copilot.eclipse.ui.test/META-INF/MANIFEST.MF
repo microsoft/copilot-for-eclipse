@@ -18,4 +18,5 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  org.eclipse.ui;bundle-version="3.206.100",
  org.eclipse.ui.ide,
  org.eclipse.ui.workbench.texteditor,
- org.eclipse.jface.text;bundle-version="3.25.200"
+ org.eclipse.jface.text;bundle-version="3.25.200",
+ org.eclipse.lsp4j;bundle-version="0.23.1"
