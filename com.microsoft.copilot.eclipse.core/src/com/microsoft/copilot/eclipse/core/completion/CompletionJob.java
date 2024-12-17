@@ -1,5 +1,6 @@
-package com.microsoft.copilot.eclipse.ui.completion;
+package com.microsoft.copilot.eclipse.core.completion;
 
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -17,7 +18,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
  */
 public class CompletionJob extends Job {
 
+  public static final String COMPLETION_JOB_FAMILY = "com.microsoft.copilot.eclipse.completionJobFamily";
+
   private CompletionResult result;
+
+  private CopilotLanguageServerConnection lsConnection;
+  private CompletionParams params;
 
   /**
    * Creates a new completion job.
@@ -25,14 +31,16 @@ public class CompletionJob extends Job {
   public CompletionJob(CopilotLanguageServerConnection lsConnection) {
     super("Generating completion...");
     this.lsConnection = lsConnection;
-    this.setUser(true);
+    this.setSystem(true);
+    this.setPriority(Job.INTERACTIVE);
   }
-
-  private CopilotLanguageServerConnection lsConnection;
-  private CompletionParams params;
 
   public void setCompletionParams(CompletionParams params) {
     this.params = params;
+  }
+
+  public CompletionParams getCompletionParams() {
+    return params;
   }
 
   @Override
@@ -41,7 +49,6 @@ public class CompletionJob extends Job {
       return new Status(IStatus.ERROR, Constants.PLUGIN_ID, "Invalid completion parameters");
     }
     if (monitor.isCanceled()) {
-      System.out.println("Completion job is canceled");
       return Status.CANCEL_STATUS;
     }
     try {
@@ -53,7 +60,6 @@ public class CompletionJob extends Job {
       return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
     }
     if (monitor.isCanceled()) {
-      System.out.println("Completion job is canceled");
       return Status.CANCEL_STATUS;
     }
     return Status.OK_STATUS;
@@ -61,6 +67,15 @@ public class CompletionJob extends Job {
 
   public CompletionResult getCompletionResult() {
     return result;
+  }
+
+  public String getUriString() {
+    return params.getDoc().getUri();
+  }
+
+  @Override
+  public boolean belongsTo(Object family) {
+    return Objects.equals(family, COMPLETION_JOB_FAMILY);
   }
 
 }

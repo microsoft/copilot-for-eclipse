@@ -10,6 +10,7 @@ import org.eclipse.lsp4e.LanguageServersRegistry;
 import org.eclipse.lsp4e.LanguageServiceAccessor;
 import org.osgi.framework.BundleContext;
 
+import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
@@ -19,6 +20,7 @@ public class CopilotCore extends Plugin {
 
   private CopilotLanguageServerConnection copilotLanguageServer;
   private AuthStatusManager authStatusManager;
+  private CompletionProvider completionProvider;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
 
@@ -60,6 +62,7 @@ public class CopilotCore extends Plugin {
 
       LanguageServerWrapper wrapper = LanguageServiceAccessor.startLanguageServer(serverDef);
       this.copilotLanguageServer = new CopilotLanguageServerConnection(wrapper);
+      this.completionProvider = new CompletionProvider(this.copilotLanguageServer);
       this.authStatusManager = new AuthStatusManager(this.copilotLanguageServer);
 
       this.authStatusManager.checkStatus();
@@ -81,6 +84,10 @@ public class CopilotCore extends Plugin {
 
   public AuthStatusManager getAuthStatusManager() {
     return authStatusManager;
+  }
+
+  public CompletionProvider getCompletionProvider() {
+    return completionProvider;
   }
 
 }

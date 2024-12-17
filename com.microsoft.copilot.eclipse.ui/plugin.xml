@@ -8,54 +8,73 @@
 		</startup>
 	</extension>
 
- <!-- Menus registration -->
- <extension
-       point="org.eclipse.ui.menus">
-    <menuContribution
-          locationURI="toolbar:org.eclipse.ui.trim.status">
-       <toolbar
-             id="com.microsoft.copilot.eclipse.ui.statusBar">
-          <command
-                commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-                icon="icons/copilot.png"
-                style="push">
-          </command>
-       </toolbar>
-    </menuContribution>
- </extension>
- 
- <!-- Commands registration -->
- <extension
-       point="org.eclipse.ui.commands">
-    <command
-          commandId="com.microsoft.copilot.eclipse.ui.loginStatus"
-          id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-          label="Status: "
-          name="GitHub Copilot for Eclipse"
-          style="push">
-    </command>
-    <command
-          commandId="com.microsoft.copilot.eclipse.ui.signIn"
-          id="com.microsoft.copilot.eclipse.commands.signIn"
-          label="Sign In to GitHub Copilot"
-          name="Sign in to GitHub Copilot"
-          style="push">
-    </command>
-    <command
-          commandId="com.microsoft.copilot.eclipse.ui.signOut"
-          id="com.microsoft.copilot.commands.signOut"
-          label="Sign out to GitHub Copilot"
-          name="Sign out from GitHub Copilot"
-          style="push">
-    </command>
- </extension>
- 
- <!-- Command handlers registration -->
- <extension
-       point="org.eclipse.ui.handlers">
-    <handler
-          class="com.microsoft.copilot.eclipse.ui.handlers.ShowStatusBarMenuHandler"
-          commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu">
-    </handler>
- </extension>
+	<!-- Menus registration -->
+	<extension
+		point="org.eclipse.ui.menus">
+		<menuContribution
+			locationURI="toolbar:org.eclipse.ui.trim.status">
+			<toolbar
+				id="com.microsoft.copilot.eclipse.ui.statusBar">
+				<command
+					commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
+					icon="icons/copilot.png"
+					style="push">
+				</command>
+			</toolbar>
+		</menuContribution>
+	</extension>
+
+	<!-- Commands registration -->
+	<extension
+		point="org.eclipse.ui.commands">
+		<command
+			commandId="com.microsoft.copilot.eclipse.ui.loginStatus"
+			id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
+			label="Status: "
+			name="GitHub Copilot for Eclipse"
+			style="push">
+		</command>
+		<command
+			commandId="com.microsoft.copilot.eclipse.ui.signIn"
+			id="com.microsoft.copilot.eclipse.commands.signIn"
+			label="Sign In to GitHub Copilot"
+			name="Sign in to GitHub Copilot"
+			style="push">
+		</command>
+		<command
+			commandId="com.microsoft.copilot.eclipse.ui.signOut"
+			id="com.microsoft.copilot.commands.signOut"
+			label="Sign out to GitHub Copilot"
+			name="Sign out from GitHub Copilot"
+			style="push">
+		</command>
+		<command
+			id="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion"
+			name="%command.acceptFullSuggestion.name">
+		</command>
+	</extension>
+
+	<!-- Command handlers registration -->
+	<extension
+		point="org.eclipse.ui.handlers">
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.ShowStatusBarMenuHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.AcceptFullSuggestionHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion">
+		</handler>
+	</extension>
+	
+	<!-- Keyboard shortcut registration -->
+	<extension
+		point="org.eclipse.ui.bindings">
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			contextId="org.eclipse.ui.textEditorScope"
+			sequence="TAB">
+		</key>
+	</extension>
 </plugin>

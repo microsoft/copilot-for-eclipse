@@ -2,9 +2,12 @@ package com.microsoft.copilot.eclipse.ui.completion;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
@@ -13,14 +16,18 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 public class EditorsManager {
 
   private CopilotLanguageServerConnection languageServer;
+  private CompletionProvider completionProvider;
   private Map<ITextEditor, CompletionHandler> editorMap;
+  private AtomicReference<ITextEditor> activeEditor;
 
   /**
    * Creates a new EditorManager.
    */
-  public EditorsManager(CopilotLanguageServerConnection languageServer) {
+  public EditorsManager(CopilotLanguageServerConnection languageServer, CompletionProvider completionProvider) {
     this.languageServer = languageServer;
+    this.completionProvider = completionProvider;
     this.editorMap = new ConcurrentHashMap<>();
+    this.activeEditor = new AtomicReference<>();
   }
 
   /**
@@ -33,7 +40,20 @@ public class EditorsManager {
       return null;
     }
 
-    return editorMap.computeIfAbsent(editor, edt -> new CompletionHandler(this.languageServer, edt));
+    return editorMap.computeIfAbsent(editor,
+        edt -> new CompletionHandler(this.languageServer, this.completionProvider, edt));
+  }
+
+  /**
+   * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionHandler CompletionHandler} for the active
+   * ITextEditor.
+   */
+  @Nullable
+  public CompletionHandler getActiveCompletionHandler() {
+    if (this.activeEditor.get() == null) {
+      return null;
+    }
+    return this.editorMap.get(activeEditor.get());
   }
 
   /**
@@ -45,6 +65,18 @@ public class EditorsManager {
     if (handler != null) {
       handler.dispose();
     }
+  }
+
+  /**
+   * Sets the active editor.
+   */
+  public void setActiveEditor(ITextEditor editor) {
+    this.activeEditor.set(editor);
+  }
+
+  @Nullable
+  public ITextEditor getActiveEditor() {
+    return this.activeEditor.get();
   }
 
   /**

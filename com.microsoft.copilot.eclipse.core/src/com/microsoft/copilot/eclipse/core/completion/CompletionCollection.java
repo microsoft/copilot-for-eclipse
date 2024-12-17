@@ -1,30 +1,31 @@
-package com.microsoft.copilot.eclipse.ui.completion;
+package com.microsoft.copilot.eclipse.core.completion;
 
 import java.util.List;
+
+import org.eclipse.jdt.annotation.NonNull;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 
 /**
  * A class to hold data for the inline completion.
  */
-public class CompletionData {
+public class CompletionCollection {
 
-  /**
-   * A constant for an empty completion item. This is used to indicate that the completion is not available. Thus when
-   * clear the ghost text, we can set it to the rendering.
-   */
-  public static final CompletionItem EMPTY_ITEM = new CompletionItem("", "", null, "", null, -1);
-
-  private List<CompletionItem> items;
+  private List<CompletionItem> completions;
   private int index;
-  private int triggerOffset;
+  private String uriString;
 
   /**
    * Creates a new CompletionData.
    */
-  public CompletionData() {
+  public CompletionCollection(@NonNull List<CompletionItem> completions, String uriString) {
+    if (completions == null || completions.isEmpty()) {
+      throw new IllegalArgumentException("completions cannot be null or empty");
+      // TODO: log & send telemetry
+    }
+    this.completions = completions;
+    this.uriString = uriString;
     this.index = 0;
-    this.triggerOffset = -1;
   }
 
   /**
@@ -68,37 +69,21 @@ public class CompletionData {
    * Get the number of items in the completion list.
    */
   public int getSize() {
-    if (items == null) {
-      return 0;
-    }
-    return items.size();
+    return this.completions.size();
   }
 
   /**
    * Get the document version when the completion was triggered.
    */
   public int getDocumentVersion() {
-    CompletionItem item = getCurrentItem();
-    if (item == null) {
-      return -1;
+    if (this.completions.isEmpty()) {
+      throw new IllegalStateException("completions cannot be empty");
     }
-    return item.getDocVersion();
+    return this.completions.get(0).getDocVersion();
   }
 
-  /**
-   * Set the completion items.
-   */
-  public void setItems(List<CompletionItem> items) {
-    this.items = items;
-    this.index = 0;
-  }
-
-  public int getTriggerOffset() {
-    return triggerOffset;
-  }
-
-  public void setTriggerOffset(int offset) {
-    this.triggerOffset = offset;
+  public String getUriString() {
+    return this.uriString;
   }
 
   /**
@@ -112,10 +97,7 @@ public class CompletionData {
    * Get the current active completion item.
    */
   CompletionItem getCurrentItem() {
-    if (items == null || items.isEmpty() || index >= items.size()) {
-      return null;
-    }
-    return items.get(index);
+    return this.completions.get(index);
   }
 
 }
