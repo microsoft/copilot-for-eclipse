@@ -1,6 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.handler;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -13,13 +13,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
-import com.microsoft.copilot.eclipse.ui.handlers.AcceptFullSuggestionHandler;
+import com.microsoft.copilot.eclipse.ui.handlers.TriggerInlineSuggestionHandler;
 
 @ExtendWith(MockitoExtension.class)
-class AcceptFullSuggestionHandlerTests {
+class TriggerInlineSuggestionHandlerTests {
 
   @Test
-  void testIsNotEnabledWhenNoCompletionIsAvailable() {
+  void testIsEnabledWhenNoCompletionIsAvailable() {
     CopilotUi mockedUi = mock(CopilotUi.class);
     EditorsManager mockedManager = mock(EditorsManager.class);
     CompletionHandler mockedHandler = mock(CompletionHandler.class);
@@ -27,12 +27,11 @@ class AcceptFullSuggestionHandlerTests {
     when(mockedManager.getActiveCompletionHandler()).thenReturn(mockedHandler);
     when(mockedHandler.hasCompletion()).thenReturn(false);
 
-    AcceptFullSuggestionHandler handler = new AcceptFullSuggestionHandler();
+    TriggerInlineSuggestionHandler handler = new TriggerInlineSuggestionHandler();
 
     try (MockedStatic<CopilotUi> mockedStatic = mockStatic(CopilotUi.class)) {
       mockedStatic.when(CopilotUi::getPlugin).thenReturn(mockedUi);
-      assertFalse(handler.isEnabled());
+      assertTrue(handler.isEnabled());
     }
   }
-
 }

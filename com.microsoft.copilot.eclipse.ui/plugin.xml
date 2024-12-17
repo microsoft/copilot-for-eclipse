@@ -49,8 +49,16 @@
 			style="push">
 		</command>
 		<command
+			id="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion"
+			name="%command.triggerInlineSuggestions.name">
+		</command>
+		<command
 			id="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion"
 			name="%command.acceptFullSuggestion.name">
+		</command>
+		<command
+			id="com.microsoft.copilot.eclipse.commands.discardSuggestion"
+			name="%command.discardSuggestion.name">
 		</command>
 	</extension>
 
@@ -62,8 +70,16 @@
 			commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu">
 		</handler>
 		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.TriggerInlineSuggestionHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion">
+		</handler>
+		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.AcceptFullSuggestionHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.DiscardSuggestionHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion">
 		</handler>
 	</extension>
 	
@@ -71,10 +87,22 @@
 	<extension
 		point="org.eclipse.ui.bindings">
 		<key
+			commandId="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion"
+			contextId="org.eclipse.ui.textEditorScope"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+M3+/">
+		</key>
+		<key
 			commandId="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			contextId="org.eclipse.ui.textEditorScope"
 			sequence="TAB">
+		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			contextId="org.eclipse.ui.textEditorScope"
+			sequence="ESC">
 		</key>
 	</extension>
 </plugin>

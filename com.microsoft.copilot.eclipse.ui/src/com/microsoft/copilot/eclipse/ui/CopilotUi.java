@@ -13,7 +13,7 @@ import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
- * Activator class for the Copilot UI plugin.
+ * The plug-in runtime class for the Copilot plug-in containing the UI support, like dialogs, ghost text rendering, etc.
  */
 public class CopilotUi extends Plugin {
 

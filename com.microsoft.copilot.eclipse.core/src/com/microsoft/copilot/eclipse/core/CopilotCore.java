@@ -14,7 +14,8 @@ import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
- * Activator class for the Copilot core plugin.
+ * The plug-in runtime class for the Copilot plug-in containing the core (UI-free) support, like the completion,
+ * authentication, language server connection, etc.
  */
 public class CopilotCore extends Plugin {
 

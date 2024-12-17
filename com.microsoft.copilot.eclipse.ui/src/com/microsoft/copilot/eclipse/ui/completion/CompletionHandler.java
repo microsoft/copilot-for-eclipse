@@ -115,11 +115,18 @@ public class CompletionHandler implements ITextListener, CaretListener {
     });
   }
 
-  void triggerCompletion() {
+  /**
+   * Trigger the inline completion.
+   */
+  public void triggerCompletion() {
+    clearCompletionRendering();
     this.completionManager.triggerCompletion(this.triggerPosition, this.documentVersion);
   }
 
-  void clearCompletionRendering() {
+  /**
+   * Clear the completion ghost text.
+   */
+  public void clearCompletionRendering() {
     this.completionManager.clearGhostText(this.triggerPosition);
   }
 

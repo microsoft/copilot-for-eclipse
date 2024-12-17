@@ -13,10 +13,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
-import com.microsoft.copilot.eclipse.ui.handlers.AcceptFullSuggestionHandler;
+import com.microsoft.copilot.eclipse.ui.handlers.DiscardSuggestionHandler;
 
 @ExtendWith(MockitoExtension.class)
-class AcceptFullSuggestionHandlerTests {
+class DiscardSuggestionHandlerTests {
 
   @Test
   void testIsNotEnabledWhenNoCompletionIsAvailable() {
@@ -27,7 +27,7 @@ class AcceptFullSuggestionHandlerTests {
     when(mockedManager.getActiveCompletionHandler()).thenReturn(mockedHandler);
     when(mockedHandler.hasCompletion()).thenReturn(false);
 
-    AcceptFullSuggestionHandler handler = new AcceptFullSuggestionHandler();
+    DiscardSuggestionHandler handler = new DiscardSuggestionHandler();
 
     try (MockedStatic<CopilotUi> mockedStatic = mockStatic(CopilotUi.class)) {
       mockedStatic.when(CopilotUi::getPlugin).thenReturn(mockedUi);
