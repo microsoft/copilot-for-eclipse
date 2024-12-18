@@ -13,6 +13,7 @@ public class AuthStatusResult {
 
   public static final String OK = "OK";
   public static final String ERROR = "Error";
+  public static final String LOADING = "Loading";
   public static final String WARNING = "Warning";
   public static final String NOT_SIGNED_IN = "NotSignedIn";
   public static final String NOT_AUTHORIZED = "NotAuthorized";
@@ -56,6 +57,10 @@ public class AuthStatusResult {
 
   public boolean isNotAuthorized() {
     return NOT_AUTHORIZED.equals(this.status);
+  }
+  
+  public boolean isLoading() {
+    return LOADING.equals(this.status);
   }
 
   @Override

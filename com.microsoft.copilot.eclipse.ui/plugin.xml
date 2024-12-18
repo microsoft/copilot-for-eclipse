@@ -28,26 +28,17 @@
 	<extension
 		point="org.eclipse.ui.commands">
 		<command
-			commandId="com.microsoft.copilot.eclipse.ui.loginStatus"
-			id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-			label="Status: "
-			name="GitHub Copilot for Eclipse"
-			style="push">
-		</command>
-		<command
-			commandId="com.microsoft.copilot.eclipse.ui.signIn"
-			id="com.microsoft.copilot.eclipse.commands.signIn"
-			label="Sign In to GitHub Copilot"
-			name="Sign in to GitHub Copilot"
-			style="push">
-		</command>
-		<command
-			commandId="com.microsoft.copilot.eclipse.ui.signOut"
-			id="com.microsoft.copilot.commands.signOut"
-			label="Sign out to GitHub Copilot"
-			name="Sign out from GitHub Copilot"
-			style="push">
-		</command>
+              id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
+              name="%command.copilotForEclipsePlugin.name">
+        </command>
+        <command
+              id="com.microsoft.copilot.eclipse.commands.signIn"
+              name="%command.signInToGitHub.name">
+        </command>
+        <command
+              id="com.microsoft.copilot.eclipse.commands.signOut"
+              name="%command.signOutFromGitHub.name">
+        </command>
 		<command
 			id="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion"
 			name="%command.triggerInlineSuggestions.name">
@@ -69,6 +60,14 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.ShowStatusBarMenuHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu">
 		</handler>
+        <handler
+              class="com.microsoft.copilot.eclipse.ui.handlers.SignInHandler"
+              commandId="com.microsoft.copilot.eclipse.commands.signIn">
+        </handler>
+        <handler
+              class="com.microsoft.copilot.eclipse.ui.handlers.SignOutHandler"
+              commandId="com.microsoft.copilot.eclipse.commands.signOut">
+        </handler>
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.TriggerInlineSuggestionHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion">

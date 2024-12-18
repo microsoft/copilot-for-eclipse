@@ -24,6 +24,22 @@ public class PlatformUtils {
     return bundle.getVersion().toString();
   }
 
+  /**
+   * Escapes spaces in a URL string.
+   */
+  public static String escapeSpaceInUrl(String urlString) {
+    char[] chars = urlString.toCharArray();
+    StringBuffer sb = new StringBuffer(chars.length);
+    for (int i = 0; i < chars.length; i++) {
+      if (chars[i] == ' ') {
+        sb.append("%20");
+      } else {
+        sb.append(chars[i]);
+      }
+    }
+    return sb.toString();
+  }
+
   public static boolean isMac() {
     return Platform.getOS().equals(Platform.OS_MACOSX);
   }

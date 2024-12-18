@@ -6,7 +6,8 @@ Bundle-Version: 0.1.0.qualifier
 Export-Package: com.microsoft.copilot.eclipse.core,
  com.microsoft.copilot.eclipse.core.completion,
  com.microsoft.copilot.eclipse.core.lsp,
- com.microsoft.copilot.eclipse.core.lsp.protocol
+ com.microsoft.copilot.eclipse.core.lsp.protocol,
+ com.microsoft.copilot.eclipse.core.utils
 Bundle-Activator: com.microsoft.copilot.eclipse.core.CopilotCore
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.core

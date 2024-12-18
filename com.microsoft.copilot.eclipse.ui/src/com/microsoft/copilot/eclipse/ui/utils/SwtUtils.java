@@ -3,13 +3,17 @@ package com.microsoft.copilot.eclipse.ui.utils;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.handlers.HandlerUtil;
 
 /**
  * Utilities for SWT. *
@@ -67,5 +71,27 @@ public class SwtUtils {
       }
     });
     return ref.get();
+  }
+  
+  /**
+   * This method retrieves the active workbench window from the event and then gets the shell associated with that
+   * window. It is more specific to the Eclipse framework and is typically used in handlers for commands or actions
+   * within the Eclipse environment.
+
+   * @throws ExecutionException if the active workbench window cannot be retrieved from the event.
+   */
+  public static Shell getShellFromEvent(ExecutionEvent event) throws ExecutionException {
+    return HandlerUtil.getActiveWorkbenchWindowChecked(event).getShell();
+  }
+
+  /**
+   * Get current display.
+   */
+  public static Display getDisplay() {
+    Display display = Display.getCurrent();
+    if (display == null) {
+      display = Display.getDefault();
+    }
+    return display;
   }
 }

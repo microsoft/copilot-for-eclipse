@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,43 @@ class AuthStatusManagerTests {
     authStatusManager.checkStatus();
 
     assertEquals(AuthStatusResult.OK, authStatusManager.getAuthStatusResult().getStatus());
+  }
+  
+  @Test
+  void testCheckStatusLoadingWithDelay() throws InterruptedException {
+	String mockedUser = "mockedUser";
+    // Arrange
+    AuthStatusResult expectedResult = new AuthStatusResult();
+    expectedResult.setStatus(AuthStatusResult.OK);
+    expectedResult.setUser(mockedUser);
+    CompletableFuture<AuthStatusResult> future = new CompletableFuture<>();
 
+    when(mockConnection.checkStatus(false)).thenReturn(future);
+
+    // Act
+    authStatusManager.checkStatus();
+
+    // Assert initial status is LOADING
+    assertEquals(AuthStatusResult.LOADING, authStatusManager.getAuthStatusResult().getStatus());
+
+    
+    future.complete(expectedResult);
+
+    // Assert final status is OK
+    assertEquals(AuthStatusResult.OK, authStatusManager.getAuthStatusResult().getStatus());
+    assertEquals(mockedUser, authStatusManager.getAuthStatusResult().getUser());
+  }
+
+  @Test
+  void testCheckStatusError() {
+    CompletableFuture<AuthStatusResult> future = new CompletableFuture<>();
+    future.completeExceptionally(new CompletionException(new Exception("Some other error")));
+
+    when(mockConnection.checkStatus(false)).thenReturn(future);
+
+    authStatusManager.checkStatus();
+
+    assertEquals(AuthStatusResult.ERROR, authStatusManager.getAuthStatusResult().getStatus());
   }
 
 }

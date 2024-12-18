@@ -9,6 +9,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 
 /**
  * Interface for Copilot Language Server.
@@ -26,5 +29,23 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest
   CompletableFuture<CompletionResult> getCompletions(CompletionParams params);
+
+  /**
+   * Initiate the sign in process.
+   */
+  @JsonRequest
+  CompletableFuture<SignInInitiateResult> signInInitiate(NullParams param);
+  
+  /**
+   * Confirm the sign in process.
+   */
+  @JsonRequest
+  CompletableFuture<AuthStatusResult> signInConfirm(SignInConfirmParams param);
+
+  /**
+   * Sign out the current user.
+   */
+  @JsonRequest
+  CompletableFuture<AuthStatusResult> signOut(NullParams params);
 
 }
