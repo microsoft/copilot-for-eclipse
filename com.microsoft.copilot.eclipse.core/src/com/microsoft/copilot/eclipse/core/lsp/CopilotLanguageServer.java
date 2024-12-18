@@ -9,6 +9,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
@@ -35,7 +38,7 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest
   CompletableFuture<SignInInitiateResult> signInInitiate(NullParams param);
-  
+
   /**
    * Confirm the sign in process.
    */
@@ -48,4 +51,21 @@ public interface CopilotLanguageServer extends LanguageServer {
   @JsonRequest
   CompletableFuture<AuthStatusResult> signOut(NullParams params);
 
+  /**
+   * Notify the language server that the completion was shown.
+   */
+  @JsonRequest
+  CompletableFuture<String> notifyShown(NotifyShownParams params);
+
+  /**
+   * Notify the language server that the completion was accepted.
+   */
+  @JsonRequest
+  CompletableFuture<String> notifyAccepted(NotifyAcceptedParams params);
+
+  /**
+   * Notify the language server that the completion was rejected.
+   */
+  @JsonRequest
+  CompletableFuture<String> notifyRejected(NotifyRejectedParams params);
 }

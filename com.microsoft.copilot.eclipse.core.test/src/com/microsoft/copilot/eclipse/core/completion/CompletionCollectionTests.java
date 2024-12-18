@@ -60,4 +60,12 @@ class CompletionCollectionTests {
     assertEquals(3, collection.getNumberOfLines());
   }
 
+  @Test
+  void testGetUuids() {
+    List<CompletionItem> completions = List.of(new CompletionItem("uuid1", "test", null, "displayText1", null, 0),
+        new CompletionItem("uuid2", "test", null, "displayText1", null, 0));
+    CompletionCollection collection = new CompletionCollection(completions, "uri");
+    assertEquals(List.of("uuid1", "uuid2"), collection.getUuids());
+  }
+
 }

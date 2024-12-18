@@ -93,10 +93,14 @@ public class CompletionCollection {
     return this.getText().split("\n").length;
   }
 
+  public List<String> getUuids() {
+    return this.completions.stream().map(CompletionItem::getUuid).toList();
+  }
+
   /**
    * Get the current active completion item.
    */
-  CompletionItem getCurrentItem() {
+  public CompletionItem getCurrentItem() {
     return this.completions.get(index);
   }
 

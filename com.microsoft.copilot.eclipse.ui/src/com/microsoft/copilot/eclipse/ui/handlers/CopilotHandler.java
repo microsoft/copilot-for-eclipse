@@ -3,6 +3,8 @@ package com.microsoft.copilot.eclipse.ui.handlers;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
@@ -25,5 +27,9 @@ public abstract class CopilotHandler extends AbstractHandler {
       return null;
     }
     return manager.getActiveCompletionHandler();
+  }
+
+  public CopilotLanguageServerConnection getLanguageServerConnection() {
+    return CopilotCore.getPlugin().getCopilotLanguageServer();
   }
 }

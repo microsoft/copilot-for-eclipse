@@ -17,6 +17,7 @@ import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -128,6 +129,10 @@ public class CompletionHandler implements ITextListener, CaretListener {
    */
   public void clearCompletionRendering() {
     this.completionManager.clearGhostText(this.triggerPosition);
+  }
+
+  public CompletionCollection getCompletions() {
+    return this.completionManager.getCompletions();
   }
 
   @Override

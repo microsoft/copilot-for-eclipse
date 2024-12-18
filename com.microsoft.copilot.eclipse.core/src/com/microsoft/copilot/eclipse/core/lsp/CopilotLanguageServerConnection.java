@@ -3,7 +3,6 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.eclipse.jface.text.IDocument;
@@ -15,6 +14,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
@@ -82,7 +84,8 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signInInitiate()} method instead.</p>
+   * Please use the {@link AuthStatusManager#signInInitiate()} method instead.
+   * </p>
    * Initiate the sign in process.
    */
   public CompletableFuture<SignInInitiateResult> signInInitiate() {
@@ -92,7 +95,8 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signInConfirm()} method instead.</p>
+   * Please use the {@link AuthStatusManager#signInConfirm()} method instead.
+   * </p>
    * Confirm the sign in process.
    */
   public CompletableFuture<AuthStatusResult> signInConfirm(String userCode) {
@@ -104,12 +108,40 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signOut()} method instead.</p>
+   * Please use the {@link AuthStatusManager#signOut()} method instead.
+   * </p>
    * Sign out from the GitHub Copilot.
    */
   public CompletableFuture<AuthStatusResult> signOut() {
     Function<LanguageServer, CompletableFuture<AuthStatusResult>> fn = (server) -> ((CopilotLanguageServer) server)
         .signOut(new NullParams());
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Notify the language server that the completion was shown.
+   */
+  public CompletableFuture<String> notifyShown(NotifyShownParams params) {
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .notifyShown(params);
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Notify the language server that the completion was accepted.
+   */
+  public CompletableFuture<String> notifyAccepted(NotifyAcceptedParams params) {
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .notifyAccepted(params);
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Notify the language server that the completion was rejected.
+   */
+  public CompletableFuture<String> notifyRejected(NotifyRejectedParams params) {
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .notifyRejected(params);
     return this.languageServerWrapper.execute(fn);
   }
 

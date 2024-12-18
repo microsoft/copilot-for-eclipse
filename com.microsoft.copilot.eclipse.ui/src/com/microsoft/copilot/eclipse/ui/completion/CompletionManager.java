@@ -22,6 +22,8 @@ import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -104,6 +106,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
     StyledText styledText = textViewer.getTextWidget();
     if (styledText != null) {
       SwtUtils.invokeOnDisplayThread(styledText::redraw, styledText);
+      this.notifyShown();
     }
   }
 
@@ -185,6 +188,10 @@ public class CompletionManager implements CompletionListener, PaintListener {
     this.document.replace(offset, 0, text);
   }
 
+  public CompletionCollection getCompletions() {
+    return completions;
+  }
+
   /**
    * Dispose the resources used by the completion manager.
    */
@@ -195,6 +202,20 @@ public class CompletionManager implements CompletionListener, PaintListener {
       this.ghostTextColor.dispose();
       this.ghostTextColor = null;
     }
+  }
+
+  private void notifyShown() {
+    if (this.completions == null || this.completions.getSize() == 0) {
+      return;
+    }
+
+    CompletionItem item = this.completions.getCurrentItem();
+    if (item == null) {
+      return;
+    }
+
+    NotifyShownParams params = new NotifyShownParams(item.getUuid());
+    this.lsConnection.notifyShown(params);
   }
 
 }
