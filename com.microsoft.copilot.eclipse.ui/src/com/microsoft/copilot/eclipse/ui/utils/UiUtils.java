@@ -1,13 +1,12 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
 import java.net.URI;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.swt.custom.StyledText;
+import org.eclipse.jface.text.ITextViewerExtension5;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
@@ -79,12 +78,17 @@ public class UiUtils {
    * Gets the caret offset of the given text viewer.
    */
   public static int getCaretOffset(ITextViewer textViewer) {
-    final AtomicInteger ref = new AtomicInteger(0);
-    StyledText styledText = textViewer.getTextWidget();
-    SwtUtils.invokeOnDisplayThread(() -> {
-      int offset = styledText.getCaretOffset();
-      ref.set(offset);
-    }, styledText);
-    return ref.get();
+    if (textViewer == null) {
+      return 0;
+    }
+    return textViewer.getSelectedRange().x;
+  }
+
+  /**
+   * Returns the widget offset that corresponds to the given offset in the viewer's input document or <code>-1</code> if
+   * there is no such offset.
+   */
+  public static int modelOffset2WidgetOffset(ITextViewer textViewer, int offset) {
+    return textViewer instanceof ITextViewerExtension5 extension ? extension.modelOffset2WidgetOffset(offset) : offset;
   }
 }

@@ -24,8 +24,10 @@ import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A class to control completion rendering.
@@ -75,6 +77,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
       this.provider.triggerCompletion(documentUri.toASCIIString(),
           LSPEclipseUtils.toPosition(position.getOffset(), this.document), documentVersion);
     } catch (BadLocationException e) {
+      CopilotUi.getPlugin().getLog().info("triggerCompletion BadLocationException e 77");
       // TODO log & send telemetry
     }
   }
@@ -118,20 +121,20 @@ public class CompletionManager implements CompletionListener, PaintListener {
     }
 
     GC gc = e.gc;
-    setLineVerticalIndentation(styledText, gc);
+    int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, this.triggerPosition.getOffset());
+    // will get index out of bounds if the cursor is at the end.
+    // Because there is no more text to get bounds at EOF.
+    widgetOffset = Math.max(Math.min(widgetOffset, styledText.getCharCount() - 1), 0);
+    setLineVerticalIndentation(styledText, gc, widgetOffset);
 
     if (this.completions == null) {
       return;
     }
 
     gc.setForeground(this.ghostTextColor);
-    // will get index out of bounds if the cursor is at the end.
-    // Because there is no more text to get bounds at EOF.
-    int caretOffset = Math.min(this.triggerPosition.getOffset(), styledText.getCharCount() - 1);
-
     String firstLine = this.completions.getFirstLine();
     if (StringUtils.isNotBlank(firstLine)) {
-      Rectangle bounds = styledText.getTextBounds(caretOffset, caretOffset);
+      Rectangle bounds = styledText.getTextBounds(widgetOffset, widgetOffset);
       int y = bounds.y;
       y += bounds.height - styledText.getLineHeight();
       gc.drawString(firstLine, bounds.x + bounds.width, y, true);
@@ -141,14 +144,14 @@ public class CompletionManager implements CompletionListener, PaintListener {
       int lineHeight = styledText.getLineHeight();
       int fontHeightt = gc.getFontMetrics().getHeight();
       int x = styledText.getLeftMargin();
-      Point offsetLocation = styledText.getLocationAtOffset(caretOffset);
+      Point offsetLocation = styledText.getLocationAtOffset(widgetOffset);
       int y = offsetLocation.y + lineHeight * 2 - fontHeightt;
       gc.drawText(remainingLines, x, y, true);
     }
 
   }
 
-  private void setLineVerticalIndentation(StyledText styledText, GC gc) {
+  private void setLineVerticalIndentation(StyledText styledText, GC gc, int widgetOffset) {
     int height = 0;
     if (this.completions != null) {
       // Change the height (line vertical indentation) to fit the line of
@@ -158,7 +161,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
       height = ghostTextExtent.y - ghostTextExtent.y / numberOfLines;
     }
 
-    int lineIndex = styledText.getLineAtOffset(this.triggerPosition.getOffset()) + 1;
+    int lineIndex = styledText.getLineAtOffset(widgetOffset) + 1;
     lineIndex = Math.min(lineIndex, styledText.getLineCount() - 1);
     styledText.setLineVerticalIndent(lineIndex, height);
   }

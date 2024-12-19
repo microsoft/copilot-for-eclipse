@@ -72,12 +72,12 @@ public class SwtUtils {
     });
     return ref.get();
   }
-  
+
   /**
    * This method retrieves the active workbench window from the event and then gets the shell associated with that
    * window. It is more specific to the Eclipse framework and is typically used in handlers for commands or actions
    * within the Eclipse environment.
-
+   *
    * @throws ExecutionException if the active workbench window cannot be retrieved from the event.
    */
   public static Shell getShellFromEvent(ExecutionEvent event) throws ExecutionException {

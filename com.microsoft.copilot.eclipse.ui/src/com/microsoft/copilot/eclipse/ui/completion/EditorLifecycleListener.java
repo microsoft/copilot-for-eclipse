@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.completion;
 
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -48,22 +49,26 @@ public class EditorLifecycleListener implements IPartListener {
    * Creates the {@link CompletionHandler} for the ITextEditor of the IWorkbenchPart.
    */
   public void createCompletionHandlerFor(IWorkbenchPart part) {
-    ITextEditor editor = part.getAdapter(ITextEditor.class);
-    if (editor == null) {
-      return;
+    IEditorPart editorPart = part.getAdapter(IEditorPart.class);
+    if (editorPart != null) {
+      ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
+      if (editor != null) {
+        manager.getOrCreateCompletionHandlerFor(editor);
+        manager.setActiveEditor(editor);
+      }
     }
-    manager.getOrCreateCompletionHandlerFor(editor);
-    manager.setActiveEditor(editor);
   }
 
   void disposeCompletionHandlerFor(IWorkbenchPart part) {
-    ITextEditor editor = part.getAdapter(ITextEditor.class);
-    if (editor == null) {
-      return;
-    }
-    manager.disposeCompletionHandlerFor(editor);
-    if (editor.equals(manager.getActiveEditor())) {
-      manager.setActiveEditor(null);
+    IEditorPart editorPart = part.getAdapter(IEditorPart.class);
+    if (editorPart != null) {
+      ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
+      if (editor != null) {
+        manager.disposeCompletionHandlerFor(editor);
+        if (editor.equals(manager.getActiveEditor())) {
+          manager.setActiveEditor(null);
+        }
+      }
     }
   }
 

@@ -2,8 +2,10 @@
 <?pde version="3.8"?>
 <target includeMode="feature" name="Copilot for Eclipse Target Definition">
 	<locations>
-		<location includeAllPlatforms="false" includeConfigurePhase="false"
-			includeMode="planner" includeSource="true" type="InstallableUnit">
+		<location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/releases/2024-09/"/>
+			<unit id="org.eclipse.m2e.feature.feature.group" version="2.6.2.20240828-1954"/>
+			<unit id="org.eclipse.m2e.logback.feature.feature.group" version="2.6.1.20240411-1743"/>
 			<unit id="org.eclipse.equinox.executable.feature.group"
 				version="0.0.0" />
 			<unit id="org.eclipse.platform.ide" version="0.0.0" />
@@ -12,12 +14,8 @@
 			<unit id="org.eclipse.jdt.annotation" version="0.0.0" />
 			<unit id="org.eclipse.pde.junit.runtime" version="0.0.0" />
 			<unit id="org.eclipse.jdt.junit5.runtime" version="0.0.0" />
-			<repository
-				location="https://download.eclipse.org/releases/2024-09/" />
 		</location>
-		<location includeDependencyDepth="none"
-			includeDependencyScopes="compile" includeSource="true"
-			missingManifest="generate" type="Maven">
+		<location includeDependencyDepth="none" includeDependencyScopes="compile" includeSource="true" missingManifest="generate" type="Maven">
 			<dependencies>
 				<dependency>
 					<groupId>org.apache.commons</groupId>
@@ -27,34 +25,28 @@
 				</dependency>
 			</dependencies>
 		</location>
-		<location includeDependencyDepth="infinite"
-			includeDependencyScopes="compile" includeSource="true"
-			label="Logging" missingManifest="generate" type="Maven">
+		<location includeDependencyDepth="infinite" includeDependencyScopes="compile" includeSource="true" label="Logging" missingManifest="generate" type="Maven">
 			<dependencies>
-				<dependency>
-					<groupId>io.reactivex.rxjava3</groupId>
-					<artifactId>rxjava</artifactId>
-					<version>3.1.10</version>
-				</dependency>
 				<dependency>
 					<groupId>org.mockito</groupId>
 					<artifactId>mockito-core</artifactId>
 					<version>5.14.2</version>
+					<type>jar</type>
 				</dependency>
 				<dependency>
 					<groupId>org.mockito</groupId>
 					<artifactId>mockito-junit-jupiter</artifactId>
 					<version>5.14.2</version>
+					<type>jar</type>
 				</dependency>
 				<dependency>
-					<!-- required by mockito -->
 					<groupId>org.objenesis</groupId>
 					<artifactId>objenesis</artifactId>
 					<version>3.4</version>
+					<type>jar</type>
 				</dependency>
 			</dependencies>
 		</location>
 	</locations>
-	<targetJRE
-		path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-17" />
+	<targetJRE path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-17"/>
 </target>

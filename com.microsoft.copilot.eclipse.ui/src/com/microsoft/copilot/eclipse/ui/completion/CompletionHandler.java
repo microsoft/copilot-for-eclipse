@@ -137,6 +137,9 @@ public class CompletionHandler implements ITextListener, CaretListener {
 
   @Override
   public void caretMoved(CaretEvent event) {
+    int caretOffset = UiUtils.getCaretOffset(this.textViewer);
+    this.triggerPosition = new org.eclipse.jface.text.Position(caretOffset);
+
     // it's guaranteed that the document change event comes earlier than caret
     // change event. See org.eclipse.swt.custom.StyledText#modifyContent()
     int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
@@ -152,8 +155,6 @@ public class CompletionHandler implements ITextListener, CaretListener {
       clearCompletionRendering();
     } else {
       this.documentVersion = currentVersion;
-      int caretOffset = UiUtils.getCaretOffset(this.textViewer);
-      this.triggerPosition = new org.eclipse.jface.text.Position(caretOffset);
       triggerCompletion();
     }
 
@@ -178,7 +179,10 @@ public class CompletionHandler implements ITextListener, CaretListener {
    * Disposes the resources of this completion handler.
    */
   public void dispose() {
-    this.completionManager.dispose();
+    if (this.completionManager != null) {
+      this.completionManager.dispose();
+      this.completionManager = null;
+    }
     lsConnection.disconnectDocument(this.documentUri);
     try {
       this.document.removePositionCategory(this.getCategory());

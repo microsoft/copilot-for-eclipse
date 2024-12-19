@@ -37,10 +37,10 @@ class AuthStatusManagerTests {
 
     assertEquals(AuthStatusResult.OK, authStatusManager.getAuthStatusResult().getStatus());
   }
-  
+
   @Test
   void testCheckStatusLoadingWithDelay() throws InterruptedException {
-	String mockedUser = "mockedUser";
+    String mockedUser = "mockedUser";
     // Arrange
     AuthStatusResult expectedResult = new AuthStatusResult();
     expectedResult.setStatus(AuthStatusResult.OK);
@@ -55,7 +55,6 @@ class AuthStatusManagerTests {
     // Assert initial status is LOADING
     assertEquals(AuthStatusResult.LOADING, authStatusManager.getAuthStatusResult().getStatus());
 
-    
     future.complete(expectedResult);
 
     // Assert final status is OK
