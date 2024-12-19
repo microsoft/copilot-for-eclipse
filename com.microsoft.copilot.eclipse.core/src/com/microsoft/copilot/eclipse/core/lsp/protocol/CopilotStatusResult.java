@@ -9,7 +9,7 @@ import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 /**
  * Result for the Authentication status.
  */
-public class AuthStatusResult {
+public class CopilotStatusResult {
 
   public static final String OK = "OK";
   public static final String ERROR = "Error";
@@ -79,7 +79,7 @@ public class AuthStatusResult {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    AuthStatusResult other = (AuthStatusResult) obj;
+    CopilotStatusResult other = (CopilotStatusResult) obj;
     return Objects.equals(status, other.status) && Objects.equals(user, other.user);
   }
 

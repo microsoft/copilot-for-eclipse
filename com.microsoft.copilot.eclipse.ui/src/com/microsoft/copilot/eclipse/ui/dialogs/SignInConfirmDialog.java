@@ -12,7 +12,7 @@ import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.swt.widgets.Shell;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 /**
@@ -22,7 +22,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
 
   private final String userCode;
   private final long timeout;
-  private CompletableFuture<AuthStatusResult> future;
+  private CompletableFuture<CopilotStatusResult> future;
   private IStatus status;
 
   /**
@@ -73,7 +73,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
       try {
         future = CompletableFuture.supplyAsync(() -> {
           try {
-            return CopilotCore.getPlugin().getAuthStatusManager().signInConfirm(userCode);
+            return CopilotCore.getPlugin().getCopilotStatusManager().signInConfirm(userCode);
           } catch (Exception e) {
             // TODO: log & send telemetry
             return null;
@@ -118,7 +118,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
     }
 
     private void handleAuthorizationResult() throws ExecutionException, InterruptedException {
-      AuthStatusResult result = future.get();
+      CopilotStatusResult result = future.get();
       String errorMsg = null;
 
       if (result == null || !result.isSignedIn()) {

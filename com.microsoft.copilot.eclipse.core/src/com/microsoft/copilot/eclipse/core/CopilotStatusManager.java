@@ -5,29 +5,29 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 
 /**
  * Manager for the authentication status.
  */
-public class AuthStatusManager {
+public class CopilotStatusManager {
 
   private CopilotLanguageServerConnection connection;
 
-  private AuthStatusResult authStatusResult;
+  private CopilotStatusResult copilotStatusResult;
 
   private static final int CHECK_STATUS_TIMEOUT_MILLIS = 3000;
   
   /**
-   * Constructor for the AuthStatusManager.
+   * Constructor for the CopilotStatusManager.
    *
    * @param connection the connection to the language server.
    */
-  public AuthStatusManager(CopilotLanguageServerConnection connection) {
+  public CopilotStatusManager(CopilotLanguageServerConnection connection) {
     this.connection = connection;
-    this.authStatusResult = new AuthStatusResult();
-    this.authStatusResult.setStatus(AuthStatusResult.LOADING);
+    this.copilotStatusResult = new CopilotStatusResult();
+    this.copilotStatusResult.setStatus(CopilotStatusResult.LOADING);
   }
 
   /**
@@ -39,7 +39,7 @@ public class AuthStatusManager {
   public SignInInitiateResult signInInitiate() throws InterruptedException, ExecutionException {
     SignInInitiateResult result = connection.signInInitiate().get();
     if (result.isAlreadySignedIn()) {
-      this.authStatusResult.setStatus(AuthStatusResult.OK);
+      this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
     }
     return result;
   }
@@ -50,11 +50,11 @@ public class AuthStatusManager {
    * @throws ExecutionException if the sign in process fails due to an execution error
    * @throws InterruptedException if the sign in process is interrupted
    */
-  public AuthStatusResult signInConfirm(String userCode) throws InterruptedException, ExecutionException {
-    AuthStatusResult result = connection.signInConfirm(userCode).get();
+  public CopilotStatusResult signInConfirm(String userCode) throws InterruptedException, ExecutionException {
+    CopilotStatusResult result = connection.signInConfirm(userCode).get();
     if (result.isSignedIn()) {
-      this.authStatusResult.setStatus(AuthStatusResult.OK);
-      this.authStatusResult.setUser(result.getUser());
+      this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
+      this.copilotStatusResult.setUser(result.getUser());
     }
     return result;
   }
@@ -65,10 +65,10 @@ public class AuthStatusManager {
    * @throws ExecutionException if the sign out process fails due to an execution error
    * @throws InterruptedException if the sign out process is interrupted
    */
-  public AuthStatusResult signOut() throws InterruptedException, ExecutionException {
-    AuthStatusResult result = connection.signOut().get();
+  public CopilotStatusResult signOut() throws InterruptedException, ExecutionException {
+    CopilotStatusResult result = connection.signOut().get();
     if (!result.isSignedIn()) {
-      this.authStatusResult.setStatus(AuthStatusResult.NOT_SIGNED_IN);
+      this.copilotStatusResult.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
     }
     return result;
   }
@@ -77,19 +77,19 @@ public class AuthStatusManager {
    * Check the login status for current machine.
    */
   public void checkStatus() {
-    CompletableFuture<AuthStatusResult> statusFuture = this.connection.checkStatus(false);
+    CompletableFuture<CopilotStatusResult> statusFuture = this.connection.checkStatus(false);
 
     statusFuture.orTimeout(CHECK_STATUS_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).thenAccept(result -> {
-      this.authStatusResult = result;
+      this.copilotStatusResult = result;
     }).exceptionally(ex -> {
       // TODO: log & send telemetry
-      this.authStatusResult.setStatus(AuthStatusResult.ERROR);
+      this.copilotStatusResult.setStatus(CopilotStatusResult.ERROR);
       
       return null;
     });
   }
 
-  public AuthStatusResult getAuthStatusResult() {
-    return this.authStatusResult;
+  public CopilotStatusResult getCopilotStatusResult() {
+    return this.copilotStatusResult;
   }
 }

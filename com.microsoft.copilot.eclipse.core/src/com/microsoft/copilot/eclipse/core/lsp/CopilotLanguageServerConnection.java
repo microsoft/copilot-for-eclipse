@@ -9,11 +9,11 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.services.LanguageServer;
 
-import com.microsoft.copilot.eclipse.core.AuthStatusManager;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
+import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
@@ -65,8 +65,8 @@ public class CopilotLanguageServerConnection {
   /**
    * Check the login status for current machine.
    */
-  public CompletableFuture<AuthStatusResult> checkStatus(Boolean localCheckOnly) {
-    Function<LanguageServer, CompletableFuture<AuthStatusResult>> fn = server -> {
+  public CompletableFuture<CopilotStatusResult> checkStatus(Boolean localCheckOnly) {
+    Function<LanguageServer, CompletableFuture<CopilotStatusResult>> fn = server -> {
       CheckStatusParams param = new CheckStatusParams();
       param.setLocalChecksOnly(localCheckOnly);
       return ((CopilotLanguageServer) server).checkStatus(param);
@@ -84,7 +84,7 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signInInitiate()} method instead.
+   * Please use the {@link CopilotStatusManager#signInInitiate()} method instead.
    * </p>
    * Initiate the sign in process.
    */
@@ -95,12 +95,12 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signInConfirm()} method instead.
+   * Please use the {@link CopilotStatusManager#signInConfirm()} method instead.
    * </p>
    * Confirm the sign in process.
    */
-  public CompletableFuture<AuthStatusResult> signInConfirm(String userCode) {
-    Function<LanguageServer, CompletableFuture<AuthStatusResult>> fn = (server) -> {
+  public CompletableFuture<CopilotStatusResult> signInConfirm(String userCode) {
+    Function<LanguageServer, CompletableFuture<CopilotStatusResult>> fn = (server) -> {
       SignInConfirmParams param = new SignInConfirmParams(userCode);
       return ((CopilotLanguageServer) server).signInConfirm(param);
     };
@@ -108,12 +108,12 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signOut()} method instead.
+   * Please use the {@link CopilotStatusManager#signOut()} method instead.
    * </p>
    * Sign out from the GitHub Copilot.
    */
-  public CompletableFuture<AuthStatusResult> signOut() {
-    Function<LanguageServer, CompletableFuture<AuthStatusResult>> fn = (server) -> ((CopilotLanguageServer) server)
+  public CompletableFuture<CopilotStatusResult> signOut() {
+    Function<LanguageServer, CompletableFuture<CopilotStatusResult>> fn = (server) -> ((CopilotLanguageServer) server)
         .signOut(new NullParams());
     return this.languageServerWrapper.execute(fn);
   }

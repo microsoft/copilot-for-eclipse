@@ -13,9 +13,9 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.handlers.IHandlerService;
 
-import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
+import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -25,17 +25,17 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class ShowStatusBarMenuHandler extends AbstractHandler {
 
   private IHandlerService handlerService;
-  private AuthStatusManager authStatusManager;
+  private CopilotStatusManager copilotStatusManager;
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     handlerService = HandlerUtil.getActiveWorkbenchWindow(event).getService(IHandlerService.class);
-    authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
+    copilotStatusManager = CopilotCore.getPlugin().getCopilotStatusManager();
 
     MenuManager menuManager = new MenuManager();
     addStatusAction(menuManager);
     
-    if (!authStatusManager.getAuthStatusResult().isLoading()) {
+    if (!copilotStatusManager.getCopilotStatusResult().isLoading()) {
       menuManager.add(new Separator());
       addSignInOrSignOutAction(menuManager);
     }
@@ -47,25 +47,25 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
   }
 
   private void addStatusAction(MenuManager menuManager) {
-    String signInStatus = getSignInStatusBasedOnAuthResult(authStatusManager.getAuthStatusResult());
+    String signInStatus = getSignInStatusBasedOnAuthResult(copilotStatusManager.getCopilotStatusResult());
     String signInStatusTitle = Messages.menu_signInStatus + ": " + signInStatus;
 
     MenuActionFactory.createMenuAction(menuManager, signInStatusTitle, handlerService, signInStatus, false);
   }
 
-  private String getSignInStatusBasedOnAuthResult(AuthStatusResult authStatusResult) {
-    switch (authStatusResult.getStatus()) {
-      case AuthStatusResult.OK:
+  private String getSignInStatusBasedOnAuthResult(CopilotStatusResult copilotStatusResult) {
+    switch (copilotStatusResult.getStatus()) {
+      case CopilotStatusResult.OK:
         return Messages.menu_signInStatus_ready;
-      case AuthStatusResult.ERROR:
+      case CopilotStatusResult.ERROR:
         return Messages.menu_signInStatus_unknownError;
-      case AuthStatusResult.LOADING:
+      case CopilotStatusResult.LOADING:
         return Messages.menu_signInStatus_loading;
-      case AuthStatusResult.NOT_SIGNED_IN:
+      case CopilotStatusResult.NOT_SIGNED_IN:
         return Messages.menu_signInStatus_notSignedInToGitHub;
-      case AuthStatusResult.WARNING:
+      case CopilotStatusResult.WARNING:
         return Messages.menu_signInStatus_agentWarning;
-      case AuthStatusResult.NOT_AUTHORIZED:
+      case CopilotStatusResult.NOT_AUTHORIZED:
         return Messages.menu_signInStatus_notAuthorized;
       default:
         return Messages.menu_signInStatus_loading;
@@ -73,7 +73,7 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
   }
 
   private void addSignInOrSignOutAction(MenuManager menuManager) {
-    if (authStatusManager.getAuthStatusResult().isSignedIn()) {
+    if (copilotStatusManager.getCopilotStatusResult().isSignedIn()) {
       ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signInIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);

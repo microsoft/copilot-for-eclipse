@@ -13,65 +13,65 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 
 @ExtendWith(MockitoExtension.class)
-class AuthStatusManagerTests {
+class CopilotStatusManagerTests {
 
   @Mock
   CopilotLanguageServerConnection mockConnection;
-  AuthStatusManager authStatusManager;
+  CopilotStatusManager copilotStatusManager;
 
   @BeforeEach
   public void setUp() {
-    authStatusManager = new AuthStatusManager(mockConnection);
+    copilotStatusManager = new CopilotStatusManager(mockConnection);
   }
 
   @Test
-  void testAuthStatusResultOnSuccess() {
-    AuthStatusResult expectedResult = new AuthStatusResult();
-    expectedResult.setStatus(AuthStatusResult.OK);
+  void testCopilotStatusResultOnSuccess() {
+    CopilotStatusResult expectedResult = new CopilotStatusResult();
+    expectedResult.setStatus(CopilotStatusResult.OK);
     when(mockConnection.checkStatus(false)).thenReturn(CompletableFuture.completedFuture(expectedResult));
 
-    authStatusManager.checkStatus();
+    copilotStatusManager.checkStatus();
 
-    assertEquals(AuthStatusResult.OK, authStatusManager.getAuthStatusResult().getStatus());
+    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatusResult().getStatus());
   }
 
   @Test
   void testCheckStatusLoadingWithDelay() throws InterruptedException {
     String mockedUser = "mockedUser";
     // Arrange
-    AuthStatusResult expectedResult = new AuthStatusResult();
-    expectedResult.setStatus(AuthStatusResult.OK);
+    CopilotStatusResult expectedResult = new CopilotStatusResult();
+    expectedResult.setStatus(CopilotStatusResult.OK);
     expectedResult.setUser(mockedUser);
-    CompletableFuture<AuthStatusResult> future = new CompletableFuture<>();
+    CompletableFuture<CopilotStatusResult> future = new CompletableFuture<>();
 
     when(mockConnection.checkStatus(false)).thenReturn(future);
 
     // Act
-    authStatusManager.checkStatus();
+    copilotStatusManager.checkStatus();
 
     // Assert initial status is LOADING
-    assertEquals(AuthStatusResult.LOADING, authStatusManager.getAuthStatusResult().getStatus());
+    assertEquals(CopilotStatusResult.LOADING, copilotStatusManager.getCopilotStatusResult().getStatus());
 
     future.complete(expectedResult);
 
     // Assert final status is OK
-    assertEquals(AuthStatusResult.OK, authStatusManager.getAuthStatusResult().getStatus());
-    assertEquals(mockedUser, authStatusManager.getAuthStatusResult().getUser());
+    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatusResult().getStatus());
+    assertEquals(mockedUser, copilotStatusManager.getCopilotStatusResult().getUser());
   }
 
   @Test
   void testCheckStatusError() {
-    CompletableFuture<AuthStatusResult> future = new CompletableFuture<>();
+    CompletableFuture<CopilotStatusResult> future = new CompletableFuture<>();
     future.completeExceptionally(new CompletionException(new Exception("Some other error")));
 
     when(mockConnection.checkStatus(false)).thenReturn(future);
 
-    authStatusManager.checkStatus();
+    copilotStatusManager.checkStatus();
 
-    assertEquals(AuthStatusResult.ERROR, authStatusManager.getAuthStatusResult().getStatus());
+    assertEquals(CopilotStatusResult.ERROR, copilotStatusManager.getCopilotStatusResult().getStatus());
   }
 
 }

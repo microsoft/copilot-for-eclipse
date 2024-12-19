@@ -10,8 +10,8 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 
-import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;
@@ -26,13 +26,13 @@ public class SignInHandler extends AbstractHandler {
 
   private static final long SIGNIN_TIMEOUT_MILLIS = 180000L;
 
-  private AuthStatusManager authStatusManager;
+  private CopilotStatusManager copilotStatusManager;
 
   /**
    * Initialize the Copilot Language Server for the SignInHandler.
    */
   public SignInHandler() {
-    this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
+    this.copilotStatusManager = CopilotCore.getPlugin().getCopilotStatusManager();
   }
 
   @Override
@@ -55,7 +55,7 @@ public class SignInHandler extends AbstractHandler {
   }
 
   private SignInInitiateResult initiateSignIn() throws Exception {
-    return this.authStatusManager.signInInitiate();
+    return this.copilotStatusManager.signInInitiate();
   }
 
   private void showAlreadySignedInMessage(Shell shell) {

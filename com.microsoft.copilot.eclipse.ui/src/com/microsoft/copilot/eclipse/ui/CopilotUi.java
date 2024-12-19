@@ -7,7 +7,10 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
+import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.completion.CompletionStatusListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -20,6 +23,7 @@ public class CopilotUi extends Plugin {
   private static final int RETRY_COUNT = 30;
   private static CopilotUi COPILOT_UI_PLUGIN = null;
 
+  private CompletionStatusListener completionStatusListener;
   private EditorLifecycleListener editorLifecycleListener;
   private EditorsManager editorsManager;
 
@@ -55,8 +59,10 @@ public class CopilotUi extends Plugin {
 
     this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider());
     this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
+    this.completionStatusListener = new CompletionStatusListener();
 
     registerPartListener();
+    registerCompletionListener();
 
     // Initialize the completion handler for the active editor in case we miss the event
     // to initialize it.
@@ -82,6 +88,10 @@ public class CopilotUi extends Plugin {
     }
   }
 
+  private void registerCompletionListener() {
+    CopilotCore.getPlugin().getCompletionProvider().addCompletionListener(this.completionStatusListener);
+  }
+
   private void initCompletionHandlerForActiveEditor() {
     IEditorPart editorPart = SwtUtils.getActiveEditorPart();
     if (editorPart != null) {
@@ -94,6 +104,10 @@ public class CopilotUi extends Plugin {
     for (IWorkbenchWindow window : windows) {
       window.getPartService().removePartListener(this.editorLifecycleListener);
     }
+  }
+  
+  private void unregisterCompletionListener() {
+    CopilotCore.getPlugin().getCompletionProvider().removeCompletionListener(this.completionStatusListener);
   }
 
 }

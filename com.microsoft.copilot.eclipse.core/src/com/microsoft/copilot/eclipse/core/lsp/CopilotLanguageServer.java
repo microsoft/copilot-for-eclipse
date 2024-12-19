@@ -5,10 +5,10 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageServer;
 
-import com.microsoft.copilot.eclipse.core.lsp.protocol.AuthStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
@@ -25,7 +25,7 @@ public interface CopilotLanguageServer extends LanguageServer {
    * Check the login status for current machine.
    */
   @JsonRequest
-  CompletableFuture<AuthStatusResult> checkStatus(CheckStatusParams param);
+  CompletableFuture<CopilotStatusResult> checkStatus(CheckStatusParams param);
 
   /**
    * Get single completion for the given parameters.
@@ -43,13 +43,13 @@ public interface CopilotLanguageServer extends LanguageServer {
    * Confirm the sign in process.
    */
   @JsonRequest
-  CompletableFuture<AuthStatusResult> signInConfirm(SignInConfirmParams param);
+  CompletableFuture<CopilotStatusResult> signInConfirm(SignInConfirmParams param);
 
   /**
    * Sign out the current user.
    */
   @JsonRequest
-  CompletableFuture<AuthStatusResult> signOut(NullParams params);
+  CompletableFuture<CopilotStatusResult> signOut(NullParams params);
 
   /**
    * Notify the language server that the completion was shown.
