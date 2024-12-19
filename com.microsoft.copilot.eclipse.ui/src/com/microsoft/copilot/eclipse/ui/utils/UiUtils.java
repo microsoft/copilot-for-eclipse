@@ -91,4 +91,11 @@ public class UiUtils {
   public static int modelOffset2WidgetOffset(ITextViewer textViewer, int offset) {
     return textViewer instanceof ITextViewerExtension5 extension ? extension.modelOffset2WidgetOffset(offset) : offset;
   }
+  
+  /**
+   * Builds an image descriptor from a PNG file at the given path.
+   */
+  public static final ImageDescriptor buildImageDescriptorFromPngPath(String path) {
+    return ImageDescriptor.createFromURL(UiUtils.class.getResource(path));
+  }
 }

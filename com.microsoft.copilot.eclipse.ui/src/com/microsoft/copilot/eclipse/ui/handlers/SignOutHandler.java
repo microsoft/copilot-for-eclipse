@@ -19,14 +19,12 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  */
 public class SignOutHandler extends AbstractHandler {
 
-  private CopilotLanguageServerConnection languageServer;
   private AuthStatusManager authStatusManager;
 
   /**
    * Initialize the Copilot Language Server and Auth Status Manager for the SignOutHandler.
    */
   public SignOutHandler() {
-    this.languageServer = CopilotCore.getPlugin().getCopilotLanguageServer();
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
   }
 
@@ -34,7 +32,7 @@ public class SignOutHandler extends AbstractHandler {
   public Object execute(ExecutionEvent event) throws ExecutionException {
     Shell shell = SwtUtils.getShellFromEvent(event);
     try {
-      AuthStatusResult result = this.languageServer.signOut().get();
+      AuthStatusResult result = authStatusManager.signOut();
       if (!result.isSignedIn()) {
         showSignOutMessage(shell);
         authStatusManager.checkStatus();

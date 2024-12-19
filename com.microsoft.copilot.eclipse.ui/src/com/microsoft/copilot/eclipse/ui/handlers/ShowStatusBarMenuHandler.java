@@ -25,14 +25,13 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class ShowStatusBarMenuHandler extends AbstractHandler {
 
   private IHandlerService handlerService;
-  private ImageDescriptor icon;
   private AuthStatusManager authStatusManager;
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     handlerService = HandlerUtil.getActiveWorkbenchWindow(event).getService(IHandlerService.class);
     authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
-    icon = ImageDescriptor.createFromURL(UiUtils.class.getResource("/icons/copilot.png"));
+
     MenuManager menuManager = new MenuManager();
     addStatusAction(menuManager);
     
@@ -75,10 +74,12 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
 
   private void addSignInOrSignOutAction(MenuManager menuManager) {
     if (authStatusManager.getAuthStatusResult().isSignedIn()) {
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, icon, handlerService,
+      ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signInIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);
     } else {
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, icon, handlerService,
+      ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, signOutIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signIn", true);
     }
   }

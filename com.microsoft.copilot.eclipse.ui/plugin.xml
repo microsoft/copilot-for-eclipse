@@ -17,7 +17,7 @@
 				id="com.microsoft.copilot.eclipse.ui.statusBar">
 				<command
 					commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-					icon="icons/copilot.png"
+					icon="icons/gitHub_copilot_signed_in_blue.png"
 					style="push">
 				</command>
 			</toolbar>

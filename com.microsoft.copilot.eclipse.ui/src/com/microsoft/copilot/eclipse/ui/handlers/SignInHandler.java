@@ -12,7 +12,6 @@ import org.eclipse.swt.widgets.Shell;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;
@@ -27,14 +26,12 @@ public class SignInHandler extends AbstractHandler {
 
   private static final long SIGNIN_TIMEOUT_MILLIS = 180000L;
 
-  private CopilotLanguageServerConnection languageServer;
   private AuthStatusManager authStatusManager;
 
   /**
    * Initialize the Copilot Language Server for the SignInHandler.
    */
   public SignInHandler() {
-    this.languageServer = CopilotCore.getPlugin().getCopilotLanguageServer();
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
   }
 
