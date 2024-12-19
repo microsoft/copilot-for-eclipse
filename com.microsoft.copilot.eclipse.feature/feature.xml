@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.microsoft.copilot.eclipse.feature"
+      label="GitHub Copilot for Eclipse"
+      version="0.1.0.qualifier">
+
+    <plugin
+         id="com.microsoft.copilot.eclipse.core"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+    <plugin
+         id="com.microsoft.copilot.eclipse.ui"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+</feature>

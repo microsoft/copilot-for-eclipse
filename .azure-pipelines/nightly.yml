@@ -1,0 +1,84 @@
+name: $(Date:yyyyMMdd).$(Rev:r)
+variables:
+  - name: Codeql.Enabled
+    value: true
+resources:
+  repositories:
+    - repository: self
+      type: git
+      ref: refs/heads/main
+    - repository: MicroBuildTemplate
+      type: git
+      name: 1ESPipelineTemplates/MicroBuildTemplate
+trigger: none
+extends:
+  template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
+  parameters:
+    pool:
+      os: linux
+      name: 1ES_JavaTooling_Pool
+      image: 1ES_JavaTooling_Ubuntu-2004
+    sdl:
+      sourceAnalysisPool:
+        name: 1ES_JavaTooling_Pool
+        image: 1ES_JavaTooling_Windows_2022
+        os: windows
+    stages:
+      - stage: Build
+        jobs:
+          - job: Build
+            displayName: GitHub-Copilot-Eclipse-Nightly
+            templateContext:
+              outputs:
+                - output: pipelineArtifact
+                  artifactName: plugin
+                  targetPath: '$(Build.ArtifactStagingDirectory)/plugin'
+                  displayName: "Publish Artifact: plugin"
+            steps:
+              - checkout: self
+                fetchTags: false
+
+              - task: JavaToolInstaller@0
+                displayName: Use Java 17
+                inputs:
+                  versionSpec: "17"
+                  jdkArchitectureOption: x64
+                  jdkSourceOption: PreInstalled
+
+              - task: UseNode@1
+                displayName: Use Node 20.x
+                inputs:
+                  version: '20.x'
+
+              - bash: npm i
+                workingDirectory: com.microsoft.copilot.eclipse.core/copilot-agent
+                displayName: Install Copilot LS
+
+              - bash: ./mvnw clean package
+                displayName: 'Run Maven Clean and Package'
+
+              # TODO: support code sign
+              - bash: |
+                  mkdir -p ./artifacts/eclipse/
+                  cp ./com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository*.zip ./artifacts/eclipse/GithubCopilotForEclipse.zip
+
+              #     unzip ./artifacts/eclipse/GithubCopilotForEclipse.zip "**/*.jar" "*.jar" -d ./artifacts/eclipse/folder
+              #     rm  ./artifacts/eclipse/GithubCopilotForEclipse.zip
+
+              #     ## Workaround: Remove MD5/SHA256 Validation in artifacts.xml
+              #     cd ./artifacts/eclipse/folder
+              #     unzip artifacts.jar -d ./artifacts
+              #     rm artifacts.jar
+              #     cd artifacts
+              #     sed -i -E '/download\.md5|checksum/d' ./artifacts.xml
+              #     zip -R ./artifacts.jar * **/*
+              #     mv ./artifacts.jar ../artifacts.jar
+              #     cd ..
+              #     rm -rf ./artifacts
+
+              - task: CopyFiles@2
+                displayName: Copy plugin zip
+                inputs:
+                  Contents: |
+                    artifacts/eclipse/GithubCopilotForEclipse.zip
+                  TargetFolder: '$(Build.ArtifactStagingDirectory)/plugin'
