@@ -17,7 +17,7 @@
 				id="com.microsoft.copilot.eclipse.ui.statusBar">
 				<command
 					commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-					icon="icons/gitHub_copilot_signed_in_blue.png"
+					icon="icons/github_copilot_signed_in_blue.png"
 					style="push">
 				</command>
 			</toolbar>
@@ -28,17 +28,17 @@
 	<extension
 		point="org.eclipse.ui.commands">
 		<command
-              id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-              name="%command.copilotForEclipsePlugin.name">
-        </command>
-        <command
-              id="com.microsoft.copilot.eclipse.commands.signIn"
-              name="%command.signInToGitHub.name">
-        </command>
-        <command
-              id="com.microsoft.copilot.eclipse.commands.signOut"
-              name="%command.signOutFromGitHub.name">
-        </command>
+			  id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
+			  name="%command.copilotForEclipsePlugin.name">
+		</command>
+		<command
+			  id="com.microsoft.copilot.eclipse.commands.signIn"
+			  name="%command.signInToGitHub.name">
+		</command>
+		<command
+			  id="com.microsoft.copilot.eclipse.commands.signOut"
+			  name="%command.signOutFromGitHub.name">
+		</command>
 		<command
 			id="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion"
 			name="%command.triggerInlineSuggestions.name">
@@ -60,14 +60,14 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.ShowStatusBarMenuHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.showStatusBarMenu">
 		</handler>
-        <handler
-              class="com.microsoft.copilot.eclipse.ui.handlers.SignInHandler"
-              commandId="com.microsoft.copilot.eclipse.commands.signIn">
-        </handler>
-        <handler
-              class="com.microsoft.copilot.eclipse.ui.handlers.SignOutHandler"
-              commandId="com.microsoft.copilot.eclipse.commands.signOut">
-        </handler>
+		<handler
+			  class="com.microsoft.copilot.eclipse.ui.handlers.SignInHandler"
+			  commandId="com.microsoft.copilot.eclipse.commands.signIn">
+		</handler>
+		<handler
+			  class="com.microsoft.copilot.eclipse.ui.handlers.SignOutHandler"
+			  commandId="com.microsoft.copilot.eclipse.commands.signOut">
+		</handler>
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.TriggerInlineSuggestionHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.triggerInlineSuggestion">

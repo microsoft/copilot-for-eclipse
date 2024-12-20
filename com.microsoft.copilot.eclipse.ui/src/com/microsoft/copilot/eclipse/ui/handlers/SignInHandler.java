@@ -88,7 +88,7 @@ public class SignInHandler extends AbstractHandler {
   }
 
   private void showSignInSuccessMessage(Shell shell) {
-    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_gitHubCopilot,
+    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
         Messages.signInHandler_msgDialog_signInSuccess);
   }
 
@@ -98,7 +98,7 @@ public class SignInHandler extends AbstractHandler {
       msg += ": " + status.getMessage();
     }
     msg += ". ";
-    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_gitHubCopilot,
+    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
         msg + Messages.signInHandler_msgDialog_signInFailedTryAgain);
   }
 

@@ -54,7 +54,7 @@ public class SignOutHandler extends AbstractHandler {
   }
 
   private void showSignOutMessage(Shell shell) {
-    MessageDialog.openInformation(shell, Messages.signOutHandler_msgDialog_gitHubCopilot,
+    MessageDialog.openInformation(shell, Messages.signOutHandler_msgDialog_githubCopilot,
         Messages.signOutHandler_msgDialog_signOutSuccess);
   }
 

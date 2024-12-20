@@ -66,7 +66,7 @@ public class SignInDialog extends MessageDialog {
 
   private void createWebsiteSection(Composite composite) {
     Label websiteLabel = new Label(composite, SWT.NONE);
-    websiteLabel.setText(Messages.signInDialog_info_gitHubWebSitePrefix);
+    websiteLabel.setText(Messages.signInDialog_info_githubWebSitePrefix);
     Link websiteLink = new Link(composite, SWT.NONE);
     websiteLink.setText("<a>" + this.signInInitiateResult.getVerificationUri() + "</a>");
     websiteLink.addSelectionListener(new SelectionAdapter() {
