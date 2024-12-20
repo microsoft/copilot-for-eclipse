@@ -43,7 +43,9 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   @Override
   public void start() throws IOException {
-    Path binary = findBinary();
+    // load lsp binary
+    // call normalize to remove any relative path components and avoid "FILE_PATH_TOO_LONG" error
+    Path binary = findBinary().normalize();
     if (binary == null) {
       throw new IOException("Could not find the language server binary");
     }

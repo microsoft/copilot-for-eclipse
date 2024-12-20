@@ -151,6 +151,7 @@
         <setEntry value="org.eclipse.ui.intro@default:default"/>
         <setEntry value="org.eclipse.ui.navigator.resources@default:default"/>
         <setEntry value="org.eclipse.ui.navigator@default:default"/>
+        <setEntry value="org.eclipse.ui.views.log@default:default"/>
         <setEntry value="org.eclipse.ui.views.properties.tabbed@default:default"/>
         <setEntry value="org.eclipse.ui.views@default:default"/>
         <setEntry value="org.eclipse.ui.win32@default:default"/>

@@ -11,6 +11,7 @@ import org.eclipse.lsp4e.LanguageServiceAccessor;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
+import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
@@ -24,6 +25,7 @@ public class CopilotCore extends Plugin {
   private CompletionProvider completionProvider;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
+  public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
 
   /**
    * Creates the Copilot core plugin. The plugin is created automatically by the Eclipse framework. Clients must not
