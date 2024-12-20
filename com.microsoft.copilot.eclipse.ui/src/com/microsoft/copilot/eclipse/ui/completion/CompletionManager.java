@@ -142,10 +142,10 @@ public class CompletionManager implements CompletionListener, PaintListener {
     String remainingLines = this.completions.getRemainingLines();
     if (StringUtils.isNotBlank(remainingLines)) {
       int lineHeight = styledText.getLineHeight();
-      int fontHeightt = gc.getFontMetrics().getHeight();
+      int fontHeight = gc.getFontMetrics().getHeight();
       int x = styledText.getLeftMargin();
       Point offsetLocation = styledText.getLocationAtOffset(widgetOffset);
-      int y = offsetLocation.y + lineHeight * 2 - fontHeightt;
+      int y = offsetLocation.y + lineHeight * 2 - fontHeight;
       gc.drawText(remainingLines, x, y, true);
     }
 

@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.completion;
 
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.core.runtime.IStatus;
@@ -8,10 +9,12 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.lsp4j.Position;
 
+import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 
 /**
  * Provider for inline completion.
@@ -19,13 +22,14 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 public class CompletionProvider implements IJobChangeListener {
 
   private CompletionJob completionJob;
-
   private Set<CompletionListener> completionListeners;
+  private CopilotStatusManager statusManager;
 
   /**
    * Creates a new completion provider.
    */
-  public CompletionProvider(CopilotLanguageServerConnection lsConnection) {
+  public CompletionProvider(CopilotLanguageServerConnection lsConnection, CopilotStatusManager statusManager) {
+    this.statusManager = statusManager;
     this.completionJob = new CompletionJob(lsConnection);
     this.completionJob.addJobChangeListener(this);
     this.completionListeners = new LinkedHashSet<>();
@@ -39,6 +43,9 @@ public class CompletionProvider implements IJobChangeListener {
    * @param documentVersion the version of the document.
    */
   public void triggerCompletion(String uriString, Position position, int documentVersion) {
+    if (!Objects.equals(statusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
+      return;
+    }
     this.completionJob.cancel();
     this.completionJob.setCompletionParams(null);
     CompletionDocument completionDoc = new CompletionDocument(uriString, position);

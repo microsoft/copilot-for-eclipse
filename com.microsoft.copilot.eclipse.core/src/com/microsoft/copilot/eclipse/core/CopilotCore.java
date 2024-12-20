@@ -65,8 +65,8 @@ public class CopilotCore extends Plugin {
 
       LanguageServerWrapper wrapper = LanguageServiceAccessor.startLanguageServer(serverDef);
       this.copilotLanguageServer = new CopilotLanguageServerConnection(wrapper);
-      this.completionProvider = new CompletionProvider(this.copilotLanguageServer);
       this.copilotStatusManager = new CopilotStatusManager(this.copilotLanguageServer);
+      this.completionProvider = new CompletionProvider(this.copilotLanguageServer, copilotStatusManager);
 
       this.copilotStatusManager.checkStatus();
     };

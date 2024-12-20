@@ -18,7 +18,7 @@ public class CopilotStatusManager {
   private CopilotStatusResult copilotStatusResult;
 
   private static final int CHECK_STATUS_TIMEOUT_MILLIS = 3000;
-  
+
   /**
    * Constructor for the CopilotStatusManager.
    *
@@ -32,7 +32,7 @@ public class CopilotStatusManager {
 
   /**
    * Initiate the sign in process.
-
+   *
    * @throws ExecutionException if the sign in initiate process fails due to an execution error
    * @throws InterruptedException if the sign in initiate process is interrupted
    */
@@ -46,7 +46,7 @@ public class CopilotStatusManager {
 
   /**
    * Confirm the sign in process.
-
+   *
    * @throws ExecutionException if the sign in process fails due to an execution error
    * @throws InterruptedException if the sign in process is interrupted
    */
@@ -61,7 +61,7 @@ public class CopilotStatusManager {
 
   /**
    * Sign out from the GitHub Copilot.
-
+   *
    * @throws ExecutionException if the sign out process fails due to an execution error
    * @throws InterruptedException if the sign out process is interrupted
    */
@@ -84,12 +84,18 @@ public class CopilotStatusManager {
     }).exceptionally(ex -> {
       // TODO: log & send telemetry
       this.copilotStatusResult.setStatus(CopilotStatusResult.ERROR);
-      
+
       return null;
     });
   }
 
-  public CopilotStatusResult getCopilotStatusResult() {
-    return this.copilotStatusResult;
+  /**
+   * Get the current status of the copilot.
+   */
+  public String getCopilotStatus() {
+    if (this.copilotStatusResult == null) {
+      return CopilotStatusResult.LOADING;
+    }
+    return this.copilotStatusResult.getStatus();
   }
 }

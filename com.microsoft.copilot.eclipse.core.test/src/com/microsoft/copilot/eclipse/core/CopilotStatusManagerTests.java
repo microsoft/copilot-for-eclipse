@@ -35,7 +35,7 @@ class CopilotStatusManagerTests {
 
     copilotStatusManager.checkStatus();
 
-    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatusResult().getStatus());
+    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatus());
   }
 
   @Test
@@ -53,13 +53,12 @@ class CopilotStatusManagerTests {
     copilotStatusManager.checkStatus();
 
     // Assert initial status is LOADING
-    assertEquals(CopilotStatusResult.LOADING, copilotStatusManager.getCopilotStatusResult().getStatus());
+    assertEquals(CopilotStatusResult.LOADING, copilotStatusManager.getCopilotStatus());
 
     future.complete(expectedResult);
 
     // Assert final status is OK
-    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatusResult().getStatus());
-    assertEquals(mockedUser, copilotStatusManager.getCopilotStatusResult().getUser());
+    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatus());
   }
 
   @Test
@@ -71,7 +70,7 @@ class CopilotStatusManagerTests {
 
     copilotStatusManager.checkStatus();
 
-    assertEquals(CopilotStatusResult.ERROR, copilotStatusManager.getCopilotStatusResult().getStatus());
+    assertEquals(CopilotStatusResult.ERROR, copilotStatusManager.getCopilotStatus());
   }
 
 }

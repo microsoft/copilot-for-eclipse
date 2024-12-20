@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.handlers;
 
+import java.util.Objects;
+
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -34,8 +36,8 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
 
     MenuManager menuManager = new MenuManager();
     addStatusAction(menuManager);
-    
-    if (!copilotStatusManager.getCopilotStatusResult().isLoading()) {
+
+    if (!Objects.equals(copilotStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
       menuManager.add(new Separator());
       addSignInOrSignOutAction(menuManager);
     }
@@ -47,14 +49,14 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
   }
 
   private void addStatusAction(MenuManager menuManager) {
-    String signInStatus = getSignInStatusBasedOnAuthResult(copilotStatusManager.getCopilotStatusResult());
+    String signInStatus = getSignInStatusBasedOnAuthResult(copilotStatusManager.getCopilotStatus());
     String signInStatusTitle = Messages.menu_signInStatus + ": " + signInStatus;
 
     MenuActionFactory.createMenuAction(menuManager, signInStatusTitle, handlerService, signInStatus, false);
   }
 
-  private String getSignInStatusBasedOnAuthResult(CopilotStatusResult copilotStatusResult) {
-    switch (copilotStatusResult.getStatus()) {
+  private String getSignInStatusBasedOnAuthResult(String copilotStatus) {
+    switch (copilotStatus) {
       case CopilotStatusResult.OK:
         return Messages.menu_signInStatus_ready;
       case CopilotStatusResult.ERROR:
@@ -73,7 +75,7 @@ public class ShowStatusBarMenuHandler extends AbstractHandler {
   }
 
   private void addSignInOrSignOutAction(MenuManager menuManager) {
-    if (copilotStatusManager.getCopilotStatusResult().isSignedIn()) {
+    if (Objects.equals(copilotStatusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
       ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signInIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);
