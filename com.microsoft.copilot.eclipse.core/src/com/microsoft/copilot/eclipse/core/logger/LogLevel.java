@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.core.enums;
+package com.microsoft.copilot.eclipse.core.logger;
 
 /**
  * The event type enum.

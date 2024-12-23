@@ -17,6 +17,7 @@ import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NameAndVersion;
@@ -99,7 +100,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     try {
       return URIUtil.toFile(URIUtil.toURI(FileLocator.toFileURL(url))).toPath();
     } catch (URISyntaxException | IOException e) {
-      // TODO: Log exception via telemetry.
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return null;
     }
   }

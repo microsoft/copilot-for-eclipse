@@ -8,7 +8,7 @@ import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.Status;
 
 import com.microsoft.copilot.eclipse.core.Constants;
-import com.microsoft.copilot.eclipse.core.enums.LogLevel;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 
 /**
  * The log appender to send info and error messages to the Eclipse console.
@@ -37,7 +37,6 @@ public class EclipseConsoleHandler extends Handler {
     }
     LogLevel lvl = (LogLevel) property[0];
     Object[] params = (Object[]) property[1];
-    // TODO: do we need to add objects in the log message?
     int level = map2StatusLevel(lvl);
     logger.log(new Status(level, Constants.PLUGIN_ID, getFormatedMessage(params), getThrowable(params)));
   }

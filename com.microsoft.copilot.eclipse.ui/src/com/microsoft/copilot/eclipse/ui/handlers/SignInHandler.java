@@ -12,7 +12,9 @@ import org.eclipse.swt.widgets.Shell;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -48,7 +50,6 @@ public class SignInHandler extends AbstractHandler {
       }
     } catch (Exception e) {
       handleSignInException(shell, e);
-      // TODO log & send telemetry
     }
 
     return null;
@@ -106,7 +107,7 @@ public class SignInHandler extends AbstractHandler {
     String msg = Messages.signInHandler_msgDialog_signInFailed;
     if (StringUtils.isNotBlank(e.getMessage())) {
       msg += " " + e.getMessage();
-      // TODO log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, msg, e);
     }
     MessageDialog.openError(shell, Messages.signInHandler_msgDialog_signInFailedFailure, msg);
   }

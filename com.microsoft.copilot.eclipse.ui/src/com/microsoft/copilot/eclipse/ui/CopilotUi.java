@@ -9,6 +9,8 @@ import org.osgi.framework.BundleContext;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
+import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.completion.CompletionStatusListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
@@ -26,6 +28,7 @@ public class CopilotUi extends Plugin {
   private CompletionStatusListener completionStatusListener;
   private EditorLifecycleListener editorLifecycleListener;
   private EditorsManager editorsManager;
+  public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
 
   /**
    * Creates the Copilot ui plugin. The plugin is created automatically by the Eclipse framework. Clients must not call
@@ -53,8 +56,9 @@ public class CopilotUi extends Plugin {
       Thread.sleep(1000);
     }
     if (connection == null) {
-      // TODO: log & send telemetry
-      throw new IllegalStateException("Copilot language server is not ready.");
+      var ex = new IllegalStateException("Failed to start copilot language server.");
+      LOGGER.log(LogLevel.ERROR, ex);
+      throw ex;
     }
 
     this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider());
@@ -105,7 +109,7 @@ public class CopilotUi extends Plugin {
       window.getPartService().removePartListener(this.editorLifecycleListener);
     }
   }
-  
+
   private void unregisterCompletionListener() {
     CopilotCore.getPlugin().getCompletionProvider().removeCompletionListener(this.completionStatusListener);
   }

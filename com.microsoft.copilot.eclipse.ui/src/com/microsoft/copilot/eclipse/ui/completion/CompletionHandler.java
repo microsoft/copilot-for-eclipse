@@ -19,7 +19,9 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -50,23 +52,23 @@ public class CompletionHandler implements ITextListener, CaretListener {
     // if the text viewer is null, we will not register listeners.
     // the side effect is that the completion will not be triggered for this editor.
     if (textViewer == null) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.INFO, "Text viewer is null for editor: " + editor.getTitle());
       return;
     }
     this.document = LSPEclipseUtils.getDocument(editor);
     if (this.document == null) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.INFO, "Document is null for editor: " + editor.getTitle());
       return;
     }
     this.documentUri = LSPEclipseUtils.toUri(document);
     if (this.documentUri == null) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.INFO, "Document URI is null for editor: " + editor.getTitle());
       return;
     }
     try {
       lsConnection.connectDocument(this.document);
     } catch (IOException e) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
       return;
     }
     this.documentVersion = -1;
@@ -100,7 +102,7 @@ public class CompletionHandler implements ITextListener, CaretListener {
       this.completionManager.acceptSuggestion();
       this.document.removePosition(this.triggerPosition);
     } catch (BadLocationException e) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
       return;
     }
     this.clearCompletionRendering();
@@ -187,7 +189,7 @@ public class CompletionHandler implements ITextListener, CaretListener {
     try {
       this.document.removePositionCategory(this.getCategory());
     } catch (BadPositionCategoryException e) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
     }
     this.document.removePositionUpdater(this.positionUpdater);
     if (this.textViewer != null) {

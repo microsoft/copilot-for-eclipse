@@ -8,7 +8,6 @@ import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
-import com.microsoft.copilot.eclipse.core.enums.LogLevel;
 import com.microsoft.copilot.eclipse.core.logger.handlers.EclipseConsoleHandler;
 
 /**

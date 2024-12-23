@@ -9,6 +9,8 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
@@ -56,7 +58,7 @@ public class CompletionJob extends Job {
     } catch (InterruptedException e) {
       return Status.CANCEL_STATUS;
     } catch (ExecutionException e) {
-      // TODO: log & send telemetry
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
     }
     if (monitor.isCanceled()) {

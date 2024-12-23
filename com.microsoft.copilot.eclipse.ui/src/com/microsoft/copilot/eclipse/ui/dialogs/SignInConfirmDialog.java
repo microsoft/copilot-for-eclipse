@@ -12,7 +12,9 @@ import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.swt.widgets.Shell;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 /**
@@ -54,7 +56,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
     try {
       this.run(true, true, task);
     } catch (Exception e) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
     }
   }
 
@@ -75,7 +77,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
           try {
             return CopilotCore.getPlugin().getCopilotStatusManager().signInConfirm(userCode);
           } catch (Exception e) {
-            // TODO: log & send telemetry
+            CopilotUi.LOGGER.log(LogLevel.ERROR, e);
             return null;
           }
         });

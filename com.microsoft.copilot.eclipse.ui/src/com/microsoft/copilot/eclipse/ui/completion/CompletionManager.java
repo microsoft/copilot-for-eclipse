@@ -21,6 +21,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
@@ -77,8 +78,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
       this.provider.triggerCompletion(documentUri.toASCIIString(),
           LSPEclipseUtils.toPosition(position.getOffset(), this.document), documentVersion);
     } catch (BadLocationException e) {
-      CopilotUi.getPlugin().getLog().info("triggerCompletion BadLocationException e 77");
-      // TODO log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
     }
   }
 

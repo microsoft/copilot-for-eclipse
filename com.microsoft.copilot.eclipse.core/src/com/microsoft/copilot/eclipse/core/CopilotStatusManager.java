@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
@@ -82,7 +83,7 @@ public class CopilotStatusManager {
     statusFuture.orTimeout(CHECK_STATUS_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).thenAccept(result -> {
       this.copilotStatusResult = result;
     }).exceptionally(ex -> {
-      // TODO: log & send telemetry
+      CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
       this.copilotStatusResult.setStatus(CopilotStatusResult.ERROR);
 
       return null;

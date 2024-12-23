@@ -18,7 +18,9 @@ import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
  * Utilities for Eclipse UI.
@@ -53,7 +55,7 @@ public class UiUtils {
       IWebBrowser browser = browserSupport.createBrowser(IWorkbenchBrowserSupport.AS_EXTERNAL, null, null, null);
       browser.openURL(new URI(encodedUrl).toURL());
     } catch (Exception e) {
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
       return false;
     }
     return true;
@@ -91,7 +93,7 @@ public class UiUtils {
   public static int modelOffset2WidgetOffset(ITextViewer textViewer, int offset) {
     return textViewer instanceof ITextViewerExtension5 extension ? extension.modelOffset2WidgetOffset(offset) : offset;
   }
-  
+
   /**
    * Builds an image descriptor from a PNG file at the given path.
    */

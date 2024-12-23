@@ -9,7 +9,9 @@ import org.eclipse.swt.widgets.Shell;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -38,7 +40,6 @@ public class SignOutHandler extends AbstractHandler {
       }
     } catch (Exception e) {
       handleSignOutException(shell, e);
-      // TODO: log & send telemetry
     }
 
     return null;
@@ -48,7 +49,7 @@ public class SignOutHandler extends AbstractHandler {
     String msg = Messages.signOutHandler_msgDialog_signOutFailed;
     if (StringUtils.isNotBlank(e.getMessage())) {
       msg += " " + e.getMessage();
-      // TODO: log & send telemetry
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
     }
     MessageDialog.openError(shell, Messages.signOutHandler_msgDialog_signOutFailedFailure, msg);
   }

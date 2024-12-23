@@ -12,6 +12,7 @@ import org.osgi.framework.BundleContext;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
@@ -58,9 +59,10 @@ public class CopilotCore extends Plugin {
       LanguageServersRegistry.LanguageServerDefinition serverDef = LanguageServersRegistry.getInstance()
           .getDefinition(CopilotLanguageServerConnection.SERVER_ID);
       if (serverDef == null) {
-        // TODO: log & send telemetry
-        throw new IllegalStateException(
+        var ex = new IllegalStateException(
             "Language server definition not found for " + CopilotLanguageServerConnection.SERVER_ID);
+        CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
+        throw ex;
       }
 
       LanguageServerWrapper wrapper = LanguageServiceAccessor.startLanguageServer(serverDef);

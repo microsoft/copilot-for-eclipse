@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.eclipse.jdt.annotation.NonNull;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 
 /**
@@ -20,8 +22,9 @@ public class CompletionCollection {
    */
   public CompletionCollection(@NonNull List<CompletionItem> completions, String uriString) {
     if (completions == null || completions.isEmpty()) {
-      throw new IllegalArgumentException("completions cannot be null or empty");
-      // TODO: log & send telemetry
+      var ex = new IllegalArgumentException("completions cannot be null or empty");
+      CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
+      throw ex;
     }
     this.completions = completions;
     this.uriString = uriString;
