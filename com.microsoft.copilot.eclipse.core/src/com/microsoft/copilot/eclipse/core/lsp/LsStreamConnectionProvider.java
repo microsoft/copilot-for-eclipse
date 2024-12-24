@@ -30,7 +30,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   public static final String EDITOR_NAME = "Eclipse";
 
-  public static final String EDITOR_PLUGIN_NAME = "GotHub Copilot for Eclipse";
+  public static final String EDITOR_PLUGIN_NAME = "GitHub Copilot for Eclipse";
 
   @Override
   public Object getInitializationOptions(@Nullable URI rootUri) {
