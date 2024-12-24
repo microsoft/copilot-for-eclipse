@@ -181,10 +181,13 @@ public class CompletionHandler implements ITextListener, CaretListener {
    * Disposes the resources of this completion handler.
    */
   public void dispose() {
-    if (this.completionManager != null) {
-      this.completionManager.dispose();
-      this.completionManager = null;
+    if (this.completionManager == null) {
+      // null manager means the handler is not initialized.
+      return;
     }
+
+    this.completionManager.dispose();
+    this.completionManager = null;
     lsConnection.disconnectDocument(this.documentUri);
     try {
       this.document.removePositionCategory(this.getCategory());
@@ -192,14 +195,12 @@ public class CompletionHandler implements ITextListener, CaretListener {
       CopilotUi.LOGGER.log(LogLevel.ERROR, e);
     }
     this.document.removePositionUpdater(this.positionUpdater);
-    if (this.textViewer != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        if (this.textViewer.getTextWidget() != null) {
-          this.textViewer.getTextWidget().removeCaretListener(this);
-        }
-        this.textViewer.removeTextListener(this);
-      });
-    }
+    SwtUtils.invokeOnDisplayThread(() -> {
+      if (this.textViewer.getTextWidget() != null) {
+        this.textViewer.getTextWidget().removeCaretListener(this);
+      }
+      this.textViewer.removeTextListener(this);
+    });
 
   }
 
