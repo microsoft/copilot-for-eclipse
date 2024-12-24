@@ -1,19 +1,25 @@
-package com.microsoft.copilot.eclipse.ui.completion;
+package com.microsoft.copilot.eclipse.core.completion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobManager;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.microsoft.copilot.eclipse.core.completion.CompletionJob;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
@@ -70,4 +76,28 @@ class CompletionJobTests {
     assertEquals(IStatus.OK, status.getSeverity());
     assertEquals(expectedResult, completionJob.getCompletionResult());
   }
+
+  @Test
+  void testShouldTimeoutWhenCompletionTakesTooLong() throws Exception {
+    when(mockLsConnection.getCompletions(any())).thenAnswer(invocation -> {
+      TimeUnit.SECONDS.sleep(6); // completion will timeout after 5 seconds
+      return new CompletableFuture<>();
+    });
+
+    CompletionJob job = new CompletionJob(mockLsConnection);
+    Position position = new Position(0, 0);
+    CompletionDocument completionDoc = new CompletionDocument("file://test.java", position);
+    completionDoc.setVersion(1);
+    completionDoc.setInsertSpaces(true);
+    completionDoc.setTabSize(4);
+    job.setCompletionParams(new CompletionParams(completionDoc));
+    job.schedule();
+
+    IJobManager jobManager = Job.getJobManager();
+    jobManager.join(CompletionJob.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
+
+    assertEquals(Status.CANCEL_STATUS, job.getResult());
+
+  }
+
 }

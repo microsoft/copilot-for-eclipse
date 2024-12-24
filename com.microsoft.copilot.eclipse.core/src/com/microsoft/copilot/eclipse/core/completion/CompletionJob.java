@@ -2,6 +2,8 @@ package com.microsoft.copilot.eclipse.core.completion;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -20,7 +22,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
  */
 public class CompletionJob extends Job {
 
+  /**
+   * The job family for completion jobs, can be used to find out this completion job.
+   */
   public static final String COMPLETION_JOB_FAMILY = "com.microsoft.copilot.eclipse.completionJobFamily";
+
+  private static final int COMPLETION_TIMEOUT = 5000;
 
   private CompletionResult result;
 
@@ -54,12 +61,16 @@ public class CompletionJob extends Job {
       return Status.CANCEL_STATUS;
     }
     try {
-      this.result = this.lsConnection.getCompletions(params).get();
+      this.result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       return Status.CANCEL_STATUS;
     } catch (ExecutionException e) {
       CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
+    } catch (TimeoutException e) {
+      CopilotCore.LOGGER.log(LogLevel.WARNING,
+          "Completion request timed out after " + COMPLETION_TIMEOUT + " milliseconds");
+      return Status.CANCEL_STATUS;
     }
     if (monitor.isCanceled()) {
       return Status.CANCEL_STATUS;
