@@ -139,8 +139,8 @@ public class CompletionHandler implements ITextListener, CaretListener {
 
   @Override
   public void caretMoved(CaretEvent event) {
-    int caretOffset = UiUtils.getCaretOffset(this.textViewer);
-    this.triggerPosition = new org.eclipse.jface.text.Position(caretOffset);
+    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.caretOffset);
+    this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
 
     // it's guaranteed that the document change event comes earlier than caret
     // change event. See org.eclipse.swt.custom.StyledText#modifyContent()

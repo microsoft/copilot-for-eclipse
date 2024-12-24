@@ -77,21 +77,19 @@ public class UiUtils {
   }
 
   /**
-   * Gets the caret offset of the given text viewer.
-   */
-  public static int getCaretOffset(ITextViewer textViewer) {
-    if (textViewer == null) {
-      return 0;
-    }
-    return textViewer.getSelectedRange().x;
-  }
-
-  /**
    * Returns the widget offset that corresponds to the given offset in the viewer's input document or <code>-1</code> if
    * there is no such offset.
    */
   public static int modelOffset2WidgetOffset(ITextViewer textViewer, int offset) {
     return textViewer instanceof ITextViewerExtension5 extension ? extension.modelOffset2WidgetOffset(offset) : offset;
+  }
+
+  /**
+   * Returns the offset of the viewer's input document that corresponds to the given widget offset or <code>-1</code> if
+   * there is no such offset.
+   */
+  public static int widgetOffset2ModelOffset(ITextViewer textViewer, int offset) {
+    return textViewer instanceof ITextViewerExtension5 extension ? extension.widgetOffset2ModelOffset(offset) : offset;
   }
 
   /**
