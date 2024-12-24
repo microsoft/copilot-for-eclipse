@@ -7,10 +7,8 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.ITextListener;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.swt.custom.CaretEvent;
@@ -29,7 +27,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A class to listen events which are completion related and notify the completion manager to render the ghost text or
  * apply the suggestion to document.
  */
-public class CompletionHandler implements ITextListener, CaretListener {
+public class CompletionHandler implements CaretListener {
 
   private CopilotLanguageServerConnection lsConnection;
   private CompletionProvider provider;
@@ -114,7 +112,6 @@ public class CompletionHandler implements ITextListener, CaretListener {
   void registerListeners() {
     SwtUtils.invokeOnDisplayThread(() -> {
       this.textViewer.getTextWidget().addCaretListener(this);
-      this.textViewer.addTextListener(this);
     });
   }
 
@@ -162,14 +159,6 @@ public class CompletionHandler implements ITextListener, CaretListener {
 
   }
 
-  @Override
-  public void textChanged(TextEvent event) {
-    // this event comes earlier than caret change event. So we should check if the typed characters
-    // are the same as the ghost. Then determine whether a re-redering or a new completion
-    // request is needed.
-    // TODO: check changed text
-  }
-
   /**
    * Get category for the position updater of this document.
    */
@@ -199,7 +188,6 @@ public class CompletionHandler implements ITextListener, CaretListener {
       if (this.textViewer.getTextWidget() != null) {
         this.textViewer.getTextWidget().removeCaretListener(this);
       }
-      this.textViewer.removeTextListener(this);
     });
 
   }
