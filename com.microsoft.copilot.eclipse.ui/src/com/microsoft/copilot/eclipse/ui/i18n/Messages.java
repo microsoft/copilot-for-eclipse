@@ -7,15 +7,17 @@ import org.eclipse.osgi.util.NLS;
  */
 public final class Messages extends NLS {
   private static final String BUNDLE_NAME = "com.microsoft.copilot.eclipse.ui.i18n.messages"; //$NON-NLS-1$
-  public static String menu_signInStatus;
-  public static String menu_signInStatus_ready;
-  public static String menu_signInStatus_loading;
-  public static String menu_signInStatus_notSignedInToGitHub;
-  public static String menu_signInStatus_unknownError;
-  public static String menu_signInStatus_notAuthorized;
-  public static String menu_signInStatus_agentWarning;
+  public static String menu_copilotStatus;
+  public static String menu_copilotStatus_ready;
+  public static String menu_copilotStatus_loading;
+  public static String menu_copilotStatus_completionInProgress;
+  public static String menu_copilotStatus_notSignedInToGitHub;
+  public static String menu_copilotStatus_unknownError;
+  public static String menu_copilotStatus_notAuthorized;
+  public static String menu_copilotStatus_agentWarning;
   public static String menu_signToGitHub;
   public static String menu_signOutFromGitHub;
+  public static String menu_viewFeedbackForum;
   public static String signInDialog_title;
   public static String signInDialog_button_cancel;
   public static String signInDialog_button_copyOpen;

@@ -23,6 +23,7 @@ public class CompletionProvider implements IJobChangeListener {
 
   private CompletionJob completionJob;
   private Set<CompletionListener> completionListeners;
+  private Set<CompletionStatusListener> completionStatusListeners;
   private CopilotStatusManager statusManager;
 
   /**
@@ -33,6 +34,7 @@ public class CompletionProvider implements IJobChangeListener {
     this.completionJob = new CompletionJob(lsConnection);
     this.completionJob.addJobChangeListener(this);
     this.completionListeners = new LinkedHashSet<>();
+    this.completionStatusListeners = new LinkedHashSet<>();
   }
 
   /**
@@ -66,6 +68,13 @@ public class CompletionProvider implements IJobChangeListener {
   public void addCompletionListener(CompletionListener listener) {
     this.completionListeners.add(listener);
   }
+  
+  /**
+   * Register a completion status listener.
+   */
+  public void addCompletionStatusListener(CompletionStatusListener listener) {
+    this.completionStatusListeners.add(listener);
+  }
 
   /**
    * Remove a completion listener.
@@ -73,11 +82,20 @@ public class CompletionProvider implements IJobChangeListener {
   public void removeCompletionListener(CompletionListener listener) {
     this.completionListeners.remove(listener);
   }
+  
+  /**
+   * Unregister a completion status listener.
+   */
+  public void removeCompletionStatusListener(CompletionStatusListener listener) {
+    listener.onCompletionDone();
+    this.completionStatusListeners.remove(listener);
+  }
 
   @Override
   public void aboutToRun(IJobChangeEvent event) {
-    // do nothing
-
+    for (CompletionStatusListener listener : this.completionStatusListeners) {
+      listener.onCompletionAboutToRun();
+    }
   }
 
   @Override
@@ -88,6 +106,10 @@ public class CompletionProvider implements IJobChangeListener {
 
   @Override
   public void done(IJobChangeEvent event) {
+    for (CompletionStatusListener listener : this.completionStatusListeners) {
+      listener.onCompletionDone();
+    }
+
     IStatus jobStatus = this.completionJob.getResult();
     if (jobStatus != null && !jobStatus.isOK()) {
       return;

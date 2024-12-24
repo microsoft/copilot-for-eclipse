@@ -7,6 +7,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
+import com.microsoft.copilot.eclipse.ui.completion.CompletionStatusManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 
 /**
@@ -31,5 +32,9 @@ public abstract class CopilotHandler extends AbstractHandler {
 
   public CopilotLanguageServerConnection getLanguageServerConnection() {
     return CopilotCore.getPlugin().getCopilotLanguageServer();
+  }
+  
+  public CompletionStatusManager getCompletionStatusManager() {
+    return CopilotUi.getPlugin().getCompletionStatusManager();
   }
 }

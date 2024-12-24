@@ -1,0 +1,28 @@
+package com.microsoft.copilot.eclipse.ui.handlers;
+
+import org.eclipse.core.commands.AbstractHandler;
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
+
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+
+/**
+ * Open the Copilot feedback forum in browser.
+ */
+public class ViewFeedbackForumHandler extends AbstractHandler {
+
+  @Override
+  public Object execute(ExecutionEvent event) throws ExecutionException {
+    try {
+      UiUtils.openLink(UiConstants.COPILOT_FEEDBACK_FORUM_URL);
+    } catch (Exception e) {
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+    }
+
+    return null;
+  }
+
+}

@@ -17,4 +17,9 @@ public class UiConstants {
    */
 
   public static final int DEFAULT_GHOST_TEXT_SCALE = 112;
+  
+  /**
+   * The URL constants for the Copilot menu.
+   */
+  public static final String COPILOT_FEEDBACK_FORUM_URL = "https://github.com/orgs/community/discussions/categories/copilot";
 }

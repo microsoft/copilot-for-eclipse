@@ -39,23 +39,17 @@ class CopilotStatusManagerTests {
   }
 
   @Test
-  void testCheckStatusLoadingWithDelay() throws InterruptedException {
+  void testCheckStatusOK() throws InterruptedException {
     String mockedUser = "mockedUser";
     // Arrange
     CopilotStatusResult expectedResult = new CopilotStatusResult();
     expectedResult.setStatus(CopilotStatusResult.OK);
     expectedResult.setUser(mockedUser);
     CompletableFuture<CopilotStatusResult> future = new CompletableFuture<>();
-
     when(mockConnection.checkStatus(false)).thenReturn(future);
-
-    // Act
-    copilotStatusManager.checkStatus();
-
-    // Assert initial status is LOADING
-    assertEquals(CopilotStatusResult.LOADING, copilotStatusManager.getCopilotStatus());
-
     future.complete(expectedResult);
+
+    copilotStatusManager.checkStatus();
 
     // Assert final status is OK
     assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatus());

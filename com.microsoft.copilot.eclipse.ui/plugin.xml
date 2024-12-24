@@ -51,6 +51,10 @@
 			id="com.microsoft.copilot.eclipse.commands.discardSuggestion"
 			name="%command.discardSuggestion.name">
 		</command>
+            <command
+                  id="com.microsoft.copilot.eclipse.commands.viewFeedbackForum"
+                  name="%command.openFeedbackForum.name">
+            </command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -80,6 +84,10 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.DiscardSuggestionHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion">
 		</handler>
+            <handler
+                  class="com.microsoft.copilot.eclipse.ui.handlers.ViewFeedbackForumHandler"
+                  commandId="com.microsoft.copilot.eclipse.commands.viewFeedbackForum">
+            </handler>
 	</extension>
 	
 	<!-- Keyboard shortcut registration -->

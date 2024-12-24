@@ -16,6 +16,8 @@ import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
+import org.eclipse.ui.commands.ICommandService;
+import org.eclipse.ui.menus.UIElement;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
@@ -95,7 +97,17 @@ public class UiUtils {
   /**
    * Builds an image descriptor from a PNG file at the given path.
    */
-  public static final ImageDescriptor buildImageDescriptorFromPngPath(String path) {
+  public static ImageDescriptor buildImageDescriptorFromPngPath(String path) {
     return ImageDescriptor.createFromURL(UiUtils.class.getResource(path));
+  }
+
+  /**
+   * Refreshes the elements of the command with the given ID.
+   */
+  public static void refreshCopilotMenu() {
+    ICommandService commandService = PlatformUI.getWorkbench().getService(ICommandService.class);
+    if (commandService != null) {
+      commandService.refreshElements("com.microsoft.copilot.eclipse.commands.showStatusBarMenu", null);
+    }
   }
 }

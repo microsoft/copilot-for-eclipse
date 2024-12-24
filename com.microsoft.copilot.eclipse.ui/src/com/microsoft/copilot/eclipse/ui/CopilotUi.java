@@ -7,12 +7,10 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
-import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionStatusListener;
+import com.microsoft.copilot.eclipse.ui.completion.CompletionStatusManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -25,7 +23,7 @@ public class CopilotUi extends Plugin {
   private static final int RETRY_COUNT = 30;
   private static CopilotUi COPILOT_UI_PLUGIN = null;
 
-  private CompletionStatusListener completionStatusListener;
+  private CompletionStatusManager completionStatusManager;
   private EditorLifecycleListener editorLifecycleListener;
   private EditorsManager editorsManager;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -63,19 +61,24 @@ public class CopilotUi extends Plugin {
 
     this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider());
     this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
-    this.completionStatusListener = new CompletionStatusListener();
+    this.completionStatusManager = new CompletionStatusManager();
 
     registerPartListener();
-    registerCompletionListener();
+    addCompletionStatusListener();
 
     // Initialize the completion handler for the active editor in case we miss the event
     // to initialize it.
     initCompletionHandlerForActiveEditor();
   }
+  
+  public CompletionStatusManager getCompletionStatusManager() {
+    return completionStatusManager;
+  }
 
   @Override
   public void stop(BundleContext context) throws Exception {
     unregisterPartListener();
+    removeCompletionStatusListener();
     if (this.editorsManager != null) {
       this.editorsManager.dispose();
     }
@@ -92,8 +95,8 @@ public class CopilotUi extends Plugin {
     }
   }
 
-  private void registerCompletionListener() {
-    CopilotCore.getPlugin().getCompletionProvider().addCompletionListener(this.completionStatusListener);
+  private void addCompletionStatusListener() {
+    CopilotCore.getPlugin().getCompletionProvider().addCompletionStatusListener(this.completionStatusManager);
   }
 
   private void initCompletionHandlerForActiveEditor() {
@@ -110,8 +113,8 @@ public class CopilotUi extends Plugin {
     }
   }
 
-  private void unregisterCompletionListener() {
-    CopilotCore.getPlugin().getCompletionProvider().removeCompletionListener(this.completionStatusListener);
+  private void removeCompletionStatusListener() {
+    CopilotCore.getPlugin().getCompletionProvider().removeCompletionStatusListener(this.completionStatusManager);
   }
 
 }

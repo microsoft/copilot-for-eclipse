@@ -28,7 +28,7 @@ public class CopilotStatusManager {
   public CopilotStatusManager(CopilotLanguageServerConnection connection) {
     this.connection = connection;
     this.copilotStatusResult = new CopilotStatusResult();
-    this.copilotStatusResult.setStatus(CopilotStatusResult.LOADING);
+    this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
   }
 
   /**
@@ -72,6 +72,14 @@ public class CopilotStatusManager {
       this.copilotStatusResult.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
     }
     return result;
+  }
+  
+  /**
+   * Set the status to OK.
+   */
+  public CopilotStatusResult setCompletionDone() {
+    this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
+    return this.copilotStatusResult;
   }
 
   /**
