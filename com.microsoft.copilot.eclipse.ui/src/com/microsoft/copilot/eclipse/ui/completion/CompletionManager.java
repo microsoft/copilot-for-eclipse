@@ -57,7 +57,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
     this.documentUri = documentUri;
     this.completions = null;
 
-    this.triggerPosition = new org.eclipse.jface.text.Position(0);
+    this.triggerPosition = new Position(0);
     this.textViewer = textViewer;
     StyledText styledText = textViewer.getTextWidget();
     if (styledText != null) {
@@ -179,16 +179,16 @@ public class CompletionManager implements CompletionListener, PaintListener {
    * @throws BadLocationException if the offset is invalid.
    */
   public void acceptSuggestion() throws BadLocationException {
-    int offset = this.triggerPosition.offset;
-    if (offset < 0) {
+    if (this.completions == null || this.completions.getSize() == 0) {
       return;
     }
-
+    int startOffset = LSPEclipseUtils.toOffset(this.completions.getTriggerPosition(), this.document);
     String text = this.completions.getText();
     if (StringUtils.isEmpty(text)) {
       return;
     }
-    this.document.replace(offset, 0, text);
+    int endOffset = LSPEclipseUtils.toOffset(this.completions.getRange().getEnd(), this.document);
+    this.document.replace(startOffset, endOffset - startOffset, text);
   }
 
   public CompletionCollection getCompletions() {

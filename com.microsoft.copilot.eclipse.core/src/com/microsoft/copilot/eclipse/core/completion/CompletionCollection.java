@@ -3,6 +3,8 @@ package com.microsoft.copilot.eclipse.core.completion;
 import java.util.List;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
@@ -94,6 +96,26 @@ public class CompletionCollection {
    */
   public int getNumberOfLines() {
     return this.getText().split("\n").length;
+  }
+
+  /**
+   * Get the position where the completion was triggered.
+   */
+  public Position getTriggerPosition() {
+    if (this.completions.isEmpty()) {
+      throw new IllegalStateException("completions cannot be empty");
+    }
+    return this.completions.get(index).getPosition();
+  }
+
+  /**
+   * Get the range for the completion.
+   */
+  public Range getRange() {
+    if (this.completions.isEmpty()) {
+      throw new IllegalStateException("completions cannot be empty");
+    }
+    return this.completions.get(index).getRange();
   }
 
   public List<String> getUuids() {
