@@ -127,7 +127,7 @@ public class CompletionHandler implements CaretListener {
    * Clear the completion ghost text.
    */
   public void clearCompletionRendering() {
-    this.completionManager.clearGhostText(this.triggerPosition);
+    this.completionManager.clearGhostText();
   }
 
   public CompletionCollection getCompletions() {

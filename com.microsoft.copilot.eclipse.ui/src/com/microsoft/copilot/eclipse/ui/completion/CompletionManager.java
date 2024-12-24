@@ -85,11 +85,26 @@ public class CompletionManager implements CompletionListener, PaintListener {
   /**
    * Clear the completion.
    */
-  public void clearGhostText(Position position) {
-    this.triggerPosition = position;
+  public void clearGhostText() {
+    if (this.completions == null || this.completions.getSize() == 0) {
+      return;
+    }
+    try {
+      // use completion trigger position if available. this.triggerPosition is the current
+      // cursor position, which may not be the same as the completion trigger position when user
+      // use mouse to move the cursor. In that case, the line vertical indentation might not be
+      // reset correctly.
+      int offset = LSPEclipseUtils.toOffset(this.completions.getTriggerPosition(), this.document);
+      this.triggerPosition = new Position(offset);
+    } catch (BadLocationException e) {
+      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      return;
+    }
     this.completions = null;
     StyledText styledText = textViewer.getTextWidget();
     if (styledText != null) {
+      this.setLineVerticalIndentation(styledText, null,
+          UiUtils.modelOffset2WidgetOffset(textViewer, this.triggerPosition.getOffset()));
       SwtUtils.invokeOnDisplayThread(styledText::redraw, styledText);
     }
 
@@ -153,7 +168,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
 
   private void setLineVerticalIndentation(StyledText styledText, GC gc, int widgetOffset) {
     int height = 0;
-    if (this.completions != null) {
+    if (this.completions != null && gc != null) {
       // Change the height (line vertical indentation) to fit the line of
       // ghost text.
       Point ghostTextExtent = gc.textExtent(this.completions.getText());

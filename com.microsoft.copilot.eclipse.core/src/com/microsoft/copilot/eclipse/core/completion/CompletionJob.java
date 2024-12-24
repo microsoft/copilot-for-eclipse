@@ -27,7 +27,7 @@ public class CompletionJob extends Job {
    */
   public static final String COMPLETION_JOB_FAMILY = "com.microsoft.copilot.eclipse.completionJobFamily";
 
-  private static final int COMPLETION_TIMEOUT = 5000;
+  private static final int COMPLETION_TIMEOUT_MILLIS = 5000;
 
   private CompletionResult result;
 
@@ -61,7 +61,7 @@ public class CompletionJob extends Job {
       return Status.CANCEL_STATUS;
     }
     try {
-      this.result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT, TimeUnit.MILLISECONDS);
+      this.result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       return Status.CANCEL_STATUS;
     } catch (ExecutionException e) {
@@ -69,7 +69,7 @@ public class CompletionJob extends Job {
       return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
     } catch (TimeoutException e) {
       CopilotCore.LOGGER.log(LogLevel.WARNING,
-          "Completion request timed out after " + COMPLETION_TIMEOUT + " milliseconds");
+          "Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
       return Status.CANCEL_STATUS;
     }
     if (monitor.isCanceled()) {
