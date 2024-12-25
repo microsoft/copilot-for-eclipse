@@ -38,6 +38,17 @@ extends:
               - checkout: self
                 fetchTags: false
 
+              - task: UsePythonVersion@0
+                displayName: 'Use Python 3.11.x'
+                inputs:
+                  versionSpec: 3.11.x
+
+              - task: UseDotNet@2
+                displayName: 'Use .NET Core 3.1.x'
+                inputs:
+                  packageType: 'sdk'
+                  version: '3.1.x'
+
               - task: JavaToolInstaller@0
                 displayName: Use Java 17
                 inputs:
@@ -50,6 +61,15 @@ extends:
                 inputs:
                   version: '20.x'
 
+              - task: MicroBuildSigningPlugin@4
+                displayName: 'Install Signing Plugin'
+                inputs:
+                  signType: real
+                  azureSubscription: 'MicroBuild Signing Task (MSEng)'
+                  feedSource: 'https://mseng.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
               - bash: npm i
                 workingDirectory: com.microsoft.copilot.eclipse.core/copilot-agent
                 displayName: Install Copilot LS
@@ -57,24 +77,37 @@ extends:
               - bash: ./mvnw clean package
                 displayName: 'Run Maven Clean and Package'
 
-              # TODO: support code sign
               - bash: |
                   mkdir -p ./artifacts/eclipse/
                   cp ./com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository*.zip ./artifacts/eclipse/GithubCopilotForEclipse.zip
 
-              #     unzip ./artifacts/eclipse/GithubCopilotForEclipse.zip "**/*.jar" "*.jar" -d ./artifacts/eclipse/folder
-              #     rm  ./artifacts/eclipse/GithubCopilotForEclipse.zip
+                  unzip ./artifacts/eclipse/GithubCopilotForEclipse.zip "**/*.jar" "*.jar" -d ./artifacts/eclipse/folder
+                  rm  ./artifacts/eclipse/GithubCopilotForEclipse.zip
 
-              #     ## Workaround: Remove MD5/SHA256 Validation in artifacts.xml
-              #     cd ./artifacts/eclipse/folder
-              #     unzip artifacts.jar -d ./artifacts
-              #     rm artifacts.jar
-              #     cd artifacts
-              #     sed -i -E '/download\.md5|checksum/d' ./artifacts.xml
-              #     zip -R ./artifacts.jar * **/*
-              #     mv ./artifacts.jar ../artifacts.jar
-              #     cd ..
-              #     rm -rf ./artifacts
+                  ## Workaround: Remove MD5/SHA256 Validation in artifacts.xml
+                  cd ./artifacts/eclipse/folder
+                  unzip artifacts.jar -d ./artifacts
+                  rm artifacts.jar
+                  cd artifacts
+                  sed -i -E '/download\.md5|checksum/d' ./artifacts.xml
+                  zip -R ./artifacts.jar * **/*
+                  mv ./artifacts.jar ../artifacts.jar
+                  cd ..
+                  rm -rf ./artifacts
+                displayName: Prepare plugin zip
+
+              - task: CmdLine@2
+                displayName: Sign jars
+                inputs:
+                  script: |
+                    files=$(find . -type f -name "*.jar")
+                    for file in $files; do
+                        dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:"$file" /certs:100010171
+                    done
+                  workingDirectory: 'artifacts/eclipse/folder'
+
+              - bash: cd ./artifacts/eclipse/folder && zip -R ../GithubCopilotForEclipse.zip **/*.jar *.jar
+                displayName: Package zip
 
               - task: CopyFiles@2
                 displayName: Copy plugin zip
