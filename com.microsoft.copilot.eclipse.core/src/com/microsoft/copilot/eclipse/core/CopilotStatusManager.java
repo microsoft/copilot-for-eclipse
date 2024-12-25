@@ -1,8 +1,6 @@
 package com.microsoft.copilot.eclipse.core;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -17,8 +15,6 @@ public class CopilotStatusManager {
   private CopilotLanguageServerConnection connection;
 
   private CopilotStatusResult copilotStatusResult;
-
-  private static final int CHECK_STATUS_TIMEOUT_MILLIS = 3000;
 
   /**
    * Constructor for the CopilotStatusManager.
@@ -86,9 +82,7 @@ public class CopilotStatusManager {
    * Check the login status for current machine.
    */
   public void checkStatus() {
-    CompletableFuture<CopilotStatusResult> statusFuture = this.connection.checkStatus(false);
-
-    statusFuture.orTimeout(CHECK_STATUS_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).thenAccept(result -> {
+    this.connection.checkStatus(false).thenAccept(result -> {
       this.copilotStatusResult = result;
     }).exceptionally(ex -> {
       CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
