@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.core;
 
+import java.util.Objects;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Plugin;
@@ -27,6 +29,11 @@ public class CopilotCore extends Plugin {
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
+
+  /**
+   * The job family for the initialization job.
+   */
+  public static final String INIT_JOB_FAMILY = "com.microsoft.copilot.eclipse.core.initJob";
 
   /**
    * Creates the Copilot core plugin. The plugin is created automatically by the Eclipse framework. Clients must not
@@ -78,8 +85,13 @@ public class CopilotCore extends Plugin {
         initRunnable.run();
         return Status.OK_STATUS;
       }
+
+      @Override
+      public boolean belongsTo(Object family) {
+        return Objects.equals(INIT_JOB_FAMILY, family);
+      }
     };
-    initJob.setUser(true);
+    initJob.setUser(false);
     initJob.schedule();
   }
 

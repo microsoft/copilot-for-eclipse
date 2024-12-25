@@ -1,6 +1,11 @@
 package com.microsoft.copilot.eclipse.ui;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Plugin;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
@@ -20,7 +25,6 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  */
 public class CopilotUi extends Plugin {
 
-  private static final int RETRY_COUNT = 30;
   private static CopilotUi COPILOT_UI_PLUGIN = null;
 
   private CompletionStatusManager completionStatusManager;
@@ -43,34 +47,42 @@ public class CopilotUi extends Plugin {
 
   @Override
   public void start(BundleContext context) throws Exception {
-    // wake up Core plugin and wait until copilot LS is ready
-    // TODO: check if we can improve logic here, for example, use a listener to wait for LS ready.
-    CopilotLanguageServerConnection connection = null;
-    for (int i = 0; i < RETRY_COUNT; i++) {
-      connection = CopilotCore.getPlugin().getCopilotLanguageServer();
-      if (connection != null) {
-        break;
+    Job initJob = new Job("Copilot initialization") {
+      @Override
+      protected IStatus run(IProgressMonitor monitor) {
+        try {
+          // wait until Core is initialized.
+          Job.getJobManager().join(CopilotCore.INIT_JOB_FAMILY, null);
+
+          CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
+          if (connection == null) {
+            var ex = new IllegalStateException("Failed to start copilot language server.");
+            LOGGER.log(LogLevel.ERROR, ex);
+            throw ex;
+          }
+
+          CopilotUi.this.editorsManager = new EditorsManager(connection,
+              CopilotCore.getPlugin().getCompletionProvider());
+          CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
+          CopilotUi.this.completionStatusManager = new CompletionStatusManager();
+
+          registerPartListener();
+          addCompletionStatusListener();
+
+          // Initialize the completion handler for the active editor in case we miss the event
+          // to initialize it.
+          initCompletionHandlerForActiveEditor();
+        } catch (OperationCanceledException | InterruptedException e) {
+          LOGGER.log(LogLevel.ERROR, e);
+          return Status.error("Failed to initialize GitHub Copilot plugin.", e);
+        }
+        return Status.OK_STATUS;
       }
-      Thread.sleep(1000);
-    }
-    if (connection == null) {
-      var ex = new IllegalStateException("Failed to start copilot language server.");
-      LOGGER.log(LogLevel.ERROR, ex);
-      throw ex;
-    }
-
-    this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider());
-    this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
-    this.completionStatusManager = new CompletionStatusManager();
-
-    registerPartListener();
-    addCompletionStatusListener();
-
-    // Initialize the completion handler for the active editor in case we miss the event
-    // to initialize it.
-    initCompletionHandlerForActiveEditor();
+    };
+    initJob.setSystem(true);
+    initJob.schedule();
   }
-  
+
   public CompletionStatusManager getCompletionStatusManager() {
     return completionStatusManager;
   }
