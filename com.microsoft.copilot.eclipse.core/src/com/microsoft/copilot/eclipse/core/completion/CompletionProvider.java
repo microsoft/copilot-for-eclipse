@@ -3,13 +3,20 @@ package com.microsoft.copilot.eclipse.core.completion;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.jobs.IJobChangeEvent;
-import org.eclipse.core.runtime.jobs.IJobChangeListener;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.lsp4j.Position;
 
+import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
+import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
@@ -19,7 +26,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 /**
  * Provider for inline completion.
  */
-public class CompletionProvider implements IJobChangeListener {
+public class CompletionProvider {
+
+  /**
+   * The job family for completion jobs, can be used to find out this completion job.
+   */
+  public static final String COMPLETION_JOB_FAMILY = "com.microsoft.copilot.eclipse.completionJobFamily";
 
   private CompletionJob completionJob;
   private Set<CompletionListener> completionListeners;
@@ -32,7 +44,6 @@ public class CompletionProvider implements IJobChangeListener {
   public CompletionProvider(CopilotLanguageServerConnection lsConnection, CopilotStatusManager statusManager) {
     this.statusManager = statusManager;
     this.completionJob = new CompletionJob(lsConnection);
-    this.completionJob.addJobChangeListener(this);
     this.completionListeners = new LinkedHashSet<>();
     this.completionStatusListeners = new LinkedHashSet<>();
   }
@@ -49,7 +60,6 @@ public class CompletionProvider implements IJobChangeListener {
       return;
     }
     this.completionJob.cancel();
-    this.completionJob.setCompletionParams(null);
     CompletionDocument completionDoc = new CompletionDocument(uriString, position);
     completionDoc.setVersion(documentVersion);
     // following format options are hard-coded, because eclipse support applying the format options
@@ -68,7 +78,7 @@ public class CompletionProvider implements IJobChangeListener {
   public void addCompletionListener(CompletionListener listener) {
     this.completionListeners.add(listener);
   }
-  
+
   /**
    * Register a completion status listener.
    */
@@ -82,7 +92,7 @@ public class CompletionProvider implements IJobChangeListener {
   public void removeCompletionListener(CompletionListener listener) {
     this.completionListeners.remove(listener);
   }
-  
+
   /**
    * Unregister a completion status listener.
    */
@@ -91,61 +101,99 @@ public class CompletionProvider implements IJobChangeListener {
     this.completionStatusListeners.remove(listener);
   }
 
-  @Override
-  public void aboutToRun(IJobChangeEvent event) {
-    for (CompletionStatusListener listener : this.completionStatusListeners) {
-      listener.onCompletionAboutToRun();
-    }
-  }
+  /**
+   * TODO: public for testing.
+   */
+  public class CompletionJob extends Job {
 
-  @Override
-  public void awake(IJobChangeEvent event) {
-    // do nothing
+    private static final int COMPLETION_TIMEOUT_MILLIS = 5000;
 
-  }
+    private CopilotLanguageServerConnection lsConnection;
+    private CompletionParams params;
+    private CompletionCollection completions;
 
-  @Override
-  public void done(IJobChangeEvent event) {
-    for (CompletionStatusListener listener : this.completionStatusListeners) {
-      listener.onCompletionDone();
-    }
-
-    IStatus jobStatus = this.completionJob.getResult();
-    if (jobStatus != null && !jobStatus.isOK()) {
-      return;
-    }
-    CompletionResult result = this.completionJob.getCompletionResult();
-    if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
-      return;
+    /**
+     * Creates a new completion job.
+     */
+    public CompletionJob(CopilotLanguageServerConnection lsConnection) {
+      super("Generating completion...");
+      this.lsConnection = lsConnection;
+      this.setSystem(true);
+      this.setPriority(Job.INTERACTIVE);
     }
 
-    CompletionParams params = this.completionJob.getCompletionParams();
-    if (params == null) {
-      return;
+    public void setCompletionParams(CompletionParams params) {
+      this.params = params;
     }
 
-    CompletionCollection completions = new CompletionCollection(result.getCompletions(), params.getDoc().getUri());
-    for (CompletionListener listener : this.completionListeners) {
-      listener.onCompletionResolved(completions);
+    @Override
+    protected IStatus run(IProgressMonitor monitor) {
+      notifyCompletionAboutToRun();
+      this.completions = null;
+      try {
+        IStatus status = runCompletion(monitor);
+        if (status.isOK() && this.completions != null) {
+          notifyCompletionResolved();
+        }
+        return status;
+      } finally {
+        notifyCompletionDone();
+      }
+    }
+
+    private IStatus runCompletion(IProgressMonitor monitor) {
+      if (params == null) {
+        CopilotCore.LOGGER.log(LogLevel.ERROR, "Invalid completion parameters");
+        return new Status(IStatus.ERROR, Constants.PLUGIN_ID, "Invalid completion parameters");
+      }
+      if (monitor.isCanceled()) {
+        return Status.CANCEL_STATUS;
+      }
+      try {
+        CompletionResult result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS,
+            TimeUnit.MILLISECONDS);
+        if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
+          return Status.OK_STATUS;
+        }
+
+        this.completions = new CompletionCollection(result.getCompletions(), params.getDoc().getUri());
+      } catch (InterruptedException e) {
+        return Status.CANCEL_STATUS;
+      } catch (ExecutionException e) {
+        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+        return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
+      } catch (TimeoutException e) {
+        CopilotCore.LOGGER.log(LogLevel.WARNING,
+            "Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
+        return Status.CANCEL_STATUS;
+      }
+      if (monitor.isCanceled()) {
+        return Status.CANCEL_STATUS;
+      }
+      return Status.OK_STATUS;
+    }
+
+    @Override
+    public boolean belongsTo(Object family) {
+      return Objects.equals(family, COMPLETION_JOB_FAMILY);
+    }
+
+    private void notifyCompletionAboutToRun() {
+      for (CompletionStatusListener listener : CompletionProvider.this.completionStatusListeners) {
+        listener.onCompletionAboutToRun();
+      }
+    }
+
+    private void notifyCompletionDone() {
+      for (CompletionStatusListener listener : CompletionProvider.this.completionStatusListeners) {
+        listener.onCompletionDone();
+      }
+    }
+
+    private void notifyCompletionResolved() {
+      for (CompletionListener listener : CompletionProvider.this.completionListeners) {
+        listener.onCompletionResolved(this.completions);
+      }
     }
   }
-
-  @Override
-  public void running(IJobChangeEvent event) {
-    // do nothing
-
-  }
-
-  @Override
-  public void scheduled(IJobChangeEvent event) {
-    // do nothing
-
-  }
-
-  @Override
-  public void sleeping(IJobChangeEvent event) {
-    // do nothing
-
-  }
-
 }
