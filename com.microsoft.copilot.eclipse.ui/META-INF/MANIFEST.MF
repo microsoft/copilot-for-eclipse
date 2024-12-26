@@ -3,6 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.ui
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui;singleton:=true
 Bundle-Version: 0.1.0.qualifier
+Bundle-Localization: plugin
 Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.completion,
  com.microsoft.copilot.eclipse.ui.dialogs,
