@@ -5,15 +5,18 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
+import org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager;
 import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -29,7 +32,6 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider {
 
   public static final String EDITOR_NAME = "Eclipse";
-
   public static final String EDITOR_PLUGIN_NAME = "GitHub Copilot for Eclipse";
 
   @Override
@@ -44,25 +46,128 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   @Override
   public void start() throws IOException {
-    // load lsp binary
-    // call normalize to remove any relative path components and avoid "FILE_PATH_TOO_LONG" error
-    Path binary = findBinary().normalize();
+    try {
+      startBinaryLspAgent();
+    } catch (Exception e) {
+      startJsLspAgent(e);
+    }
+    CopilotCore.LOGGER.log(LogLevel.INFO, "Lsp agent started successfully.");
+  }
+
+  private void startBinaryLspAgent() throws IOException {
+    CopilotCore.LOGGER.log(LogLevel.INFO, "Starting language server with binary lsp agent.");
+    this.setCommands(getBinaryLspCommands());
+    super.start();
+  }
+
+  private void startJsLspAgent(Exception e) throws IOException {
+    CopilotCore.LOGGER.log(LogLevel.ERROR, "Binary LSP agent start failed. Retrying with JS agent.", e);
+    this.setCommands(getJavaScriptCommands());
+    super.start();
+  }
+
+  private List<String> getBinaryLspCommands() throws IOException {
+    Path binary = findAndValidateBinary();
+    return buildCommands(binary.toString());
+  }
+
+  private Path findAndValidateBinary() throws IOException {
+
+    Path binary = findBinary();
+
     if (binary == null) {
       throw new IOException("Could not find the language server binary");
     }
+    // call normalize to remove any relative path components and avoid "FILE_PATH_TOO_LONG" error
+    binary = binary.normalize();
 
     File executable = binary.toFile();
-    if (!executable.canExecute()) {
-      boolean canExecute = executable.setExecutable(true);
-      if (!canExecute) {
-        // TODO: throw error or handle it?
-      }
+    if (!executable.canExecute() && !executable.setExecutable(true)) {
+      throw new IOException("Could not make the language server binary executable");
     }
-    List<String> commands = new LinkedList<>();
-    commands.add(binary.toString());
+
+    return binary;
+  }
+
+  private List<String> getJavaScriptCommands() throws IOException {
+    try {
+      String nodePath = findNodeAbsolutePath();
+      String jsLspPath = findJavaScriptLanguageServerPath();
+
+      if (nodePath == null) {
+        throw new IOException("Node path not found");
+      }
+      if (jsLspPath == null) {
+        throw new IOException("JavaScript lsp path not found");
+      }
+
+      return buildCommands(nodePath, jsLspPath);
+    } catch (Exception e) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, "Failed to get JavaScript commands. ", e);
+      throw e;
+    }
+    // TODO: In the future, if users have environment variables set up that impact the js server startup, we should
+    // clear the related environment variables here. Reference:
+    // https://github.com/microsoft/copilot-intellij/blob/df3fa9e82ddee36342c50b310be321d552238a30/core/src/main/java/com/github/copilot/lang/agent/CopilotAgentCommandLine.java#L45C4-L54C6
+  }
+
+  private List<String> buildCommands(String... commandParts) {
+    List<String> commands = new ArrayList<>(Arrays.asList(commandParts));
     commands.add("--stdio");
-    this.setCommands(commands);
-    super.start();
+    enforceUtf8Charset(commands);
+    return commands;
+  }
+
+  /**
+   * Enforce UTF-8 charset for the LSP agent commands.
+   */
+  private void enforceUtf8Charset(List<String> commands) {
+    commands.replaceAll(command -> new String(command.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+  }
+
+  private @Nullable String findNodeAbsolutePath() throws IOException {
+    try {
+      // The 'wildwebdeveloper' bundle is optional for Eclipse. Ensure it is available before attempting to use it.
+      Class.forName("org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager");
+    } catch (ClassNotFoundException | NoClassDefFoundError e) {
+      CopilotCore.LOGGER.log(LogLevel.INFO,
+          "Get JavaScript commands aborted. org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager not found.");
+      return null;
+    }
+    File nodeJsLocation = NodeJSManager.getNodeJsLocation();
+    if (nodeJsLocation == null) {
+      throw new IOException("Failed to find Node.js path");
+    }
+    return nodeJsLocation.getAbsolutePath();
+  }
+
+  private @Nullable String findJavaScriptLanguageServerPath() throws IOException {
+    Path distPath = findAgentDistDirectoryPath();
+
+    if (distPath == null) {
+      throw new IOException("Unable to locate dist dir for js language server");
+    }
+
+    Path jsFilePath = distPath.resolve("language-server.js");
+    if (!Files.exists(jsFilePath)) {
+      throw new IOException("Unable to locate language-server.js file");
+    }
+
+    return jsFilePath.toString();
+  }
+
+  private @Nullable Path findAgentDistDirectoryPath() {
+    URL url = CopilotCore.getPlugin().getBundle().getEntry("copilot-agent/dist");
+    if (url == null) {
+      return null;
+    }
+
+    try {
+      return URIUtil.toFile(URIUtil.toURI(FileLocator.toFileURL(url))).toPath();
+    } catch (URISyntaxException | IOException e) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      return null;
+    }
   }
 
   private @Nullable Path findBinary() throws IOException {

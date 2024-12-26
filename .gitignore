@@ -32,3 +32,4 @@ replay_pid*
 # Copilot agent
 **/node_modules/
 **/copilot-agent/native/
+**/copilot-agent/dist/
