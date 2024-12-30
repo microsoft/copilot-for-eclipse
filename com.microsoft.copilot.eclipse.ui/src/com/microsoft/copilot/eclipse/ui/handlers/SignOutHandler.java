@@ -7,8 +7,8 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -20,23 +20,23 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  */
 public class SignOutHandler extends AbstractHandler {
 
-  private CopilotStatusManager copilotStatusManager;
+  private AuthStatusManager authStatusManager;
 
   /**
    * Initialize the Copilot Language Server and Auth Status Manager for the SignOutHandler.
    */
   public SignOutHandler() {
-    this.copilotStatusManager = CopilotCore.getPlugin().getCopilotStatusManager();
+    this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
   }
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     Shell shell = SwtUtils.getShellFromEvent(event);
     try {
-      CopilotStatusResult result = copilotStatusManager.signOut();
+      CopilotStatusResult result = authStatusManager.signOut();
       if (!result.isSignedIn()) {
         showSignOutMessage(shell);
-        copilotStatusManager.checkStatus();
+        authStatusManager.checkStatus();
       }
     } catch (Exception e) {
       handleSignOutException(shell, e);

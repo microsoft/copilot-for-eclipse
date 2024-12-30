@@ -1,11 +1,13 @@
 package com.microsoft.copilot.eclipse.core.completion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.runtime.IStatus;
@@ -19,10 +21,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider.CompletionJob;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 
 @ExtendWith(MockitoExtension.class)
 class CompletionJobTests {
@@ -80,6 +85,35 @@ class CompletionJobTests {
 
     assertEquals(Status.CANCEL_STATUS, job.getResult());
 
+  }
+  
+  
+  @Test
+  void testTriggerCompletionJobWhenCopilotIsSignedOutNotUsingEclipse() throws InterruptedException {
+    CopilotStatusResult expectedResult = new CopilotStatusResult();
+    expectedResult.setStatus(CopilotStatusResult.ERROR);
+    AuthStatusManager authStatusManager = mock(AuthStatusManager.class);
+    when(authStatusManager.setCopilotStatus(CopilotStatusResult.ERROR)).thenReturn(expectedResult);
+    when(authStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.ERROR);
+    CompletableFuture<CompletionResult> future = new CompletableFuture<>();
+    future.completeExceptionally(new ExecutionException("Not signed in", new Throwable()));
+    when(mockLsConnection.getCompletions(any())).thenReturn(future);
+  
+    CompletionJob job = new CompletionProvider(mockLsConnection, authStatusManager).new CompletionJob(mockLsConnection);
+    Position position = new Position(0, 0);
+    CompletionDocument completionDoc = new CompletionDocument("file://test.java", position);
+    completionDoc.setVersion(1);
+    completionDoc.setInsertSpaces(true);
+    completionDoc.setTabSize(4);
+    job.setCompletionParams(new CompletionParams(completionDoc));
+    job.schedule();
+
+    IJobManager jobManager = Job.getJobManager();
+    jobManager.join(CompletionProvider.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
+  
+    assertTrue(job.getResult().getMessage().contains("Not signed in"));
+    assertEquals(IStatus.ERROR, job.getResult().getSeverity());
+    assertEquals(CopilotStatusResult.ERROR, authStatusManager.getCopilotStatus());
   }
 
 }

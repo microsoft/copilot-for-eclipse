@@ -13,9 +13,9 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.lsp4j.Position;
 
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
@@ -36,12 +36,12 @@ public class CompletionProvider {
   private CompletionJob completionJob;
   private Set<CompletionListener> completionListeners;
   private Set<CompletionStatusListener> completionStatusListeners;
-  private CopilotStatusManager statusManager;
+  private AuthStatusManager statusManager;
 
   /**
    * Creates a new completion provider.
    */
-  public CompletionProvider(CopilotLanguageServerConnection lsConnection, CopilotStatusManager statusManager) {
+  public CompletionProvider(CopilotLanguageServerConnection lsConnection, AuthStatusManager statusManager) {
     this.statusManager = statusManager;
     this.completionJob = new CompletionJob(lsConnection);
     this.completionListeners = new LinkedHashSet<>();
@@ -160,6 +160,7 @@ public class CompletionProvider {
       } catch (InterruptedException e) {
         return Status.CANCEL_STATUS;
       } catch (ExecutionException e) {
+        statusManager.setCopilotStatus(CopilotStatusResult.ERROR);
         CopilotCore.LOGGER.log(LogLevel.ERROR, e);
         return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
       } catch (TimeoutException e) {

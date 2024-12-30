@@ -9,7 +9,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.services.LanguageServer;
 
-import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
@@ -84,7 +84,7 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link CopilotStatusManager#signInInitiate()} method instead.
+   * Please use the {@link AuthStatusManager#signInInitiate()} method instead.
    * </p>
    * Initiate the sign in process.
    */
@@ -95,7 +95,7 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link CopilotStatusManager#signInConfirm()} method instead.
+   * Please use the {@link AuthStatusManager#signInConfirm()} method instead.
    * </p>
    * Confirm the sign in process.
    */
@@ -108,7 +108,7 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link CopilotStatusManager#signOut()} method instead.
+   * Please use the {@link AuthStatusManager#signOut()} method instead.
    * </p>
    * Sign out from the GitHub Copilot.
    */

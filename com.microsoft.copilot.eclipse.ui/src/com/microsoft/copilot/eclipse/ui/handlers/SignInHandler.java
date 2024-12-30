@@ -6,13 +6,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
@@ -26,89 +31,115 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class SignInHandler extends AbstractHandler {
 
-  private static final long SIGNIN_TIMEOUT_MILLIS = 180000L;
-
-  private CopilotStatusManager copilotStatusManager;
+  private AuthStatusManager authStatusManager;
 
   /**
    * Initialize the Copilot Language Server for the SignInHandler.
    */
   public SignInHandler() {
-    this.copilotStatusManager = CopilotCore.getPlugin().getCopilotStatusManager();
+    this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
   }
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
-    Shell shell = SwtUtils.getShellFromEvent(event);
-
-    try {
-      SignInInitiateResult result = initiateSignIn();
-      if (result.isAlreadySignedIn()) {
-        showAlreadySignedInMessage(shell);
-      } else {
-        handleSignIn(shell, result);
-      }
-    } catch (Exception e) {
-      handleSignInException(shell, e);
-    }
+    SignInJob signInJob = new SignInJob(event);
+    signInJob.schedule();
 
     return null;
   }
 
-  private SignInInitiateResult initiateSignIn() throws Exception {
-    return this.copilotStatusManager.signInInitiate();
-  }
+  private class SignInJob extends Job {
 
-  private void showAlreadySignedInMessage(Shell shell) {
-    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_title,
-        Messages.signInHandler_msgDialog_alreadySignedIn);
-  }
+    private static final long SIGNIN_TIMEOUT_MILLIS = 180000L;
 
-  private void handleSignIn(Shell shell, SignInInitiateResult result) {
-    AtomicReference<SignInInitiateResult> signInInitiateResultHolder = new AtomicReference<>(result);
-    SwtUtils.invokeOnDisplayThread(() -> {
-      SignInDialog signInDialog = new SignInDialog(shell, signInInitiateResultHolder.get());
-      int btnId = signInDialog.open();
-      if (btnId > 0) {
-        UiUtils.openLink(signInInitiateResultHolder.get().getVerificationUri());
-        SignInConfirmDialog signInConfirmDialog = new SignInConfirmDialog(shell,
-            signInInitiateResultHolder.get().getUserCode(), SIGNIN_TIMEOUT_MILLIS);
-        signInConfirmDialog.run();
-        handleSignInConfirmation(shell, signInConfirmDialog);
+    private final ExecutionEvent event;
+
+    /**
+     * Creates a new completion job.
+     */
+    public SignInJob(ExecutionEvent event) {
+      super("Initializing GitHub Copilot sign-in process...");
+      this.event = event;
+    }
+
+    @Override
+    protected IStatus run(IProgressMonitor monitor) {
+      try {
+        Shell shell = SwtUtils.getShellFromEvent(event);
+        IStatus status = runInitiateSignIn(shell);
+        return status;
+      } catch (Exception e) {
+        String msg = Messages.signInHandler_msgDialog_signInFailed;
+        if (StringUtils.isNotBlank(e.getMessage())) {
+          msg += " " + e.getMessage();
+          CopilotUi.LOGGER.log(LogLevel.ERROR, msg, e);
+        }
+        
+        String errorMsg = "Sign in failed: " + e.getMessage();
+        return new Status(IStatus.ERROR, Constants.PLUGIN_ID, errorMsg);
       }
-    });
-  }
-
-  private void handleSignInConfirmation(Shell shell, SignInConfirmDialog signInConfirmDialog) {
-    IStatus status = signInConfirmDialog.getStatus();
-    if (status != null && status.isOK()) {
-      showSignInSuccessMessage(shell);
-    } else {
-      showSignInFailMessage(shell, status);
     }
-  }
 
-  private void showSignInSuccessMessage(Shell shell) {
-    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
-        Messages.signInHandler_msgDialog_signInSuccess);
-  }
-
-  private void showSignInFailMessage(Shell shell, IStatus status) {
-    String msg = Messages.signInHandler_msgDialog_signInFailed;
-    if (status != null && StringUtils.isNotBlank(status.getMessage())) {
-      msg += ": " + status.getMessage();
+    private IStatus runInitiateSignIn(Shell shell)
+        throws InterruptedException, java.util.concurrent.ExecutionException {
+      SignInInitiateResult result = initiateSignIn();
+      if (result.isAlreadySignedIn()) {
+        showAlreadySignedInMessage(shell);
+        return Status.OK_STATUS;
+      } else {
+        handleSignIn(shell, result);
+        return Status.OK_STATUS;
+      }
     }
-    msg += ". ";
-    MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
-        msg + Messages.signInHandler_msgDialog_signInFailedTryAgain);
-  }
 
-  private void handleSignInException(Shell shell, Exception e) {
-    String msg = Messages.signInHandler_msgDialog_signInFailed;
-    if (StringUtils.isNotBlank(e.getMessage())) {
-      msg += " " + e.getMessage();
-      CopilotUi.LOGGER.log(LogLevel.ERROR, msg, e);
+    private SignInInitiateResult initiateSignIn() throws InterruptedException, java.util.concurrent.ExecutionException {
+      return authStatusManager.signInInitiate();
     }
-    MessageDialog.openError(shell, Messages.signInHandler_msgDialog_signInFailedFailure, msg);
+
+    private void showAlreadySignedInMessage(Shell shell) {
+      MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_title,
+          Messages.signInHandler_msgDialog_alreadySignedIn);
+    }
+
+    private void handleSignIn(Shell shell, SignInInitiateResult result) {
+      AtomicReference<SignInInitiateResult> signInInitiateResultHolder = new AtomicReference<>(result);
+      SwtUtils.invokeOnDisplayThread(() -> {
+        SignInDialog signInDialog = new SignInDialog(shell, signInInitiateResultHolder.get());
+        int openResult = signInDialog.open();
+        if (openResult > 0) {
+          UiUtils.openLink(signInInitiateResultHolder.get().getVerificationUri());
+          SignInConfirmDialog signInConfirmDialog = new SignInConfirmDialog(shell,
+              signInInitiateResultHolder.get().getUserCode(), SIGNIN_TIMEOUT_MILLIS);
+          signInConfirmDialog.run();
+          handleSignInConfirmation(shell, signInConfirmDialog);
+        }
+      });
+    }
+
+    private void handleSignInConfirmation(Shell shell, SignInConfirmDialog signInConfirmDialog) {
+      IStatus status = signInConfirmDialog.getStatus();
+      if (status != null && status.isOK()) {
+        showSignInSuccessMessage(shell);
+        authStatusManager.setCopilotStatus(CopilotStatusResult.OK);
+      } else {
+        showSignInFailMessage(shell, status);
+        authStatusManager.setCopilotStatus(CopilotStatusResult.NOT_SIGNED_IN);
+      }
+    }
+
+    private void showSignInSuccessMessage(Shell shell) {
+      MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
+          Messages.signInHandler_msgDialog_signInSuccess);
+    }
+
+    private void showSignInFailMessage(Shell shell, IStatus status) {
+      String msg = Messages.signInHandler_msgDialog_signInFailed;
+      if (status != null && StringUtils.isNotBlank(status.getMessage())) {
+        msg += ": " + status.getMessage();
+      }
+      msg += ". ";
+      MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
+          msg + Messages.signInHandler_msgDialog_signInFailedTryAgain);
+    }
   }
 }

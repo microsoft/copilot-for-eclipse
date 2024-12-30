@@ -75,7 +75,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
       try {
         future = CompletableFuture.supplyAsync(() -> {
           try {
-            return CopilotCore.getPlugin().getCopilotStatusManager().signInConfirm(userCode);
+            return CopilotCore.getPlugin().getAuthStatusManager().signInConfirm(userCode);
           } catch (Exception e) {
             CopilotUi.LOGGER.log(LogLevel.ERROR, e);
             return null;

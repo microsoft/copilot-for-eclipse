@@ -1,5 +1,8 @@
 package com.microsoft.copilot.eclipse.core;
 
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
@@ -10,21 +13,22 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 /**
  * Manager for the authentication status.
  */
-public class CopilotStatusManager {
+public class AuthStatusManager {
 
   private CopilotLanguageServerConnection connection;
-
+  private Set<CopilotAuthStatusListener> copilotAuthStatusListeners;
   private CopilotStatusResult copilotStatusResult;
 
   /**
-   * Constructor for the CopilotStatusManager.
+   * Constructor for the AuthStatusManager.
    *
    * @param connection the connection to the language server.
    */
-  public CopilotStatusManager(CopilotLanguageServerConnection connection) {
+  public AuthStatusManager(CopilotLanguageServerConnection connection) {
     this.connection = connection;
+    this.copilotAuthStatusListeners = new LinkedHashSet<>();
     this.copilotStatusResult = new CopilotStatusResult();
-    this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
+    setCopilotStatus(CopilotStatusResult.LOADING);
   }
 
   /**
@@ -36,8 +40,9 @@ public class CopilotStatusManager {
   public SignInInitiateResult signInInitiate() throws InterruptedException, ExecutionException {
     SignInInitiateResult result = connection.signInInitiate().get();
     if (result.isAlreadySignedIn()) {
-      this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
+      setCopilotStatus(CopilotStatusResult.OK);
     }
+
     return result;
   }
 
@@ -50,9 +55,10 @@ public class CopilotStatusManager {
   public CopilotStatusResult signInConfirm(String userCode) throws InterruptedException, ExecutionException {
     CopilotStatusResult result = connection.signInConfirm(userCode).get();
     if (result.isSignedIn()) {
-      this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
       this.copilotStatusResult.setUser(result.getUser());
     }
+
+    setCopilotStatus(result.getStatus());
     return result;
   }
 
@@ -64,30 +70,33 @@ public class CopilotStatusManager {
    */
   public CopilotStatusResult signOut() throws InterruptedException, ExecutionException {
     CopilotStatusResult result = connection.signOut().get();
-    if (!result.isSignedIn()) {
-      this.copilotStatusResult.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
-    }
+    setCopilotStatus(result.getStatus());
     return result;
   }
-  
+
   /**
-   * Set the status to OK.
+   * Set the CopilotStatusResult string to the given status and notify the listeners.
    */
-  public CopilotStatusResult setCompletionDone() {
-    this.copilotStatusResult.setStatus(CopilotStatusResult.OK);
+  public CopilotStatusResult setCopilotStatus(String newCopilotStatusResult) {
+    if (!Objects.equals(this.copilotStatusResult.getStatus(), newCopilotStatusResult)) {
+      this.copilotStatusResult.setStatus(newCopilotStatusResult);
+      onDidCopilotStatusChange(this.copilotStatusResult);
+    }
     return this.copilotStatusResult;
   }
 
   /**
-   * Check the login status for current machine.
+   * Check the authentication status for current machine.
    */
   public void checkStatus() {
-    this.connection.checkStatus(false).thenAccept(result -> {
-      this.copilotStatusResult = result;
-    }).exceptionally(ex -> {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
-      this.copilotStatusResult.setStatus(CopilotStatusResult.ERROR);
-
+    this.connection.checkStatus(false).handle((result, ex) -> {
+      if (ex != null) {
+        CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
+        setCopilotStatus(CopilotStatusResult.ERROR);
+      } else {
+        setCopilotStatus(result.getStatus());
+      }
+      onDidCopilotStatusChange(this.copilotStatusResult);
       return null;
     });
   }
@@ -100,5 +109,27 @@ public class CopilotStatusManager {
       return CopilotStatusResult.LOADING;
     }
     return this.copilotStatusResult.getStatus();
+  }
+
+  /**
+   * Add a listener for the authentication status.
+   */
+  public void addCopilotAuthStatusListener(CopilotAuthStatusListener listener) {
+    this.copilotAuthStatusListeners.add(listener);
+  }
+
+  /**
+   * Remove the listener for the authentication status.
+   */
+  public void removeCopilotAuthStatusListener(CopilotAuthStatusListener listener) {
+    this.copilotAuthStatusListeners.remove(listener);
+  }
+
+  private void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
+    if (!this.copilotAuthStatusListeners.isEmpty()) {
+      for (CopilotAuthStatusListener listener : this.copilotAuthStatusListeners) {
+        listener.onDidCopilotStatusChange(copilotStatusResult);
+      }
+    }
   }
 }

@@ -21,12 +21,12 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.menus.UIElement;
 
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionStatusManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -35,13 +35,13 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ShowStatusBarMenuHandler extends CopilotHandler implements IElementUpdater {
   private IHandlerService handlerService;
-  private CopilotStatusManager copilotStatusManager;
+  private AuthStatusManager authStatusManager;
   private SpinnerJob spinnerJob;
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     handlerService = HandlerUtil.getActiveWorkbenchWindow(event).getService(IHandlerService.class);
-    copilotStatusManager = CopilotCore.getPlugin().getCopilotStatusManager();
+    authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
 
     MenuManager menuManager = new MenuManager();
     // Sign in status section
@@ -54,7 +54,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
     // Sign in & sign out section
     menuManager.add(new Separator());
-    if (!Objects.equals(copilotStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
+    if (!Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
       addSignInOrSignOutAction(menuManager);
     }
 
@@ -66,7 +66,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   @Override
   public void updateElement(UIElement element, Map parameters) {
-    CompletionStatusManager completionStatusManager = getCompletionStatusManager();
+    CopilotStatusManager completionStatusManager = getAuthAndCompletionStatusManager();
 
     if (completionStatusManager.isCompletionInProgress()) {
       scheduleSpinnerJob(element);
@@ -76,7 +76,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         spinnerJob.cancel();
       }
 
-      String copilotStatus = CopilotCore.getPlugin().getCopilotStatusManager().getCopilotStatus();
+      String copilotStatus = CopilotCore.getPlugin().getAuthStatusManager().getCopilotStatus();
       String iconPath = null;
 
       switch (copilotStatus) {
@@ -104,7 +104,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addStatusAction(MenuManager menuManager) {
-    String copilotStatus = getCopilotStatusBasedOnAuthAndCompletionResult(copilotStatusManager.getCopilotStatus());
+    String copilotStatus = getCopilotStatusBasedOnAuthAndCompletionResult(authStatusManager.getCopilotStatus());
     String copilotStatusTitle = Messages.menu_copilotStatus + ": " + copilotStatus;
 
     MenuActionFactory.createMenuAction(menuManager, copilotStatusTitle, handlerService, copilotStatus, false);
@@ -116,7 +116,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private String getCopilotStatusBasedOnAuthAndCompletionResult(String copilotStatus) {
-    CompletionStatusManager completionStatusManager = getCompletionStatusManager();
+    CopilotStatusManager completionStatusManager = getAuthAndCompletionStatusManager();
     switch (copilotStatus) {
       case CopilotStatusResult.OK:
         return completionStatusManager.isCompletionInProgress() ? Messages.menu_copilotStatus_completionInProgress
@@ -147,7 +147,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addSignInOrSignOutAction(MenuManager menuManager) {
-    if (Objects.equals(copilotStatusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
+    if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
       ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signInIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);
@@ -209,7 +209,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
         this.uiElement.setIcon(newIcon);
         currentIconIndex = (currentIconIndex % TOTAL_SPINNER_ICONS) + 1;
-        if (CopilotUi.getPlugin().getCompletionStatusManager().isCompletionInProgress()) {
+        if (CopilotUi.getPlugin().getAuthAndCompletionStatusManager().isCompletionInProgress()) {
           schedule(COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS);
         } else {
           cancel();

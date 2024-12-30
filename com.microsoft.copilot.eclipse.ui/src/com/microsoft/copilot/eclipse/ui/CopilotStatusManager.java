@@ -1,19 +1,21 @@
-package com.microsoft.copilot.eclipse.ui.completion;
+package com.microsoft.copilot.eclipse.ui;
 
+import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionStatusListener;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Listener for tracking copilot completion status.
  */
-public class CompletionStatusManager implements CompletionStatusListener {
+public class CopilotStatusManager implements CompletionStatusListener, CopilotAuthStatusListener {
 
   private boolean completionInProgress;
 
   /**
    * Constructor for the CompletionStatusManager.
    */
-  public CompletionStatusManager() {
+  public CopilotStatusManager() {
   }
 
   @Override
@@ -30,5 +32,10 @@ public class CompletionStatusManager implements CompletionStatusListener {
 
   public boolean isCompletionInProgress() {
     return completionInProgress;
+  }
+
+  @Override
+  public void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
+    UiUtils.refreshCopilotMenu();
   }
 }

@@ -16,15 +16,15 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 
 @ExtendWith(MockitoExtension.class)
-class CopilotStatusManagerTests {
+class AuthStatusManagerTests {
 
   @Mock
   CopilotLanguageServerConnection mockConnection;
-  CopilotStatusManager copilotStatusManager;
+  AuthStatusManager authStatusManager;
 
   @BeforeEach
   public void setUp() {
-    copilotStatusManager = new CopilotStatusManager(mockConnection);
+    authStatusManager = new AuthStatusManager(mockConnection);
   }
 
   @Test
@@ -33,9 +33,9 @@ class CopilotStatusManagerTests {
     expectedResult.setStatus(CopilotStatusResult.OK);
     when(mockConnection.checkStatus(false)).thenReturn(CompletableFuture.completedFuture(expectedResult));
 
-    copilotStatusManager.checkStatus();
+    authStatusManager.checkStatus();
 
-    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatus());
+    assertEquals(CopilotStatusResult.OK, authStatusManager.getCopilotStatus());
   }
 
   @Test
@@ -49,10 +49,10 @@ class CopilotStatusManagerTests {
     when(mockConnection.checkStatus(false)).thenReturn(future);
     future.complete(expectedResult);
 
-    copilotStatusManager.checkStatus();
+    authStatusManager.checkStatus();
 
     // Assert final status is OK
-    assertEquals(CopilotStatusResult.OK, copilotStatusManager.getCopilotStatus());
+    assertEquals(CopilotStatusResult.OK, authStatusManager.getCopilotStatus());
   }
 
   @Test
@@ -62,9 +62,9 @@ class CopilotStatusManagerTests {
 
     when(mockConnection.checkStatus(false)).thenReturn(future);
 
-    copilotStatusManager.checkStatus();
+    authStatusManager.checkStatus();
 
-    assertEquals(CopilotStatusResult.ERROR, copilotStatusManager.getCopilotStatus());
+    assertEquals(CopilotStatusResult.ERROR, authStatusManager.getCopilotStatus());
   }
 
 }

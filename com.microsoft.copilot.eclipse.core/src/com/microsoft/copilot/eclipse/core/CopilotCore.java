@@ -24,7 +24,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 public class CopilotCore extends Plugin {
 
   private CopilotLanguageServerConnection copilotLanguageServer;
-  private CopilotStatusManager copilotStatusManager;
+  private AuthStatusManager authStatusManager;
   private CompletionProvider completionProvider;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
@@ -74,10 +74,10 @@ public class CopilotCore extends Plugin {
 
       LanguageServerWrapper wrapper = LanguageServiceAccessor.startLanguageServer(serverDef);
       this.copilotLanguageServer = new CopilotLanguageServerConnection(wrapper);
-      this.copilotStatusManager = new CopilotStatusManager(this.copilotLanguageServer);
-      this.completionProvider = new CompletionProvider(this.copilotLanguageServer, copilotStatusManager);
+      this.authStatusManager = new AuthStatusManager(this.copilotLanguageServer);
+      this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
 
-      this.copilotStatusManager.checkStatus();
+      this.authStatusManager.checkStatus();
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {
@@ -99,8 +99,8 @@ public class CopilotCore extends Plugin {
     return copilotLanguageServer;
   }
 
-  public CopilotStatusManager getCopilotStatusManager() {
-    return copilotStatusManager;
+  public AuthStatusManager getAuthStatusManager() {
+    return authStatusManager;
   }
 
   public CompletionProvider getCompletionProvider() {

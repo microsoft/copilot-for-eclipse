@@ -24,7 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.microsoft.copilot.eclipse.core.CopilotStatusManager;
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
@@ -39,7 +39,7 @@ class CompletionProviderTests {
   private CopilotLanguageServerConnection mockLsConnection;
 
   @Mock
-  private CopilotStatusManager mockStatusManager;
+  private AuthStatusManager mockStatusManager;
 
   @Mock
   private CompletionListener mockListener;
