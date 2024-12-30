@@ -9,6 +9,7 @@ Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.dialogs,
  com.microsoft.copilot.eclipse.ui.handlers,
  com.microsoft.copilot.eclipse.ui.i18n,
+ com.microsoft.copilot.eclipse.ui.prerferences,
  com.microsoft.copilot.eclipse.ui.utils
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
 Bundle-RequiredExecutionEnvironment: JavaSE-17

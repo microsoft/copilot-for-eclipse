@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
@@ -19,15 +20,18 @@ public class EditorsManager {
   private CompletionProvider completionProvider;
   private Map<ITextEditor, CompletionHandler> editorMap;
   private AtomicReference<ITextEditor> activeEditor;
+  private IPreferenceStore preferenceStore;
 
   /**
    * Creates a new EditorManager.
    */
-  public EditorsManager(CopilotLanguageServerConnection languageServer, CompletionProvider completionProvider) {
+  public EditorsManager(CopilotLanguageServerConnection languageServer, CompletionProvider completionProvider,
+      IPreferenceStore preferenceStore) {
     this.languageServer = languageServer;
     this.completionProvider = completionProvider;
     this.editorMap = new ConcurrentHashMap<>();
     this.activeEditor = new AtomicReference<>();
+    this.preferenceStore = preferenceStore;
   }
 
   /**
@@ -41,7 +45,7 @@ public class EditorsManager {
     }
 
     return editorMap.computeIfAbsent(editor,
-        edt -> new CompletionHandler(this.languageServer, this.completionProvider, edt));
+        edt -> new CompletionHandler(this.languageServer, this.completionProvider, edt, this.preferenceStore));
   }
 
   /**

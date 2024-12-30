@@ -3,12 +3,12 @@ package com.microsoft.copilot.eclipse.ui;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
-import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -23,7 +23,7 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 /**
  * The plug-in runtime class for the Copilot plug-in containing the UI support, like dialogs, ghost text rendering, etc.
  */
-public class CopilotUi extends Plugin {
+public class CopilotUi extends AbstractUIPlugin {
 
   private static CopilotUi COPILOT_UI_PLUGIN = null;
 
@@ -62,7 +62,7 @@ public class CopilotUi extends Plugin {
           }
 
           CopilotUi.this.editorsManager = new EditorsManager(connection,
-              CopilotCore.getPlugin().getCompletionProvider());
+              CopilotCore.getPlugin().getCompletionProvider(), getPreferenceStore());
           CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
           CopilotUi.this.completionStatusManager = new CompletionStatusManager();
 

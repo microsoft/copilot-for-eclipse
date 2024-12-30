@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.completion;
 import java.io.IOException;
 import java.net.URI;
 
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
@@ -10,11 +11,14 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextSelection;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
@@ -27,7 +31,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A class to listen events which are completion related and notify the completion manager to render the ghost text or
  * apply the suggestion to document.
  */
-public class CompletionHandler implements CaretListener {
+public class CompletionHandler implements CaretListener, IPropertyChangeListener {
 
   private CopilotLanguageServerConnection lsConnection;
   private CompletionProvider provider;
@@ -39,12 +43,14 @@ public class CompletionHandler implements CaretListener {
 
   private DefaultPositionUpdater positionUpdater;
   private CompletionManager completionManager;
+  private boolean autoShowCompletion;
+  private IPreferenceStore preferenceStore;
 
   /**
    * Creates a new completion handler.
    */
   public CompletionHandler(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
-      ITextEditor editor) {
+      ITextEditor editor, IPreferenceStore preferenceStore) {
     this.lsConnection = lsConnection;
     this.textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
     // if the text viewer is null, we will not register listeners.
@@ -82,6 +88,11 @@ public class CompletionHandler implements CaretListener {
     this.positionUpdater = new DefaultPositionUpdater(this.getCategory());
     this.document.addPositionCategory(this.getCategory());
     this.document.addPositionUpdater(this.positionUpdater);
+
+    // initialize the auto show completion preference and add listener to update it.
+    this.preferenceStore = preferenceStore;
+    this.autoShowCompletion = preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
+    preferenceStore.addPropertyChangeListener(this);
   }
 
   /**
@@ -154,9 +165,18 @@ public class CompletionHandler implements CaretListener {
       clearCompletionRendering();
     } else {
       this.documentVersion = currentVersion;
-      triggerCompletion();
+      if (this.autoShowCompletion) {
+        triggerCompletion();
+      }
     }
 
+  }
+
+  @Override
+  public void propertyChange(PropertyChangeEvent event) {
+    if (event.getProperty().equals(Constants.AUTO_SHOW_COMPLETION)) {
+      this.autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
+    }
   }
 
   /**
@@ -177,6 +197,7 @@ public class CompletionHandler implements CaretListener {
 
     this.completionManager.dispose();
     this.completionManager = null;
+    preferenceStore.removePropertyChangeListener(this);
     lsConnection.disconnectDocument(this.documentUri);
     try {
       this.document.removePositionCategory(this.getCategory());

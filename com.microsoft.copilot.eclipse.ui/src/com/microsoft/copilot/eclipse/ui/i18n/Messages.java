@@ -41,6 +41,8 @@ public final class Messages extends NLS {
   public static String signOutHandler_msgDialog_signOutSuccess;
   public static String signOutHandler_msgDialog_signOutFailed;
   public static String signOutHandler_msgDialog_signOutFailedFailure;
+  public static String preferencesPage_description;
+  public static String preferencesPage_autoShowCompletion;
   
   static {
     // initialize resource bundle

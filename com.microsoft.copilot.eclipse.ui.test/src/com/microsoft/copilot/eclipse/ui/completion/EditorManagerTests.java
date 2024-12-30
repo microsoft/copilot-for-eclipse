@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,9 +23,12 @@ class EditorManagerTests {
   @Mock
   private CompletionProvider mockProvider;
 
+  @Mock
+  private IPreferenceStore mockPreferenceStore;
+
   @Test
   void testCreateHandlerForNull() {
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
 
     assertNull(manager.getOrCreateCompletionHandlerFor(null));
   }
@@ -33,7 +37,7 @@ class EditorManagerTests {
   void testGetOrCreateCompletionHandlerForReturnsNewHandlerWhenNotPresent() {
     ITextEditor mockEditor = mock(ITextEditor.class);
 
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
     CompletionHandler handler = manager.getOrCreateCompletionHandlerFor(mockEditor);
 
     assertNotNull(handler);
@@ -41,7 +45,7 @@ class EditorManagerTests {
 
   @Test
   void testGetActiveHandlerWhenNoActiveEditor() {
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
 
     assertNull(manager.getActiveCompletionHandler());
   }
@@ -49,7 +53,7 @@ class EditorManagerTests {
   @Test
   void testGetActiveHandlerWhenActiveEditor() {
     ITextEditor mockEditor = mock(ITextEditor.class);
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
     manager.getOrCreateCompletionHandlerFor(mockEditor);
     manager.setActiveEditor(mockEditor);
 
