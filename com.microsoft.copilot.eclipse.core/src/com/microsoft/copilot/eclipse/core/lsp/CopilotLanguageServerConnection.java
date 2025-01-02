@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LanguageServerWrapper;
+import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
@@ -84,7 +85,14 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Please use the {@link AuthStatusManager#signInInitiate()} method instead.
+   * Update the configuration for the language server.
+   */
+  public void updateConfig(DidChangeConfigurationParams params) {
+    this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeConfiguration(params));
+  }
+
+  /**
+   * Please use the {@link CopilotStatusManager#signInInitiate()} method instead.
    * </p>
    * Initiate the sign in process.
    */

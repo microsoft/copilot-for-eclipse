@@ -11,4 +11,5 @@ public class Constants {
 
   public static final String PLUGIN_ID = "com.microsoft.copilot.eclipse";
   public static final String AUTO_SHOW_COMPLETION = "enableAutoCompletions";
+  public static final String GITHUB_COPILOT_URL = "http://github.com";
 }
