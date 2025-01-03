@@ -12,7 +12,7 @@
 		point="org.eclipse.lsp4e.languageServer">
 		<server
 			id="com.microsoft.copilot.eclipse.ls"
-			label="GitHub Copilot for Eclipse Language Server"
+			label="GitHub Copilot Language Server"
 			class="com.microsoft.copilot.eclipse.core.lsp.LsStreamConnectionProvider"
 			clientImpl="com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageClient"
 			serverInterface="com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServer"

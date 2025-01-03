@@ -3,6 +3,6 @@
    <feature id="com.microsoft.copilot.eclipse.feature" version="0.1.0.qualifier">
       <category name="com.microsoft.copilot.eclipse.category"/>
    </feature>
-   <category-def name="com.microsoft.copilot.eclipse.category" label="GitHub Copilot for Eclipse">
+   <category-def name="com.microsoft.copilot.eclipse.category" label="GitHub Copilot">
    </category-def>
 </site>

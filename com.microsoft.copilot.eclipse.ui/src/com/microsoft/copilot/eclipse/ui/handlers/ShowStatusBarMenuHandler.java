@@ -58,6 +58,11 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       addSignInOrSignOutAction(menuManager);
     }
 
+    // Preferences section
+    menuManager.add(new Separator());
+    addEditKeyboardShortcutsAction(menuManager);
+    addPreferencesAction(menuManager);
+
     Shell shell = PlatformUI.getWorkbench().getDisplay().getActiveShell();
     Menu menu = menuManager.createContextMenu(shell);
     menu.setVisible(true);
@@ -113,6 +118,19 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   private void addLinkToFeedbackForumAction(MenuManager menuManager) {
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_viewFeedbackForum, handlerService,
         "com.microsoft.copilot.eclipse.commands.viewFeedbackForum", true);
+  }
+
+  private void addPreferencesAction(MenuManager menuManager) {
+    ImageDescriptor editPreferencesIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/edit_preferences.png");
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_editPreferences, editPreferencesIcon, handlerService,
+        "com.microsoft.copilot.eclipse.commands.openPreferences", true);
+  }
+
+  private void addEditKeyboardShortcutsAction(MenuManager menuManager) {
+    ImageDescriptor editKeyboardShortcutsIcon = UiUtils
+        .buildImageDescriptorFromPngPath("/icons/edit_keyboard_shortcuts.png");
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_editKeyboardShortcuts, editKeyboardShortcutsIcon,
+        handlerService, "com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts", true);
   }
 
   private String getCopilotStatusBasedOnAuthAndCompletionResult(String copilotStatus) {
@@ -185,7 +203,6 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     private static final int INITIAL_ICON_INDEX = 1;
     private static final int TOTAL_SPINNER_ICONS = 8;
     private static final long COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS = 200L;
-    
 
     private int currentIconIndex = INITIAL_ICON_INDEX;
     private UIElement uiElement;
@@ -194,7 +211,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       super("Spinner Job");
       this.setSystem(true);
     }
-    
+
     public void setTargetUiElement(UIElement uiElement) {
       this.uiElement = uiElement;
     }

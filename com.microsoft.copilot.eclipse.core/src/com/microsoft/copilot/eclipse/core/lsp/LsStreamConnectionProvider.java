@@ -32,7 +32,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider {
 
   public static final String EDITOR_NAME = "Eclipse";
-  public static final String EDITOR_PLUGIN_NAME = "GitHub Copilot for Eclipse";
+  public static final String EDITOR_PLUGIN_NAME = "GitHub Copilot";
 
   @Override
   public Object getInitializationOptions(@Nullable URI rootUri) {

@@ -18,6 +18,8 @@ public final class Messages extends NLS {
   public static String menu_signToGitHub;
   public static String menu_signOutFromGitHub;
   public static String menu_viewFeedbackForum;
+  public static String menu_editPreferences;
+  public static String menu_editKeyboardShortcuts;
   public static String signInDialog_title;
   public static String signInDialog_button_cancel;
   public static String signInDialog_button_copyOpen;
