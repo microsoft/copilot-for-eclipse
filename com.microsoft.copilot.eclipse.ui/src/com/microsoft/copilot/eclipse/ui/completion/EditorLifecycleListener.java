@@ -46,14 +46,14 @@ public class EditorLifecycleListener implements IPartListener {
   }
 
   /**
-   * Creates the {@link CompletionHandler} for the ITextEditor of the IWorkbenchPart.
+   * Creates the {@link CompletionManager} for the ITextEditor of the IWorkbenchPart.
    */
   public void createCompletionHandlerFor(IWorkbenchPart part) {
     IEditorPart editorPart = part.getAdapter(IEditorPart.class);
     if (editorPart != null) {
       ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
       if (editor != null) {
-        manager.getOrCreateCompletionHandlerFor(editor);
+        manager.getOrCreateCompletionManagerFor(editor);
         manager.setActiveEditor(editor);
       }
     }
@@ -64,7 +64,7 @@ public class EditorLifecycleListener implements IPartListener {
     if (editorPart != null) {
       ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
       if (editor != null) {
-        manager.disposeCompletionHandlerFor(editor);
+        manager.disposeCompletionManagerFor(editor);
         if (editor.equals(manager.getActiveEditor())) {
           manager.setActiveEditor(null);
         }

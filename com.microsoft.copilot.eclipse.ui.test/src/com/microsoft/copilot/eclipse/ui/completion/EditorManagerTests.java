@@ -27,36 +27,36 @@ class EditorManagerTests {
   private IPreferenceStore mockPreferenceStore;
 
   @Test
-  void testCreateHandlerForNull() {
+  void testCreateManagerForNull() {
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
 
-    assertNull(manager.getOrCreateCompletionHandlerFor(null));
+    assertNull(manager.getOrCreateCompletionManagerFor(null));
   }
 
   @Test
-  void testGetOrCreateCompletionHandlerForReturnsNewHandlerWhenNotPresent() {
+  void testGetOrCreateCompletionManagerForReturnsNewHandlerWhenNotPresent() {
     ITextEditor mockEditor = mock(ITextEditor.class);
 
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
-    CompletionHandler handler = manager.getOrCreateCompletionHandlerFor(mockEditor);
+    CompletionManager completionManager = manager.getOrCreateCompletionManagerFor(mockEditor);
 
-    assertNotNull(handler);
+    assertNotNull(completionManager);
   }
 
   @Test
-  void testGetActiveHandlerWhenNoActiveEditor() {
+  void testGetActiveManagerWhenNoActiveEditor() {
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
 
-    assertNull(manager.getActiveCompletionHandler());
+    assertNull(manager.getActiveCompletionManager());
   }
 
   @Test
   void testGetActiveHandlerWhenActiveEditor() {
     ITextEditor mockEditor = mock(ITextEditor.class);
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
-    manager.getOrCreateCompletionHandlerFor(mockEditor);
+    manager.getOrCreateCompletionManagerFor(mockEditor);
     manager.setActiveEditor(mockEditor);
 
-    assertNotNull(manager.getActiveCompletionHandler());
+    assertNotNull(manager.getActiveCompletionManager());
   }
 }

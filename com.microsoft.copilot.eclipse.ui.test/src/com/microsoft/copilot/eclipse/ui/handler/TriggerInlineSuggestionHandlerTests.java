@@ -11,7 +11,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
+import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.handlers.TriggerInlineSuggestionHandler;
 
@@ -22,10 +22,10 @@ class TriggerInlineSuggestionHandlerTests {
   void testIsEnabledWhenNoCompletionIsAvailable() {
     CopilotUi mockedUi = mock(CopilotUi.class);
     EditorsManager mockedManager = mock(EditorsManager.class);
-    CompletionHandler mockedHandler = mock(CompletionHandler.class);
+    CompletionManager mockedCompletionManager = mock(CompletionManager.class);
     when(mockedUi.getEditorsManager()).thenReturn(mockedManager);
-    when(mockedManager.getActiveCompletionHandler()).thenReturn(mockedHandler);
-    when(mockedHandler.hasCompletion()).thenReturn(false);
+    when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);
+    when(mockedCompletionManager.hasCompletion()).thenReturn(false);
 
     TriggerInlineSuggestionHandler handler = new TriggerInlineSuggestionHandler();
 

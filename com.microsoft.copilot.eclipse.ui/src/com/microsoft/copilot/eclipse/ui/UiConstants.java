@@ -16,8 +16,8 @@ public class UiConstants {
    * Default color scale for ghost text.
    */
 
-  public static final int DEFAULT_GHOST_TEXT_SCALE = 112;
-  
+  public static final int DEFAULT_GHOST_TEXT_SCALE = 128;
+
   /**
    * The URL constants for the Copilot menu.
    */

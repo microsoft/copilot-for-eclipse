@@ -12,9 +12,8 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.jface.preference.PreferenceStore;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.ITextOperationTarget;
-import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.ui.IEditorPart;
@@ -75,12 +74,11 @@ class CompletionManagerTests {
     assertTrue(editorPart instanceof ITextEditor);
 
     ITextEditor textEditor = (ITextEditor) editorPart;
-    ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextOperationTarget.class);
     IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
 
     when(mockLsConnection.getDocumentVersion(any())).thenReturn(documentVersion);
-    CompletionManager manager = new CompletionManager(mockLsConnection, mock(CompletionProvider.class), textViewer,
-        document, file.getLocationURI());
+    CompletionManager manager = new CompletionManager(mockLsConnection, mock(CompletionProvider.class), textEditor,
+        mock(PreferenceStore.class));
 
     List<CompletionItem> completions = List.of(new CompletionItem("uuid", "    System.out.println(\"hi\");",
         new Range(new Position(3, 0), new Position(3, 27)), "hi\");", new Position(3, 24), documentVersion));
@@ -103,6 +101,7 @@ class CompletionManagerTests {
           ref.set(window.getActivePage().openEditor(new org.eclipse.ui.part.FileEditorInput(file),
               "org.eclipse.ui.DefaultTextEditor"));
         } catch (PartInitException e) {
+          // do nothing
         }
       }
     });

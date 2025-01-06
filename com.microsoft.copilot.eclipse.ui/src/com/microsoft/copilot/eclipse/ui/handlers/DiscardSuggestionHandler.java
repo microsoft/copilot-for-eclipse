@@ -7,7 +7,7 @@ import org.eclipse.core.commands.ExecutionException;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
+import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
 
 /**
  * Handler for clearing the completion ghost text.
@@ -15,7 +15,7 @@ import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
 public class DiscardSuggestionHandler extends CopilotHandler {
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
-    CompletionHandler handler = getActiveCompletionHandler();
+    CompletionManager handler = getActiveCompletionManager();
     if (handler != null) {
       notifyRejected(handler.getCompletions());
       handler.clearCompletionRendering();
@@ -25,9 +25,9 @@ public class DiscardSuggestionHandler extends CopilotHandler {
 
   @Override
   public boolean isEnabled() {
-    CompletionHandler handler = getActiveCompletionHandler();
-    if (handler != null) {
-      return handler.hasCompletion();
+    CompletionManager manager = getActiveCompletionManager();
+    if (manager != null) {
+      return manager.hasCompletion();
     }
     return false;
   }

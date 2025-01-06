@@ -20,7 +20,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionHandler;
+import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.handlers.DiscardSuggestionHandler;
 
@@ -31,10 +31,10 @@ class DiscardSuggestionHandlerTests {
   void testIsNotEnabledWhenNoCompletionIsAvailable() {
     CopilotUi mockedUi = mock(CopilotUi.class);
     EditorsManager mockedManager = mock(EditorsManager.class);
-    CompletionHandler mockedHandler = mock(CompletionHandler.class);
+    CompletionManager mockedCompletionManager = mock(CompletionManager.class);
     when(mockedUi.getEditorsManager()).thenReturn(mockedManager);
-    when(mockedManager.getActiveCompletionHandler()).thenReturn(mockedHandler);
-    when(mockedHandler.hasCompletion()).thenReturn(false);
+    when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);
+    when(mockedCompletionManager.hasCompletion()).thenReturn(false);
 
     DiscardSuggestionHandler handler = new DiscardSuggestionHandler();
 
@@ -53,11 +53,11 @@ class DiscardSuggestionHandlerTests {
 
     CompletionCollection completions = mock(CompletionCollection.class);
     when(completions.getUuids()).thenReturn(List.of("uuid"));
-    CompletionHandler mockedHandler = mock(CompletionHandler.class);
-    doNothing().when(mockedHandler).clearCompletionRendering();
-    when(mockedHandler.getCompletions()).thenReturn(completions);
+    CompletionManager mockedCompletionManager = mock(CompletionManager.class);
+    doNothing().when(mockedCompletionManager).clearCompletionRendering();
+    when(mockedCompletionManager.getCompletions()).thenReturn(completions);
     EditorsManager mockedManager = mock(EditorsManager.class);
-    when(mockedManager.getActiveCompletionHandler()).thenReturn(mockedHandler);
+    when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);
     CopilotUi mockedUi = mock(CopilotUi.class);
     when(mockedUi.getEditorsManager()).thenReturn(mockedManager);
 

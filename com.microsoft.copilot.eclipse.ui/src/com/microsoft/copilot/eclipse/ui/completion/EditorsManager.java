@@ -12,13 +12,13 @@ import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
- * Manages the completion handlers for all available ITextEditors.
+ * Manages the completion managers for all available ITextEditors.
  */
 public class EditorsManager {
 
   private CopilotLanguageServerConnection languageServer;
   private CompletionProvider completionProvider;
-  private Map<ITextEditor, CompletionHandler> editorMap;
+  private Map<ITextEditor, CompletionManager> editorMap;
   private AtomicReference<ITextEditor> activeEditor;
   private IPreferenceStore preferenceStore;
 
@@ -35,25 +35,37 @@ public class EditorsManager {
   }
 
   /**
-   * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionHandler CompletionHandler} for the given
+   * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionManager CompletionManager} for the given
    * ITextEditor. If it does not exist, a new one will be created. Returns <code>null</code> if the editor is
    * <code>null</code>.
    */
-  public CompletionHandler getOrCreateCompletionHandlerFor(ITextEditor editor) {
+  public CompletionManager getOrCreateCompletionManagerFor(ITextEditor editor) {
     if (editor == null) {
       return null;
     }
 
     return editorMap.computeIfAbsent(editor,
-        edt -> new CompletionHandler(this.languageServer, this.completionProvider, edt, this.preferenceStore));
+        edt -> new CompletionManager(this.languageServer, this.completionProvider, edt, this.preferenceStore));
   }
 
   /**
-   * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionHandler CompletionHandler} for the active
+   * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionManager CompletionManager} for the given
+   * ITextEditor. Returns <code>null</code> if there is no manager for the editor.
+   */
+  public CompletionManager getCompletionManagerFor(ITextEditor editor) {
+    if (editor == null) {
+      return null;
+    }
+
+    return editorMap.get(editor);
+  }
+
+  /**
+   * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionManager CompletionManager} for the active
    * ITextEditor.
    */
   @Nullable
-  public CompletionHandler getActiveCompletionHandler() {
+  public CompletionManager getActiveCompletionManager() {
     if (this.activeEditor.get() == null) {
       return null;
     }
@@ -61,11 +73,11 @@ public class EditorsManager {
   }
 
   /**
-   * Disposes the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionHandler CompletionHandler} for the given
+   * Disposes the {@link com.microsoft.copilot.eclipse.ui.completion.CompletionManager CompletionHandler} for the given
    * ITextEditor.
    */
-  public void disposeCompletionHandlerFor(ITextEditor editor) {
-    CompletionHandler handler = editorMap.remove(editor);
+  public void disposeCompletionManagerFor(ITextEditor editor) {
+    CompletionManager handler = editorMap.remove(editor);
     if (handler != null) {
       handler.dispose();
     }
@@ -84,10 +96,10 @@ public class EditorsManager {
   }
 
   /**
-   * Dispose all the handlers.
+   * Dispose all the managers.
    */
   public void dispose() {
-    for (CompletionHandler handler : this.editorMap.values()) {
+    for (CompletionManager handler : this.editorMap.values()) {
       handler.dispose();
     }
     this.editorMap.clear();

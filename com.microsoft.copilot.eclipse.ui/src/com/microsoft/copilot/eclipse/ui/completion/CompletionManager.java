@@ -1,23 +1,32 @@
 package com.microsoft.copilot.eclipse.ui.completion;
 
+import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.BadPositionCategoryException;
+import org.eclipse.jface.text.DefaultPositionUpdater;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.Position;
+import org.eclipse.jface.text.TextSelection;
+import org.eclipse.jface.text.codemining.ICodeMining;
+import org.eclipse.jface.text.source.ISourceViewerExtension5;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.swt.custom.CaretEvent;
+import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
-import org.eclipse.swt.events.PaintEvent;
-import org.eclipse.swt.events.PaintListener;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.RGB;
-import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
@@ -26,87 +35,123 @@ import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.completion.codemining.BlockGhostText;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * A class to control completion rendering.
+ * A class to listen events which are completion related and notify the completion manager to render the ghost text or
+ * apply the suggestion to document.
  */
-public class CompletionManager implements CompletionListener, PaintListener {
+public class CompletionManager implements CaretListener, CompletionListener, IPropertyChangeListener {
 
   private CopilotLanguageServerConnection lsConnection;
   private CompletionProvider provider;
+  private CompletionCollection completions;
+  private ITextViewer textViewer;
+  private StyledText styledText;
   private IDocument document;
   private URI documentUri;
-  private CompletionCollection completions;
+  private int documentVersion;
+  private org.eclipse.jface.text.Position triggerPosition;
+  private List<ICodeMining> codeMinings;
 
-  private ITextViewer textViewer;
-  private Color ghostTextColor;
-  private Position triggerPosition;
+  private DefaultPositionUpdater positionUpdater;
+  private RenderingManager renderingManager;
+  private boolean autoShowCompletion;
+  private IPreferenceStore preferenceStore;
 
   /**
-   * Creates a new CompletionManager.
+   * Creates a new completion manager. The manager is responsible for trigger the completion, apply suggestions to the
+   * document. And schedule the rendering of ghost text.
    */
   public CompletionManager(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
-      ITextViewer textViewer, IDocument document, URI documentUri) {
+      ITextEditor editor, IPreferenceStore preferenceStore) {
+    this.codeMinings = new ArrayList<>();
+    this.textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+    // if the text viewer is null, we will not register listeners.
+    // the side effect is that the completion will not be triggered for this editor.
+    if (textViewer == null) {
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Text viewer is null for editor: " + editor.getTitle());
+      return;
+    }
+    this.styledText = this.textViewer.getTextWidget();
+    if (this.styledText == null) {
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Styled text is null for editor: " + editor.getTitle());
+      return;
+    }
+    this.document = LSPEclipseUtils.getDocument(editor);
+    if (this.document == null) {
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Document is null for editor: " + editor.getTitle());
+      return;
+    }
+    this.documentUri = LSPEclipseUtils.toUri(document);
+    if (this.documentUri == null) {
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Document URI is null for editor: " + editor.getTitle());
+      return;
+    }
+    try {
+      lsConnection.connectDocument(this.document);
+    } catch (IOException e) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      return;
+    }
+
+    this.renderingManager = new RenderingManager(this.textViewer);
+
     this.lsConnection = lsConnection;
     this.provider = provider;
     this.provider.addCompletionListener(this);
-    this.document = document;
-    this.documentUri = documentUri;
     this.completions = null;
+    this.documentVersion = -1;
+    this.triggerPosition = new org.eclipse.jface.text.Position(0);
 
-    this.triggerPosition = new Position(0);
-    this.textViewer = textViewer;
-    StyledText styledText = textViewer.getTextWidget();
-    if (styledText != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        styledText.addPaintListener(this);
-        this.ghostTextColor = new Color(styledText.getDisplay(), new RGB(UiConstants.DEFAULT_GHOST_TEXT_SCALE,
-            UiConstants.DEFAULT_GHOST_TEXT_SCALE, UiConstants.DEFAULT_GHOST_TEXT_SCALE));
-      }, styledText);
-    }
+    // initialize the auto show completion preference and add listener to update it.
+    this.preferenceStore = preferenceStore;
+    this.autoShowCompletion = preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
+
+    // position updater is used to update the position when the document is changed.
+    // this is needed because the completion ghost text is rendered based on the
+    // position in the document. If the document is changed, the position will be
+    // invalidated.
+    this.positionUpdater = new DefaultPositionUpdater(this.getCategory());
+    this.document.addPositionCategory(this.getCategory());
+    this.document.addPositionUpdater(this.positionUpdater);
+
+    registerListeners();
   }
 
-  /**
-   * Triggers the completion.
-   */
-  public void triggerCompletion(Position position, int documentVersion) {
-    this.triggerPosition = position;
-    try {
-      this.provider.triggerCompletion(documentUri.toASCIIString(),
-          LSPEclipseUtils.toPosition(position.getOffset(), this.document), documentVersion);
-    } catch (BadLocationException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
-    }
+  void registerListeners() {
+    SwtUtils.invokeOnDisplayThread(() -> {
+      this.styledText.addCaretListener(this);
+    }, this.styledText);
+
+    this.preferenceStore.addPropertyChangeListener(this);
   }
 
-  /**
-   * Clear the completion.
-   */
-  public void clearGhostText() {
-    if (this.completions == null || this.completions.getSize() == 0) {
+  @Override
+  public void caretMoved(CaretEvent event) {
+    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.caretOffset);
+    this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
+
+    // it's guaranteed that the document change event comes earlier than caret
+    // change event. See org.eclipse.swt.custom.StyledText#modifyContent()
+    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
+
+    // initialize the document version and return. This avoids the ghost text
+    // being rendered when user opens the editor and just clicks in it.
+    if (this.documentVersion < 0) {
+      this.documentVersion = currentVersion;
       return;
     }
-    try {
-      // use completion trigger position if available. this.triggerPosition is the current
-      // cursor position, which may not be the same as the completion trigger position when user
-      // use mouse to move the cursor. In that case, the line vertical indentation might not be
-      // reset correctly.
-      int offset = LSPEclipseUtils.toOffset(this.completions.getTriggerPosition(), this.document);
-      this.triggerPosition = new Position(offset);
-    } catch (BadLocationException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
-      return;
-    }
-    this.completions = null;
-    StyledText styledText = textViewer.getTextWidget();
-    if (styledText != null) {
-      this.setLineVerticalIndentation(styledText, null,
-          UiUtils.modelOffset2WidgetOffset(textViewer, this.triggerPosition.getOffset()));
-      SwtUtils.invokeOnDisplayThread(styledText::redraw, styledText);
+    if (currentVersion == this.documentVersion) {
+      // if the caret position is changed without document version change, we should remove the ghost text.
+      clearCompletionRendering();
+    } else {
+      this.documentVersion = currentVersion;
+      if (this.autoShowCompletion) {
+        triggerCompletion();
+      }
     }
 
   }
@@ -122,71 +167,103 @@ public class CompletionManager implements CompletionListener, PaintListener {
     }
 
     this.completions = completions;
-    StyledText styledText = textViewer.getTextWidget();
-    if (styledText != null) {
-      SwtUtils.invokeOnDisplayThread(styledText::redraw, styledText);
+
+    // render the first line by ourself to make sure cursor position not change.
+    List<GhostText> ghostTexts = resolveGhostTexts();
+    if (!ghostTexts.isEmpty()) {
+      this.renderingManager.setGhostTexts(ghostTexts);
+      this.renderingManager.redraw();
       this.notifyShown();
+    }
+
+    // render the remaining lines by code mining api.
+    resolveCodeMiningGhostTexts();
+    this.updateCodeMinings();
+  }
+
+  private List<GhostText> resolveGhostTexts() {
+    if (this.completions == null || this.completions.getSize() == 0) {
+      return Collections.emptyList();
+    }
+    List<GhostText> ghostTexts = new ArrayList<>();
+    String firstLine = this.completions.getFirstLine();
+    if (StringUtils.isNotBlank(firstLine)) {
+      ghostTexts.add(new EolGhostText(firstLine, triggerPosition.getOffset()));
+    }
+    return ghostTexts;
+  }
+
+  private void resolveCodeMiningGhostTexts() {
+    if (this.completions == null || this.completions.getSize() == 0) {
+      this.codeMinings.clear();
+      return;
+    }
+    List<ICodeMining> cm = new ArrayList<>();
+    String remainingLines = this.completions.getRemainingLines();
+    if (StringUtils.isNotEmpty(remainingLines)) {
+      try {
+        cm.add(
+            new BlockGhostText(document.getLineOfOffset(triggerPosition.offset) + 1, document, null, remainingLines));
+      } catch (BadLocationException e) {
+        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      }
+    }
+    this.codeMinings = cm;
+  }
+
+  private void updateCodeMinings() {
+    if (textViewer instanceof ISourceViewerExtension5 sve) {
+      sve.updateCodeMinings();
     }
   }
 
   @Override
-  public void paintControl(PaintEvent e) {
-    StyledText styledText = textViewer.getTextWidget();
-    if (styledText == null) {
-      return;
+  public void propertyChange(PropertyChangeEvent event) {
+    if (event.getProperty().equals(Constants.AUTO_SHOW_COMPLETION)) {
+      this.autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
     }
-
-    GC gc = e.gc;
-    int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, this.triggerPosition.getOffset());
-    // will get index out of bounds if the cursor is at the end.
-    // Because there is no more text to get bounds at EOF.
-    widgetOffset = Math.max(Math.min(widgetOffset, styledText.getCharCount() - 1), 0);
-    setLineVerticalIndentation(styledText, gc, widgetOffset);
-
-    if (this.completions == null) {
-      return;
-    }
-
-    gc.setForeground(this.ghostTextColor);
-    String firstLine = this.completions.getFirstLine();
-    if (StringUtils.isNotBlank(firstLine)) {
-      Rectangle bounds = styledText.getTextBounds(widgetOffset, widgetOffset);
-      int y = bounds.y;
-      y += bounds.height - styledText.getLineHeight();
-      gc.drawString(firstLine, bounds.x + bounds.width, y, true);
-    }
-    String remainingLines = this.completions.getRemainingLines();
-    if (StringUtils.isNotBlank(remainingLines)) {
-      int lineHeight = styledText.getLineHeight();
-      int fontHeight = gc.getFontMetrics().getHeight();
-      int x = styledText.getLeftMargin();
-      Point offsetLocation = styledText.getLocationAtOffset(widgetOffset);
-      int y = offsetLocation.y + lineHeight * 2 - fontHeight;
-      gc.drawText(remainingLines, x, y, true);
-    }
-
-  }
-
-  private void setLineVerticalIndentation(StyledText styledText, GC gc, int widgetOffset) {
-    int height = 0;
-    if (this.completions != null && gc != null) {
-      // Change the height (line vertical indentation) to fit the line of
-      // ghost text.
-      Point ghostTextExtent = gc.textExtent(this.completions.getText());
-      int numberOfLines = this.completions.getNumberOfLines();
-      height = ghostTextExtent.y - ghostTextExtent.y / numberOfLines;
-    }
-
-    int lineIndex = styledText.getLineAtOffset(widgetOffset) + 1;
-    lineIndex = Math.min(lineIndex, styledText.getLineCount() - 1);
-    styledText.setLineVerticalIndent(lineIndex, height);
   }
 
   /**
-   * Return if the completion manager has completion rendering.
+   * Trigger the inline completion.
    */
-  public boolean hasCompletion() {
-    return this.completions != null;
+  public void triggerCompletion() {
+    clearCompletionRendering();
+    try {
+      this.provider.triggerCompletion(documentUri.toASCIIString(),
+          LSPEclipseUtils.toPosition(this.triggerPosition.getOffset(), this.document), documentVersion);
+    } catch (BadLocationException e) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+    }
+  }
+
+  /**
+   * Clear the completion ghost text.
+   */
+  public void clearCompletionRendering() {
+    this.codeMinings.clear();
+    this.updateCodeMinings();
+
+    this.renderingManager.clearGhostText();
+    this.completions = null;
+  }
+
+  /**
+   * Accept the full completion suggestion.
+   */
+  public void acceptFullSuggestion() {
+    try {
+      this.document.addPosition(this.triggerPosition);
+      this.acceptSuggestion();
+      this.document.removePosition(this.triggerPosition);
+    } catch (BadLocationException e) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      return;
+    }
+    this.clearCompletionRendering();
+    SwtUtils.invokeOnDisplayThread(() -> {
+      this.textViewer.getSelectionProvider().setSelection(new TextSelection(this.triggerPosition.offset, 0));
+    }, this.textViewer.getTextWidget());
   }
 
   /**
@@ -194,7 +271,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
    *
    * @throws BadLocationException if the offset is invalid.
    */
-  public void acceptSuggestion() throws BadLocationException {
+  void acceptSuggestion() throws BadLocationException {
     if (this.completions == null || this.completions.getSize() == 0) {
       return;
     }
@@ -207,20 +284,58 @@ public class CompletionManager implements CompletionListener, PaintListener {
     this.document.replace(startOffset, endOffset - startOffset, text);
   }
 
-  public CompletionCollection getCompletions() {
-    return completions;
+  /**
+   * Get category for the position updater of this document.
+   */
+  private String getCategory() {
+    return "GCE-" + this.documentUri.toASCIIString();
   }
 
   /**
-   * Dispose the resources used by the completion manager.
+   * Disposes the resources of this completion handler.
    */
   public void dispose() {
-    this.provider.removeCompletionListener(this);
-    this.completions = null;
-    if (this.ghostTextColor != null) {
-      this.ghostTextColor.dispose();
-      this.ghostTextColor = null;
+    if (this.provider != null) {
+      this.provider.removeCompletionListener(this);
     }
+    if (this.renderingManager != null) {
+      this.renderingManager.dispose();
+      this.renderingManager = null;
+    }
+
+    if (this.preferenceStore != null) {
+      preferenceStore.removePropertyChangeListener(this);
+    }
+    lsConnection.disconnectDocument(this.documentUri);
+
+    if (this.document != null) {
+      try {
+        this.document.removePositionCategory(this.getCategory());
+      } catch (BadPositionCategoryException e) {
+        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      }
+      this.document.removePositionUpdater(this.positionUpdater);
+    }
+
+    if (this.styledText != null) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        this.styledText.removeCaretListener(this);
+      });
+    }
+  }
+
+  /**
+   * Will be used when notifying the completion rejection/acceptance.
+   */
+  public CompletionCollection getCompletions() {
+    return this.completions;
+  }
+
+  /**
+   * Check if the completion handler has any completion suggestions.
+   */
+  public boolean hasCompletion() {
+    return this.completions != null;
   }
 
   private void notifyShown() {
@@ -235,6 +350,10 @@ public class CompletionManager implements CompletionListener, PaintListener {
 
     NotifyShownParams params = new NotifyShownParams(item.getUuid());
     this.lsConnection.notifyShown(params);
+  }
+
+  public List<ICodeMining> getCodeMinings() {
+    return codeMinings;
   }
 
 }

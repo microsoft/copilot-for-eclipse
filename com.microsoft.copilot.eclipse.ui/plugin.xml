@@ -155,4 +155,12 @@
 			sequence="ESC">
 		</key>
 	</extension>
+	<!-- Code mining registration, for block ghost text rendering -->
+	<extension
+		point="org.eclipse.ui.workbench.texteditor.codeMiningProviders">
+		<codeMiningProvider
+			class="com.microsoft.copilot.eclipse.ui.completion.codemining.GhostTextProvider"
+			id="com.microsoft.copilot.eclipse.ui.ghostTextProvider">
+		</codeMiningProvider>
+	</extension>
 </plugin>
