@@ -20,6 +20,7 @@ import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.menus.UIElement;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -57,7 +58,7 @@ public class UiUtils {
       IWebBrowser browser = browserSupport.createBrowser(IWorkbenchBrowserSupport.AS_EXTERNAL, null, null, null);
       browser.openURL(new URI(encodedUrl).toURL());
     } catch (Exception e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return false;
     }
     return true;

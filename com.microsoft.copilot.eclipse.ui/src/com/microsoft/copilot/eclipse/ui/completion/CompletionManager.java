@@ -18,6 +18,7 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.graphics.Rectangle;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
@@ -78,7 +79,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
       this.provider.triggerCompletion(documentUri.toASCIIString(),
           LSPEclipseUtils.toPosition(position.getOffset(), this.document), documentVersion);
     } catch (BadLocationException e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
     }
   }
 
@@ -97,7 +98,7 @@ public class CompletionManager implements CompletionListener, PaintListener {
       int offset = LSPEclipseUtils.toOffset(this.completions.getTriggerPosition(), this.document);
       this.triggerPosition = new Position(offset);
     } catch (BadLocationException e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return;
     }
     this.completions = null;

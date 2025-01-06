@@ -29,7 +29,6 @@ public class CopilotUi extends AbstractUIPlugin {
   private CopilotStatusManager copilotStatusManager;
   private EditorLifecycleListener editorLifecycleListener;
   private EditorsManager editorsManager;
-  public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
 
   /**
    * Creates the Copilot ui plugin. The plugin is created automatically by the Eclipse framework. Clients must not call
@@ -56,7 +55,7 @@ public class CopilotUi extends AbstractUIPlugin {
           CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
           if (connection == null) {
             var ex = new IllegalStateException("Failed to start copilot language server.");
-            LOGGER.log(LogLevel.ERROR, ex);
+            CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
             throw ex;
           }
 
@@ -73,7 +72,7 @@ public class CopilotUi extends AbstractUIPlugin {
           // to initialize it.
           initCompletionHandlerForActiveEditor();
         } catch (OperationCanceledException | InterruptedException e) {
-          LOGGER.log(LogLevel.ERROR, e);
+          CopilotCore.LOGGER.log(LogLevel.ERROR, e);
           return Status.error("Failed to initialize GitHub Copilot plugin.", e);
         }
         return Status.OK_STATUS;

@@ -56,7 +56,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
     try {
       this.run(true, true, task);
     } catch (Exception e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
     }
   }
 
@@ -77,7 +77,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
           try {
             return CopilotCore.getPlugin().getAuthStatusManager().signInConfirm(userCode);
           } catch (Exception e) {
-            CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+            CopilotCore.LOGGER.log(LogLevel.ERROR, e);
             return null;
           }
         });

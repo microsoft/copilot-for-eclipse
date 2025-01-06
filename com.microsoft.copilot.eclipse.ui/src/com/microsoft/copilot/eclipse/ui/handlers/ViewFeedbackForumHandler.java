@@ -4,6 +4,7 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
@@ -19,7 +20,7 @@ public class ViewFeedbackForumHandler extends AbstractHandler {
     try {
       UiUtils.openLink(UiConstants.COPILOT_FEEDBACK_FORUM_URL);
     } catch (Exception e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
     }
 
     return null;

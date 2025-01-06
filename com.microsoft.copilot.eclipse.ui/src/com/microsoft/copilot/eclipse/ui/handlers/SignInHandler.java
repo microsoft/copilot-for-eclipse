@@ -72,9 +72,9 @@ public class SignInHandler extends AbstractHandler {
         String msg = Messages.signInHandler_msgDialog_signInFailed;
         if (StringUtils.isNotBlank(e.getMessage())) {
           msg += " " + e.getMessage();
-          CopilotUi.LOGGER.log(LogLevel.ERROR, msg, e);
+          CopilotCore.LOGGER.log(LogLevel.ERROR, msg, e);
         }
-        
+
         String errorMsg = "Sign in failed: " + e.getMessage();
         return new Status(IStatus.ERROR, Constants.PLUGIN_ID, errorMsg);
       }

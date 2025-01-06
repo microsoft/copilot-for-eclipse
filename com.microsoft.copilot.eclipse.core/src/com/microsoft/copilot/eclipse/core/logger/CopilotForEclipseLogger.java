@@ -14,7 +14,7 @@ import com.microsoft.copilot.eclipse.core.logger.handlers.EclipseConsoleHandler;
  * The logger for Copilot for Eclipse.
  */
 public class CopilotForEclipseLogger {
-  //TODO: migrate to xml configuration
+  // TODO: migrate to xml configuration
   private Logger logger;
 
   /**

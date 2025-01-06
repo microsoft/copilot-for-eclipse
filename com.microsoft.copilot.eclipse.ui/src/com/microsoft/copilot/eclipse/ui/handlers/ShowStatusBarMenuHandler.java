@@ -185,7 +185,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           try {
             handlerService.executeCommand(commandId, null);
           } catch (Exception e) {
-            CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+            CopilotCore.LOGGER.log(LogLevel.ERROR, e);
           }
         }
       };

@@ -19,6 +19,7 @@ import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
@@ -56,23 +57,23 @@ public class CompletionHandler implements CaretListener, IPropertyChangeListener
     // if the text viewer is null, we will not register listeners.
     // the side effect is that the completion will not be triggered for this editor.
     if (textViewer == null) {
-      CopilotUi.LOGGER.log(LogLevel.INFO, "Text viewer is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Text viewer is null for editor: " + editor.getTitle());
       return;
     }
     this.document = LSPEclipseUtils.getDocument(editor);
     if (this.document == null) {
-      CopilotUi.LOGGER.log(LogLevel.INFO, "Document is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Document is null for editor: " + editor.getTitle());
       return;
     }
     this.documentUri = LSPEclipseUtils.toUri(document);
     if (this.documentUri == null) {
-      CopilotUi.LOGGER.log(LogLevel.INFO, "Document URI is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.log(LogLevel.INFO, "Document URI is null for editor: " + editor.getTitle());
       return;
     }
     try {
       lsConnection.connectDocument(this.document);
     } catch (IOException e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return;
     }
     this.documentVersion = -1;
@@ -111,7 +112,7 @@ public class CompletionHandler implements CaretListener, IPropertyChangeListener
       this.completionManager.acceptSuggestion();
       this.document.removePosition(this.triggerPosition);
     } catch (BadLocationException e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       return;
     }
     this.clearCompletionRendering();
@@ -202,7 +203,7 @@ public class CompletionHandler implements CaretListener, IPropertyChangeListener
     try {
       this.document.removePositionCategory(this.getCategory());
     } catch (BadPositionCategoryException e) {
-      CopilotUi.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
     }
     this.document.removePositionUpdater(this.positionUpdater);
     SwtUtils.invokeOnDisplayThread(() -> {
