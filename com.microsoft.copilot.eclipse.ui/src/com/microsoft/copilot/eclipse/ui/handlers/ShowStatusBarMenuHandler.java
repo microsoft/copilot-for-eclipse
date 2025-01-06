@@ -202,7 +202,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   private class SpinnerJob extends Job {
     private static final int INITIAL_ICON_INDEX = 1;
     private static final int TOTAL_SPINNER_ICONS = 8;
-    private static final long COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS = 200L;
+    private static final long COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS = 100L;
 
     private int currentIconIndex = INITIAL_ICON_INDEX;
     private UIElement uiElement;
