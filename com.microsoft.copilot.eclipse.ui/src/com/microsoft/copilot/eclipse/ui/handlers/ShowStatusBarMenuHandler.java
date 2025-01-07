@@ -91,12 +91,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         case CopilotStatusResult.LOADING:
           scheduleSpinnerJob(element);
           break;
-        case CopilotStatusResult.ERROR:
-        case CopilotStatusResult.WARNING:
+        case CopilotStatusResult.ERROR, CopilotStatusResult.WARNING:
           iconPath = "/icons/github_copilot_error_blue.png";
           break;
-        case CopilotStatusResult.NOT_SIGNED_IN:
-        case CopilotStatusResult.NOT_AUTHORIZED:
+        case CopilotStatusResult.NOT_SIGNED_IN, CopilotStatusResult.NOT_AUTHORIZED:
         default:
           iconPath = "/icons/github_copilot_not_signed_in_blue.png";
       }

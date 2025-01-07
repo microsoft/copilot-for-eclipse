@@ -306,7 +306,10 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
     if (this.preferenceStore != null) {
       preferenceStore.removePropertyChangeListener(this);
     }
-    lsConnection.disconnectDocument(this.documentUri);
+
+    if (this.lsConnection != null) {
+      this.lsConnection.disconnectDocument(this.documentUri);
+    }
 
     if (this.document != null) {
       try {
@@ -320,7 +323,7 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
     if (this.styledText != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
         this.styledText.removeCaretListener(this);
-      });
+      }, this.styledText);
     }
   }
 

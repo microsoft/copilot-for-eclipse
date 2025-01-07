@@ -6,10 +6,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.text.ITextOperationTarget;
+import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Manages the completion managers for all available ITextEditors.
@@ -41,6 +44,11 @@ public class EditorsManager {
    */
   public CompletionManager getOrCreateCompletionManagerFor(ITextEditor editor) {
     if (editor == null) {
+      return null;
+    }
+
+    ITextViewer textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+    if (!SwtUtils.isEditable(textViewer)) {
       return null;
     }
 

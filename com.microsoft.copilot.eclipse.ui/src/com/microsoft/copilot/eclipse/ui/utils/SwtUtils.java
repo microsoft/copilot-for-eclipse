@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -93,5 +94,18 @@ public class SwtUtils {
       display = Display.getDefault();
     }
     return display;
+  }
+
+  /**
+   * Check if the given text viewer is editable.
+   */
+  public static boolean isEditable(ITextViewer textViewer) {
+    AtomicReference<Boolean> ref = new AtomicReference<>();
+    invokeOnDisplayThread(() -> {
+      if (textViewer != null) {
+        ref.set(textViewer.isEditable());
+      }
+    });
+    return ref.get();
   }
 }
