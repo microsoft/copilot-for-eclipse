@@ -34,7 +34,7 @@ public abstract class CopilotHandler extends AbstractHandler {
     return CopilotCore.getPlugin().getCopilotLanguageServer();
   }
   
-  public CopilotStatusManager getAuthAndCompletionStatusManager() {
-    return CopilotUi.getPlugin().getAuthAndCompletionStatusManager();
+  public CopilotStatusManager getCopilotStatusManager() {
+    return CopilotUi.getPlugin().getCopilotStatusManager();
   }
 }

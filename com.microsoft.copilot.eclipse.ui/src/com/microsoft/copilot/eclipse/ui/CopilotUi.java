@@ -82,7 +82,7 @@ public class CopilotUi extends AbstractUIPlugin {
     initJob.schedule();
   }
 
-  public CopilotStatusManager getAuthAndCompletionStatusManager() {
+  public CopilotStatusManager getCopilotStatusManager() {
     return copilotStatusManager;
   }
 

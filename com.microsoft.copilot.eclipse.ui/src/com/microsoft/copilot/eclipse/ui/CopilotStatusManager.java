@@ -13,7 +13,7 @@ public class CopilotStatusManager implements CompletionStatusListener, CopilotAu
   private boolean completionInProgress;
 
   /**
-   * Constructor for the CompletionStatusManager.
+   * Constructor for the CopilotStatusManager.
    */
   public CopilotStatusManager() {
   }

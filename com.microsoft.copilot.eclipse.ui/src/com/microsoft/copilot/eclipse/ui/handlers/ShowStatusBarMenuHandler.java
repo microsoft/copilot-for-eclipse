@@ -71,37 +71,44 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   @Override
   public void updateElement(UIElement element, Map parameters) {
-    CopilotStatusManager completionStatusManager = getAuthAndCompletionStatusManager();
+    CopilotStatusManager copilotStatusManager = getCopilotStatusManager();
 
-    if (completionStatusManager.isCompletionInProgress()) {
+    if (copilotStatusManager == null || copilotStatusManager.isCompletionInProgress()) {
       scheduleSpinnerJob(element);
+      return;
     } else {
       // Since spinner job has 200ms delay, cancel the spinner job if it is running to avoid flickering.
       if (spinnerJob != null) {
         spinnerJob.cancel();
       }
 
-      String copilotStatus = CopilotCore.getPlugin().getAuthStatusManager().getCopilotStatus();
-      String iconPath = null;
+      AuthStatusManager authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
+      if (authStatusManager == null) {
+        scheduleSpinnerJob(element);
+        return;
+      } else {
+        String copilotStatus = authStatusManager.getCopilotStatus();
+        String iconPath = null;
 
-      switch (copilotStatus) {
-        case CopilotStatusResult.OK:
-          iconPath = "/icons/github_copilot_signed_in_blue.png";
-          break;
-        case CopilotStatusResult.LOADING:
-          scheduleSpinnerJob(element);
-          break;
-        case CopilotStatusResult.ERROR, CopilotStatusResult.WARNING:
-          iconPath = "/icons/github_copilot_error_blue.png";
-          break;
-        case CopilotStatusResult.NOT_SIGNED_IN, CopilotStatusResult.NOT_AUTHORIZED:
-        default:
-          iconPath = "/icons/github_copilot_not_signed_in_blue.png";
-      }
+        switch (copilotStatus) {
+          case CopilotStatusResult.OK:
+            iconPath = "/icons/github_copilot_signed_in_blue.png";
+            break;
+          case CopilotStatusResult.LOADING:
+            scheduleSpinnerJob(element);
+            return;
+          case CopilotStatusResult.ERROR, CopilotStatusResult.WARNING:
+            iconPath = "/icons/github_copilot_error_blue.png";
+            break;
+          case CopilotStatusResult.NOT_SIGNED_IN, CopilotStatusResult.NOT_AUTHORIZED:
+          default:
+            iconPath = "/icons/github_copilot_not_signed_in_blue.png";
+        }
 
-      if (iconPath != null) {
-        ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
-        element.setIcon(newIcon);
+        if (iconPath != null) {
+          ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
+          element.setIcon(newIcon);
+        }
       }
     }
   }
@@ -132,10 +139,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private String getCopilotStatusBasedOnAuthAndCompletionResult(String copilotStatus) {
-    CopilotStatusManager completionStatusManager = getAuthAndCompletionStatusManager();
+    CopilotStatusManager copilotStatusManager = getCopilotStatusManager();
     switch (copilotStatus) {
       case CopilotStatusResult.OK:
-        return completionStatusManager.isCompletionInProgress() ? Messages.menu_copilotStatus_completionInProgress
+        return copilotStatusManager.isCompletionInProgress() ? Messages.menu_copilotStatus_completionInProgress
             : Messages.menu_copilotStatus_ready;
       case CopilotStatusResult.ERROR:
         return Messages.menu_copilotStatus_unknownError;
@@ -164,12 +171,12 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   private void addSignInOrSignOutAction(MenuManager menuManager) {
     if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
-      ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signInIcon, handlerService,
+      ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signOutIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);
     } else {
-      ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, signOutIcon, handlerService,
+      ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, signInIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signIn", true);
     }
   }
@@ -224,7 +231,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
         this.uiElement.setIcon(newIcon);
         currentIconIndex = (currentIconIndex % TOTAL_SPINNER_ICONS) + 1;
-        if (CopilotUi.getPlugin().getAuthAndCompletionStatusManager().isCompletionInProgress()) {
+        if (CopilotUi.getPlugin().getCopilotStatusManager().isCompletionInProgress()) {
           schedule(COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS);
         } else {
           cancel();
