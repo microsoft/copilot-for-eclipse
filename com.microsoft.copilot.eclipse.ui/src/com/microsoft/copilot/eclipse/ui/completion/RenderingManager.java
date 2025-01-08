@@ -2,8 +2,10 @@ package com.microsoft.copilot.eclipse.ui.completion;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
@@ -63,13 +65,15 @@ public class RenderingManager implements PaintListener {
     }
 
     GC gc = e.gc;
-    gc.setForeground(this.ghostTextColor);
 
     int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, this.ghostTexts.get(0).modelOffset);
     // will get index out of bounds if the cursor is at the end.
     // Because there is no more text to get bounds at EOF.
     widgetOffset = Math.max(Math.min(widgetOffset, styledText.getCharCount() - 1), 0);
     for (GhostText ghostText : this.ghostTexts) {
+      // reset the color to default because the inline ghost text may change the color to the same
+      // as the content text color.
+      gc.setForeground(this.ghostTextColor);
       ghostText.draw(styledText, widgetOffset, gc);
     }
   }
@@ -78,9 +82,22 @@ public class RenderingManager implements PaintListener {
    * Clear the ghost texts.
    */
   public void clearGhostText() {
-    this.ghostTexts.clear();
     StyledText styledText = textViewer.getTextWidget();
-    if (styledText != null) {
+    if (styledText == null) {
+      this.ghostTexts.clear();
+    } else {
+      for (GhostText ghostText : this.ghostTexts) {
+        if (Objects.equals(ghostText.type, GhostTextType.IN_LINE)) {
+          int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, ghostText.modelOffset);
+          StyleRange style = styledText.getStyleRangeAtOffset(widgetOffset);
+          // update metrics to null to remove extra spaces of the inline ghost text.
+          if (style != null && style.metrics != null) {
+            style.metrics = null;
+            styledText.setStyleRange(style);
+          }
+        }
+      }
+      this.ghostTexts.clear();
       SwtUtils.invokeOnDisplayThread(styledText::redraw, styledText);
     }
   }

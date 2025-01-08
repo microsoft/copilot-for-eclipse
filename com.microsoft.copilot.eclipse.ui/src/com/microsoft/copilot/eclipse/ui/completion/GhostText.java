@@ -15,5 +15,9 @@ abstract class GhostText {
     this.type = type;
   }
 
+  /**
+   * Draws the ghost text.
+   */
   public abstract void draw(StyledText styledText, int widgetOffset, GC gc);
+
 }

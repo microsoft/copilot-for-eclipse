@@ -185,12 +185,53 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
     if (this.completions == null || this.completions.getSize() == 0) {
       return Collections.emptyList();
     }
+
     List<GhostText> ghostTexts = new ArrayList<>();
     String firstLine = this.completions.getFirstLine();
-    if (StringUtils.isNotBlank(firstLine)) {
-      ghostTexts.add(new EolGhostText(firstLine, triggerPosition.getOffset()));
+
+    if (StringUtils.isNotEmpty(firstLine)) {
+      try {
+        boolean isEol = this.document.getChar(triggerPosition.getOffset()) == '\n';
+        if (isEol) {
+          ghostTexts.add(new EolGhostText(firstLine, triggerPosition.getOffset()));
+        } else {
+          processInlineGhostTexts(ghostTexts, firstLine);
+        }
+      } catch (BadLocationException e) {
+        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      }
     }
+
     return ghostTexts;
+  }
+
+  private void processInlineGhostTexts(List<GhostText> ghostTexts, String firstLine) {
+    String documentContent = this.document.get();
+    StringBuilder sb = new StringBuilder();
+    int i = triggerPosition.getOffset();
+    int j = 0;
+    while (i < documentContent.length() && j < firstLine.length()) {
+      char documentChar = documentContent.charAt(i);
+      // if we meet the end of the line, the rest of the completion text should belong to EOL ghost text.
+      if (documentChar == '\n') {
+        break;
+      }
+      char firstLineChar = firstLine.charAt(j);
+      if (documentChar != firstLineChar) {
+        sb.append(firstLineChar);
+      } else {
+        if (sb.length() > 0) {
+          ghostTexts.add(new InlineGhostText(sb.toString(), i));
+          sb.setLength(0);
+        }
+        i++;
+      }
+      j++;
+    }
+
+    if (sb.length() > 0 || j < firstLine.length()) {
+      ghostTexts.add(new EolGhostText(firstLine.substring(j) + sb.toString(), i));
+    }
   }
 
   private void resolveCodeMiningGhostTexts() {
