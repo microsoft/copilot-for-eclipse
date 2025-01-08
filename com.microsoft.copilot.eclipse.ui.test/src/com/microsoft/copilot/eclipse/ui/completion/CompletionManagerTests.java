@@ -33,6 +33,7 @@ import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
+import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,7 +57,7 @@ class CompletionManagerTests {
   }
 
   @Test
-  void testReplaceCompletion_1() throws Exception {
+  void testReplaceCompletion1() throws Exception {
     IFile file = project.getFile("Test.java");
     String content = """
           public class App {
@@ -74,11 +75,10 @@ class CompletionManagerTests {
     assertTrue(editorPart instanceof ITextEditor);
 
     ITextEditor textEditor = (ITextEditor) editorPart;
-    IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
 
     when(mockLsConnection.getDocumentVersion(any())).thenReturn(documentVersion);
     CompletionManager manager = new CompletionManager(mockLsConnection, mock(CompletionProvider.class), textEditor,
-        mock(PreferenceStore.class));
+        mock(LanguageServerSettingManager.class));
 
     List<CompletionItem> completions = List.of(new CompletionItem("uuid", "    System.out.println(\"hi\");",
         new Range(new Position(3, 0), new Position(3, 27)), "hi\");", new Position(3, 24), documentVersion));
@@ -88,6 +88,7 @@ class CompletionManagerTests {
     manager.onCompletionResolved(completionsCollection);
     manager.acceptSuggestion();
 
+    IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
     assertTrue(document.get().contains("  System.out.println(\"hi\");\n"));
   }
 

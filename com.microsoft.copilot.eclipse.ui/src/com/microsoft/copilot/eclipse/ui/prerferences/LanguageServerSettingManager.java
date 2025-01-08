@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.core.lsp;
+package com.microsoft.copilot.eclipse.ui.prerferences;
 
 import java.net.URI;
 
@@ -6,30 +6,54 @@ import org.eclipse.core.net.proxy.IProxyChangeEvent;
 import org.eclipse.core.net.proxy.IProxyChangeListener;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 
 /**
  * A class to manage the proxy service for the Copilot Language Server.
  */
-public class LanguageServerSettingManager implements IProxyChangeListener {
+public class LanguageServerSettingManager implements IProxyChangeListener, IPropertyChangeListener {
   IProxyService proxyService = null;
   CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
   CopilotLanguageServerConnection copilotLanguageServerConnection = null;
+  IPreferenceStore preferenceStore;
+
+  /**
+   * Gets the settings.
+   *
+   * @return the settings
+   */
+  public CopilotLanguageServerSettings getSettings() {
+    return settings;
+  }
 
   /**
    * Initializes the LanguageServerSettingManager.
    */
-  public LanguageServerSettingManager(CopilotLanguageServerConnection conn, IProxyService proxyService) {
+  public LanguageServerSettingManager(CopilotLanguageServerConnection conn, IProxyService proxyService,
+      IPreferenceStore preferenceStore) {
     this.copilotLanguageServerConnection = conn;
     this.proxyService = proxyService;
-
+    this.preferenceStore = preferenceStore;
     // add listners
     proxyService.addProxyChangeListener(this);
+    preferenceStore.addPropertyChangeListener(this);
+
+    // load settings on init
+    updateProxySettings();
+    getSettings().setEnableAutoCompletions(preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION));
+    getSettings().getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
+    getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
+    getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
+
   }
 
   /**
@@ -39,6 +63,36 @@ public class LanguageServerSettingManager implements IProxyChangeListener {
   public void proxyInfoChanged(IProxyChangeEvent event) {
     CopilotCore.LOGGER.log(LogLevel.INFO, "Proxy info changed");
     updateProxySettings();
+    syncConfiguration();
+  }
+
+  /**
+   * A listener for the preferences.
+   */
+  @Override
+  public void propertyChange(PropertyChangeEvent event) {
+    switch (event.getProperty()) {
+      case Constants.ENABLE_STRICT_SSL:
+        var newVal = Boolean.parseBoolean(event.getNewValue().toString());
+        this.settings.getHttp().setProxyStrictSsl(newVal);
+        CopilotCore.LOGGER.log(LogLevel.INFO, "Strict SSL is now " + event.getNewValue());
+        break;
+      case Constants.PROXY_KERBEROS_SP:
+        this.settings.getHttp().setProxyKerberosServicePrincipal((String) event.getNewValue());
+        CopilotCore.LOGGER.log(LogLevel.INFO, "Kerberos SP is now " + event.getNewValue());
+        break;
+      case Constants.GITHUB_ENTERPRISE:
+        this.settings.getGithubEnterprise().setUri((String) event.getNewValue());
+        CopilotCore.LOGGER.log(LogLevel.INFO, "GitHub Enterprise URI is now " + event.getNewValue());
+        break;
+      case Constants.AUTO_SHOW_COMPLETION:
+        Boolean autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
+        this.settings.setEnableAutoCompletions(autoShowCompletion);
+        CopilotCore.LOGGER.log(LogLevel.INFO, "Auto show completion is now " + event.getNewValue());
+        break;
+      default:
+        return;
+    }
     syncConfiguration();
   }
 
@@ -110,6 +164,32 @@ public class LanguageServerSettingManager implements IProxyChangeListener {
     }
     proxyString += host + ":" + port;
     return proxyString;
+  }
+
+  /**
+   * Gets the preference store.
+   *
+   */
+  public void registerPropertyChangeListenr(IPropertyChangeListener listner) {
+    if (preferenceStore == null) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, "Preference store is null", new IllegalStateException());
+      return;
+    }
+    preferenceStore.addPropertyChangeListener(listner);
+    ;
+  }
+
+  /**
+   * Unregisters the property change listener.
+   *
+   * @param listner the listener to unregister
+   */
+  public void unregisterPropertyChangeListenr(IPropertyChangeListener listner) {
+    if (preferenceStore == null) {
+      CopilotCore.LOGGER.log(LogLevel.ERROR, "Preference store is null", new IllegalStateException());
+      return;
+    }
+    preferenceStore.removePropertyChangeListener(listner);
   }
 
   /**

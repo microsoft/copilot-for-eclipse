@@ -2,7 +2,6 @@ package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
 
-import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Plugin;
@@ -12,15 +11,11 @@ import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4e.LanguageServersRegistry;
 import org.eclipse.lsp4e.LanguageServiceAccessor;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.ServiceReference;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
-import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServer;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.LanguageServerSettingManager;
 
 /**
  * The plug-in runtime class for the Copilot plug-in containing the core (UI-free) support, like the completion,
@@ -31,7 +26,6 @@ public class CopilotCore extends Plugin {
   private CopilotLanguageServerConnection copilotLanguageServer;
   private AuthStatusManager authStatusManager;
   private CompletionProvider completionProvider;
-  private LanguageServerSettingManager languageServerSettingManager;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -64,9 +58,6 @@ public class CopilotCore extends Plugin {
     if (copilotLanguageServer != null) {
       copilotLanguageServer.stop();
     }
-    if (this.languageServerSettingManager != null) {
-      this.languageServerSettingManager.dispose();
-    }
   }
 
   @SuppressWarnings("restriction")
@@ -88,11 +79,6 @@ public class CopilotCore extends Plugin {
 
       this.authStatusManager.checkStatus();
       // initialize the LanguageServerSettingManager
-      ServiceReference<?> serviceReference = context.getServiceReference(IProxyService.class.getName());
-      this.languageServerSettingManager = new LanguageServerSettingManager(this.copilotLanguageServer,
-          (IProxyService) context.getService(serviceReference));
-      this.languageServerSettingManager.updateProxySettings();
-      this.languageServerSettingManager.syncConfiguration();
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {

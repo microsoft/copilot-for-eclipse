@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.core.lsp;
+package com.microsoft.copilot.eclipse.ui.preferences;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -8,15 +8,22 @@ import static org.mockito.Mockito.when;
 
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
+import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
 
 /**
  * Tests for the LanguageServerSettingManager.
  */
 public class LanguageServerSettingManagerTests {
+  @Mock
+  private IPreferenceStore mockPreferenceStore;
+
   @Test
   void testNoProxy() {
     // when no proxy is applicable
@@ -28,7 +35,8 @@ public class LanguageServerSettingManagerTests {
     params.setSettings(new CopilotLanguageServerSettings());
 
     // act
-    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService);
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
     manager.updateProxySettings();
     manager.syncConfiguration();
 
@@ -55,7 +63,8 @@ public class LanguageServerSettingManagerTests {
     CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
 
     // act
-    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService);
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
     manager.updateProxySettings();
     manager.syncConfiguration();
 
@@ -84,7 +93,8 @@ public class LanguageServerSettingManagerTests {
     CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
 
     // act
-    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService);
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
     manager.updateProxySettings();
     manager.syncConfiguration();
 

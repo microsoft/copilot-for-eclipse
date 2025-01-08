@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
 
 @ExtendWith(MockitoExtension.class)
 class EditorManagerTests {
@@ -24,11 +25,11 @@ class EditorManagerTests {
   private CompletionProvider mockProvider;
 
   @Mock
-  private IPreferenceStore mockPreferenceStore;
+  private LanguageServerSettingManager mockSettingManager;
 
   @Test
   void testCreateManagerForNull() {
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
 
     assertNull(manager.getOrCreateCompletionManagerFor(null));
   }
@@ -37,7 +38,7 @@ class EditorManagerTests {
   void testGetOrCreateCompletionManagerForReturnsNewHandlerWhenNotPresent() {
     ITextEditor mockEditor = mock(ITextEditor.class);
 
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
     CompletionManager completionManager = manager.getOrCreateCompletionManagerFor(mockEditor);
 
     assertNotNull(completionManager);
@@ -45,7 +46,7 @@ class EditorManagerTests {
 
   @Test
   void testGetActiveManagerWhenNoActiveEditor() {
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
 
     assertNull(manager.getActiveCompletionManager());
   }
@@ -53,7 +54,7 @@ class EditorManagerTests {
   @Test
   void testGetActiveHandlerWhenActiveEditor() {
     ITextEditor mockEditor = mock(ITextEditor.class);
-    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockPreferenceStore);
+    EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
     manager.getOrCreateCompletionManagerFor(mockEditor);
     manager.setActiveEditor(mockEditor);
 

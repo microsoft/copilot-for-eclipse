@@ -114,7 +114,7 @@ public class CopilotLanguageServerSettings {
    * Github Enterprise settings.
    */
   public class GithubEnterprise {
-    private String uri = "http://github.com";
+    private String uri;
 
     /**
      * get Uri.

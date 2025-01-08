@@ -5,13 +5,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -23,18 +23,18 @@ public class EditorsManager {
   private CompletionProvider completionProvider;
   private Map<ITextEditor, CompletionManager> editorMap;
   private AtomicReference<ITextEditor> activeEditor;
-  private IPreferenceStore preferenceStore;
+  private LanguageServerSettingManager settingsManager;
 
   /**
    * Creates a new EditorManager.
    */
   public EditorsManager(CopilotLanguageServerConnection languageServer, CompletionProvider completionProvider,
-      IPreferenceStore preferenceStore) {
+      LanguageServerSettingManager settingsManager) {
     this.languageServer = languageServer;
     this.completionProvider = completionProvider;
     this.editorMap = new ConcurrentHashMap<>();
     this.activeEditor = new AtomicReference<>();
-    this.preferenceStore = preferenceStore;
+    this.settingsManager = settingsManager;
   }
 
   /**
@@ -53,7 +53,7 @@ public class EditorsManager {
     }
 
     return editorMap.computeIfAbsent(editor,
-        edt -> new CompletionManager(this.languageServer, this.completionProvider, edt, this.preferenceStore));
+        edt -> new CompletionManager(this.languageServer, this.completionProvider, edt, this.settingsManager));
   }
 
   /**

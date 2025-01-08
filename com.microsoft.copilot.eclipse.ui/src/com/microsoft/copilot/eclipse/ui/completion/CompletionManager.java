@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
@@ -36,6 +35,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.completion.codemining.BlockGhostText;
+import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -59,14 +59,14 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
   private DefaultPositionUpdater positionUpdater;
   private RenderingManager renderingManager;
   private boolean autoShowCompletion;
-  private IPreferenceStore preferenceStore;
+  private LanguageServerSettingManager settingsManager;
 
   /**
    * Creates a new completion manager. The manager is responsible for trigger the completion, apply suggestions to the
    * document. And schedule the rendering of ghost text.
    */
   public CompletionManager(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
-      ITextEditor editor, IPreferenceStore preferenceStore) {
+      ITextEditor editor, LanguageServerSettingManager settingsManager) {
     this.codeMinings = new ArrayList<>();
     this.textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
     // if the text viewer is null, we will not register listeners.
@@ -100,6 +100,7 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
     this.renderingManager = new RenderingManager(this.textViewer);
 
     this.lsConnection = lsConnection;
+    this.settingsManager = settingsManager;
     this.provider = provider;
     this.provider.addCompletionListener(this);
     this.completions = null;
@@ -107,8 +108,7 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
     this.triggerPosition = new org.eclipse.jface.text.Position(0);
 
     // initialize the auto show completion preference and add listener to update it.
-    this.preferenceStore = preferenceStore;
-    this.autoShowCompletion = preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
+    this.autoShowCompletion = settingsManager.getSettings().isEnableAutoCompletions();
 
     // position updater is used to update the position when the document is changed.
     // this is needed because the completion ghost text is rendered based on the
@@ -126,7 +126,7 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
       this.styledText.addCaretListener(this);
     }, this.styledText);
 
-    this.preferenceStore.addPropertyChangeListener(this);
+    this.settingsManager.registerPropertyChangeListenr(this);
   }
 
   @Override
@@ -303,8 +303,8 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
       this.renderingManager = null;
     }
 
-    if (this.preferenceStore != null) {
-      preferenceStore.removePropertyChangeListener(this);
+    if (this.settingsManager != null) {
+      this.settingsManager.unregisterPropertyChangeListenr(this);
     }
 
     if (this.lsConnection != null) {
