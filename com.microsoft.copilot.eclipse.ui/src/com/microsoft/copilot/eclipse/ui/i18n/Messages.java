@@ -49,6 +49,9 @@ public final class Messages extends NLS {
   public static String preferences_page_proxy_kerberos_sp;
   public static String preferences_page_github_enterprise;
   public static String preferences_page_proxy_config_link;
+  public static String preferences_page_proxy_settings;
+  public static String preferences_page_editor_settings;
+  public static String preferences_page_auth_settings;
   
   static {
     // initialize resource bundle
