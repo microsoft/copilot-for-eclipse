@@ -26,7 +26,7 @@
 	<extension
 		point="org.eclipse.ui.preferencePages">
 		<page
-			class="com.microsoft.copilot.eclipse.ui.prerferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			id="com.microsoft.copilot.eclipse.ui.preferences.page"
 			name="%command.preferencesPage.name">
 		</page>
@@ -34,7 +34,7 @@
 	<extension
 		point="org.eclipse.core.runtime.preferences">
 		<initializer
-			class="com.microsoft.copilot.eclipse.ui.prerferences.CopilotPreferenceInitializer">
+			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer">
 		</initializer>
 	</extension>
 

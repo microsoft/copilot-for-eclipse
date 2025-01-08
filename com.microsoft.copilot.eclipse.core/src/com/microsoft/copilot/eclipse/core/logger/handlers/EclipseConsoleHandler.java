@@ -5,6 +5,7 @@ import java.util.logging.LogRecord;
 
 import com.google.gson.Gson;
 import org.eclipse.core.runtime.ILog;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -77,13 +78,13 @@ public class EclipseConsoleHandler extends Handler {
   private int map2StatusLevel(LogLevel level) {
     switch (level) {
       case INFO:
-        return Status.INFO;
+        return IStatus.INFO;
       case WARNING:
-        return Status.WARNING;
+        return IStatus.WARNING;
       case ERROR:
-        return Status.ERROR;
+        return IStatus.ERROR;
       default:
-        return Status.INFO;
+        return IStatus.INFO;
     }
   }
 }

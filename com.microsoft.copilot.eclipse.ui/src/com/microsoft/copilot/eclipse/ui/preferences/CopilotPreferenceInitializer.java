@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.ui.prerferences;
+package com.microsoft.copilot.eclipse.ui.preferences;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.jface.preference.IPreferenceStore;

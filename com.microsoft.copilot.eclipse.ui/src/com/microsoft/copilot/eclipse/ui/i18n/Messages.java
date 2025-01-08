@@ -27,7 +27,6 @@ public final class Messages extends NLS {
   public static String signInDialog_info_deviceCodePrefix;
   public static String signInDialog_info_githubWebSitePrefix;
   public static String signInConfirmDialog_progress;
-  public static String signInConfirmDialog_progressSuffix;
   public static String signInConfirmDialog_progressTimeout;
   public static String signInConfirmDialog_progressCanceled;
   public static String signInConfirmDialog_authResult_notSignedIn;

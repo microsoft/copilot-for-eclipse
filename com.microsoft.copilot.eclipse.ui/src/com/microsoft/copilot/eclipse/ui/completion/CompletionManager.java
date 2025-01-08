@@ -35,7 +35,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.completion.codemining.BlockGhostText;
-import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -126,7 +126,7 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
       this.styledText.addCaretListener(this);
     }, this.styledText);
 
-    this.settingsManager.registerPropertyChangeListenr(this);
+    this.settingsManager.registerPropertyChangeListener(this);
   }
 
   @Override
@@ -304,7 +304,7 @@ public class CompletionManager implements CaretListener, CompletionListener, IPr
     }
 
     if (this.settingsManager != null) {
-      this.settingsManager.unregisterPropertyChangeListenr(this);
+      this.settingsManager.unregisterPropertyChangeListener(this);
     }
 
     if (this.lsConnection != null) {

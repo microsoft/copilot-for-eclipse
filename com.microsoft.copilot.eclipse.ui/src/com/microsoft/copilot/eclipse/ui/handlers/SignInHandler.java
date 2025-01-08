@@ -19,7 +19,6 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;

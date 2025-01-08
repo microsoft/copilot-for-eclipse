@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 
 @ExtendWith(MockitoExtension.class)
 class EditorManagerTests {

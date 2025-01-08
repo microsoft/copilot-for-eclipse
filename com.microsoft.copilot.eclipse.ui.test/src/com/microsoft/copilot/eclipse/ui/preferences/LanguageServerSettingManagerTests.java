@@ -15,7 +15,7 @@ import org.mockito.Mock;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
-import com.microsoft.copilot.eclipse.ui.prerferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 
 /**
  * Tests for the LanguageServerSettingManager.

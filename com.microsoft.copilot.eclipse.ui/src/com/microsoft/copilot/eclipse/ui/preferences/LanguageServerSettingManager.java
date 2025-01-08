@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.ui.prerferences;
+package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.URI;
 
@@ -43,7 +43,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     this.copilotLanguageServerConnection = conn;
     this.proxyService = proxyService;
     this.preferenceStore = preferenceStore;
-    // add listners
+    // add listeners
     proxyService.addProxyChangeListener(this);
     preferenceStore.addPropertyChangeListener(this);
 
@@ -170,26 +170,25 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * Gets the preference store.
    *
    */
-  public void registerPropertyChangeListenr(IPropertyChangeListener listner) {
+  public void registerPropertyChangeListener(IPropertyChangeListener listener) {
     if (preferenceStore == null) {
       CopilotCore.LOGGER.log(LogLevel.ERROR, "Preference store is null", new IllegalStateException());
       return;
     }
-    preferenceStore.addPropertyChangeListener(listner);
-    ;
+    preferenceStore.addPropertyChangeListener(listener);
   }
 
   /**
    * Unregisters the property change listener.
    *
-   * @param listner the listener to unregister
+   * @param listener the listener to unregister
    */
-  public void unregisterPropertyChangeListenr(IPropertyChangeListener listner) {
+  public void unregisterPropertyChangeListener(IPropertyChangeListener listener) {
     if (preferenceStore == null) {
       CopilotCore.LOGGER.log(LogLevel.ERROR, "Preference store is null", new IllegalStateException());
       return;
     }
-    preferenceStore.removePropertyChangeListener(listner);
+    preferenceStore.removePropertyChangeListener(listener);
   }
 
   /**
