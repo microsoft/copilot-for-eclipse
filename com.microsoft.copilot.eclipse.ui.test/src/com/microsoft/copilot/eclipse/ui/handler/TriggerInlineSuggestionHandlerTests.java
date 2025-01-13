@@ -1,10 +1,13 @@
 package com.microsoft.copilot.eclipse.ui.handler;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.eclipse.core.commands.ExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
@@ -19,19 +22,20 @@ import com.microsoft.copilot.eclipse.ui.handlers.TriggerInlineSuggestionHandler;
 class TriggerInlineSuggestionHandlerTests {
 
   @Test
-  void testIsEnabledWhenNoCompletionIsAvailable() {
+  void testTriggerCompletionInvocation() throws ExecutionException {
     CopilotUi mockedUi = mock(CopilotUi.class);
     EditorsManager mockedManager = mock(EditorsManager.class);
     CompletionManager mockedCompletionManager = mock(CompletionManager.class);
     when(mockedUi.getEditorsManager()).thenReturn(mockedManager);
     when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);
-    when(mockedCompletionManager.hasCompletion()).thenReturn(false);
+    doNothing().when(mockedCompletionManager).triggerCompletion();
 
     TriggerInlineSuggestionHandler handler = new TriggerInlineSuggestionHandler();
 
     try (MockedStatic<CopilotUi> mockedStatic = mockStatic(CopilotUi.class)) {
       mockedStatic.when(CopilotUi::getPlugin).thenReturn(mockedUi);
-      assertTrue(handler.isEnabled());
+      handler.execute(null);
+      verify(mockedCompletionManager, times(1)).triggerCompletion();
     }
   }
 }

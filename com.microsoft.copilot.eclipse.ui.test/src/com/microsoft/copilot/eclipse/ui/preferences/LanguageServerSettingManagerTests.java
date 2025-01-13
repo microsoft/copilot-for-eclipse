@@ -11,16 +11,16 @@ import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
-import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 
-/**
- * Tests for the LanguageServerSettingManager.
- */
-public class LanguageServerSettingManagerTests {
+@ExtendWith(MockitoExtension.class)
+class LanguageServerSettingManagerTests {
   @Mock
   private IPreferenceStore mockPreferenceStore;
 
@@ -30,7 +30,7 @@ public class LanguageServerSettingManagerTests {
     // arrange
     IProxyService mockProxyService = mock(IProxyService.class);
     CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
-    when(mockProxyService.select(any())).thenReturn(null);
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     var params = new DidChangeConfigurationParams();
     params.setSettings(new CopilotLanguageServerSettings());
 
@@ -56,6 +56,7 @@ public class LanguageServerSettingManagerTests {
     when(mockProxyData.isRequiresAuthentication()).thenReturn(false);
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://localhost:8080");
@@ -86,6 +87,7 @@ public class LanguageServerSettingManagerTests {
     when(mockProxyData.getPassword()).thenReturn("password");
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://user:password@localhost:8080");

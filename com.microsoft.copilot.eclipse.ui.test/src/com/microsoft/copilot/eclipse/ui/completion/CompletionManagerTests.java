@@ -12,8 +12,8 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.jface.preference.PreferenceStore;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.ui.IEditorPart;
@@ -29,10 +29,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
+import com.microsoft.copilot.eclipse.core.completion.AcceptSuggestionType;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -77,16 +78,17 @@ class CompletionManagerTests {
     ITextEditor textEditor = (ITextEditor) editorPart;
 
     when(mockLsConnection.getDocumentVersion(any())).thenReturn(documentVersion);
+    CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
+    LanguageServerSettingManager languageServerSettingManager = mock(LanguageServerSettingManager.class);
+    when(languageServerSettingManager.getSettings()).thenReturn(settings);
     CompletionManager manager = new CompletionManager(mockLsConnection, mock(CompletionProvider.class), textEditor,
-        mock(LanguageServerSettingManager.class));
+        languageServerSettingManager);
 
     List<CompletionItem> completions = List.of(new CompletionItem("uuid", "    System.out.println(\"hi\");",
         new Range(new Position(3, 0), new Position(3, 27)), "hi\");", new Position(3, 24), documentVersion));
-    CompletionCollection completionsCollection = new CompletionCollection(completions,
-        file.getLocationURI().toASCIIString());
 
-    manager.onCompletionResolved(completionsCollection);
-    manager.acceptSuggestion();
+    manager.onCompletionResolved(LSPEclipseUtils.toUri(file.getLocation().toFile()).toASCIIString(), completions);
+    manager.acceptSuggestion(AcceptSuggestionType.FULL);
 
     IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
     assertTrue(document.get().contains("  System.out.println(\"hi\");\n"));

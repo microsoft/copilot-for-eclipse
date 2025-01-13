@@ -2,9 +2,11 @@ package com.microsoft.copilot.eclipse.ui.completion;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,8 +37,12 @@ class EditorManagerTests {
   }
 
   @Test
-  void testGetOrCreateCompletionManagerForReturnsNewHandlerWhenNotPresent() {
+  void testGetOrCreateCompletionManagerWhenNotPresent() {
     ITextEditor mockEditor = mock(ITextEditor.class);
+    ITextViewer mockViewer = mock(ITextViewer.class);
+
+    when(mockEditor.getAdapter(any())).thenReturn(mockViewer);
+    when(mockViewer.isEditable()).thenReturn(true);
 
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
     CompletionManager completionManager = manager.getOrCreateCompletionManagerFor(mockEditor);
@@ -54,6 +60,10 @@ class EditorManagerTests {
   @Test
   void testGetActiveHandlerWhenActiveEditor() {
     ITextEditor mockEditor = mock(ITextEditor.class);
+    ITextViewer mockViewer = mock(ITextViewer.class);
+
+    when(mockEditor.getAdapter(any())).thenReturn(mockViewer);
+    when(mockViewer.isEditable()).thenReturn(true);
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
     manager.getOrCreateCompletionManagerFor(mockEditor);
     manager.setActiveEditor(mockEditor);

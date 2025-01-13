@@ -3,7 +3,8 @@ package com.microsoft.copilot.eclipse.ui.handlers;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 
-import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
+import com.microsoft.copilot.eclipse.core.completion.AcceptSuggestionType;
+import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
@@ -17,8 +18,8 @@ public class AcceptFullSuggestionHandler extends CopilotHandler {
   public Object execute(ExecutionEvent event) throws ExecutionException {
     CompletionManager handler = getActiveCompletionManager();
     if (handler != null) {
-      notifyAccepted(handler.getCompletions());
-      handler.acceptFullSuggestion();
+      notifyAccepted(handler.getSuggestionUpdateManager());
+      handler.acceptSuggestion(AcceptSuggestionType.FULL);
     }
     return null;
   }
@@ -26,18 +27,27 @@ public class AcceptFullSuggestionHandler extends CopilotHandler {
   @Override
   public boolean isEnabled() {
     CompletionManager manager = getActiveCompletionManager();
-    if (manager != null) {
-      return manager.hasCompletion();
+    if (manager == null) {
+      return false;
     }
-    return false;
+    SuggestionUpdateManager suggestionUpdateManager = manager.getSuggestionUpdateManager();
+    if (suggestionUpdateManager == null) {
+      return false;
+    }
+
+    CompletionItem item = suggestionUpdateManager.getCurrentItem();
+    return item != null;
   }
 
-  private void notifyAccepted(CompletionCollection completions) {
-    if (completions == null || completions.getSize() == 0) {
+  private void notifyAccepted(SuggestionUpdateManager manager) {
+    if (manager == null) {
       return;
     }
 
-    CompletionItem item = completions.getCurrentItem();
+    CompletionItem item = manager.getCurrentItem();
+    if (item == null) {
+      return;
+    }
     String uuid = item.getUuid();
     NotifyAcceptedParams params = new NotifyAcceptedParams(uuid);
     getLanguageServerConnection().notifyAccepted(params);

@@ -8,8 +8,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-
 import org.eclipse.core.commands.ExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +15,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.completion.CompletionCollection;
+import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -33,9 +31,11 @@ class AcceptFullSuggestionHandlerTests {
     CopilotUi mockedUi = mock(CopilotUi.class);
     EditorsManager mockedManager = mock(EditorsManager.class);
     CompletionManager mockedCompletionManager = mock(CompletionManager.class);
+    SuggestionUpdateManager mockedSuggestionUpdateManager = mock(SuggestionUpdateManager.class);
+    when(mockedCompletionManager.getSuggestionUpdateManager()).thenReturn(mockedSuggestionUpdateManager);
     when(mockedUi.getEditorsManager()).thenReturn(mockedManager);
     when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);
-    when(mockedCompletionManager.hasCompletion()).thenReturn(false);
+    when(mockedSuggestionUpdateManager.getCurrentItem()).thenReturn(null);
 
     AcceptFullSuggestionHandler handler = new AcceptFullSuggestionHandler();
 
@@ -52,11 +52,12 @@ class AcceptFullSuggestionHandlerTests {
     CopilotCore mockedCore = mock(CopilotCore.class);
     when(mockedCore.getCopilotLanguageServer()).thenReturn(mockedConnection);
 
-    CompletionCollection completions = new CompletionCollection(
-        List.of(new CompletionItem("uuid", "text", null, "displayText", null, 0)), "uri");
+    CompletionItem item = new CompletionItem("uuid", "text", null, "displayText", null, 0);
     CompletionManager mockedCompletionManager = mock(CompletionManager.class);
-    doNothing().when(mockedCompletionManager).acceptFullSuggestion();
-    when(mockedCompletionManager.getCompletions()).thenReturn(completions);
+    doNothing().when(mockedCompletionManager).acceptSuggestion(any());
+    SuggestionUpdateManager mockedSuggestionUpdateManager = mock(SuggestionUpdateManager.class);
+    when(mockedSuggestionUpdateManager.getCurrentItem()).thenReturn(item);
+    when(mockedCompletionManager.getSuggestionUpdateManager()).thenReturn(mockedSuggestionUpdateManager);
     EditorsManager mockedManager = mock(EditorsManager.class);
     when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);
     CopilotUi mockedUi = mock(CopilotUi.class);

@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.completion;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -19,6 +20,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -110,7 +112,7 @@ public class CompletionProvider {
 
     private CopilotLanguageServerConnection lsConnection;
     private CompletionParams params;
-    private CompletionCollection completions;
+    private List<CompletionItem> completions;
 
     /**
      * Creates a new completion job.
@@ -156,7 +158,7 @@ public class CompletionProvider {
           return Status.OK_STATUS;
         }
 
-        this.completions = new CompletionCollection(result.getCompletions(), params.getDoc().getUri());
+        this.completions = result.getCompletions();
       } catch (InterruptedException e) {
         return Status.CANCEL_STATUS;
       } catch (ExecutionException e) {
@@ -193,7 +195,8 @@ public class CompletionProvider {
 
     private void notifyCompletionResolved() {
       for (CompletionListener listener : CompletionProvider.this.completionListeners) {
-        listener.onCompletionResolved(this.completions);
+        // TODO: notify the listener according to the listen uri?
+        listener.onCompletionResolved(this.params.getDoc().getUri(), this.completions);
       }
     }
   }

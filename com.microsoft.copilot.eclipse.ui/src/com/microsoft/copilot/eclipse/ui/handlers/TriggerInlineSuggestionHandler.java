@@ -19,13 +19,4 @@ public class TriggerInlineSuggestionHandler extends CopilotHandler {
     return null;
   }
 
-  @Override
-  public boolean isEnabled() {
-    CompletionManager manager = getActiveCompletionManager();
-    if (manager != null) {
-      return !manager.hasCompletion();
-    }
-    return false;
-  }
-
 }
