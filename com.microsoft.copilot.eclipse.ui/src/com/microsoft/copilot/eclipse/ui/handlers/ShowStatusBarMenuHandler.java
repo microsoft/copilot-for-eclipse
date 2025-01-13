@@ -77,7 +77,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       scheduleSpinnerJob(element);
       return;
     } else {
-      // Since spinner job has 200ms delay, cancel the spinner job if it is running to avoid flickering.
+      // Since spinner job has 100ms delay, cancel the spinner job if it is running to avoid flickering.
       if (spinnerJob != null) {
         spinnerJob.cancel();
       }

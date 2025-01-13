@@ -96,8 +96,10 @@ public class SignInHandler extends AbstractHandler {
     }
 
     private void showAlreadySignedInMessage(Shell shell) {
-      MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_title,
-          Messages.signInHandler_msgDialog_alreadySignedIn);
+      SwtUtils.invokeOnDisplayThread(() -> {
+        MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_title,
+            Messages.signInHandler_msgDialog_alreadySignedIn);
+      }, shell);
     }
 
     private void handleSignIn(Shell shell, SignInInitiateResult result) {
@@ -112,7 +114,7 @@ public class SignInHandler extends AbstractHandler {
           signInConfirmDialog.run();
           handleSignInConfirmation(shell, signInConfirmDialog);
         }
-      });
+      }, shell);
     }
 
     private void handleSignInConfirmation(Shell shell, SignInConfirmDialog signInConfirmDialog) {
