@@ -17,7 +17,7 @@ public class InlineGhostText extends GhostText {
   /**
    * Creates a new InlineGhostText.
    */
-  protected InlineGhostText(String text, int modelOffset) {
+  public InlineGhostText(String text, int modelOffset) {
     super(text, modelOffset, GhostTextType.IN_LINE);
   }
 

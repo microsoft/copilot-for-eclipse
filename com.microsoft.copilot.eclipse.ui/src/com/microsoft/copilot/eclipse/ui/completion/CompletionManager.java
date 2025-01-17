@@ -40,6 +40,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.completion.codemining.BlockGhostText;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -255,52 +256,21 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       return Collections.emptyList();
     }
 
-    List<GhostText> ghostTexts = new ArrayList<>();
     String firstLine = this.suggestionUpdateManager.getFirstLine();
-
     if (StringUtils.isNotEmpty(firstLine)) {
-      try {
-        boolean isEol = this.document.getChar(triggerPosition.getOffset()) == '\n';
-        if (isEol) {
-          ghostTexts.add(new EolGhostText(firstLine, triggerPosition.getOffset()));
-        } else {
-          processInlineGhostTexts(ghostTexts, firstLine);
+      String documentContent = this.document.get();
+      int triggerOffset = triggerPosition.getOffset();
+      String documentLine = "";
+      for (int i = triggerOffset; i < this.document.getLength(); i++) {
+        if (documentContent.charAt(i) == '\n') {
+          documentLine = documentContent.substring(triggerOffset, i);
+          break;
         }
-      } catch (BadLocationException e) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
       }
+      return CompletionUtils.getGhostTexts(documentLine, firstLine, triggerOffset);
     }
 
-    return ghostTexts;
-  }
-
-  private void processInlineGhostTexts(List<GhostText> ghostTexts, String firstLine) {
-    String documentContent = this.document.get();
-    StringBuilder sb = new StringBuilder();
-    int i = triggerPosition.getOffset();
-    int j = 0;
-    while (i < documentContent.length() && j < firstLine.length()) {
-      char documentChar = documentContent.charAt(i);
-      // if we meet the end of the line, the rest of the completion text should belong to EOL ghost text.
-      if (documentChar == '\n') {
-        break;
-      }
-      char firstLineChar = firstLine.charAt(j);
-      if (documentChar != firstLineChar) {
-        sb.append(firstLineChar);
-      } else {
-        if (sb.length() > 0) {
-          ghostTexts.add(new InlineGhostText(sb.toString(), i));
-          sb.setLength(0);
-        }
-        i++;
-      }
-      j++;
-    }
-
-    if (sb.length() > 0 || j < firstLine.length()) {
-      ghostTexts.add(new EolGhostText(firstLine.substring(j) + sb.toString(), i));
-    }
+    return Collections.emptyList();
   }
 
   private void resolveCodeMiningGhostTexts() {

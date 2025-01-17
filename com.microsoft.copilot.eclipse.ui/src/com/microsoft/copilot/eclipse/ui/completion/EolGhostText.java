@@ -14,7 +14,7 @@ public class EolGhostText extends GhostText {
   /**
    * Creates a new EolGhostText.
    */
-  protected EolGhostText(String text, int modelOffset) {
+  public EolGhostText(String text, int modelOffset) {
     super(text, modelOffset, GhostTextType.END_OF_LINE);
   }
 
