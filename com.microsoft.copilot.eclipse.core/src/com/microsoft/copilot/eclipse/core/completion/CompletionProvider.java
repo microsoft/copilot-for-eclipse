@@ -8,15 +8,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
@@ -37,6 +40,7 @@ public class CompletionProvider {
 
   private CompletionJob completionJob;
   private Set<CompletionListener> completionListeners;
+  private FormatOptionProvider formatOptionProvider;
   private Set<CompletionStatusListener> completionStatusListeners;
   private AuthStatusManager statusManager;
 
@@ -48,26 +52,29 @@ public class CompletionProvider {
     this.completionJob = new CompletionJob(lsConnection);
     this.completionListeners = new LinkedHashSet<>();
     this.completionStatusListeners = new LinkedHashSet<>();
+    this.formatOptionProvider = new FormatOptionProvider();
   }
 
   /**
    * Trigger an inline completion.
    *
-   * @param uriString the URI string of the document.
    * @param position the position of the cursor.
    * @param documentVersion the version of the document.
    */
-  public void triggerCompletion(String uriString, Position position, int documentVersion) {
+  public void triggerCompletion(IFile file, Position position, int documentVersion) {
     if (!Objects.equals(statusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
       return;
     }
     this.completionJob.cancel();
+    String uriString = LSPEclipseUtils.toUri(file.getLocation().toFile()).toASCIIString();
     CompletionDocument completionDoc = new CompletionDocument(uriString, position);
     completionDoc.setVersion(documentVersion);
-    // following format options are hard-coded, because eclipse support applying the format options
-    // automatically when drawing text into the editor, so don't need to set the actual values here.
-    completionDoc.setInsertSpaces(true);
-    completionDoc.setTabSize(4);
+
+    boolean insertSpaces = this.formatOptionProvider.useSpace(file);
+    int tabSize = this.formatOptionProvider.getTabSize(file);
+
+    completionDoc.setInsertSpaces(insertSpaces);
+    completionDoc.setTabSize(tabSize);
     CompletionParams params = new CompletionParams(completionDoc);
 
     this.completionJob.setCompletionParams(params);

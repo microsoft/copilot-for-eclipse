@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
@@ -309,8 +310,9 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
    */
   public void triggerCompletion() {
     try {
-      this.provider.triggerCompletion(documentUri.toASCIIString(),
-          LSPEclipseUtils.toPosition(this.triggerPosition.getOffset(), this.document), documentVersion);
+      IFile file = LSPEclipseUtils.getFile(document);
+      this.provider.triggerCompletion(file, LSPEclipseUtils.toPosition(this.triggerPosition.getOffset(), this.document),
+          documentVersion);
     } catch (BadLocationException e) {
       CopilotCore.LOGGER.log(LogLevel.ERROR, e);
     }
