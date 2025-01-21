@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 
 class MessagesTest {
 
-    @Test
-    void testMessagesInitialization() {
-        // Ensure that the static fields are initialized
-        assertNotNull(Messages.menu_signToGitHub);
-        assertNotNull(Messages.menu_signOutFromGitHub);
-    }
+  @Test
+  void testMessagesInitialization() {
+    // Ensure that the static fields are initialized
+    assertNotNull(Messages.menu_signToGitHub);
+    assertNotNull(Messages.menu_signOutFromGitHub);
+  }
 }
