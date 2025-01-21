@@ -55,4 +55,14 @@ class CompletionUtilsTests {
     assertEquals(1, ghostText.getModelOffset());
   }
 
+  @Test
+  void testGetGhostTexts5() {
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts("", "int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(EolGhostText.class.isInstance(ghostTexts.get(0)));
+    EolGhostText ghostText = (EolGhostText) ghostTexts.get(0);
+    assertEquals("int[] arr, int low, int high) {", ghostText.getText());
+    assertEquals(0, ghostText.getModelOffset());
+  }
+
 }

@@ -25,6 +25,11 @@ public class CompletionUtils {
    */
   public static List<GhostText> getGhostTexts(String documentLine, String completionLine, int triggerOffset) {
     List<GhostText> ghostTexts = new ArrayList<>();
+    if (documentLine.isEmpty()) {
+      ghostTexts.add(new EolGhostText(completionLine, triggerOffset));
+      return ghostTexts;
+    }
+
     int i = documentLine.length() - 1;
     int j = completionLine.length() - 1;
     StringBuilder sb = new StringBuilder();
