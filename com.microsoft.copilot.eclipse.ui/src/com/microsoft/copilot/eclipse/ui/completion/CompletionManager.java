@@ -204,11 +204,12 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       this.documentVersion = currentVersion;
       return;
     }
+
+    // always update the trigger position for caret move event to makes sure trigger position is correct.
+    // Sometimes, for example, deleting, the caret event comes before the text changed event.
+    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.caretOffset);
+    this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
     if (currentVersion == this.documentVersion) {
-      // update the trigger position when the caret is moved but document is not changed because this is not
-      // covered by the textChanged event.
-      int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.caretOffset);
-      this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
       // if the caret position is changed without document version change, we should remove the ghost text.
       clearCompletionRendering();
     } else {
