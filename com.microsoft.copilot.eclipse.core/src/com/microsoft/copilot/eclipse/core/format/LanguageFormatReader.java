@@ -1,43 +1,56 @@
 package com.microsoft.copilot.eclipse.core.format;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.lsp4j.FormattingOptions;
 
 /**
  * Interface for Copilot Language Format.
  */
-abstract class LanguageFormatReader {
-
-  protected IProject project;
+abstract class LanguageFormatReader implements IPreferenceChangeListener {
   public static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
-  public static final int PREFERENCE_DEFAULT_INDENTATION_SIZE = 2;
   public static final String PREFERENCE_DEFAULT_TAB_CHAR = "space";
-
+  
+  protected final IPreferenceChangeListener preferencesChangeListener = this;
   protected static final IScopeContext[] DEFAULT_SCOPE_CONTEXTS = new IScopeContext[] { InstanceScope.INSTANCE,
       ConfigurationScope.INSTANCE, DefaultScope.INSTANCE };
 
-  protected LanguageFormatReader(IProject project) {
-    this.project = project;
-  }
-
   /**
-   * Get if the language format is using spaces for indentation.
+   * Get the language format options.
    */
-  public abstract boolean getUseSpaces();
-
-  /**
-   * Get the indentation size for the language format. Be careful, for some languages, Eclipse uses indentation size for
-   * space indentation and tab size for tab indentation.
-   */
-  public abstract int getIndentSize();
+  public abstract FormattingOptions getFormattingOptions();
 
   /**
    * Fetch the language specific scope contexts based on if the project specific settings is enabled.
    */
-  protected abstract IScopeContext[] getScopeContexts(IProject project);
+  protected IScopeContext[] getScopeContexts(IProject project) {
+    if (project == null) {
+      return DEFAULT_SCOPE_CONTEXTS;
+    } else {
+      return new IScopeContext[] { new ProjectScope(project), InstanceScope.INSTANCE, ConfigurationScope.INSTANCE,
+          DefaultScope.INSTANCE };
+    }
+  }
+  
+  /**
+   * Register a preference change listener for the given project.
+   *
+   * @param project the project to register the preference change listener.
+   * @param qualifier a qualifier for the preference name.
+   */
+  protected void registerPreferencesChangeListener(IProject project, String qualifier) {
+    IScopeContext[] scopeContexts = getScopeContexts(project);
+    for (IScopeContext context : scopeContexts) {
+      IEclipsePreferences node = context.getNode(qualifier);
+      node.addPreferenceChangeListener(this.preferencesChangeListener);
+    }
+  }
 
   /**
    * Get the value of a preference from the scope contexts.

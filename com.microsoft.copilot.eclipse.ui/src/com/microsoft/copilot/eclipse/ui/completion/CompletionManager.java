@@ -91,6 +91,11 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       CopilotCore.LOGGER.log(LogLevel.INFO, "Document is null for editor: " + editor.getTitle());
       return;
     }
+    IFile file = LSPEclipseUtils.getFile(document);
+    if (file == null || !file.exists()) {
+      CopilotCore.LOGGER.log(LogLevel.INFO, "File is null or removed for editor: " + editor.getTitle());
+      return;
+    }
     this.documentUri = LSPEclipseUtils.toUri(document);
     if (this.documentUri == null) {
       CopilotCore.LOGGER.log(LogLevel.INFO, "Document URI is null for editor: " + editor.getTitle());

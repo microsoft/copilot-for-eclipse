@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.lsp4j.FormattingOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,8 +22,7 @@ class FormatOptionProviderTests {
 	private IFile mockFile;
 	private IProject mockProject;
 
-	private static final String JavaCore_PLUGIN_ID = "org.eclipse.jdt.core";
-	private static final int PREFERENCE_DEFAULT_TAB_SIZE = 2;
+	private static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
 
 	@BeforeEach
 	void setUp() {
@@ -41,8 +41,9 @@ class FormatOptionProviderTests {
 		when(mockFile.getFileExtension()).thenReturn("java");
 
 		JavaFormatReader javaFormatReader = new JavaFormatReader(mockProject);
-		boolean useSpace = javaFormatReader.getUseSpaces();
-		int tabSize = javaFormatReader.getIndentSize();
+		FormattingOptions languageFormat = javaFormatReader.getFormattingOptions();
+		boolean useSpace = languageFormat.isInsertSpaces();
+		int tabSize = languageFormat.getTabSize();
 
 		assertEquals(useSpace, formatOptionProvider.useSpace(mockFile));
 		assertEquals(tabSize, formatOptionProvider.getTabSize(mockFile));

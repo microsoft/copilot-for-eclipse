@@ -15,20 +15,19 @@ import com.microsoft.copilot.eclipse.core.logger.LogLevel;
  * A class to provide the format options for the completion job.
  */
 public class FormatOptionProvider {
-  // A hashMap of project -> (languageExtension -> format)
-  private Map<IProject, Map<String, FormattingOptions>> projectTolanguageIdToFormatMap;
   private Map<String, String> languageExtensionToIdMap;
+  private Map<String, Map<IProject, LanguageFormatReader>> languageIdToProjectToLanguageFormatReaderMap;
 
   private static final String JAVA_LANGUAGE_ID = "java";
   private static final boolean DEFAULT_USE_SPACE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_CHAR.equals("space");
-  private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_INDENTATION_SIZE;
+  private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_SIZE;
 
   /**
    * Creates a new FormatOptionProvider.
    */
   public FormatOptionProvider() {
     initializeLanguageExtensionToIdMap();
-    projectTolanguageIdToFormatMap = new HashMap<>();
+    languageIdToProjectToLanguageFormatReaderMap = new HashMap<>();
   }
 
   private void initializeLanguageExtensionToIdMap() {
@@ -92,51 +91,29 @@ public class FormatOptionProvider {
       CopilotCore.LOGGER.log(LogLevel.INFO, "Language ID not found for extension: ", fileExtension);
     }
 
-    Map<String, FormattingOptions> languageIdToFormatMap = projectTolanguageIdToFormatMap.computeIfAbsent(project,
-        k -> new HashMap<>());
-    if (!languageIdToFormatMap.containsKey(languageId)) {
-      loadLanguageFormatPreferencesForProject(project, languageId);
+    Map<IProject, LanguageFormatReader> projectToLanguageFormatReaderMap = languageIdToProjectToLanguageFormatReaderMap
+        .computeIfAbsent(languageId, k -> new HashMap<>());
+
+    LanguageFormatReader languageFormatReaderfirProject = projectToLanguageFormatReaderMap.get(project);
+    if (languageFormatReaderfirProject == null) {
+      languageFormatReaderfirProject = loadFormatReaderForTheProject(languageId, project);
+      if (languageFormatReaderfirProject == null) {
+        CopilotCore.LOGGER.log(LogLevel.INFO,
+            String.format("Auto format unsupported for language ID: %s with default format", languageId));
+        return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
+      }
+      projectToLanguageFormatReaderMap.put(project, languageFormatReaderfirProject);
     }
 
-    FormattingOptions format = languageIdToFormatMap.get(languageId);
-    if (format == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Format not found for extension: ", file.getName());
-    }
-
-    return format;
+    return languageFormatReaderfirProject.getFormattingOptions();
   }
 
-  private void loadLanguageFormatPreferencesForProject(IProject project, String languageId) {
+  private LanguageFormatReader loadFormatReaderForTheProject(String languageId, IProject project) {
     switch (languageId) {
       case JAVA_LANGUAGE_ID:
-        loadAndCacheJavaFormatPreferences(project, languageId);
-        break;
+        return new JavaFormatReader(project);
       default:
-        loadAndCacheDefaultFormatPreferences(project, languageId);
-        CopilotCore.LOGGER.log(LogLevel.INFO, "Auto format unsupported for language ID: ", languageId);
-        break;
+        return null;
     }
-  }
-
-  private void loadAndCacheJavaFormatPreferences(IProject project, String languageId) {
-    JavaFormatReader reader = new JavaFormatReader(project);
-    boolean insertSpaces = reader.getUseSpaces();
-    int indentationSize = reader.getIndentSize();
-
-    FormattingOptions format = new FormattingOptions(indentationSize, insertSpaces);
-    cacheFormatPreferences(project, languageId, format);
-  }
-
-  private void loadAndCacheDefaultFormatPreferences(IProject project, String languageId) {
-    FormattingOptions format = new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
-    cacheFormatPreferences(project, languageId, format);
-  }
-
-  private void cacheFormatPreferences(IProject project, String languageId, FormattingOptions format) {
-    Map<String, FormattingOptions> languageIdToFormatMap = projectTolanguageIdToFormatMap.get(project);
-    languageIdToFormatMap.put(languageId, format);
-    CopilotCore.LOGGER.log(LogLevel.INFO,
-        String.format("A new language format for %s is added to the cache. tabSize: %s, insertSpaces: %s", languageId,
-            format.getTabSize(), format.isInsertSpaces()));
   }
 }
