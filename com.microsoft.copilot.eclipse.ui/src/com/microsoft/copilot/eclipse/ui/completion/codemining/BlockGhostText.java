@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.completion.codemining;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.codemining.ICodeMiningProvider;
 import org.eclipse.jface.text.codemining.LineHeaderCodeMining;
 import org.eclipse.jface.text.source.inlined.Positions;
@@ -17,6 +18,14 @@ public class BlockGhostText extends LineHeaderCodeMining {
   public BlockGhostText(int beforeLineNumber, IDocument document, ICodeMiningProvider provider, String text)
       throws BadLocationException {
     super(Positions.of(beforeLineNumber, document, false), provider, null);
+    this.setLabel(text);
+  }
+
+  /**
+   * Creates a new BlockGhostText. (for testing purpose)
+   */
+  public BlockGhostText(Position position, ICodeMiningProvider provider, String text) throws BadLocationException {
+    super(position, provider, null);
     this.setLabel(text);
   }
 

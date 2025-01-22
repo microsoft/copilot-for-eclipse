@@ -6,6 +6,7 @@ Bundle-Version: 0.1.0.qualifier
 Bundle-Localization: plugin
 Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.completion,
+ com.microsoft.copilot.eclipse.ui.completion.codemining,
  com.microsoft.copilot.eclipse.ui.dialogs,
  com.microsoft.copilot.eclipse.ui.handlers,
  com.microsoft.copilot.eclipse.ui.i18n,

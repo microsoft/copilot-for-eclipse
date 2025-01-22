@@ -13,6 +13,7 @@ import org.eclipse.lsp4e.LanguageServiceAccessor;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
+import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -26,6 +27,7 @@ public class CopilotCore extends Plugin {
   private CopilotLanguageServerConnection copilotLanguageServer;
   private AuthStatusManager authStatusManager;
   private CompletionProvider completionProvider;
+  private FormatOptionProvider formatOptionProvider;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -106,6 +108,16 @@ public class CopilotCore extends Plugin {
 
   public CompletionProvider getCompletionProvider() {
     return completionProvider;
+  }
+
+  /**
+   * Get the format option provider in lazy-load manner.
+   */
+  public FormatOptionProvider getFormatOptionProvider() {
+    if (this.formatOptionProvider == null) {
+      this.formatOptionProvider = new FormatOptionProvider();
+    }
+    return formatOptionProvider;
   }
 
 }

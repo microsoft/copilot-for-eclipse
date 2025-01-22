@@ -52,7 +52,7 @@ public class CompletionProvider {
     this.completionJob = new CompletionJob(lsConnection);
     this.completionListeners = new LinkedHashSet<>();
     this.completionStatusListeners = new LinkedHashSet<>();
-    this.formatOptionProvider = new FormatOptionProvider();
+    this.formatOptionProvider = CopilotCore.getPlugin().getFormatOptionProvider();
   }
 
   /**
