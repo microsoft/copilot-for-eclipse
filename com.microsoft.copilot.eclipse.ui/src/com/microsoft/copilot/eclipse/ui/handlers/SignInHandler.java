@@ -17,7 +17,6 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;
@@ -121,10 +120,8 @@ public class SignInHandler extends AbstractHandler {
       IStatus status = signInConfirmDialog.getStatus();
       if (status != null && status.isOK()) {
         showSignInSuccessMessage(shell);
-        authStatusManager.setCopilotStatus(CopilotStatusResult.OK);
       } else {
         showSignInFailMessage(shell, status);
-        authStatusManager.setCopilotStatus(CopilotStatusResult.NOT_SIGNED_IN);
       }
     }
 
