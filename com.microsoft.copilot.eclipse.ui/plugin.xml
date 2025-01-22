@@ -28,7 +28,7 @@
 		<page
 			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			id="com.microsoft.copilot.eclipse.ui.preferences.page"
-			name="%command.preferencesPage.name">
+			name="%page.preferencesPage.name">
 		</page>
 	</extension>
 	<extension
@@ -48,7 +48,7 @@
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.showStatusBarMenu"
-			name="%command.copilotForEclipsePlugin.name">
+			name="%command.showStatusBarMenu.name">
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
