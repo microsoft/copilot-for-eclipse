@@ -19,7 +19,7 @@ public class ViewFeedbackForumHandler extends AbstractHandler {
     try {
       UiUtils.openLink(UiConstants.COPILOT_FEEDBACK_FORUM_URL);
     } catch (Exception e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
     }
 
     return null;

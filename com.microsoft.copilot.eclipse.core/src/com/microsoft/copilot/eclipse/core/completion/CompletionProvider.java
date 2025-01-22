@@ -152,7 +152,7 @@ public class CompletionProvider {
 
     private IStatus runCompletion(IProgressMonitor monitor) {
       if (params == null) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, "Invalid completion parameters");
+        CopilotCore.LOGGER.error(new IllegalStateException("Invalid completion parameters"));
         return new Status(IStatus.ERROR, Constants.PLUGIN_ID, "Invalid completion parameters");
       }
       if (monitor.isCanceled()) {
@@ -170,11 +170,10 @@ public class CompletionProvider {
         return Status.CANCEL_STATUS;
       } catch (ExecutionException e) {
         statusManager.setCopilotStatus(CopilotStatusResult.ERROR);
-        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+        CopilotCore.LOGGER.error(e);
         return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
       } catch (TimeoutException e) {
-        CopilotCore.LOGGER.log(LogLevel.WARNING,
-            "Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
+        CopilotCore.LOGGER.info("Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
         return Status.CANCEL_STATUS;
       }
       if (monitor.isCanceled()) {

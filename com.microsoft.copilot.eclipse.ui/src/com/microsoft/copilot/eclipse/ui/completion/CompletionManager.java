@@ -78,34 +78,34 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     // if the text viewer is null, we will not register listeners.
     // the side effect is that the completion will not be triggered for this editor.
     if (textViewer == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Text viewer is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("Text viewer is null for editor: " + editor.getTitle());
       return;
     }
     this.styledText = this.textViewer.getTextWidget();
     if (this.styledText == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Styled text is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("Styled text is null for editor: " + editor.getTitle());
       return;
     }
     this.document = LSPEclipseUtils.getDocument(editor);
     if (this.document == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Document is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("Document is null for editor: " + editor.getTitle());
       return;
     }
     IFile file = LSPEclipseUtils.getFile(document);
     if (file == null || !file.exists()) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "File is null or removed for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("File is null or removed for editor: " + editor.getTitle());
       return;
     }
     this.documentUri = LSPEclipseUtils.toUri(document);
     if (this.documentUri == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Document URI is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("Document URI is null for editor: " + editor.getTitle());
       return;
     }
     this.suggestionUpdateManager = new SuggestionUpdateManager(this.document);
     try {
       lsConnection.connectDocument(this.document);
     } catch (IOException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
       return;
     }
 
@@ -292,7 +292,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         cm.add(
             new BlockGhostText(document.getLineOfOffset(triggerPosition.offset) + 1, document, null, remainingLines));
       } catch (BadLocationException e) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+        CopilotCore.LOGGER.error(e);
       }
     }
     this.codeMinings = cm;
@@ -320,7 +320,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       this.provider.triggerCompletion(file, LSPEclipseUtils.toPosition(this.triggerPosition.getOffset(), this.document),
           documentVersion);
     } catch (BadLocationException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
     }
   }
 
@@ -350,7 +350,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       }
       this.document.removePosition(this.triggerPosition);
     } catch (BadLocationException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
       return;
     }
     SwtUtils.invokeOnDisplayThread(() -> {
@@ -410,7 +410,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       try {
         this.document.removePositionCategory(this.getCategory());
       } catch (BadPositionCategoryException e) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+        CopilotCore.LOGGER.error(e);
       }
       this.document.removePositionUpdater(this.positionUpdater);
     }

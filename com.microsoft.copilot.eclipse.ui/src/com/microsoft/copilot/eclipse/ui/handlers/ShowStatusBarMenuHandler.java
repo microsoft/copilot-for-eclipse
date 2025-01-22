@@ -190,7 +190,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           try {
             handlerService.executeCommand(commandId, null);
           } catch (Exception e) {
-            CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+            CopilotCore.LOGGER.error(e);
           }
         }
       };
@@ -237,7 +237,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           cancel();
         }
       } catch (Exception e) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+        CopilotCore.LOGGER.error(e);
         return Status.CANCEL_STATUS;
       }
       return Status.OK_STATUS;

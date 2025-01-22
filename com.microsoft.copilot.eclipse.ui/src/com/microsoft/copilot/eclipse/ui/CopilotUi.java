@@ -61,7 +61,7 @@ public class CopilotUi extends AbstractUIPlugin {
           CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
           if (connection == null) {
             var ex = new IllegalStateException("Failed to start copilot language server.");
-            CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
+            CopilotCore.LOGGER.error(ex);
             throw ex;
           }
 
@@ -86,7 +86,7 @@ public class CopilotUi extends AbstractUIPlugin {
           // to initialize it.
           initCompletionHandlerForActiveEditor();
         } catch (OperationCanceledException | InterruptedException e) {
-          CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+          CopilotCore.LOGGER.error(e);
           return Status.error("Failed to initialize GitHub Copilot plugin.", e);
         }
         return Status.OK_STATUS;

@@ -61,7 +61,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   @Override
   public void proxyInfoChanged(IProxyChangeEvent event) {
-    CopilotCore.LOGGER.log(LogLevel.INFO, "Proxy info changed");
+    CopilotCore.LOGGER.info("Proxy info changed");
     updateProxySettings();
     syncConfiguration();
   }
@@ -75,20 +75,20 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.ENABLE_STRICT_SSL:
         var newVal = Boolean.parseBoolean(event.getNewValue().toString());
         this.settings.getHttp().setProxyStrictSsl(newVal);
-        CopilotCore.LOGGER.log(LogLevel.INFO, "Strict SSL is now " + event.getNewValue());
+        CopilotCore.LOGGER.info("Strict SSL is now " + event.getNewValue());
         break;
       case Constants.PROXY_KERBEROS_SP:
         this.settings.getHttp().setProxyKerberosServicePrincipal((String) event.getNewValue());
-        CopilotCore.LOGGER.log(LogLevel.INFO, "Kerberos SP is now " + event.getNewValue());
+        CopilotCore.LOGGER.info("Kerberos SP is now " + event.getNewValue());
         break;
       case Constants.GITHUB_ENTERPRISE:
         this.settings.getGithubEnterprise().setUri((String) event.getNewValue());
-        CopilotCore.LOGGER.log(LogLevel.INFO, "GitHub Enterprise URI is now " + event.getNewValue());
+        CopilotCore.LOGGER.info("GitHub Enterprise URI is now " + event.getNewValue());
         break;
       case Constants.AUTO_SHOW_COMPLETION:
         Boolean autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
         this.settings.setEnableAutoCompletions(autoShowCompletion);
-        CopilotCore.LOGGER.log(LogLevel.INFO, "Auto show completion is now " + event.getNewValue());
+        CopilotCore.LOGGER.info("Auto show completion is now " + event.getNewValue());
         break;
       default:
         return;
@@ -112,11 +112,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     IProxyData proxyData = getProxy();
     if (proxyData == null) {
       settings.getHttp().setProxy(null);
-      CopilotCore.LOGGER.log(LogLevel.INFO, "No proxy data found");
+      CopilotCore.LOGGER.info("No proxy data found");
       return;
     }
     settings.getHttp().setProxy(createProxyString(proxyData));
-    CopilotCore.LOGGER.log(LogLevel.INFO, String.format("Proxy will be updated to %s", settings.getHttp().getProxy()));
+    CopilotCore.LOGGER.info(String.format("Proxy will be updated to %s", settings.getHttp().getProxy()));
 
   }
 
@@ -127,11 +127,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   private IProxyData getProxy() {
     if (proxyService == null) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, "Proxy service is null");
+      CopilotCore.LOGGER.error(new IllegalStateException("Proxy service is null"));
       return null;
     }
     if (!proxyService.isProxiesEnabled()) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Proxies are disabled");
+      CopilotCore.LOGGER.info("Proxies are disabled");
       return null;
     }
     IProxyData[] proxyData = proxyService.select(URI.create(Constants.GITHUB_COPILOT_URL));
@@ -149,7 +149,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public static String createProxyString(IProxyData proxyData) {
     if (proxyData == null) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, "Proxy data is null");
+      CopilotCore.LOGGER.info("Proxy data is null");
       return null;
     }
 
@@ -172,7 +172,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public void registerPropertyChangeListener(IPropertyChangeListener listener) {
     if (preferenceStore == null) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, "Preference store is null", new IllegalStateException());
+      CopilotCore.LOGGER.error(new IllegalStateException("Preference store is null"));
       return;
     }
     preferenceStore.addPropertyChangeListener(listener);
@@ -185,7 +185,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public void unregisterPropertyChangeListener(IPropertyChangeListener listener) {
     if (preferenceStore == null) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, "Preference store is null", new IllegalStateException());
+      CopilotCore.LOGGER.error(new IllegalStateException("Preference store is null"));
       return;
     }
     preferenceStore.removePropertyChangeListener(listener);

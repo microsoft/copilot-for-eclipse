@@ -77,7 +77,7 @@ public class SuggestionUpdateManager {
           newItems.add(new CompletionItem(item.getUuid(), item.getText(), item.getRange(), newDisplayText,
               newTriggerPosition, item.getDocVersion()));
         } catch (BadLocationException e) {
-          CopilotCore.LOGGER.log(LogLevel.ERROR, "Could not update the trigger position", e);
+          CopilotCore.LOGGER.error("Could not update the trigger position", e);
         }
       }
     }
@@ -117,7 +117,7 @@ public class SuggestionUpdateManager {
         newItems.add(new CompletionItem(item.getUuid(), item.getText(), item.getRange(), newDisplayText,
             newTriggerPosition, item.getDocVersion()));
       } catch (BadLocationException e) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, "Could not update the trigger position", e);
+        CopilotCore.LOGGER.error("Could not update the trigger position", e);
       }
     }
 

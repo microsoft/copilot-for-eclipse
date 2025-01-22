@@ -91,7 +91,7 @@ public class AuthStatusManager {
   public void checkStatus() {
     this.connection.checkStatus(false).handle((result, ex) -> {
       if (ex != null) {
-        CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
+        CopilotCore.LOGGER.error(ex);
         setCopilotStatus(CopilotStatusResult.ERROR);
       } else {
         setCopilotStatus(result.getStatus());

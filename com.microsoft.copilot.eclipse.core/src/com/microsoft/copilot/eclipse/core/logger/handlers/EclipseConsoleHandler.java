@@ -37,32 +37,17 @@ public class EclipseConsoleHandler extends Handler {
       return;
     }
     LogLevel lvl = (LogLevel) property[0];
-    Object[] params = (Object[]) property[1];
-    int level = map2StatusLevel(lvl);
-    logger.log(new Status(level, Constants.PLUGIN_ID, getFormatedMessage(params), getThrowable(params)));
-  }
-
-  private String getFormatedMessage(Object[] properties) {
-    String str = "";
-    for (int i = 0; i < properties.length; i++) {
-      str += "argv" + i + " = ";
-      try {
-        str += new Gson().toJson(properties[i]);
-      } catch (Exception e) {
-        str += "exceptionInToJson";
-      }
-      str += " ;";
+    switch (lvl) {
+      case INFO:
+        logger.log(new Status(IStatus.INFO, Constants.PLUGIN_ID, "[Info] " + logRecord.getMessage(), null));
+        break;
+      case ERROR:
+        Throwable ex = (Throwable) property[1];
+        logger.log(new Status(IStatus.ERROR, Constants.PLUGIN_ID, "[Error] " + logRecord.getMessage(), ex));
+        break;
+      default:
+        break;
     }
-    return str;
-  }
-
-  private Throwable getThrowable(Object[] properties) {
-    for (int i = 1; i < properties.length; i++) {
-      if (properties[i] instanceof Throwable) {
-        return (Throwable) properties[i];
-      }
-    }
-    return null;
   }
 
   @Override
@@ -73,18 +58,5 @@ public class EclipseConsoleHandler extends Handler {
   @Override
   public void close() throws SecurityException {
     // do nothing
-  }
-
-  private int map2StatusLevel(LogLevel level) {
-    switch (level) {
-      case INFO:
-        return IStatus.INFO;
-      case WARNING:
-        return IStatus.WARNING;
-      case ERROR:
-        return IStatus.ERROR;
-      default:
-        return IStatus.INFO;
-    }
   }
 }

@@ -60,25 +60,24 @@ public class FormatOptionProvider {
    */
   private FormattingOptions getLanguageFormat(IFile file) {
     if (file == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "File is null");
+      CopilotCore.LOGGER.info("File is null");
       return null;
     }
 
     if (!file.exists() || !file.isAccessible()) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "File is not valid: ", file.getName());
+      CopilotCore.LOGGER.info("File is not valid: " + file.getName());
       return null;
     }
 
     IProject project = file.getProject();
     if (project == null) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Project is null for file: ", file.getName(),
-          "default format will be applied.");
+      CopilotCore.LOGGER.info("Project is null for file: " + file.getName() + "default format will be applied.");
       return null;
     }
 
     String fileExtension = file.getFileExtension();
     if (StringUtils.isEmpty(fileExtension)) {
-      CopilotCore.LOGGER.log(LogLevel.INFO, "File extension is null or empty for file: ", file.getName());
+      CopilotCore.LOGGER.info("File extension is null or empty for file: " + file.getName());
       return null;
     } else {
       fileExtension = fileExtension.toLowerCase();
@@ -88,7 +87,7 @@ public class FormatOptionProvider {
     if (languageId == null) {
       languageId = "unknown";
       languageExtensionToIdMap.put(fileExtension, languageId);
-      CopilotCore.LOGGER.log(LogLevel.INFO, "Language ID not found for extension: ", fileExtension);
+      CopilotCore.LOGGER.info("Language ID not found for extension: " + fileExtension);
     }
 
     Map<IProject, LanguageFormatReader> projectToLanguageFormatReaderMap = languageIdToProjectToLanguageFormatReaderMap
@@ -98,8 +97,8 @@ public class FormatOptionProvider {
     if (languageFormatReaderfirProject == null) {
       languageFormatReaderfirProject = loadFormatReaderForTheProject(languageId, project);
       if (languageFormatReaderfirProject == null) {
-        CopilotCore.LOGGER.log(LogLevel.INFO,
-            String.format("Auto format unsupported for language ID: %s with default format", languageId));
+        CopilotCore.LOGGER
+            .info(String.format("Auto format unsupported for language ID: %s with default format", languageId));
         return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
       }
       projectToLanguageFormatReaderMap.put(project, languageFormatReaderfirProject);

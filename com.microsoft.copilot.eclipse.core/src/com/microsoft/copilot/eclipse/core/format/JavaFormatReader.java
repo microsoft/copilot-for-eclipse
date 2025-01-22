@@ -90,7 +90,7 @@ public class JavaFormatReader extends LanguageFormatReader {
   }
 
   private void logPreferenceUpdate(String key, String newValue) {
-    CopilotCore.LOGGER.log(LogLevel.INFO, String.format(
-        "Java format preference cache for %s is updated. key: %s, new value: %s", project.getName(), key, newValue));
+    CopilotCore.LOGGER.info(String.format("Java format preference cache for %s is updated. key: %s, new value: %s",
+        project.getName(), key, newValue));
   }
 }

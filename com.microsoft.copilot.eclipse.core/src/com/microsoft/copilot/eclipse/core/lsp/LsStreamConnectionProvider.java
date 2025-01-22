@@ -51,17 +51,17 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     } catch (Exception e) {
       startJsLspAgent(e);
     }
-    CopilotCore.LOGGER.log(LogLevel.INFO, "Lsp agent started successfully.");
+    CopilotCore.LOGGER.info("Lsp agent started successfully.");
   }
 
   private void startBinaryLspAgent() throws IOException {
-    CopilotCore.LOGGER.log(LogLevel.INFO, "Starting language server with binary lsp agent.");
+    CopilotCore.LOGGER.info("Starting language server with binary lsp agent.");
     this.setCommands(getBinaryLspCommands());
     super.start();
   }
 
   private void startJsLspAgent(Exception e) throws IOException {
-    CopilotCore.LOGGER.log(LogLevel.ERROR, "Binary LSP agent start failed. Retrying with JS agent.", e);
+    CopilotCore.LOGGER.error("Binary LSP agent start failed. Retrying with JS agent.", e);
     this.setCommands(getJavaScriptCommands());
     super.start();
   }
@@ -103,7 +103,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
       return buildCommands(nodePath, jsLspPath);
     } catch (Exception e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, "Failed to get JavaScript commands. ", e);
+      CopilotCore.LOGGER.error("Failed to get JavaScript commands. ", e);
       throw e;
     }
     // TODO: In the future, if users have environment variables set up that impact the js server startup, we should
@@ -130,8 +130,8 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       // The 'wildwebdeveloper' bundle is optional for Eclipse. Ensure it is available before attempting to use it.
       Class.forName("org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager");
     } catch (ClassNotFoundException | NoClassDefFoundError e) {
-      CopilotCore.LOGGER.log(LogLevel.INFO,
-          "Get JavaScript commands aborted. org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager not found.");
+      CopilotCore.LOGGER
+          .info("Get JavaScript commands aborted. org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager not found.");
       return null;
     }
     File nodeJsLocation = NodeJSManager.getNodeJsLocation();
@@ -165,7 +165,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     try {
       return URIUtil.toFile(URIUtil.toURI(FileLocator.toFileURL(url))).toPath();
     } catch (URISyntaxException | IOException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
       return null;
     }
   }
@@ -205,7 +205,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     try {
       return URIUtil.toFile(URIUtil.toURI(FileLocator.toFileURL(url))).toPath();
     } catch (URISyntaxException | IOException e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
       return null;
     }
   }

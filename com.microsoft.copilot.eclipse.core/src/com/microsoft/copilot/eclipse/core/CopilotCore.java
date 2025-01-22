@@ -70,7 +70,7 @@ public class CopilotCore extends Plugin {
       if (serverDef == null) {
         var ex = new IllegalStateException(
             "Language server definition not found for " + CopilotLanguageServerConnection.SERVER_ID);
-        CopilotCore.LOGGER.log(LogLevel.ERROR, ex);
+        CopilotCore.LOGGER.error(ex);
         throw ex;
       }
 

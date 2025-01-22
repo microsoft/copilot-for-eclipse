@@ -29,17 +29,32 @@ public class CopilotForEclipseLogger {
   }
 
   /**
-   * Log the message.
-   *
-   * @param lvl the log level
-   * @param parameters the parameters
+   * Log level.
    */
-  public void log(LogLevel lvl, Object... parameters) {
-    Level level = map2Level(lvl);
-    LogRecord logRecord = new LogRecord(level, "");
-    logRecord.setParameters(new Object[] { lvl, parameters });
+  public void info(String message) {
+    LogRecord logRecord = new LogRecord(Level.INFO, message);
+    logRecord.setParameters(new Object[] { LogLevel.INFO, message });
     logger.log(logRecord);
   }
+
+  /**
+   * Log level.
+   */
+  public void error(String message, Throwable ex) {
+    LogRecord logRecord = new LogRecord(Level.SEVERE, message);
+    logRecord.setParameters(new Object[] { LogLevel.ERROR, ex });
+    logger.log(logRecord);
+  }
+
+  /**
+   * Log level.
+   */
+  public void error(Throwable ex) {
+    LogRecord logRecord = new LogRecord(Level.SEVERE, ex.getMessage());
+    logRecord.setParameters(new Object[] { LogLevel.ERROR, ex });
+    logger.log(logRecord);
+  }
+
 
   /**
    * Set up the loggers.

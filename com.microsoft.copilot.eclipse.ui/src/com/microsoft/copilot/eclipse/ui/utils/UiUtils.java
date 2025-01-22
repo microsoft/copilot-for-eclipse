@@ -56,7 +56,7 @@ public class UiUtils {
       IWebBrowser browser = browserSupport.createBrowser(IWorkbenchBrowserSupport.AS_EXTERNAL, null, null, null);
       browser.openURL(new URI(encodedUrl).toURL());
     } catch (Exception e) {
-      CopilotCore.LOGGER.log(LogLevel.ERROR, e);
+      CopilotCore.LOGGER.error(e);
       return false;
     }
     return true;
