@@ -15,7 +15,6 @@ import org.osgi.framework.BundleContext;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**

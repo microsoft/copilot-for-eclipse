@@ -9,7 +9,6 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.lsp4j.FormattingOptions;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 
 /**
  * A class to provide the format options for the completion job.

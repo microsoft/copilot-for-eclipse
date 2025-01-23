@@ -20,7 +20,6 @@ import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**

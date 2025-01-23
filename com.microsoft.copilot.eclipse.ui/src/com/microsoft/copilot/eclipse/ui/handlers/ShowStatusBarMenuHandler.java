@@ -23,7 +23,6 @@ import org.eclipse.ui.menus.UIElement;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;

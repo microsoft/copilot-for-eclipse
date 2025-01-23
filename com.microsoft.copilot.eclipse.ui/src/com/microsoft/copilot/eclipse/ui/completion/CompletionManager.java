@@ -14,6 +14,7 @@ import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextInputListener;
 import org.eclipse.jface.text.ITextListener;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
@@ -24,6 +25,9 @@ import org.eclipse.jface.text.source.ISourceViewerExtension5;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.ltk.core.refactoring.RefactoringCore;
+import org.eclipse.ltk.core.refactoring.history.IRefactoringExecutionListener;
+import org.eclipse.ltk.core.refactoring.history.RefactoringExecutionEvent;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
@@ -35,7 +39,6 @@ import com.microsoft.copilot.eclipse.core.completion.AcceptSuggestionType;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
@@ -49,13 +52,15 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A class to listen events which are completion related and notify the completion manager to render the ghost text or
  * apply the suggestion to document.
  */
-public class CompletionManager implements CaretListener, ITextListener, CompletionListener, IPropertyChangeListener {
+public class CompletionManager implements CaretListener, ITextListener, CompletionListener, IPropertyChangeListener,
+    ITextInputListener, IRefactoringExecutionListener {
 
   private CopilotLanguageServerConnection lsConnection;
   private CompletionProvider provider;
   private SuggestionUpdateManager suggestionUpdateManager;
   private ITextViewer textViewer;
   private StyledText styledText;
+  private String editorTitle;
   private IDocument document;
   private URI documentUri;
   private int documentVersion;
@@ -64,6 +69,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
   private DefaultPositionUpdater positionUpdater;
   private RenderingManager renderingManager;
+  private boolean isRefactoring;
   private boolean autoShowCompletion;
   private LanguageServerSettingManager settingsManager;
 
@@ -75,43 +81,26 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       ITextEditor editor, LanguageServerSettingManager settingsManager) {
     this.codeMinings = new ArrayList<>();
     this.textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+    this.editorTitle = editor.getTitle();
     // if the text viewer is null, we will not register listeners.
     // the side effect is that the completion will not be triggered for this editor.
     if (textViewer == null) {
-      CopilotCore.LOGGER.info("Text viewer is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("Text viewer is null for editor: " + this.editorTitle);
       return;
     }
     this.styledText = this.textViewer.getTextWidget();
     if (this.styledText == null) {
-      CopilotCore.LOGGER.info("Styled text is null for editor: " + editor.getTitle());
+      CopilotCore.LOGGER.info("Styled text is null for editor: " + this.editorTitle);
       return;
     }
-    this.document = LSPEclipseUtils.getDocument(editor);
-    if (this.document == null) {
-      CopilotCore.LOGGER.info("Document is null for editor: " + editor.getTitle());
-      return;
-    }
-    IFile file = LSPEclipseUtils.getFile(document);
-    if (file == null || !file.exists()) {
-      CopilotCore.LOGGER.info("File is null or removed for editor: " + editor.getTitle());
-      return;
-    }
-    this.documentUri = LSPEclipseUtils.toUri(document);
-    if (this.documentUri == null) {
-      CopilotCore.LOGGER.info("Document URI is null for editor: " + editor.getTitle());
-      return;
-    }
-    this.suggestionUpdateManager = new SuggestionUpdateManager(this.document);
-    try {
-      lsConnection.connectDocument(this.document);
-    } catch (IOException e) {
-      CopilotCore.LOGGER.error(e);
-      return;
-    }
-
-    this.renderingManager = new RenderingManager(this.textViewer);
-
     this.lsConnection = lsConnection;
+    this.document = LSPEclipseUtils.getDocument(editor);
+    if (!initializeDocument()) {
+      return;
+    }
+
+    RefactoringCore.getHistoryService().addExecutionListener(this);
+    this.renderingManager = new RenderingManager(this.textViewer);
     this.settingsManager = settingsManager;
     this.provider = provider;
     this.provider.addCompletionListener(this);
@@ -132,10 +121,36 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     registerListeners();
   }
 
+  private boolean initializeDocument() {
+    if (this.document == null) {
+      CopilotCore.LOGGER.info("Document is null for editor: " + this.editorTitle);
+      return false;
+    }
+    IFile file = LSPEclipseUtils.getFile(document);
+    if (file == null || !file.exists()) {
+      CopilotCore.LOGGER.info("File is null or removed for editor: " + this.editorTitle);
+      return false;
+    }
+    this.documentUri = LSPEclipseUtils.toUri(document);
+    if (this.documentUri == null) {
+      CopilotCore.LOGGER.info("Document URI is null for editor: " + this.editorTitle);
+      return false;
+    }
+    this.suggestionUpdateManager = new SuggestionUpdateManager(this.document);
+    try {
+      this.lsConnection.connectDocument(this.document);
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error(e);
+      return false;
+    }
+    return true;
+  }
+
   void registerListeners() {
     SwtUtils.invokeOnDisplayThread(() -> {
       this.styledText.addCaretListener(this);
       this.textViewer.addTextListener(this);
+      this.textViewer.addTextInputListener(this);
     }, this.styledText);
 
     this.settingsManager.registerPropertyChangeListener(this);
@@ -171,6 +186,28 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       } else {
         clearCompletionRendering();
       }
+    }
+  }
+
+  /**
+   * {@inheritDoc} Listen to the refactoring event and log the refactoring event type.
+   */
+  @Override
+  public void executionNotification(RefactoringExecutionEvent event) {
+    int eventType = event.getEventType();
+    switch (eventType) {
+      case RefactoringExecutionEvent.ABOUT_TO_PERFORM:
+      case RefactoringExecutionEvent.ABOUT_TO_REDO:
+      case RefactoringExecutionEvent.ABOUT_TO_UNDO:
+        isRefactoring = true;
+        break;
+      case RefactoringExecutionEvent.PERFORMED:
+      case RefactoringExecutionEvent.REDONE:
+      case RefactoringExecutionEvent.UNDONE:
+        isRefactoring = false;
+        break;
+      default:
+        isRefactoring = false;
     }
   }
 
@@ -244,6 +281,18 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     this.suggestionUpdateManager.setCompletionItems(completions);
     this.updateGhostTexts();
     this.notifyShown();
+  }
+
+  @Override
+  public void inputDocumentAboutToBeChanged(IDocument oldInput, IDocument newInput) {
+    this.document = newInput;
+    initializeDocument();
+    CopilotCore.LOGGER.info("Completion handler is refreshed for the document: " + this.documentUri);
+  }
+
+  @Override
+  public void inputDocumentChanged(IDocument oldInput, IDocument newInput) {
+    // do nothing
   }
 
   private void updateGhostTexts() {
@@ -413,6 +462,8 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       }
       this.document.removePositionUpdater(this.positionUpdater);
     }
+
+    RefactoringCore.getHistoryService().removeExecutionListener(this);
 
     if (this.textViewer != null) {
       SwtUtils.invokeOnDisplayThread(() -> {

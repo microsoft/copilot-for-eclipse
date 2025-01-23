@@ -9,7 +9,6 @@ import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 
 /**

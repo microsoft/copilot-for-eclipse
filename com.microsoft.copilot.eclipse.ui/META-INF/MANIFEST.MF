@@ -29,4 +29,5 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.1.0",
  org.eclipse.lsp4j,
  org.apache.commons.lang3,
  org.eclipse.core.net;bundle-version="1.5.500",
- org.eclipse.swt
+ org.eclipse.swt,
+ org.eclipse.ltk.core.refactoring

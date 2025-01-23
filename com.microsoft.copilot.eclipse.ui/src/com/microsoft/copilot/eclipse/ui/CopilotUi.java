@@ -17,7 +17,6 @@ import org.osgi.framework.ServiceReference;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;

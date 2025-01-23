@@ -20,7 +20,6 @@ import org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager;
 import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NameAndVersion;

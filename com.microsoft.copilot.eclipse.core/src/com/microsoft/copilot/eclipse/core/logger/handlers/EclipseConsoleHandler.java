@@ -3,7 +3,6 @@ package com.microsoft.copilot.eclipse.core.logger.handlers;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
-import com.google.gson.Gson;
 import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;

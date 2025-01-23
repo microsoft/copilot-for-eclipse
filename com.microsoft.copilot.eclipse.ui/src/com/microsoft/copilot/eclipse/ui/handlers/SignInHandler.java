@@ -16,7 +16,6 @@ import org.eclipse.swt.widgets.Shell;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;

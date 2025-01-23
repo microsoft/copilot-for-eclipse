@@ -8,7 +8,6 @@ import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.eclipse.lsp4j.FormattingOptions;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 
 /**
  * Java format.
