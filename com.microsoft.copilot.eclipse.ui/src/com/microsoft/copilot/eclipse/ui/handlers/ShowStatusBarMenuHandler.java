@@ -91,17 +91,17 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
         switch (copilotStatus) {
           case CopilotStatusResult.OK:
-            iconPath = "/icons/github_copilot_signed_in_blue.png";
+            iconPath = "/icons/github_copilot_signed_in.png";
             break;
           case CopilotStatusResult.LOADING:
             scheduleSpinnerJob(element);
             return;
           case CopilotStatusResult.ERROR, CopilotStatusResult.WARNING:
-            iconPath = "/icons/github_copilot_error_blue.png";
+            iconPath = "/icons/github_copilot_error.png";
             break;
           case CopilotStatusResult.NOT_SIGNED_IN, CopilotStatusResult.NOT_AUTHORIZED:
           default:
-            iconPath = "/icons/github_copilot_not_signed_in_blue.png";
+            iconPath = "/icons/github_copilot_not_signed_in.png";
         }
 
         if (iconPath != null) {
