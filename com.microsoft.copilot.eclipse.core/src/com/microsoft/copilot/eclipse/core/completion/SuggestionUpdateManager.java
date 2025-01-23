@@ -69,11 +69,11 @@ public class SuggestionUpdateManager {
           continue;
         }
         try {
+          // the following update might be wrong especially for the replacement range. Another request should be
+          // triggered to get the correct items.
           Position newTriggerPosition = LSPEclipseUtils
               .toPosition(LSPEclipseUtils.toOffset(item.getPosition(), this.document) + text.length(), this.document);
           item.getRange().setEnd(newTriggerPosition);
-          // note: the docVersion is not updated here. But since the docVersion is only used when the completion is
-          // resolved from provider, so it should be fine.
           newItems.add(new CompletionItem(item.getUuid(), item.getText(), item.getRange(), newDisplayText,
               newTriggerPosition, item.getDocVersion()));
         } catch (BadLocationException e) {
@@ -109,11 +109,11 @@ public class SuggestionUpdateManager {
     for (CompletionItem item : this.originalItems) {
       String newDisplayText = item.getDisplayText().substring(this.offset - deletedCount);
       try {
+        // the following update might be wrong especially for the replacement range. Another request should be
+        // triggered to get the correct items.
         Position newTriggerPosition = LSPEclipseUtils
             .toPosition(LSPEclipseUtils.toOffset(item.getPosition(), this.document) - deletedCount, this.document);
         item.getRange().setEnd(newTriggerPosition);
-        // note: the docVersion is not updated here. But since the docVersion is only used when the completion is
-        // resolved from provider, so it should be fine.
         newItems.add(new CompletionItem(item.getUuid(), item.getText(), item.getRange(), newDisplayText,
             newTriggerPosition, item.getDocVersion()));
       } catch (BadLocationException e) {
@@ -132,13 +132,18 @@ public class SuggestionUpdateManager {
   }
 
   /**
-   * Initialize the completion items when the suggestion is resolved.
+   * Initialize the completion items when the suggestion is resolved. It will do a entire flush when the original items
+   * are empty. Otherwise, it will only update the updated items as a correction.
    */
   public void setCompletionItems(List<CompletionItem> items) {
-    this.originalItems = items;
-    this.updatedItems = items;
-    this.offset = 0;
-    this.index = 0;
+    if (originalItems == null || originalItems.isEmpty()) {
+      this.originalItems = items;
+      this.updatedItems = items;
+      this.offset = 0;
+      this.index = 0;
+    } else {
+      this.updatedItems = items;
+    }
   }
 
   /**

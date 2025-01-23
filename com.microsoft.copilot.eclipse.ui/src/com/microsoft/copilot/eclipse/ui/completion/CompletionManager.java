@@ -156,7 +156,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     if (isReplacement(event)) {
       this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset + event.getText().length());
       clearCompletionRendering();
-      this.suggestionUpdateManager.reset();
     } else if (isDeletion(event)) {
       this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
       if (this.suggestionUpdateManager.getSize() > 0
@@ -164,7 +163,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         this.updateGhostTexts();
       } else {
         clearCompletionRendering();
-        this.suggestionUpdateManager.reset();
       }
     } else if (isInsertion(event)) {
       this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset + event.getText().length());
@@ -172,7 +170,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         this.updateGhostTexts();
       } else {
         clearCompletionRendering();
-        this.suggestionUpdateManager.reset();
       }
     }
   }
@@ -219,9 +216,11 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       clearCompletionRendering();
     } else {
       this.documentVersion = currentVersion;
-      // only automatically trigger completion when there is no suggestion available.
-      // Which means the characters user typed are not part of the completion.
-      if (this.autoShowCompletion && this.suggestionUpdateManager.getSize() == 0) {
+      // Though the suggestionUpdateManager will update the items according to the text change, but that is not always
+      // correct. Thus we will always trigger another completion, whenever cursor position changed, to get the correct
+      // items. This will not affect the ghost text rendering because the CLS also has cache so it will not return items
+      // that are different from the last time as long as the text change is the same as the original completion item.
+      if (this.autoShowCompletion) {
         triggerCompletion();
       }
     }
