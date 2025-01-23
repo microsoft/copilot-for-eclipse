@@ -257,7 +257,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       // correct. Thus we will always trigger another completion, whenever cursor position changed, to get the correct
       // items. This will not affect the ghost text rendering because the CLS also has cache so it will not return items
       // that are different from the last time as long as the text change is the same as the original completion item.
-      if (this.autoShowCompletion) {
+      if (this.autoShowCompletion && !isRefactoring) {
         triggerCompletion();
       }
     }
