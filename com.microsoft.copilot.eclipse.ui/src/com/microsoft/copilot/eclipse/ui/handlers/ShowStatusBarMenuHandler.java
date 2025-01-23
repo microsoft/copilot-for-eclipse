@@ -54,7 +54,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     // Sign in & sign out section
     menuManager.add(new Separator());
     if (!Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
-      addSignInOrSignOutAction(menuManager);
+      addAuthenticationActions(menuManager);
     }
 
     // Preferences section
@@ -168,11 +168,14 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     spinnerJob.schedule();
   }
 
-  private void addSignInOrSignOutAction(MenuManager menuManager) {
+  private void addAuthenticationActions(MenuManager menuManager) {
     if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
       ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signOutIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);
+    } else if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_AUTHORIZED)) {
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_configureGitHubCopilotSettings, null,
+          handlerService, "com.microsoft.copilot.eclipse.commands.configureCopilotSettings", true);
     } else {
       ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, signInIcon, handlerService,

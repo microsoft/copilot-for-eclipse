@@ -17,6 +17,7 @@ public final class Messages extends NLS {
   public static String menu_copilotStatus_agentWarning;
   public static String menu_signToGitHub;
   public static String menu_signOutFromGitHub;
+  public static String menu_configureGitHubCopilotSettings;
   public static String menu_viewFeedbackForum;
   public static String menu_editPreferences;
   public static String menu_editKeyboardShortcuts;
