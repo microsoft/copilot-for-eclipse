@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.handlers;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
@@ -16,6 +17,7 @@ import org.eclipse.swt.widgets.Shell;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInConfirmDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.SignInDialog;
@@ -117,9 +119,14 @@ public class SignInHandler extends AbstractHandler {
 
     private void handleSignInConfirmation(Shell shell, SignInConfirmDialog signInConfirmDialog) {
       IStatus status = signInConfirmDialog.getStatus();
-      if (status != null && status.isOK()) {
+      if (status == null) {
+        CopilotCore.LOGGER.error(new IllegalStateException("Sign in confirmation failed: status is null"));
+        return;
+      }
+      if (status.isOK()) {
         showSignInSuccessMessage(shell);
-      } else {
+      } else if (Objects.equals(CopilotStatusResult.ERROR, SignInHandler.this.authStatusManager.getCopilotStatus())) {
+        // the CLS will show a dialog for not authorized case
         showSignInFailMessage(shell, status);
       }
     }
@@ -134,7 +141,6 @@ public class SignInHandler extends AbstractHandler {
       if (status != null && StringUtils.isNotBlank(status.getMessage())) {
         msg += ": " + status.getMessage();
       }
-      msg += ". ";
       MessageDialog.openInformation(shell, Messages.signInHandler_msgDialog_githubCopilot,
           msg + Messages.signInHandler_msgDialog_signInFailedTryAgain);
     }
