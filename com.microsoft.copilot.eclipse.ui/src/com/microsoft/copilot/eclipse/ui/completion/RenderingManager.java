@@ -32,6 +32,11 @@ public class RenderingManager implements PaintListener {
 
   private ITextViewer textViewer;
   private Color ghostTextColor;
+  /**
+   * Whether the color resource should be disposed. When the color is fetched from the jface registry, it should not be
+   * disposed.
+   */
+  private boolean needDisposeColorResource;
 
   /**
    * Creates a new CompletionManager.
@@ -56,6 +61,7 @@ public class RenderingManager implements PaintListener {
     }
     Color color = colorRegistry.get(INLINE_ANNOTATION_COLOR_KEY);
     if (color == null) {
+      needDisposeColorResource = true;
       color = new Color(display, new RGB(DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE));
     }
     return color;
@@ -124,7 +130,7 @@ public class RenderingManager implements PaintListener {
    * Dispose the resources used by the completion manager.
    */
   public void dispose() {
-    if (this.ghostTextColor != null) {
+    if (this.ghostTextColor != null && needDisposeColorResource) {
       this.ghostTextColor.dispose();
       this.ghostTextColor = null;
     }

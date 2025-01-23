@@ -6,24 +6,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,27 +26,12 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
-import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 @ExtendWith(MockitoExtension.class)
-class CompletionManagerTests {
-
-  private IProject project;
+class CompletionManagerTests extends CompletionBaseTests {
 
   @Mock
   private CopilotLanguageServerConnection mockLsConnection;
-
-  @BeforeEach
-  public void setUp() throws Exception {
-    project = ResourcesPlugin.getWorkspace().getRoot().getProject("TestProject");
-    project.create(null);
-    project.open(null);
-  }
-
-  @AfterEach
-  public void tearDown() throws Exception {
-    project.delete(true, null);
-  }
 
   @Test
   void testReplaceCompletion1() throws Exception {
@@ -92,23 +68,6 @@ class CompletionManagerTests {
 
     IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
     assertTrue(document.get().contains("  System.out.println(\"hi\");\n"));
-  }
-
-  protected IEditorPart getEditorPartFor(IFile file) {
-    AtomicReference<IEditorPart> ref = new AtomicReference<>();
-    SwtUtils.invokeOnDisplayThread(() -> {
-      IWorkbench workbench = PlatformUI.getWorkbench();
-      IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
-      if (window != null) {
-        try {
-          ref.set(window.getActivePage().openEditor(new org.eclipse.ui.part.FileEditorInput(file),
-              "org.eclipse.ui.DefaultTextEditor"));
-        } catch (PartInitException e) {
-          // do nothing
-        }
-      }
-    });
-    return ref.get();
   }
 
 }
