@@ -99,7 +99,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           case CopilotStatusResult.ERROR, CopilotStatusResult.WARNING:
             iconPath = "/icons/github_copilot_error.png";
             break;
-          case CopilotStatusResult.NOT_SIGNED_IN, CopilotStatusResult.NOT_AUTHORIZED:
+          case CopilotStatusResult.NOT_AUTHORIZED:
+            iconPath = "/icons/github_copilot_not_authorized.png";
+            break;
+          case CopilotStatusResult.NOT_SIGNED_IN:
           default:
             iconPath = "/icons/github_copilot_not_signed_in.png";
         }
@@ -169,17 +172,20 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addAuthenticationActions(MenuManager menuManager) {
-    if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
-      ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signOutIcon, handlerService,
-          "com.microsoft.copilot.eclipse.commands.signOut", true);
-    } else if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_AUTHORIZED)) {
+    if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_AUTHORIZED)) {
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_configureGitHubCopilotSettings, null,
           handlerService, "com.microsoft.copilot.eclipse.commands.configureCopilotSettings", true);
-    } else {
+    }
+
+    if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_SIGNED_IN)) {
       ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, signInIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signIn", true);
+    } else if (!Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
+      // Only show sign out action when the user is in OK, NOT_AUTHORIZED, WARNING, or ERROR state.
+      ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signOutIcon, handlerService,
+          "com.microsoft.copilot.eclipse.commands.signOut", true);
     }
   }
 
