@@ -77,6 +77,11 @@
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.acceptNextWord"
+			name="%command.acceptNextWord.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.discardSuggestion"
 			name="%command.discardSuggestion.name">
 		</command>
@@ -125,6 +130,10 @@
 			commandId="com.microsoft.copilot.eclipse.commands.acceptFullSuggestion">
 		</handler>
 		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.AcceptNextWordHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.acceptNextWord">
+		</handler>
+		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.DiscardSuggestionHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion">
 		</handler>
@@ -156,6 +165,12 @@
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			contextId="org.eclipse.ui.textEditorScope"
 			sequence="TAB">
+		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.acceptNextWord"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			contextId="org.eclipse.ui.textEditorScope"
+			sequence="M1+ARROW_RIGHT">
 		</key>
 		<key
 			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion"

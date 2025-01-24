@@ -131,6 +131,52 @@ public class SuggestionUpdateManager {
   }
 
   /**
+   * Get the next word for the current active completion item.
+   */
+  public String getNextWord() {
+    CompletionItem item = getCurrentItem();
+    if (item == null) {
+      throw new IllegalStateException("Cannot get text when there are no items");
+    }
+    String fullCompletion = item.getDisplayText();
+    int whitespaceBlock = findContinuousBlock(fullCompletion, Character::isWhitespace);
+    if (whitespaceBlock != -1) {
+      return fullCompletion.substring(0, whitespaceBlock);
+    }
+    int symbolBlock = findContinuousBlock(fullCompletion, this::isBoundaryCharacter);
+    if (symbolBlock != -1) {
+      return fullCompletion.substring(0, symbolBlock);
+    }
+    int otherBlock = findContinuousBlock(fullCompletion, c -> !(isBoundaryCharacter(c) || Character.isWhitespace(c)));
+    if (otherBlock != -1) {
+      return fullCompletion.substring(0, otherBlock);
+    }
+    return fullCompletion;
+  }
+
+  private int findContinuousBlock(String fullCompletion, BoundaryFinder isBoundaryCharacter) {
+    int endIndex = 0;
+    if (!isBoundaryCharacter.isBoundaryCharacter(fullCompletion.charAt(endIndex))) {
+      return -1;
+    }
+    while (endIndex < fullCompletion.length()
+        && isBoundaryCharacter.isBoundaryCharacter(fullCompletion.charAt(endIndex))) {
+      endIndex++;
+    }
+    return endIndex;
+  }
+
+  interface BoundaryFinder {
+
+    boolean isBoundaryCharacter(char c);
+
+  }
+
+  private boolean isBoundaryCharacter(char c) {
+    return "~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?".indexOf(c) != -1;
+  }
+
+  /**
    * Initialize the completion items when the suggestion is resolved. It will do a entire flush when the original items
    * are empty. Otherwise, it will only update the updated items as a correction.
    */
@@ -161,6 +207,9 @@ public class SuggestionUpdateManager {
   public CompletionItem getCurrentItem() {
     if (this.updatedItems.isEmpty()) {
       return null;
+    }
+    if (index < 0 || index >= updatedItems.size()) {
+      throw new IllegalStateException("index out of range to get updated completion item.");
     }
     return this.updatedItems.get(index);
   }

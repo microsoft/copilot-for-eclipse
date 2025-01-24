@@ -146,7 +146,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     return true;
   }
 
-  void registerListeners() {
+  private void registerListeners() {
     SwtUtils.invokeOnDisplayThread(() -> {
       this.styledText.addCaretListener(this);
       this.textViewer.addTextListener(this);
@@ -393,6 +393,9 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         case FULL:
           this.acceptEntireSuggestion();
           break;
+        case NEXT_WORD:
+          this.acceptNextWord();
+          break;
         default:
           break;
       }
@@ -411,7 +414,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
    *
    * @throws BadLocationException if the offset is invalid.
    */
-  void acceptEntireSuggestion() throws BadLocationException {
+  private void acceptEntireSuggestion() throws BadLocationException {
     CompletionItem item = this.suggestionUpdateManager.getCurrentItem();
     if (item == null) {
       return;
@@ -425,6 +428,30 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     this.document.replace(startOffset, endOffset - startOffset, text);
 
     this.clearCompletionRendering();
+  }
+
+  /**
+   * Apply the next word of the completion suggestion to document.
+   */
+  private void acceptNextWord() throws BadLocationException {
+    CompletionItem item = this.suggestionUpdateManager.getCurrentItem();
+    if (item == null) {
+      return;
+    }
+    String nextWord = this.suggestionUpdateManager.getNextWord();
+    if (StringUtils.isEmpty(nextWord)) {
+      return;
+    }
+    int startOffset = LSPEclipseUtils.toOffset(item.getPosition(), this.document);
+    int length = 0;
+    while (length < nextWord.length() && startOffset + length < this.document.getLength()) {
+      char c = this.document.getChar(startOffset + length);
+      if (c != nextWord.charAt(length)) {
+        break;
+      }
+      length++;
+    }
+    this.document.replace(startOffset, length, nextWord);
   }
 
   /**
