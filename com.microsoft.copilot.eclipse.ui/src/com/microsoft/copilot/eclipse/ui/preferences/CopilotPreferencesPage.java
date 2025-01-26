@@ -32,6 +32,11 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class CopilotPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
   private Label lblProxyNoteContent;
+  private Composite parent;
+  private ControlListener controlListener;
+  private Font boldFont;
+  private ProxyConfigLinkListener proxyConfigLinkListener;
+  private Link link;
 
   /**
    * Constructor.
@@ -42,7 +47,7 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
 
   @Override
   public void createFieldEditors() {
-    var parent = getFieldEditorParent();
+    this.parent = getFieldEditorParent();
     parent.setLayout(new GridLayout(1, true));
     var gl = new GridLayout(1, true);
     gl.marginTop = 2;
@@ -72,10 +77,11 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     glTextIndent.marginLeft = -3;
     glTextIndent.marginBottom = 1;
     linkContainer.setLayout(glTextIndent);
-    var link = new Link(linkContainer, SWT.NONE);
+    this.link = new Link(linkContainer, SWT.NONE);
     link.setText(Messages.preferences_page_proxy_config_link);
     link.setToolTipText(Messages.preferences_page_proxy_config_link_tooltip);
-    link.addSelectionListener(new ProxyConfigLinkListener());
+    this.proxyConfigLinkListener = new ProxyConfigLinkListener();
+    link.addSelectionListener(this.proxyConfigLinkListener);
 
     // add strict ssl field
     var ctnSsl = new Composite(grpProxy, SWT.NONE);
@@ -95,7 +101,7 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     for (FontData fd : fontData) {
       fd.setStyle(SWT.BOLD);
     }
-    Font boldFont = new Font(parent.getDisplay(), fontData);
+    this.boldFont = new Font(parent.getDisplay(), fontData);
     lblProxyNote.setFont(boldFont);
 
     this.lblProxyNoteContent = new Label(ctnNote, SWT.WRAP);
@@ -121,7 +127,7 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
     addField(sftGhe);
 
-    parent.addControlListener(new ControlAdapter() {
+    this.controlListener = new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
         // resize the note label
@@ -131,7 +137,8 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
         pg.lblProxyNoteContent.setLayoutData(gd);
         pg.getFieldEditorParent().layout();
       }
-    });
+    };
+    parent.addControlListener(controlListener);
   }
 
   /**
@@ -148,6 +155,20 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
   public void init(IWorkbench workbench) {
     // second parameter is typically the plug-in id
     setPreferenceStore(CopilotUi.getPlugin().getPreferenceStore());
+  }
+
+  @Override // FieldEditorPreferencePage
+  public void dispose() {
+    if (this.boldFont != null) {
+      this.boldFont.dispose();
+    }
+    parent.removeControlListener(controlListener);
+    link.removeSelectionListener(proxyConfigLinkListener);
+    if (this.lblProxyNoteContent != null) {
+      this.lblProxyNoteContent.dispose();
+    }
+    parent.dispose();
+    super.dispose();
   }
 
 }

@@ -82,7 +82,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         break;
       case Constants.GITHUB_ENTERPRISE:
         this.settings.getGithubEnterprise().setUri((String) event.getNewValue());
-        CopilotCore.LOGGER.info("GitHub Enterprise URI is now " + event.getNewValue());
+        CopilotCore.LOGGER.info("GitHub Enterprise URI is now '" + event.getNewValue() + "'");
         break;
       case Constants.AUTO_SHOW_COMPLETION:
         Boolean autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
