@@ -117,6 +117,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   private void addStatusAction(MenuManager menuManager) {
     String copilotStatus = getCopilotStatusBasedOnAuthAndCompletionResult(authStatusManager.getCopilotStatus());
+    if (Objects.equals(CopilotStatusResult.OK, authStatusManager.getCopilotStatus())
+        && !authStatusManager.getUserName().isBlank()) {
+      copilotStatus += " (" + authStatusManager.getUserName() + ")";
+    }
     String copilotStatusTitle = Messages.menu_copilotStatus + ": " + copilotStatus;
 
     MenuActionFactory.createMenuAction(menuManager, copilotStatusTitle, handlerService, copilotStatus, false);

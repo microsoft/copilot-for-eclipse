@@ -94,6 +94,7 @@ public class AuthStatusManager {
         setCopilotStatus(CopilotStatusResult.ERROR);
       } else {
         setCopilotStatus(result.getStatus());
+        this.copilotStatusResult.setUser(result.getUser());
       }
       onDidCopilotStatusChange(this.copilotStatusResult);
       return null;
@@ -108,6 +109,19 @@ public class AuthStatusManager {
       return CopilotStatusResult.LOADING;
     }
     return this.copilotStatusResult.getStatus();
+  }
+
+  /**
+   * Get the name of the login user.
+   */
+  public String getUserName() {
+    if (this.copilotStatusResult == null) {
+      return "";
+    }
+    if (this.copilotStatusResult.getUser() == null) {
+      return "";
+    }
+    return this.copilotStatusResult.getUser();
   }
 
   /**
