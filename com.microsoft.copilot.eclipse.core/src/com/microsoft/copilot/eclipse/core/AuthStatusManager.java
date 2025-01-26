@@ -124,6 +124,10 @@ public class AuthStatusManager {
     this.copilotAuthStatusListeners.remove(listener);
   }
 
+  public boolean isNotSignedInOrNotAuthorized() {
+    return this.copilotStatusResult.isNotSignedIn() || this.copilotStatusResult.isNotAuthorized();
+  }
+
   private void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
     if (!this.copilotAuthStatusListeners.isEmpty()) {
       for (CopilotAuthStatusListener listener : this.copilotAuthStatusListeners) {

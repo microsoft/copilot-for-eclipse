@@ -47,7 +47,7 @@ class CompletionProviderTests {
 
   @Test
   void testShouldNotifyListenersOnCompletion() throws OperationCanceledException, InterruptedException, URISyntaxException {
-    when(mockStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.OK);
+    when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(false);
     when(mockLsConnection.getCompletions(any()))
         .thenReturn(CompletableFuture.completedFuture(new CompletionResult(List.of(mock(CompletionItem.class)))));
     
@@ -64,7 +64,7 @@ class CompletionProviderTests {
 
   @Test
   void testShouldNotTriggerCompletionWhenNotSignedIn() {
-    when(mockStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.NOT_SIGNED_IN);
+    when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(true);
     
     IFile mockFile = mock(IFile.class);
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
@@ -72,11 +72,12 @@ class CompletionProviderTests {
     Position position = new Position(0, 0);
     completionProvider.triggerCompletion(mockFile, position, 1);
     verify(mockLsConnection, never()).getCompletions(any());
+    verify(mockStatusManager, never()).setCopilotStatus(CopilotStatusResult.OK);
   }
 
   @Test
   void testTriggerCompletionJobWithParams() throws InterruptedException, URISyntaxException {
-    when(mockStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.OK);
+	when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(false);
     CompletionItem mockCompletionItem = mock(CompletionItem.class);
     CompletionResult expectedResult = new CompletionResult(List.of(mockCompletionItem));
     CompletableFuture<CompletionResult> future = CompletableFuture.completedFuture(expectedResult);
@@ -102,6 +103,7 @@ class CompletionProviderTests {
     verify(mockListener).onCompletionResolved(argumentCaptor.capture(), any());
 
     assertEquals("file:///test.java", argumentCaptor.getValue());
+    verify(mockStatusManager, times(1)).setCopilotStatus(CopilotStatusResult.OK);
   }
 
 }

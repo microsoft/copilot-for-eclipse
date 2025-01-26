@@ -61,7 +61,7 @@ public class CompletionProvider {
    * @param documentVersion the version of the document.
    */
   public void triggerCompletion(IFile file, Position position, int documentVersion) {
-    if (!Objects.equals(statusManager.getCopilotStatus(), CopilotStatusResult.OK)) {
+    if (statusManager.isNotSignedInOrNotAuthorized()) {
       return;
     }
     this.completionJob.cancel();
@@ -203,6 +203,9 @@ public class CompletionProvider {
         // TODO: notify the listener according to the listen uri?
         listener.onCompletionResolved(this.params.getDoc().getUri(), this.completions);
       }
+      // If the completion can be resolved, it means the Copilot is working. Set the status to OK to resolve the
+      // potential invalid status.
+      statusManager.setCopilotStatus(CopilotStatusResult.OK);
     }
   }
 }
