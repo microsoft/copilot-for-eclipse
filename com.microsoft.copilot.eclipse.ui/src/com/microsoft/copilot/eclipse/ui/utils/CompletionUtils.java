@@ -19,9 +19,9 @@ public class CompletionUtils {
   /**
    * Get the ghost texts for the completion.
    *
+   * @param documentLine the line in the document where the completion is triggered.
    * @param completionLine the first line of the inline suggestion.
    * @param triggerOffset the offset where the completion is triggered in the document.
-   * @param documentLine the line in the document where the completion is triggered.
    */
   public static List<GhostText> getGhostTexts(String documentLine, String completionLine, int triggerOffset) {
     List<GhostText> ghostTexts = new ArrayList<>();
@@ -30,7 +30,10 @@ public class CompletionUtils {
       return ghostTexts;
     }
 
-    int i = documentLine.length() - 1;
+    // strip trailing whitespaces, tabs, etc., across all platforms. These characters are not visually considered the
+    // end of document line, so we should ignore them when calculating the starting point offset for ghost text
+    // rendering.
+    int i = StringUtils.stripEnd(documentLine, null).length() - 1;
     int j = completionLine.length() - 1;
     StringBuilder sb = new StringBuilder();
 
