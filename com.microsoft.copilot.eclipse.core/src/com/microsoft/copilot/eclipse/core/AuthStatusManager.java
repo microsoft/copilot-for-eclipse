@@ -53,10 +53,7 @@ public class AuthStatusManager {
    */
   public CopilotStatusResult signInConfirm(String userCode) throws InterruptedException, ExecutionException {
     CopilotStatusResult result = connection.signInConfirm(userCode).get();
-    if (result.isSignedIn()) {
-      this.copilotStatusResult.setUser(result.getUser());
-    }
-
+    setCopilotUser(result.getUser());
     setCopilotStatus(result.getStatus());
     return result;
   }
@@ -69,6 +66,7 @@ public class AuthStatusManager {
    */
   public CopilotStatusResult signOut() throws InterruptedException, ExecutionException {
     CopilotStatusResult result = connection.signOut().get();
+    setCopilotUser(result.getUser());
     setCopilotStatus(result.getStatus());
     return result;
   }
@@ -94,11 +92,18 @@ public class AuthStatusManager {
         setCopilotStatus(CopilotStatusResult.ERROR);
       } else {
         setCopilotStatus(result.getStatus());
-        this.copilotStatusResult.setUser(result.getUser());
+        setCopilotUser(result.getUser());
       }
       onDidCopilotStatusChange(this.copilotStatusResult);
       return null;
     });
+  }
+
+  /**
+   * Set the user for Copilot.
+   */
+  public void setCopilotUser(String user) {
+    this.copilotStatusResult.setUser(user);
   }
 
   /**
@@ -136,6 +141,10 @@ public class AuthStatusManager {
    */
   public void removeCopilotAuthStatusListener(CopilotAuthStatusListener listener) {
     this.copilotAuthStatusListeners.remove(listener);
+  }
+  
+  public boolean isLoading() {
+    return this.copilotStatusResult.isLoading();
   }
 
   public boolean isNotSignedInOrNotAuthorized() {
