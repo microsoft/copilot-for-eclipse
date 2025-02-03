@@ -23,7 +23,7 @@ public class EolGhostText extends GhostText {
     if (StringUtils.isNotBlank(this.text)) {
       Rectangle bounds = styledText.getTextBounds(widgetOffset, widgetOffset);
       int y = bounds.y;
-      y += bounds.height - styledText.getLineHeight();
+      y += Math.max(0, bounds.height - styledText.getLineHeight());
       gc.drawString(this.text, bounds.x + bounds.width, y, true);
     }
 

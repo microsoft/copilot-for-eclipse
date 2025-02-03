@@ -33,7 +33,7 @@ public class InlineGhostText extends GhostText {
     int x = bounds.x;
     int y = bounds.y;
     // When line text has line header annotation, there is a space on the top, adjust the y by using char height
-    y += bounds.height - styledText.getLineHeight();
+    y += Math.max(0, bounds.height - styledText.getLineHeight());
 
     gc.drawString(text, x, y, true);
 
