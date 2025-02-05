@@ -9,6 +9,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
 import com.microsoft.copilot.eclipse.core.logger.handlers.EclipseConsoleHandler;
+import com.microsoft.copilot.eclipse.core.logger.handlers.GithubExceptionTelemetryHandler;
 
 /**
  * The logger for Copilot for Eclipse.
@@ -70,24 +71,8 @@ public class CopilotForEclipseLogger {
     EclipseConsoleHandler consoleHandler = new EclipseConsoleHandler(Platform.getLog(bundle));
     consoleHandler.setLevel(Level.ALL);
     logger.addHandler(consoleHandler);
-  }
-
-  /**
-   * Map the LogLevel to the Level.
-   *
-   * @param level the LogLevel
-   * @return the Level
-   */
-  private Level map2Level(LogLevel level) {
-    switch (level) {
-      case INFO:
-        return Level.INFO;
-      case WARNING:
-        return Level.WARNING;
-      case ERROR:
-        return Level.SEVERE;
-      default:
-        return Level.INFO;
-    }
+    GithubExceptionTelemetryHandler ghHandler = new GithubExceptionTelemetryHandler();
+    ghHandler.setLevel(Level.ALL);
+    logger.addHandler(ghHandler);
   }
 }

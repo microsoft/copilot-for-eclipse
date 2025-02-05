@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 
 /**
  * Language Server for Copilot agent.
@@ -150,6 +151,16 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<String> notifyRejected(NotifyRejectedParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
         .notifyRejected(params);
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Send the exception telemetry to the language server.
+   */
+  public CompletableFuture<Object> sendExceptionTelemetry(Throwable ex) {
+    TelemetryExceptionParams telemParams = new TelemetryExceptionParams(ex);
+    Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
+        .sendExceptionTelemetry(telemParams);
     return this.languageServerWrapper.execute(fn);
   }
 

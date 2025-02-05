@@ -18,51 +18,51 @@ import com.microsoft.copilot.eclipse.core.format.JavaFormatReader;
 
 @ExtendWith(MockitoExtension.class)
 class FormatOptionProviderTests {
-	private FormatOptionProvider formatOptionProvider;
-	private IFile mockFile;
-	private IProject mockProject;
+  private FormatOptionProvider formatOptionProvider;
+  private IFile mockFile;
+  private IProject mockProject;
 
-	private static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
+  private static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
 
-	@BeforeEach
-	void setUp() {
-		formatOptionProvider = new FormatOptionProvider();
-		mockFile = mock(IFile.class);
-		mockProject = mock(IProject.class);
+  @BeforeEach
+  void setUp() {
+    formatOptionProvider = new FormatOptionProvider();
+    mockFile = mock(IFile.class);
+    mockProject = mock(IProject.class);
 
-		when(mockFile.exists()).thenReturn(true);
-		when(mockFile.isAccessible()).thenReturn(true);
-		when(mockFile.getProject()).thenReturn(mockProject);
-	}
+    when(mockFile.exists()).thenReturn(true);
+    when(mockFile.isAccessible()).thenReturn(true);
+    when(mockFile.getProject()).thenReturn(mockProject);
+  }
 
-	@Test
-	void testGetEclipseDefaultJavaTabCharAndSize() {
-		when(mockProject.getName()).thenReturn("testProject");
-		when(mockFile.getFileExtension()).thenReturn("java");
+  @Test
+  void testGetEclipseDefaultJavaTabCharAndSize() {
+    when(mockProject.getName()).thenReturn("testProject");
+    when(mockFile.getFileExtension()).thenReturn("java");
 
-		JavaFormatReader javaFormatReader = new JavaFormatReader(mockProject);
-		FormattingOptions languageFormat = javaFormatReader.getFormattingOptions();
-		boolean useSpace = languageFormat.isInsertSpaces();
-		int tabSize = languageFormat.getTabSize();
+    JavaFormatReader javaFormatReader = new JavaFormatReader(mockProject);
+    FormattingOptions languageFormat = javaFormatReader.getFormattingOptions();
+    boolean useSpace = languageFormat.isInsertSpaces();
+    int tabSize = languageFormat.getTabSize();
 
-		assertEquals(useSpace, formatOptionProvider.useSpace(mockFile));
-		assertEquals(tabSize, formatOptionProvider.getTabSize(mockFile));
-	}
+    assertEquals(useSpace, formatOptionProvider.useSpace(mockFile));
+    assertEquals(tabSize, formatOptionProvider.getTabSize(mockFile));
+  }
 
-	@Test
-	void testGetCopilotDefaultTabCharAndSizeForUnknownLanguage() {
-		when(mockFile.getFileExtension()).thenReturn("js");
+  @Test
+  void testGetCopilotDefaultTabCharAndSizeForUnknownLanguage() {
+    when(mockFile.getFileExtension()).thenReturn("js");
 
-		assertTrue(formatOptionProvider.useSpace(mockFile));
-		assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
-	}
+    assertTrue(formatOptionProvider.useSpace(mockFile));
+    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+  }
 
-	@Test
-	void testGetCopilotDefaultTabCharAndSizeForNoExtensionFile() {
-		when(mockFile.getFileExtension()).thenReturn(null);
+  @Test
+  void testGetCopilotDefaultTabCharAndSizeForNoExtensionFile() {
+    when(mockFile.getFileExtension()).thenReturn(null);
 
-		assertTrue(formatOptionProvider.useSpace(mockFile));
-		assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
-	}
+    assertTrue(formatOptionProvider.useSpace(mockFile));
+    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+  }
 
 }

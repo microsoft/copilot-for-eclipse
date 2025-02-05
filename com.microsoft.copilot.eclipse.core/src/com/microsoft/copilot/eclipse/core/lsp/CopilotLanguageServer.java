@@ -15,6 +15,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 
 /**
  * Interface for Copilot Language Server.
@@ -68,4 +69,10 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest
   CompletableFuture<String> notifyRejected(NotifyRejectedParams params);
+
+  /**
+   * Send exception telemetry to github sentry.
+   */
+  @JsonRequest("telemetry/exception")
+  CompletableFuture<Object> sendExceptionTelemetry(TelemetryExceptionParams params);
 }
