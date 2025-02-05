@@ -29,11 +29,15 @@ public class CompletionUtils {
       ghostTexts.add(new EolGhostText(completionLine, triggerOffset));
       return ghostTexts;
     }
+    if (documentLine.isBlank()) {
+      ghostTexts.add(new InlineGhostText(completionLine, triggerOffset));
+      return ghostTexts;
+    }
 
     // strip trailing whitespaces, tabs, etc., across all platforms. These characters are not visually considered the
     // end of document line, so we should ignore them when calculating the starting point offset for ghost text
     // rendering.
-    int i = StringUtils.stripEnd(documentLine, null).length() - 1;
+    int i = Math.max(0, StringUtils.stripEnd(documentLine, null).length() - 1);
     int j = completionLine.length() - 1;
     StringBuilder sb = new StringBuilder();
 
@@ -42,6 +46,9 @@ public class CompletionUtils {
         if (sb.length() > 0) {
           // passing i + 1 here because the current char indexed with i are the same, the ghost
           // text should display the content which is different from the document.
+          // while calculating 'i' here, we use the original document line without stripping trailing whitespaces since
+          // if there are trailing whitespaces, the ghost text should always be the inline ghost text instead of the eol
+          // ghost text.
           ghostTexts.add(0, createGhostText(triggerOffset, i + 1, sb.toString(), i == documentLine.length() - 1));
           sb.setLength(0);
           continue;

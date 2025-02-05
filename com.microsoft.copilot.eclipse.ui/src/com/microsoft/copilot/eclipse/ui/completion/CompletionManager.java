@@ -317,7 +317,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       int triggerOffset = triggerPosition.getOffset();
       String documentLine = "";
       for (int i = triggerOffset; i < this.document.getLength(); i++) {
-        if (documentContent.charAt(i) == '\n') {
+        if (isNewLineCharacter(documentContent, i)) {
           documentLine = documentContent.substring(triggerOffset, i);
           break;
         }
@@ -326,6 +326,16 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
 
     return Collections.emptyList();
+  }
+
+  private boolean isNewLineCharacter(String documentContent, int index) {
+    char currentChar = documentContent.charAt(index);
+    boolean isLineFeed = currentChar == '\n';
+    if (isLineFeed) {
+      return true;
+    } else {
+      return currentChar == '\r' && index + 1 < this.document.getLength() && documentContent.charAt(index + 1) == '\n';
+    }
   }
 
   private void resolveCodeMiningGhostTexts() {

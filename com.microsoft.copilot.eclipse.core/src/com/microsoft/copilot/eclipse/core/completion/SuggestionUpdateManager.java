@@ -233,7 +233,7 @@ public class SuggestionUpdateManager {
     if (text == null) {
       return "";
     }
-    return text.split("\n")[0];
+    return text.split("\r?\n")[0];
   }
 
   /**

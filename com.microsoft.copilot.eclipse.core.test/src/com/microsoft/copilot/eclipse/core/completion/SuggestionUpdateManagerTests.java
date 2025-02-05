@@ -38,12 +38,32 @@ class SuggestionUpdateManagerTests {
     manager.setCompletionItems(completions);
     assertEquals("line1", manager.getFirstLine());
   }
+  
+  @Test
+  void getFirstLineReturnsCorrectStringWhenTextHasCRLFLineBreaks() {
+    CompletionItem mockItem = mock(CompletionItem.class);
+    List<CompletionItem> completions = List.of(mockItem);
+    when(mockItem.getDisplayText()).thenReturn("line1\r\nline2\nline3");
+    SuggestionUpdateManager manager = new SuggestionUpdateManager(null);
+    manager.setCompletionItems(completions);
+    assertEquals("line1", manager.getFirstLine());
+  }
 
   @Test
   void getRemainingLineReturnsCorrectStringWhenTextHasLineBreaks() {
     CompletionItem mockItem = mock(CompletionItem.class);
     List<CompletionItem> completions = List.of(mockItem);
     when(mockItem.getDisplayText()).thenReturn("line1\nline2\nline3");
+    SuggestionUpdateManager manager = new SuggestionUpdateManager(null);
+    manager.setCompletionItems(completions);
+    assertEquals("line2\nline3", manager.getRemainingLines());
+  }
+  
+  @Test
+  void getRemainingLineReturnsCorrectStringWhenTextHasCRLFLineBreaks() {
+    CompletionItem mockItem = mock(CompletionItem.class);
+    List<CompletionItem> completions = List.of(mockItem);
+    when(mockItem.getDisplayText()).thenReturn("line1\r\nline2\nline3");
     SuggestionUpdateManager manager = new SuggestionUpdateManager(null);
     manager.setCompletionItems(completions);
     assertEquals("line2\nline3", manager.getRemainingLines());
