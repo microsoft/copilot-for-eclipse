@@ -95,6 +95,10 @@ public class CopilotUi extends AbstractUIPlugin {
   public CopilotStatusManager getCopilotStatusManager() {
     return copilotStatusManager;
   }
+  
+  public LanguageServerSettingManager getLanguageServerSettingManager() {
+    return settingMgr;
+  }
 
   @Override
   public void stop(BundleContext context) throws Exception {

@@ -27,6 +27,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -35,12 +36,14 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class ShowStatusBarMenuHandler extends CopilotHandler implements IElementUpdater {
   private IHandlerService handlerService;
   private AuthStatusManager authStatusManager;
+  private LanguageServerSettingManager languageServerSettingManager;
   private SpinnerJob spinnerJob;
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     handlerService = HandlerUtil.getActiveWorkbenchWindow(event).getService(IHandlerService.class);
     authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
+    languageServerSettingManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
 
     MenuManager menuManager = new MenuManager();
     // Sign in status section
@@ -61,6 +64,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     menuManager.add(new Separator());
     addEditKeyboardShortcutsAction(menuManager);
     addPreferencesAction(menuManager);
+
+    // Completion settings section
+    menuManager.add(new Separator());
+    addCompletionSettingsAction(menuManager);
 
     Shell shell = PlatformUI.getWorkbench().getDisplay().getActiveShell();
     Menu menu = menuManager.createContextMenu(shell);
@@ -142,6 +149,16 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         .buildImageDescriptorFromPngPath("/icons/edit_keyboard_shortcuts.png");
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_editKeyboardShortcuts, editKeyboardShortcutsIcon,
         handlerService, "com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts", true);
+  }
+
+  private void addCompletionSettingsAction(MenuManager menuManager) {
+    if (languageServerSettingManager.isAutoShowCompletionEnabled()) {
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_disableCompletions, handlerService,
+          "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
+    } else {
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_enableCompletions, handlerService,
+          "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
+    }
   }
 
   private String getCopilotStatusBasedOnAuthAndCompletionResult(String copilotStatus) {

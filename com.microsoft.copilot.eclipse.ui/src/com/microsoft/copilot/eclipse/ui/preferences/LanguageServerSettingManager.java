@@ -189,6 +189,20 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
     preferenceStore.removePropertyChangeListener(listener);
   }
+  
+  /**
+   * Gets the if auto show completions is enabled.
+   */
+  public boolean isAutoShowCompletionEnabled() {
+    return preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
+  }
+  
+  /**
+   * Enable or disable auto show completions.
+   */
+  public void setAutoShowCompletion(boolean autoShowCompletion) {
+    preferenceStore.setValue(Constants.AUTO_SHOW_COMPLETION, autoShowCompletion);
+  }
 
   /**
    * Disposes the resources of this LanguageServerSettingManager.

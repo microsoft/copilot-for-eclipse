@@ -100,6 +100,11 @@
 			id="com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts"
 			name="%command.openEditKeyboardShortcuts.name">
 	</command>
+	<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.autoShowCompletions"
+			name="%command.autoShowCompletions.name">
+	</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -148,6 +153,10 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.OpenEditKeyboardShortcutsHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.AutoShowCompletionsHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.autoShowCompletions">
 		</handler>
 	</extension>
 
