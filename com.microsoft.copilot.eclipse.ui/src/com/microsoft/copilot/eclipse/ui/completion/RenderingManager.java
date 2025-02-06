@@ -90,11 +90,11 @@ public class RenderingManager implements PaintListener {
 
     GC gc = e.gc;
 
-    int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, this.ghostTexts.get(0).modelOffset);
-    // will get index out of bounds if the cursor is at the end.
-    // Because there is no more text to get bounds at EOF.
-    widgetOffset = Math.max(Math.min(widgetOffset, styledText.getCharCount() - 1), 0);
     for (GhostText ghostText : this.ghostTexts) {
+      int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, ghostText.modelOffset);
+      // will get index out of bounds if the cursor is at the end.
+      // Because there is no more text to get bounds at EOF.
+      widgetOffset = Math.max(Math.min(widgetOffset, styledText.getCharCount() - 1), 0);
       // reset the color to default because the inline ghost text may change the color to the same
       // as the content text color.
       gc.setForeground(this.ghostTextColor);
