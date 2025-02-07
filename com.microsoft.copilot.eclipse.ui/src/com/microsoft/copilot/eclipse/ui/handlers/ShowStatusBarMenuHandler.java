@@ -49,16 +49,14 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     // Sign in status section
     addStatusAction(menuManager);
 
-    // References to the usage of GitHub Copilot section
-    // TODO: Uncomment to enable the feedback forum link
-    // menuManager.add(new Separator());
-    // addLinkToFeedbackForumAction(menuManager);
-
     // Sign in & sign out section
     menuManager.add(new Separator());
     if (!Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
       addAuthenticationActions(menuManager);
     }
+
+    menuManager.add(new Separator());
+    addLinkToFeedbackForumAction(menuManager);
 
     // Preferences section
     menuManager.add(new Separator());
@@ -134,7 +132,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addLinkToFeedbackForumAction(MenuManager menuManager) {
-    MenuActionFactory.createMenuAction(menuManager, Messages.menu_viewFeedbackForum, handlerService,
+    ImageDescriptor feedbackIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png");
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_viewFeedbackForum, feedbackIcon, handlerService,
         "com.microsoft.copilot.eclipse.commands.viewFeedbackForum", true);
   }
 
