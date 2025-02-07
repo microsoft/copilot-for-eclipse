@@ -311,6 +311,8 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       return Collections.emptyList();
     }
 
+    List<GhostText> ghostTexts = new ArrayList<>();
+
     String firstLine = this.suggestionUpdateManager.getFirstLine();
     if (StringUtils.isNotEmpty(firstLine)) {
       String documentContent = this.document.get();
@@ -332,10 +334,22 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       } catch (BadLocationException e) {
         CopilotCore.LOGGER.error(e);
       }
-      return CompletionUtils.getGhostTexts(documentLine, firstLine, triggerOffset);
+      ghostTexts.addAll(CompletionUtils.getGhostTexts(documentLine, firstLine, triggerOffset));
     }
 
-    return Collections.emptyList();
+    try {
+      int lineOffset = document.getLineOfOffset(triggerPosition.offset);
+      String remainingLines = this.suggestionUpdateManager.getRemainingLines();
+      if (lineOffset == document.getNumberOfLines() - 1 && StringUtils.isNotEmpty(remainingLines)) {
+        // this is the last line
+        ghostTexts.add(new BlockBottomGhostText(remainingLines, triggerPosition.offset, this.document));
+        return ghostTexts;
+      }
+    } catch (BadLocationException e) {
+      CopilotCore.LOGGER.error(e);
+    }
+
+    return ghostTexts;
   }
 
   private boolean isNewLineCharacter(String documentContent, int index) {

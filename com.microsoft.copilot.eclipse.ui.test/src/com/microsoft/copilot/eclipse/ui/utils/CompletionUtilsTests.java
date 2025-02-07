@@ -64,75 +64,84 @@ class CompletionUtilsTests {
     assertEquals("int[] arr, int low, int high) {", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithNewLineCharacterOnTheTail() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\n", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\n", "(int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithNewLineCharacterOnTheTail2() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\r", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\r", "(int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithNewLineCharacterOnTheTail3() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\r\n", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\r\n", "(int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithTabCharacterOnTheTail() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\t", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\t", "(int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithSpaceCharactersOnTheTail() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {  \r\n", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {  \r\n", "(int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithChaoticCharactersOnTheTail() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\t\t\r\t\n\t\n\r\n", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts(") {\t\t\r\t\n\t\n\r\n",
+        "(int[] arr, int low, int high) {", 0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
   }
-  
+
   @Test
   void testGetGhostTextWithWhiteSpaceCharactersOnTheTailWithoutCurlyBrace() {
-	List<GhostText> ghostTexts = CompletionUtils.getGhostTexts("\t\t\r\t\n\t\n\r\n", "(int[] arr, int low, int high) {", 0);
-	assertEquals(1, ghostTexts.size());
-	assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
+    List<GhostText> ghostTexts = CompletionUtils.getGhostTexts("\t\t\r\t\n\t\n\r\n", "(int[] arr, int low, int high) {",
+        0);
+    assertEquals(1, ghostTexts.size());
+    assertTrue(InlineGhostText.class.isInstance(ghostTexts.get(0)));
     InlineGhostText ghostText = (InlineGhostText) ghostTexts.get(0);
     assertEquals("(int[] arr, int low, int high) {", ghostText.getText());
     assertEquals(0, ghostText.getModelOffset());
+  }
+
+  @Test
+  void testReplaceTabsWithSpaces() {
+    String input = "\tfoo\n\t\tbar";
+    String expected = "  foo\n    bar";
+    assertEquals(expected, CompletionUtils.replaceTabsWithSpaces(input, 2));
   }
 
 }

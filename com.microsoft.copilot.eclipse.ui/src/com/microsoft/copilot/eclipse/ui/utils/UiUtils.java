@@ -46,6 +46,18 @@ public class UiUtils {
   }
 
   /**
+   * Gets the file opened in the given text editor.
+   */
+  @Nullable
+  public static IFile getFileFromEditor(ITextEditor editor) {
+    IEditorInput input = editor.getEditorInput();
+    if (input instanceof IFileEditorInput fileInput) {
+      return fileInput.getFile();
+    }
+    return null;
+  }
+
+  /**
    * Open the given link in a new browser page.
    */
   public static boolean openLink(String link) {
