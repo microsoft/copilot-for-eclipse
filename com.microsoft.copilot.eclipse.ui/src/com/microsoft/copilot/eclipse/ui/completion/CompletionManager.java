@@ -316,11 +316,21 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       String documentContent = this.document.get();
       int triggerOffset = triggerPosition.getOffset();
       String documentLine = "";
-      for (int i = triggerOffset; i < this.document.getLength(); i++) {
-        if (isNewLineCharacter(documentContent, i)) {
-          documentLine = documentContent.substring(triggerOffset, i);
-          break;
+      try {
+        int lineOffset = document.getLineOfOffset(triggerOffset);
+        if (lineOffset == document.getNumberOfLines() - 1) {
+          // this is the last line
+          documentLine = documentContent.substring(triggerOffset);
+        } else {
+          for (int i = triggerOffset; i < this.document.getLength(); i++) {
+            if (isNewLineCharacter(documentContent, i)) {
+              documentLine = documentContent.substring(triggerOffset, i);
+              break;
+            }
+          }
         }
+      } catch (BadLocationException e) {
+        CopilotCore.LOGGER.error(e);
       }
       return CompletionUtils.getGhostTexts(documentLine, firstLine, triggerOffset);
     }
@@ -347,8 +357,11 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     String remainingLines = this.suggestionUpdateManager.getRemainingLines();
     if (StringUtils.isNotEmpty(remainingLines)) {
       try {
-        cm.add(
-            new BlockGhostText(document.getLineOfOffset(triggerPosition.offset) + 1, document, null, remainingLines));
+        int lineOffset = document.getLineOfOffset(triggerPosition.offset) + 1;
+        if (lineOffset >= document.getNumberOfLines()) {
+          return;
+        }
+        cm.add(new BlockGhostText(lineOffset, document, null, remainingLines));
       } catch (BadLocationException e) {
         CopilotCore.LOGGER.error(e);
       }
