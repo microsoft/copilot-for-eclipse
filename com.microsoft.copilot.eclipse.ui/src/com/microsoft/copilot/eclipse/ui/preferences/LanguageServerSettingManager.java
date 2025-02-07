@@ -24,6 +24,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
   CopilotLanguageServerConnection copilotLanguageServerConnection = null;
   IPreferenceStore preferenceStore;
+  IProxyData proxyData = null;
 
   /**
    * Gets the settings.
@@ -101,6 +102,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   public void syncConfiguration() {
     DidChangeConfigurationParams params = new DidChangeConfigurationParams();
     params.setSettings(settings);
+    CopilotCore copilotCore = CopilotCore.getPlugin();
+    if (copilotCore != null && copilotCore.getGithubPanicErrorReport() != null) {
+      copilotCore.getGithubPanicErrorReport().setProxyStrictSsl(settings.getHttp().isProxyStrictSsl());
+      copilotCore.getGithubPanicErrorReport().setProxyData(proxyData);
+    }
     this.copilotLanguageServerConnection.updateConfig(params);
   }
 
@@ -108,7 +114,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * Updates the proxy settings.
    */
   public void updateProxySettings() {
-    IProxyData proxyData = getProxy();
+    proxyData = getProxy();
     if (proxyData == null) {
       settings.getHttp().setProxy(null);
       CopilotCore.LOGGER.info("No proxy data found");
@@ -133,9 +139,9 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       CopilotCore.LOGGER.info("Proxies are disabled");
       return null;
     }
-    IProxyData[] proxyData = proxyService.select(URI.create(Constants.GITHUB_COPILOT_URL));
-    if (proxyData != null && proxyData.length > 0) {
-      return proxyData[0];
+    IProxyData[] proxyDataArr = proxyService.select(URI.create(Constants.GITHUB_COPILOT_URL));
+    if (proxyDataArr != null && proxyDataArr.length > 0) {
+      return proxyDataArr[0];
     }
     return null;
   }
@@ -189,14 +195,14 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
     preferenceStore.removePropertyChangeListener(listener);
   }
-  
+
   /**
    * Gets the if auto show completions is enabled.
    */
   public boolean isAutoShowCompletionEnabled() {
     return preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
   }
-  
+
   /**
    * Enable or disable auto show completions.
    */

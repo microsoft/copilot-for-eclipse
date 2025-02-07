@@ -15,6 +15,7 @@ import org.osgi.framework.BundleContext;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
+import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 
 /**
@@ -27,6 +28,7 @@ public class CopilotCore extends Plugin {
   private AuthStatusManager authStatusManager;
   private CompletionProvider completionProvider;
   private FormatOptionProvider formatOptionProvider;
+  private GithubPanicErrorReport githubPanicErrorReport;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -77,7 +79,7 @@ public class CopilotCore extends Plugin {
       this.copilotLanguageServer = new CopilotLanguageServerConnection(wrapper);
       this.authStatusManager = new AuthStatusManager(this.copilotLanguageServer);
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
-
+      this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.authStatusManager.checkStatus();
       // initialize the LanguageServerSettingManager
     };
@@ -107,6 +109,10 @@ public class CopilotCore extends Plugin {
 
   public CompletionProvider getCompletionProvider() {
     return completionProvider;
+  }
+
+  public GithubPanicErrorReport getGithubPanicErrorReport() {
+    return githubPanicErrorReport;
   }
 
   /**

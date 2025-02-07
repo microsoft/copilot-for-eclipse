@@ -32,10 +32,15 @@ public class GithubExceptionTelemetryHandler extends Handler {
     }
     Throwable ex = (Throwable) property[1];
     CopilotCore copilotCore = CopilotCore.getPlugin();
-    if (copilotCore != null && copilotCore.getCopilotLanguageServer() != null) {
+    if (copilotCore == null) {
+      return;
+    }
+    if (copilotCore.getCopilotLanguageServer() != null) {
       copilotCore.getCopilotLanguageServer().sendExceptionTelemetry(ex);
     } else {
-      GithubPanicErrorReport.report(ex);
+      if (copilotCore.getGithubPanicErrorReport() != null) {
+        copilotCore.getGithubPanicErrorReport().report(ex);
+      }
     }
   }
 
