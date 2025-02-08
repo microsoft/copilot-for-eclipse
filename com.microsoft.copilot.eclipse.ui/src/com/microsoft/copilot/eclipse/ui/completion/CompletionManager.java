@@ -72,6 +72,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
   private int documentVersion;
   private org.eclipse.jface.text.Position triggerPosition;
   private List<ICodeMining> codeMinings;
+  private int cachedModelOffset;
 
   private DefaultPositionUpdater positionUpdater;
   private RenderingManager renderingManager;
@@ -124,6 +125,12 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     this.document.addPositionCategory(this.getCategory());
     this.document.addPositionUpdater(this.positionUpdater);
 
+    // Cache the model offset to clear line vertical offset when the line is out of the visible range.
+    // We cache the model offset here because the caret offset won't update when code blocks are collapsed.
+    SwtUtils.invokeOnDisplayThread(() -> {
+      this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, this.styledText.getCaretOffset());
+    }, this.styledText);
+
     registerListeners();
   }
 
@@ -173,12 +180,12 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       return;
     }
 
-    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());
+    this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());;
     if (isReplacement(event)) {
-      this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset + event.getText().length());
+      this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset + event.getText().length());
       clearCompletionRendering();
     } else if (isDeletion(event)) {
-      this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
+      this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset);
       if (this.suggestionUpdateManager.getSize() > 0
           && this.suggestionUpdateManager.delete(event.getReplacedText().length())) {
         this.updateGhostTexts();
@@ -186,7 +193,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         clearCompletionRendering();
       }
     } else if (isInsertion(event)) {
-      this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset + event.getText().length());
+      this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset + event.getText().length());
       if (this.suggestionUpdateManager.getSize() > 0 && this.suggestionUpdateManager.insert(event.getText())) {
         this.updateGhostTexts();
       } else {
@@ -268,6 +275,17 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       }
     }
 
+    // Redraw the block ghost text line at both old and new offsets to fix legacy vertical indentation issues when text
+    // is outside the visible range or code blocks are collapsed.
+    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
+    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/137
+    if (modelOffset != this.cachedModelOffset) {
+      // The collapsed code block will cause the model offset to flicker, so we need to redraw the block ghost text line
+      // at both old and new offsets.
+      SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset);
+      SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset);
+      this.cachedModelOffset = modelOffset;
+    }
   }
 
   @Override
@@ -426,6 +444,10 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     this.updateCodeMinings();
 
     this.renderingManager.clearGhostText();
+
+    // Clear legacy vertical indentation for the block ghost text line when the line is out of the visible range.
+    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
+    SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset);
   }
 
   /**
