@@ -32,6 +32,7 @@ public final class Messages extends NLS {
   public static String signInConfirmDialog_progress;
   public static String signInConfirmDialog_progressTimeout;
   public static String signInConfirmDialog_progressCanceled;
+  public static String signInConfirmDialog_deviceCodeFormatString;
   public static String signInConfirmDialog_authResult_notSignedIn;
   public static String signInConfirmDialog_authResult_notAuthed;
   public static String signInHandler_msgDialog_githubCopilot;
