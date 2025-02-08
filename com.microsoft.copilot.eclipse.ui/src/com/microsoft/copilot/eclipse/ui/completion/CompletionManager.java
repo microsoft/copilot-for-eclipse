@@ -31,6 +31,9 @@ import org.eclipse.ltk.core.refactoring.history.RefactoringExecutionEvent;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.contexts.IContextActivation;
+import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -54,6 +57,9 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class CompletionManager implements CaretListener, ITextListener, CompletionListener, IPropertyChangeListener,
     ITextInputListener, IRefactoringExecutionListener {
+
+  private static final String COMPLETION_CONTEXT = "com.microsoft.copilot.eclipse.completionAvailableContext";
+  private static IContextActivation completionContextActivation;
 
   private CopilotLanguageServerConnection lsConnection;
   private CompletionProvider provider;
@@ -279,6 +285,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
 
     this.suggestionUpdateManager.setCompletionItems(completions);
+    enableContext();
     this.updateGhostTexts();
     this.notifyShown();
   }
@@ -413,6 +420,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
    * Clear the completion ghost text.
    */
   public void clearCompletionRendering() {
+    disableContext();
     this.suggestionUpdateManager.reset();
     this.codeMinings.clear();
     this.updateCodeMinings();
@@ -564,4 +572,22 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     return codeMinings;
   }
 
+  private static void enableContext() {
+    if (completionContextActivation == null) {
+      IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
+      if (contextService != null) {
+        completionContextActivation = contextService.activateContext(COMPLETION_CONTEXT);
+      }
+    }
+  }
+
+  private static void disableContext() {
+    if (completionContextActivation != null) {
+      IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
+      if (contextService != null) {
+        contextService.deactivateContext(completionContextActivation);
+        completionContextActivation = null;
+      }
+    }
+  }
 }

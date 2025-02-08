@@ -159,6 +159,16 @@
 			commandId="com.microsoft.copilot.eclipse.commands.autoShowCompletions">
 		</handler>
 	</extension>
+	
+	<extension
+		point="org.eclipse.ui.contexts">
+		<context
+			id="com.microsoft.copilot.eclipse.completionAvailableContext"
+			name="Completion Available"
+			description="Context when completion is available"
+			parentId="org.eclipse.ui.textEditorScope">
+	  </context>
+	</extension>
 
 	<!-- Keyboard shortcut registration -->
 	<extension
@@ -178,7 +188,7 @@
 		<key
 			commandId="com.microsoft.copilot.eclipse.commands.acceptNextWord"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
-			contextId="org.eclipse.ui.textEditorScope"
+			contextId="com.microsoft.copilot.eclipse.completionAvailableContext"
 			sequence="M1+ARROW_RIGHT">
 		</key>
 		<key
