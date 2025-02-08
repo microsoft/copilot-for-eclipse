@@ -44,6 +44,6 @@ public class EolGhostText extends GhostText {
   private void drawAtLastEmptyLine(StyledText styledText, int widgetOffset, GC gc) {
     Rectangle bounds = styledText.getTextBounds(widgetOffset - 1, widgetOffset - 1);
     int y = bounds.y + styledText.getLineHeight();
-    gc.drawString(this.text, 1, y, true);
+    gc.drawString(this.text, styledText.getLeftMargin(), y, true);
   }
 }

@@ -45,7 +45,7 @@ public class BlockBottomGhostText extends GhostText {
     if (StringUtils.isNotBlank(this.text)) {
       Rectangle bounds = styledText.getTextBounds(widgetOffset, widgetOffset);
       int y = bounds.y + styledText.getLineHeight();
-      gc.drawText(this.text, 0, y, true);
+      gc.drawText(this.text, styledText.getLeftMargin(), y, true);
     }
   }
 }
