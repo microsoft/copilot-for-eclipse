@@ -8,11 +8,14 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
@@ -32,6 +35,8 @@ public class RenderingManager implements PaintListener {
 
   private ITextViewer textViewer;
   private Color ghostTextColor;
+  private Font ghostTextFont;
+
   /**
    * Whether the color resource should be disposed. When the color is fetched from the jface registry, it should not be
    * disposed.
@@ -49,6 +54,9 @@ public class RenderingManager implements PaintListener {
       SwtUtils.invokeOnDisplayThread(() -> {
         styledText.addPaintListener(this);
         this.ghostTextColor = getRegisteredInlineAnnotationColor(styledText.getDisplay());
+        // Use italic font for ghost text because this is the font used for code mining rendering.
+        // See InlinedAnnotationDrawingStrategy#getAnnotationFont().
+        this.ghostTextFont = createInlineAnnotationFont(styledText);
       }, styledText);
     }
   }
@@ -65,6 +73,15 @@ public class RenderingManager implements PaintListener {
       color = new Color(display, new RGB(DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE));
     }
     return color;
+  }
+
+  private Font createInlineAnnotationFont(StyledText widget) {
+    Font initialFont = widget.getFont();
+    FontData[] fontData = initialFont.getFontData();
+    for (FontData data : fontData) {
+      data.setStyle(data.getStyle() | SWT.ITALIC);
+    }
+    return new Font(initialFont.getDevice(), fontData);
   }
 
   /**
@@ -95,9 +112,10 @@ public class RenderingManager implements PaintListener {
       // will get index out of bounds if the cursor is at the end.
       // Because there is no more text to get bounds at EOF.
       widgetOffset = Math.max(Math.min(widgetOffset, styledText.getCharCount() - 1), 0);
-      // reset the color to default because the inline ghost text may change the color to the same
+      // reset the color and font to default because the inline ghost text may change the color to the same
       // as the content text color.
       gc.setForeground(this.ghostTextColor);
+      gc.setFont(this.ghostTextFont);
       ghostText.draw(styledText, widgetOffset, gc);
     }
   }
@@ -133,6 +151,11 @@ public class RenderingManager implements PaintListener {
     if (this.ghostTextColor != null && needDisposeColorResource) {
       this.ghostTextColor.dispose();
       this.ghostTextColor = null;
+    }
+
+    if (this.ghostTextFont != null) {
+      this.ghostTextFont.dispose();
+      this.ghostTextFont = null;
     }
   }
 
