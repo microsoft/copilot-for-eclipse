@@ -525,7 +525,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
    * Get category for the position updater of this document.
    */
   private String getCategory() {
-    return "GCE-" + this.documentUri.toASCIIString();
+    return this.toString();
   }
 
   /**
