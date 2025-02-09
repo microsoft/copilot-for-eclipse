@@ -20,14 +20,14 @@ public abstract class CompletionBaseTests {
   protected IProject project;
 
   @BeforeEach
-  public void setUp() throws Exception {
+  void setUp() throws Exception {
     project = ResourcesPlugin.getWorkspace().getRoot().getProject("TestProject");
     project.create(null);
     project.open(null);
   }
 
   @AfterEach
-  public void tearDown() throws Exception {
+  void tearDown() throws Exception {
     project.delete(true, null);
   }
 

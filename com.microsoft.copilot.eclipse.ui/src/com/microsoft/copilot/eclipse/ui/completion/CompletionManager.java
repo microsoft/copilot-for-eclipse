@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.completion;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -150,12 +149,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       return false;
     }
     this.suggestionUpdateManager = new SuggestionUpdateManager(this.document);
-    try {
-      this.lsConnection.connectDocument(this.document);
-    } catch (IOException e) {
-      CopilotCore.LOGGER.error(e);
-      return false;
-    }
     return true;
   }
 
@@ -180,7 +173,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       return;
     }
 
-    this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());;
+    this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());
     if (isReplacement(event)) {
       this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset + event.getText().length());
       clearCompletionRendering();
@@ -542,10 +535,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
     if (this.settingsManager != null) {
       this.settingsManager.unregisterPropertyChangeListener(this);
-    }
-
-    if (this.lsConnection != null && this.documentUri != null) {
-      this.lsConnection.disconnectDocument(this.documentUri);
     }
 
     if (this.document != null && this.documentUri != null) {

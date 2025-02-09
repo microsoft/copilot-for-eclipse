@@ -5,10 +5,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
@@ -22,6 +25,7 @@ public class EditorsManager {
   private CopilotLanguageServerConnection languageServer;
   private CompletionProvider completionProvider;
   private Map<ITextEditor, CompletionManager> editorMap;
+  private Map<IDocument, Integer> documentActiveCount;
   private AtomicReference<ITextEditor> activeEditor;
   private LanguageServerSettingManager settingsManager;
 
@@ -33,6 +37,7 @@ public class EditorsManager {
     this.languageServer = languageServer;
     this.completionProvider = completionProvider;
     this.editorMap = new ConcurrentHashMap<>();
+    this.documentActiveCount = new ConcurrentHashMap<>();
     this.activeEditor = new AtomicReference<>();
     this.settingsManager = settingsManager;
   }
@@ -52,8 +57,28 @@ public class EditorsManager {
       return null;
     }
 
-    return editorMap.computeIfAbsent(editor,
-        edt -> new CompletionManager(this.languageServer, this.completionProvider, edt, this.settingsManager));
+    CompletionManager manager = editorMap.get(editor);
+    if (manager != null) {
+      return manager;
+    }
+
+    manager = new CompletionManager(this.languageServer, this.completionProvider, editor, this.settingsManager);
+    editorMap.put(editor, manager);
+
+    // connect the document if it is the first time this document is opened.
+    IDocument document = LSPEclipseUtils.getDocument(editor);
+    if (document != null) {
+      int count = documentActiveCount.getOrDefault(document, 0);
+      if (count == 0) {
+        try {
+          this.languageServer.connectDocument(document);
+        } catch (Exception e) {
+          CopilotCore.LOGGER.error(e);
+        }
+      }
+      documentActiveCount.put(document, count + 1);
+    }
+    return manager;
   }
 
   /**
@@ -88,6 +113,16 @@ public class EditorsManager {
     CompletionManager handler = editorMap.remove(editor);
     if (handler != null) {
       handler.dispose();
+    }
+    IDocument document = LSPEclipseUtils.getDocument(editor);
+    if (document != null) {
+      int count = documentActiveCount.getOrDefault(document, 0);
+      if (count == 1) {
+        this.languageServer.disconnectDocument(LSPEclipseUtils.toUri(document));
+        documentActiveCount.remove(document);
+        return;
+      }
+      documentActiveCount.put(document, count - 1);
     }
   }
 
