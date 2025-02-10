@@ -96,8 +96,6 @@ public class FormatOptionProvider {
     if (languageFormatReaderfirProject == null) {
       languageFormatReaderfirProject = loadFormatReaderForTheProject(languageId, project);
       if (languageFormatReaderfirProject == null) {
-        CopilotCore.LOGGER
-            .info(String.format("Auto format unsupported for language ID: %s with default format", languageId));
         return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
       }
       projectToLanguageFormatReaderMap.put(project, languageFormatReaderfirProject);
