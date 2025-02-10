@@ -32,7 +32,8 @@ class EditorManagerIntegrationTests extends CompletionBaseTests {
   @Mock
   private LanguageServerSettingManager mockSettingManager;
 
-  @Override @BeforeEach
+  @Override
+  @BeforeEach
   void setUp() throws Exception {
     super.setUp();
     MockitoAnnotations.openMocks(this);

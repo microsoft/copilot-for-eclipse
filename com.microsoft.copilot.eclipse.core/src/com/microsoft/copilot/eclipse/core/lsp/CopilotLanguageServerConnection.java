@@ -11,6 +11,7 @@ import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
@@ -133,7 +134,10 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<String> notifyShown(NotifyShownParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
         .notifyShown(params);
-    return this.languageServerWrapper.execute(fn);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
   }
 
   /**
@@ -142,7 +146,10 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<String> notifyAccepted(NotifyAcceptedParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
         .notifyAccepted(params);
-    return this.languageServerWrapper.execute(fn);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
   }
 
   /**
@@ -151,7 +158,10 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<String> notifyRejected(NotifyRejectedParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
         .notifyRejected(params);
-    return this.languageServerWrapper.execute(fn);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
   }
 
   /**
@@ -161,7 +171,10 @@ public class CopilotLanguageServerConnection {
     TelemetryExceptionParams telemParams = new TelemetryExceptionParams(ex);
     Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
         .sendExceptionTelemetry(telemParams);
-    return this.languageServerWrapper.execute(fn);
+    return this.languageServerWrapper.execute(fn).exceptionally(exception -> {
+      // Ignore exceptions to avoid infinite loop.
+      return null;
+    });
   }
 
   /**
