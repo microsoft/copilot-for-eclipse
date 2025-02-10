@@ -8,6 +8,7 @@ import com.google.gson.annotations.SerializedName;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
+import com.microsoft.copilot.eclipse.core.utils.AnonymizeUtils;
 
 /**
  * Parameter used for the checkStatus request.
@@ -37,7 +38,7 @@ public class TelemetryExceptionParams {
     do {
       var d = new ExceptionDetail();
       d.setType(ex.getClass().getName());
-      d.setValue(ex.getMessage());
+      d.setValue(AnonymizeUtils.removePii(ex.getMessage()));
       d.setStacktrace(ex.getStackTrace());
       this.exceptionDetail.add(d);
       ex = ex.getCause();

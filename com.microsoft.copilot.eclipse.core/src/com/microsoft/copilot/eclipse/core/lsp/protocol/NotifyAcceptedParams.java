@@ -13,7 +13,7 @@ public class NotifyAcceptedParams {
   @NonNull
   private String uuid;
 
-  private int acceptedLength;
+  private Integer acceptedLength;
 
   /**
    * Create a new NotifyAcceptedParams.
@@ -31,11 +31,11 @@ public class NotifyAcceptedParams {
     this.uuid = uuid;
   }
 
-  public int getAcceptedLength() {
+  public Integer getAcceptedLength() {
     return acceptedLength;
   }
 
-  public void setAcceptedLength(int acceptedLength) {
+  public void setAcceptedLength(Integer acceptedLength) {
     this.acceptedLength = acceptedLength;
   }
 
