@@ -111,39 +111,73 @@ public class SwtUtils {
   }
 
   /**
-   * Redraw the block ghost texts at the given model offset. This function can be used when the model offset if out of
-   * the text editor's visible range.
+   * Redraw the block ghost texts at the given model offset. If forceRedraw is false, redraw will only be triggered when
+   * the model offset if out of the text editor's visible range.
    */
-  public static void redrawBlockLineAtModelOffset(ITextViewer textViewer, int modelOffset) {
+  public static void redrawBlockLineAtModelOffset(ITextViewer textViewer, int modelOffset, boolean forceRedraw) {
     StyledText styledText = textViewer.getTextWidget();
+    int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, modelOffset);
+
+    if (widgetOffset < 0) {
+      // Due to the model offset flicker, when the function block is collapsed, the widget offset may be negative in
+      // the middle state. In this case, we will abort the redraw and the redraw will be triggered again when the
+      // model offset flicker back to the correct value.
+      return;
+    }
+    if (forceRedraw || isWidgetOffsetOutOfTextEditorVisibleRange(textViewer, widgetOffset)) {
+      invokeOnDisplayThread(() -> {
+        int line = styledText.getLineAtOffset(widgetOffset);
+
+        // Block ghost text always starts at the beginning of the line.
+        int x = styledText.getLeftMargin();
+        int y = styledText.getLinePixel(line);
+        int height = styledText.getLineHeight(line);
+
+        // If only use styledText.getClientArea().width, when the ghost text is out of the editor's view, it will cause
+        // the rendering issue. So we need to add the horizontal scroll offset that out of the editor's view as well.
+        int width = styledText.getClientArea().width + styledText.getHorizontalPixel();
+        int blockGhostTextFirstLine = Math.min(line + 1, styledText.getLineCount());
+
+        // Clear the line vertical indent (the empty background)
+        if (blockGhostTextFirstLine != styledText.getLineCount()
+            && styledText.getLineVerticalIndent(blockGhostTextFirstLine) > 0) {
+          height += styledText.getLineVerticalIndent(blockGhostTextFirstLine);
+          styledText.setLineVerticalIndent(blockGhostTextFirstLine, 0);
+        }
+
+        styledText.redraw(x, y, width, height, true);
+      }, styledText);
+    }
+  }
+
+  /**
+   * Check if the widget offset is out of the text editor's visible range.
+   */
+  public static boolean isWidgetOffsetOutOfTextEditorVisibleRange(ITextViewer textViewer, int widgetOffset) {
+    StyledText styledText = textViewer.getTextWidget();
+    AtomicReference<Boolean> ref = new AtomicReference<>();
     invokeOnDisplayThread(() -> {
-      int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, modelOffset);
-      if (widgetOffset < 0) {
-        // Due to the model offset flicker, when the function block is collapsed, the widget offset may be negative in
-        // the middle state. In this case, we will abort the redraw and the redraw will be triggered again when the
-        // model offset flicker back to the correct value.
-        return;
+      try {
+        // Get the caret line number
+        int lineNumber = styledText.getLineAtOffset(widgetOffset);
+
+        // Check vertical boundaries
+        int topIndex = textViewer.getTopIndex();
+        int bottomIndex = textViewer.getBottomIndex();
+        if (lineNumber < topIndex || lineNumber > bottomIndex) {
+          ref.set(true);
+          return;
+        }
+
+        // Check horizontal boundaries
+        int horizontalPixel = styledText.getHorizontalPixel();
+        int clientWidth = styledText.getClientArea().width;
+        int offsetX = styledText.getLocationAtOffset(widgetOffset).x;
+        ref.set(offsetX < horizontalPixel || offsetX > (horizontalPixel + clientWidth));
+      } catch (IllegalArgumentException e) {
+        ref.set(true);
       }
-
-      int line = styledText.getLineAtOffset(widgetOffset);
-      // Block ghost text always starts at the beginning of the line.
-      int x = styledText.getLeftMargin();
-      int y = styledText.getLinePixel(line);
-      int height = styledText.getLineHeight(line);
-
-      // If only use styledText.getClientArea().width, when the ghost text is out of the editor's view, it will cause
-      // the rendering issue. So we need to add the horizontal scroll offset that out of the editor's view as well.
-      int width = styledText.getClientArea().width + styledText.getHorizontalPixel();
-      int blockGhostTextFirstLine = Math.min(line + 1, styledText.getLineCount());
-
-      // Clear the line vertical indent (the empty background)
-      if (blockGhostTextFirstLine != styledText.getLineCount()
-          && styledText.getLineVerticalIndent(blockGhostTextFirstLine) > 0) {
-        height += styledText.getLineVerticalIndent(blockGhostTextFirstLine);
-        styledText.setLineVerticalIndent(blockGhostTextFirstLine, 0);
-      }
-
-      styledText.redraw(x, y, width, height, true);
     }, styledText);
+    return ref.get();
   }
 }

@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.completion;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,10 +18,18 @@ import org.eclipse.jface.text.ITextInputListener;
 import org.eclipse.jface.text.ITextListener;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.jface.text.ITextViewerExtension5;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.text.codemining.ICodeMining;
+import org.eclipse.jface.text.source.Annotation;
+import org.eclipse.jface.text.source.IAnnotationModel;
+import org.eclipse.jface.text.source.IAnnotationModelListener;
+import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.ISourceViewerExtension5;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
+import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
@@ -55,7 +64,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * apply the suggestion to document.
  */
 public class CompletionManager implements CaretListener, ITextListener, CompletionListener, IPropertyChangeListener,
-    ITextInputListener, IRefactoringExecutionListener {
+    ITextInputListener, IRefactoringExecutionListener, IAnnotationModelListener {
 
   private static final String COMPLETION_CONTEXT = "com.microsoft.copilot.eclipse.completionAvailableContext";
   private static IContextActivation completionContextActivation;
@@ -72,6 +81,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
   private org.eclipse.jface.text.Position triggerPosition;
   private List<ICodeMining> codeMinings;
   private int cachedModelOffset;
+  private ProjectionAnnotationModel annotationModel;
 
   private DefaultPositionUpdater positionUpdater;
   private RenderingManager renderingManager;
@@ -131,6 +141,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }, this.styledText);
 
     registerListeners();
+    registerCodeBlockCollapseListener(editor);
   }
 
   private boolean initializeDocument() {
@@ -160,6 +171,16 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }, this.styledText);
 
     this.settingsManager.registerPropertyChangeListener(this);
+  }
+
+  // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/221
+  // Can be removed if the code folding does not trigger completion clearing.
+  private void registerCodeBlockCollapseListener(ITextEditor editor) {
+    ISourceViewer sourceViewer = (ISourceViewer) editor.getAdapter(ITextOperationTarget.class);
+    if (sourceViewer instanceof ProjectionViewer projectionViewer) {
+      this.annotationModel = projectionViewer.getProjectionAnnotationModel();
+      this.annotationModel.addAnnotationModelListener(this);
+    }
   }
 
   /**
@@ -275,8 +296,8 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     if (modelOffset != this.cachedModelOffset) {
       // The collapsed code block will cause the model offset to flicker, so we need to redraw the block ghost text line
       // at both old and new offsets.
-      SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset);
-      SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset);
+      SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, false);
+      SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset, false);
       this.cachedModelOffset = modelOffset;
     }
   }
@@ -414,6 +435,27 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
   }
 
+  @Override
+  public void modelChanged(IAnnotationModel model) {
+    auditFoldingAnnotations(this.annotationModel);
+  }
+
+  private void auditFoldingAnnotations(ProjectionAnnotationModel annotationModel) {
+    Iterator<Annotation> iterator = annotationModel.getAnnotationIterator();
+    while (iterator.hasNext()) {
+      Annotation annotation = iterator.next();
+      if (annotation instanceof ProjectionAnnotation projectionAnnotation) {
+        boolean isCollapsed = projectionAnnotation.isCollapsed();
+        if (isCollapsed) {
+          // Return each collapsed block will trigger the block line clearing, so we return earlier to only redraw once
+          // here.
+          SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, true);
+          return;
+        }
+      }
+    }
+  }
+
   /**
    * Trigger the inline completion.
    */
@@ -440,7 +482,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
     // Clear legacy vertical indentation for the block ghost text line when the line is out of the visible range.
     // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
-    SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset);
+    SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, false);
   }
 
   /**
@@ -558,6 +600,10 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       SwtUtils.invokeOnDisplayThread(() -> {
         this.styledText.removeCaretListener(this);
       }, this.styledText);
+    }
+
+    if (this.annotationModel != null) {
+      this.annotationModel.removeAnnotationModelListener(this);
     }
   }
 
