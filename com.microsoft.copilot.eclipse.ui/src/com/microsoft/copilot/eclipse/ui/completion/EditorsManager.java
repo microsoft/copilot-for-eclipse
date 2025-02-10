@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextInputListener;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.lsp4e.LSPEclipseUtils;
@@ -20,7 +21,7 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 /**
  * Manages the completion managers for all available ITextEditors.
  */
-public class EditorsManager {
+public class EditorsManager implements ITextInputListener {
 
   private CopilotLanguageServerConnection languageServer;
   private CompletionProvider completionProvider;
@@ -65,8 +66,17 @@ public class EditorsManager {
     manager = new CompletionManager(this.languageServer, this.completionProvider, editor, this.settingsManager);
     editorMap.put(editor, manager);
 
+    SwtUtils.invokeOnDisplayThread(() -> {
+      textViewer.addTextInputListener(this);
+    }, textViewer.getTextWidget());
+
     // connect the document if it is the first time this document is opened.
     IDocument document = LSPEclipseUtils.getDocument(editor);
+    connectDocument(document);
+    return manager;
+  }
+
+  private void connectDocument(IDocument document) {
     if (document != null) {
       int count = documentActiveCount.getOrDefault(document, 0);
       if (count == 0) {
@@ -78,7 +88,6 @@ public class EditorsManager {
       }
       documentActiveCount.put(document, count + 1);
     }
-    return manager;
   }
 
   /**
@@ -113,8 +122,17 @@ public class EditorsManager {
     CompletionManager handler = editorMap.remove(editor);
     if (handler != null) {
       handler.dispose();
+      ITextViewer textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+      SwtUtils.invokeOnDisplayThread(() -> {
+        textViewer.removeTextInputListener(this);
+      }, textViewer.getTextWidget());
     }
+
     IDocument document = LSPEclipseUtils.getDocument(editor);
+    disconnectDocument(document);
+  }
+
+  private void disconnectDocument(IDocument document) {
     if (document != null) {
       int count = documentActiveCount.getOrDefault(document, 0);
       if (count == 1) {
@@ -124,6 +142,17 @@ public class EditorsManager {
       }
       documentActiveCount.put(document, count - 1);
     }
+  }
+
+  @Override
+  public void inputDocumentAboutToBeChanged(IDocument oldInput, IDocument newInput) {
+    // do nothing.
+  }
+
+  @Override
+  public void inputDocumentChanged(IDocument oldInput, IDocument newInput) {
+    connectDocument(newInput);
+    disconnectDocument(oldInput);
   }
 
   /**

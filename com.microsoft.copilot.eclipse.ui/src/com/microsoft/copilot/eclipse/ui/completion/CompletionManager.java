@@ -18,7 +18,6 @@ import org.eclipse.jface.text.ITextInputListener;
 import org.eclipse.jface.text.ITextListener;
 import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.ITextViewerExtension5;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.text.codemining.ICodeMining;
@@ -111,6 +110,12 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
     this.lsConnection = lsConnection;
     this.document = LSPEclipseUtils.getDocument(editor);
+
+    // position updater is used to update the position when the document is changed.
+    // this is needed because the completion ghost text is rendered based on the
+    // position in the document. If the document is changed, the position will be
+    // invalidated.
+    this.positionUpdater = new DefaultPositionUpdater(this.getCategory());
     if (!initializeDocument()) {
       return;
     }
@@ -125,14 +130,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
     // initialize the auto show completion preference and add listener to update it.
     this.autoShowCompletion = settingsManager.getSettings().isEnableAutoCompletions();
-
-    // position updater is used to update the position when the document is changed.
-    // this is needed because the completion ghost text is rendered based on the
-    // position in the document. If the document is changed, the position will be
-    // invalidated.
-    this.positionUpdater = new DefaultPositionUpdater(this.getCategory());
-    this.document.addPositionCategory(this.getCategory());
-    this.document.addPositionUpdater(this.positionUpdater);
 
     // Cache the model offset to clear line vertical offset when the line is out of the visible range.
     // We cache the model offset here because the caret offset won't update when code blocks are collapsed.
@@ -149,6 +146,8 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       CopilotCore.LOGGER.info("Document is null for editor: " + this.editorTitle);
       return false;
     }
+    this.document.addPositionCategory(this.getCategory());
+    this.document.addPositionUpdater(this.positionUpdater);
     IFile file = LSPEclipseUtils.getFile(document);
     if (file == null || !file.exists()) {
       CopilotCore.LOGGER.info("File is null or removed for editor: " + this.editorTitle);
@@ -324,14 +323,14 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
   @Override
   public void inputDocumentAboutToBeChanged(IDocument oldInput, IDocument newInput) {
-    this.document = newInput;
-    initializeDocument();
-    CopilotCore.LOGGER.info("Completion handler is refreshed for the document: " + this.documentUri);
+    // do nothing
   }
 
   @Override
   public void inputDocumentChanged(IDocument oldInput, IDocument newInput) {
-    // do nothing
+    this.document = newInput;
+    initializeDocument();
+    CopilotCore.LOGGER.info("Completion handler is refreshed for the document: " + this.documentUri);
   }
 
   private void updateGhostTexts() {
