@@ -55,6 +55,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       addAuthenticationActions(menuManager);
     }
 
+    // Provide feedback section
     menuManager.add(new Separator());
     addLinkToFeedbackForumAction(menuManager);
 
@@ -259,8 +260,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
         this.uiElement.setIcon(newIcon);
         currentIconIndex = (currentIconIndex % TOTAL_SPINNER_ICONS) + 1;
-        if (CopilotUi.getPlugin().getCopilotStatusManager().isCompletionInProgress()
-            || CopilotCore.getPlugin().getAuthStatusManager().isLoading()) {
+        if (CopilotUi.getPlugin().getCopilotStatusManager() != null
+            && CopilotUi.getPlugin().getCopilotStatusManager().isCompletionInProgress()
+            || CopilotCore.getPlugin().getAuthStatusManager() != null
+                && CopilotCore.getPlugin().getAuthStatusManager().isLoading()) {
           schedule(COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS);
         } else {
           cancel();
