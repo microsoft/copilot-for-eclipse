@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.dialogs;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -110,7 +111,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
           future.cancel(true);
           status = Status.error(Messages.signInConfirmDialog_progressTimeout);
         }
-      } catch (ExecutionException | InterruptedException e) {
+      } catch (ExecutionException | InterruptedException | CancellationException e) {
         status = Status.error(Messages.signInConfirmDialog_progressCanceled);
       }
     }
