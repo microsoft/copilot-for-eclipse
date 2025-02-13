@@ -121,7 +121,12 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       return;
     }
     settings.getHttp().setProxy(createProxyString(proxyData));
-    CopilotCore.LOGGER.info(String.format("Proxy will be updated to %s", settings.getHttp().getProxy()));
+    if (proxyData.getUserId() != null) {
+      CopilotCore.LOGGER.info(String.format("Proxy will be updated to %s://[username]:[password]@%s:%s",
+          proxyData.getType(), proxyData.getHost(), proxyData.getPort()));
+    } else {
+      CopilotCore.LOGGER.info(String.format("Proxy will be updated to %s", settings.getHttp().getProxy()));
+    }
 
   }
 
