@@ -3,6 +3,8 @@ package com.microsoft.copilot.eclipse.core.utils;
 import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+
 /**
  * Utility class for platform related operations.
  */
@@ -22,6 +24,14 @@ public class PlatformUtils {
       return "unknown";
     }
     return bundle.getVersion().toString();
+  }
+
+  /**
+   * Get the version of the Copilot plugin.
+   */
+  public static String getBundleVersion() {
+    Bundle bundle = CopilotCore.getPlugin().getBundle();
+    return bundle == null ? "unknown" : bundle.getVersion().toString();
   }
 
   /**

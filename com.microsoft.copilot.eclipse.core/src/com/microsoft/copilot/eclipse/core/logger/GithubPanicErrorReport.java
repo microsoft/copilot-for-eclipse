@@ -73,8 +73,8 @@ public class GithubPanicErrorReport {
     // payload
     TelemetryExceptionParams params = new TelemetryExceptionParams(ex);
     var failbotPayload = Map.of("context", Map.of(), "app", "copilot-eclipse", "catalog_service", "CopilotEclipse",
-        "release", "copilot-eclipse@0.1.0.qualifier", "rollup_id", "auto", "platform", "eclipse", "exception_detail",
-        params.getExceptionDetail());
+        "release", "copilot-eclipse@" + PlatformUtils.getBundleVersion(), "rollup_id", "auto", "platform", "eclipse",
+        "exception_detail", params.getExceptionDetail());
     var payload = createExceptionPayload(TelemetryChannel.Standard, ex,
         Map.of("failbot_payload", GSON.toJson(failbotPayload)));
     String payloadStr = GSON.toJson(new Object[] { payload });
@@ -205,8 +205,8 @@ public class GithubPanicErrorReport {
       // ide version
       properties.put(VERSION, "Eclipse/" + PlatformUtils.getEclipseVersion());
       properties.put("common_extname", "copilot-eclipse");
-      Bundle bundle = CopilotCore.getPlugin().getBundle();
-      String bundleVersion = bundle == null ? "unknown" : bundle.getVersion().toString();
+
+      String bundleVersion = PlatformUtils.getBundleVersion();
       properties.put("common_extversion", bundleVersion);
       properties.put(PLUGIN_VERSION, "copilot-eclipse/" + bundleVersion);
       // build

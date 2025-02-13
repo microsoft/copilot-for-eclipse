@@ -36,8 +36,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   @Override
   public Object getInitializationOptions(@Nullable URI rootUri) {
     NameAndVersion editorInfo = new NameAndVersion(EDITOR_NAME, PlatformUtils.getEclipseVersion());
-    Bundle bundle = CopilotCore.getPlugin().getBundle();
-    String bundleVersion = bundle == null ? "unknown" : bundle.getVersion().toString();
+    String bundleVersion = PlatformUtils.getBundleVersion();
     NameAndVersion editorPluginInfo = new NameAndVersion(EDITOR_PLUGIN_NAME, bundleVersion);
     CopilotCapabilities capabilities = new CopilotCapabilities(false, false);
     return new InitializationOptions(editorInfo, editorPluginInfo, capabilities);
