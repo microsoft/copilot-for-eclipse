@@ -632,7 +632,9 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     if (completionContextActivation == null) {
       IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
       if (contextService != null) {
-        completionContextActivation = contextService.activateContext(COMPLETION_CONTEXT);
+        SwtUtils.invokeOnDisplayThread(() -> {
+          completionContextActivation = contextService.activateContext(COMPLETION_CONTEXT);
+        });
       }
     }
   }
@@ -641,7 +643,9 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     if (completionContextActivation != null) {
       IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
       if (contextService != null) {
-        contextService.deactivateContext(completionContextActivation);
+        SwtUtils.invokeOnDisplayThread(() -> {
+          contextService.deactivateContext(completionContextActivation);
+        });
         completionContextActivation = null;
       }
     }
