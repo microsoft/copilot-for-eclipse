@@ -18,6 +18,11 @@ public class FormatOptionProvider {
   private Map<String, Map<IProject, LanguageFormatReader>> languageIdToProjectToLanguageFormatReaderMap;
 
   private static final String JAVA_LANGUAGE_ID = "java";
+  private static final String C_LANGUAGE_ID = "c";
+  private static final String[] C_LANGUAGE_EXTENSIONS = new String[] { "c", "cats", "h", "idc", "w" };
+  private static final String CPP_LANGUAGE_ID = "cpp";
+  private static final String[] CPP_LANGUAGE_EXTENSIONS = new String[] { "cpp", "c++", "cc", "cp", "cxx", "h", "h++",
+      "hh", ".hpp", ".hxx", ".inc", ".inl", ".ipp", ".tcc", ".tpp" };
   private static final boolean DEFAULT_USE_SPACE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_CHAR.equals("space");
   private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_SIZE;
 
@@ -32,6 +37,12 @@ public class FormatOptionProvider {
   private void initializeLanguageExtensionToIdMap() {
     languageExtensionToIdMap = new HashMap<>();
     languageExtensionToIdMap.put("java", JAVA_LANGUAGE_ID);
+    for (String extension : C_LANGUAGE_EXTENSIONS) {
+      languageExtensionToIdMap.put(extension, C_LANGUAGE_ID);
+    }
+    for (String extension : CPP_LANGUAGE_EXTENSIONS) {
+      languageExtensionToIdMap.put(extension, CPP_LANGUAGE_ID);
+    }
   }
 
   /**
@@ -108,6 +119,9 @@ public class FormatOptionProvider {
     switch (languageId) {
       case JAVA_LANGUAGE_ID:
         return new JavaFormatReader(project);
+      case C_LANGUAGE_ID:
+      case CPP_LANGUAGE_ID:
+        return new CdtFormatReader(project);
       default:
         return null;
     }

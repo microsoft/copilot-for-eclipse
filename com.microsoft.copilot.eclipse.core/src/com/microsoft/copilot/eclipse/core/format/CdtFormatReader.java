@@ -10,29 +10,31 @@ import org.eclipse.lsp4j.FormattingOptions;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 
 /**
- * Java format.
+ * C/C++ format.
  */
-public class JavaFormatReader extends LanguageFormatReader {
+public class CdtFormatReader extends LanguageFormatReader {
   private IProject project;
   private FormattingOptions formattingOptions;
 
-  private static final String JavaCore_PLUGIN_ID = "org.eclipse.jdt.core";
-  private static final String DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR = JavaCore_PLUGIN_ID
+  // The following constants are copied from org.eclipse.cdt.core.formatter.DefaultCodeFormatterConstants
+  // https://github.com/eclipse-cdt/cdt/blob/ca5dabc3a3b2652f6fe0fbdfaaa838b31fa42aa8/core/org.eclipse.cdt.core/src/org/eclipse/cdt/core/formatter/DefaultCodeFormatterConstants.java#L2662
+  private static final String CCore_PLUGIN_ID = "org.eclipse.cdt.core";
+  private static final String DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR = CCore_PLUGIN_ID
       + ".formatter.tabulation.char";
-  private static final String DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE = JavaCore_PLUGIN_ID
+  private static final String DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE = CCore_PLUGIN_ID
       + ".formatter.tabulation.size";
   private static final Set<String> monitoredPreferences = Set.of(DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR,
       DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE);
 
   /**
-   * Creates a new JavaFormatReader for the given project.
+   * Creates a new CdtFormatReader for the given project.
    */
-  public JavaFormatReader(IProject project) {
+  public CdtFormatReader(IProject project) {
     this.project = project;
   }
 
   /**
-   * Get the language format option for Java.
+   * Get the language format option for C/C++.
    */
   @Override
   public FormattingOptions getFormattingOptions() {
@@ -42,7 +44,7 @@ public class JavaFormatReader extends LanguageFormatReader {
 
       fetchTabCharPreference();
       fetchTabSizePreference();
-      registerPreferencesChangeListener(project, JavaCore_PLUGIN_ID);
+      registerPreferencesChangeListener(project, CCore_PLUGIN_ID);
     }
     return this.formattingOptions;
   }
@@ -56,10 +58,10 @@ public class JavaFormatReader extends LanguageFormatReader {
     String key = event.getKey();
     if (monitoredPreferences.contains(key)) {
       switch (key) {
-        case JavaFormatReader.DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR:
+        case CdtFormatReader.DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR:
           fetchTabCharPreference();
           break;
-        case JavaFormatReader.DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE:
+        case CdtFormatReader.DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE:
           fetchTabSizePreference();
           break;
         default:
@@ -70,7 +72,7 @@ public class JavaFormatReader extends LanguageFormatReader {
 
   private void fetchTabCharPreference() {
     IScopeContext[] scopeContexts = getScopeContexts(this.project);
-    String tabCharString = getFormatValue(scopeContexts, JavaCore_PLUGIN_ID,
+    String tabCharString = getFormatValue(scopeContexts, CCore_PLUGIN_ID,
         DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR);
     this.formattingOptions.setInsertSpaces((tabCharString != null ? tabCharString.equalsIgnoreCase("space")
         : PREFERENCE_DEFAULT_TAB_CHAR.equalsIgnoreCase("space")));
@@ -80,7 +82,7 @@ public class JavaFormatReader extends LanguageFormatReader {
 
   private void fetchTabSizePreference() {
     IScopeContext[] scopeContexts = getScopeContexts(this.project);
-    String tabSizeString = getFormatValue(scopeContexts, JavaCore_PLUGIN_ID,
+    String tabSizeString = getFormatValue(scopeContexts, CCore_PLUGIN_ID,
         DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE);
     this.formattingOptions
         .setTabSize(tabSizeString != null ? Integer.parseInt(tabSizeString) : PREFERENCE_DEFAULT_TAB_SIZE);
@@ -89,7 +91,7 @@ public class JavaFormatReader extends LanguageFormatReader {
   }
 
   private void logPreferenceUpdate(String key, String newValue) {
-    CopilotCore.LOGGER.info(String.format("Java format preference cache for %s is updated. key: %s, new value: %s",
+    CopilotCore.LOGGER.info(String.format("C/C++ format preference cache for %s is updated. key: %s, new value: %s",
         project.getName(), key, newValue));
   }
 }
