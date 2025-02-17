@@ -4,7 +4,6 @@ import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.logger.LogLevel;
 
 /**
@@ -35,13 +34,7 @@ public class GithubExceptionTelemetryHandler extends Handler {
     if (copilotCore == null) {
       return;
     }
-    if (copilotCore.getCopilotLanguageServer() != null) {
-      copilotCore.getCopilotLanguageServer().sendExceptionTelemetry(ex);
-    } else {
-      if (copilotCore.getGithubPanicErrorReport() != null) {
-        copilotCore.getGithubPanicErrorReport().report(ex);
-      }
-    }
+    copilotCore.reportException(ex);
   }
 
   @Override

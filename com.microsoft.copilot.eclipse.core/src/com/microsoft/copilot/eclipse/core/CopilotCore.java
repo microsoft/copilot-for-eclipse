@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
@@ -66,6 +67,7 @@ public class CopilotCore extends Plugin {
   @SuppressWarnings("restriction")
   void init(BundleContext context) {
     final Runnable initRunnable = () -> {
+      addPlatformLogListener();
       LanguageServersRegistry.LanguageServerDefinition serverDef = LanguageServersRegistry.getInstance()
           .getDefinition(CopilotLanguageServerConnection.SERVER_ID);
       if (serverDef == null) {
@@ -81,7 +83,6 @@ public class CopilotCore extends Plugin {
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
       this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.authStatusManager.checkStatus();
-      // initialize the LanguageServerSettingManager
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {
@@ -97,6 +98,30 @@ public class CopilotCore extends Plugin {
     };
     initJob.setUser(false);
     initJob.schedule();
+  }
+
+  /**
+   * Add platform level log listener to catch the uncaught exceptions.
+   */
+  private void addPlatformLogListener() {
+    Platform.addLogListener((status, plugin) -> {
+      if (status.getSeverity() != IStatus.ERROR || plugin.equals(Constants.PLUGIN_ID)) {
+        // only send telemetry for those errors that are not from the plugin itself
+        return;
+      }
+      Throwable rawException = status.getException();
+      Throwable currentException = rawException;
+      do {
+        StackTraceElement[] traces = currentException.getStackTrace();
+        for (StackTraceElement trace : traces) {
+          if (!trace.getClassName().startsWith(Constants.PLUGIN_ID)) {
+            continue;
+          }
+          reportException(rawException);
+          return;
+        }
+      } while ((currentException = currentException.getCause()) != null);
+    });
   }
 
   public CopilotLanguageServerConnection getCopilotLanguageServer() {
@@ -123,6 +148,21 @@ public class CopilotCore extends Plugin {
       this.formatOptionProvider = new FormatOptionProvider();
     }
     return formatOptionProvider;
+  }
+
+  /**
+   * Report the exception to the telemetry.
+   *
+   * @param ex the exception to report
+   */
+  public void reportException(Throwable ex) {
+    if (this.copilotLanguageServer != null) {
+      this.copilotLanguageServer.sendExceptionTelemetry(ex);
+    } else {
+      if (this.githubPanicErrorReport != null) {
+        this.githubPanicErrorReport.report(ex);
+      }
+    }
   }
 
 }
