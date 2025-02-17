@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -112,12 +113,17 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           default:
             iconPath = "/icons/github_copilot_not_signed_in.png";
         }
-
-        if (iconPath != null) {
-          ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
-          element.setIcon(newIcon);
-        }
+        setIconOnDisplayThread(element, iconPath);
       }
+    }
+  }
+
+  private void setIconOnDisplayThread(UIElement element, String iconPath) {
+    if (iconPath != null) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
+        element.setIcon(newIcon);
+      });
     }
   }
 
@@ -256,9 +262,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         if (this.uiElement == null) {
           throw new IllegalStateException("UI element is not set. Spinner cannot be set.");
         }
-        String iconPath = String.format("/icons/spinner/%d.png", currentIconIndex);
-        ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
-        this.uiElement.setIcon(newIcon);
+        setIconOnDisplayThread(this.uiElement, String.format("/icons/spinner/%d.png", currentIconIndex));
         currentIconIndex = (currentIconIndex % TOTAL_SPINNER_ICONS) + 1;
         if (CopilotUi.getPlugin().getCopilotStatusManager() != null
             && CopilotUi.getPlugin().getCopilotStatusManager().isCompletionInProgress()
