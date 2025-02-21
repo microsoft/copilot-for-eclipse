@@ -33,11 +33,15 @@ public class SwtUtils {
     IWorkbench workbench = PlatformUI.getWorkbench();
     IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
     if (windows != null && windows.length > 0) {
-      Display display = windows[0].getShell().getDisplay();
-      display.syncExec(runnable);
-    } else {
-      runnable.run();
+      Shell shell = windows[0].getShell();
+      if (shell != null && !shell.isDisposed()) {
+        Display display = shell.getDisplay();
+        display.syncExec(runnable);
+        return;
+      }
     }
+
+    runnable.run();
   }
 
   /**
