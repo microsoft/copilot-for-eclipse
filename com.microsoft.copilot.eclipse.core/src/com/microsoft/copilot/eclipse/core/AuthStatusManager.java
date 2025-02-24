@@ -94,7 +94,6 @@ public class AuthStatusManager {
         setCopilotStatus(result.getStatus());
         setCopilotUser(result.getUser());
       }
-      onDidCopilotStatusChange(this.copilotStatusResult);
       return null;
     });
   }
