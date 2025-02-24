@@ -110,6 +110,9 @@ public class CopilotCore extends Plugin {
         return;
       }
       Throwable rawException = status.getException();
+      if (rawException == null) {
+        return;
+      }
       Throwable currentException = rawException;
       do {
         StackTraceElement[] traces = currentException.getStackTrace();
