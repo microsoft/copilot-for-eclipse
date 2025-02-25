@@ -19,6 +19,7 @@ import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * The plug-in runtime class for the Copilot plug-in containing the UI support, like dialogs, ghost text rendering, etc.
@@ -75,12 +76,15 @@ public class CopilotUi extends AbstractUIPlugin {
           mgr.syncConfiguration();
 
           registerPartListener();
-          addCompletionStatusListener();
-          addCopilotAuthStatusListener();
-
           // Initialize the completion handler for the active editor in case we miss the event
           // to initialize it.
           initCompletionHandlerForActiveEditor();
+
+          addCompletionStatusListener();
+          addCopilotAuthStatusListener();
+          // refresh the menu icon in case we miss the event to refresh it.
+          UiUtils.refreshCopilotMenu();
+
         } catch (OperationCanceledException | InterruptedException e) {
           CopilotCore.LOGGER.error(e);
           return Status.error("Failed to initialize GitHub Copilot plugin.", e);
