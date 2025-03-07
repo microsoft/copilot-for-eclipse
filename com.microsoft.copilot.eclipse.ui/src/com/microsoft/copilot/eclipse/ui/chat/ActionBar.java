@@ -92,8 +92,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     setLayout(gl);
     setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
-    ChatInputTextViewer tv = new ChatInputTextViewer(this, SWT.MULTI | SWT.WRAP,
-        chatServiceManager);
+    ChatInputTextViewer tv = new ChatInputTextViewer(this, SWT.MULTI | SWT.WRAP, chatServiceManager);
     tv.setEditable(true);
     tv.addTextListener(new ITextListener() {
       @Override
@@ -366,13 +365,13 @@ public class ActionBar extends Composite implements NewConversationListener {
    * @param message the message
    */
   public void notifySend(String workDoneToken, String message) {
+    List<IFile> allFiles = new ArrayList<>(this.uriToFile.values());
     if (this.currentFileRef.isCurrentFileVisible()) {
       IFile currentFile = this.currentFileRef.getFile();
       if (currentFile != null && currentFile.getLocationURI() != null) {
-        uriToFile.put(currentFile.getLocationURI().toASCIIString(), currentFile);
+        allFiles.add(currentFile);
       }
     }
-    List<IFile> allFiles = new ArrayList<>(this.uriToFile.values());
     for (MessageListener listener : this.messageListeners) {
       listener.onSend(workDoneToken, message, new ArrayList<>(allFiles));
     }
