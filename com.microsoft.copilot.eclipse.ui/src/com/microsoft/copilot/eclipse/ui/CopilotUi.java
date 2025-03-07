@@ -15,6 +15,7 @@ import org.osgi.framework.ServiceReference;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
@@ -31,7 +32,10 @@ public class CopilotUi extends AbstractUIPlugin {
   private CopilotStatusManager copilotStatusManager;
   private EditorLifecycleListener editorLifecycleListener;
   private EditorsManager editorsManager;
+  private ChatServiceManager chatServiceManager;
   private LanguageServerSettingManager settingMgr;
+
+  public static final String INIT_JOB_FAMILY = "com.microsoft.copilot.eclipse.ui.initJob";
 
   /**
    * Creates the Copilot ui plugin. The plugin is created automatically by the Eclipse framework. Clients must not call
@@ -71,6 +75,7 @@ public class CopilotUi extends AbstractUIPlugin {
           CopilotUi.this.editorsManager = new EditorsManager(connection,
               CopilotCore.getPlugin().getCompletionProvider(), mgr);
           CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
+          CopilotUi.this.chatServiceManager = new ChatServiceManager();
           CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
           // sync to language server on load
           mgr.syncConfiguration();
@@ -90,6 +95,11 @@ public class CopilotUi extends AbstractUIPlugin {
           return Status.error("Failed to initialize GitHub Copilot plugin.", e);
         }
         return Status.OK_STATUS;
+      }
+
+      @Override
+      public boolean belongsTo(Object family) {
+        return INIT_JOB_FAMILY.equals(family);
       }
     };
     initJob.setSystem(true);
@@ -117,10 +127,18 @@ public class CopilotUi extends AbstractUIPlugin {
     if (this.settingMgr != null) {
       this.settingMgr.dispose();
     }
+
+    if (this.chatServiceManager != null) {
+      this.chatServiceManager.dispose();
+    }
   }
 
   public EditorsManager getEditorsManager() {
     return editorsManager;
+  }
+
+  public ChatServiceManager getChatServiceManager() {
+    return chatServiceManager;
   }
 
   private void registerPartListener() {

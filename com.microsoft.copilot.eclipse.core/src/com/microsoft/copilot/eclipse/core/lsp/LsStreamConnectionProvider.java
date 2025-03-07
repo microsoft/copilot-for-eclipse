@@ -17,7 +17,6 @@ import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager;
-import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;

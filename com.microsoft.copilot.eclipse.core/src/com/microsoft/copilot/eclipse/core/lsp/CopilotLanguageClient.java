@@ -9,14 +9,18 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageClientImpl;
+import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
@@ -69,4 +73,20 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     return true;
   }
 
+  /**
+   * Get the conversation context for the given request.
+   */
+  @JsonRequest("conversation/context")
+  public CompletableFuture<ConversationContextResult[]> getConversationContext(Object request) {
+    return CompletableFuture.completedFuture(new ConversationContextResult[] { null, null });
+  }
+
+  /**
+   * Handles the progress notification for chat replies.
+   */
+  @Override
+  public void notifyProgress(ProgressParams progress) {
+    var chatProgress = (ChatProgressValue) progress.getValue().getLeft();
+    CopilotCore.getPlugin().getChatProvider().notifyProgress(chatProgress);
+  }
 }

@@ -5,9 +5,17 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageServer;
 
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
@@ -75,4 +83,41 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("telemetry/exception")
   CompletableFuture<Object> sendExceptionTelemetry(TelemetryExceptionParams params);
+
+  /**
+   * Create a new conversation.
+   */
+  @JsonRequest("conversation/create")
+  CompletableFuture<ChatCreateResult> create(ConversationCreateParams param);
+
+  /**
+   * Create a new conversation.
+   */
+  @JsonRequest("conversation/turn")
+  CompletableFuture<ChatTurnResult> addTurn(ConversationTurnParams param);
+
+  /**
+   * List conversation templates.
+   */
+  @JsonRequest("conversation/templates")
+  CompletableFuture<ConversationTemplate[]> listTemplates(NullParams param);
+
+  /**
+   * Used to track telemetry from users copying code from chat.
+   */
+  @JsonRequest("conversation/copyCode")
+  CompletableFuture<String> copyCode(ConversationCodeCopyParams param);
+
+  /**
+   * Used to get the persistence token for the current user.
+   */
+  @JsonRequest("conversation/persistence")
+  CompletableFuture<ChatPersistence> persistence(NullParams param);
+
+  /**
+   * List copilot models.
+   */
+  @JsonRequest("copilot/models")
+  CompletableFuture<CopilotModel[]> listModels(NullParams param);
+
 }

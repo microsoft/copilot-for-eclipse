@@ -58,7 +58,7 @@ public class CopilotStatusResult {
   public boolean isNotAuthorized() {
     return NOT_AUTHORIZED.equals(this.status);
   }
-  
+
   public boolean isLoading() {
     return LOADING.equals(this.status);
   }

@@ -2,9 +2,11 @@ package com.microsoft.copilot.eclipse.core.lsp;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
@@ -12,9 +14,17 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
@@ -175,6 +185,78 @@ public class CopilotLanguageServerConnection {
       // Ignore exceptions to avoid infinite loop.
       return null;
     });
+  }
+
+  /**
+   * Create a conversation with the given parameters.
+   */
+  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message, List<IFile> files,
+      String modelName) {
+    Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
+      ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken, null);
+      param.addFileRefs(files);
+      param.setModel(modelName);
+      return ((CopilotLanguageServer) server).create(param);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Create a conversation with the given parameters.
+   */
+  public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
+      String message, List<IFile> files, String modelName) {
+    Function<LanguageServer, CompletableFuture<ChatTurnResult>> fn = server -> {
+      ConversationTurnParams param = new ConversationTurnParams(workDoneToken, conversationId, message);
+      param.addFileRefs(files);
+      param.setModel(modelName);
+      return ((CopilotLanguageServer) server).addTurn(param);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List the conversation templates.
+   */
+  public CompletableFuture<ConversationTemplate[]> listConversationTemplates() {
+    Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
+      return ((CopilotLanguageServer) server).listTemplates(new NullParams());
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Used to track telemetry from users copying code from chat.
+   */
+  public CompletableFuture<String> codeCopy(ConversationCodeCopyParams params) {
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .copyCode(params);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Used to get the persistence token for the current user.
+   */
+  public CompletableFuture<ChatPersistence> persistence() {
+    Function<LanguageServer, CompletableFuture<ChatPersistence>> fn = server -> ((CopilotLanguageServer) server)
+        .persistence(new NullParams());
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * List the copilot models.
+   */
+  public CompletableFuture<CopilotModel[]> listModels() {
+    Function<LanguageServer, CompletableFuture<CopilotModel[]>> fn = server -> {
+      return ((CopilotLanguageServer) server).listModels(new NullParams());
+    };
+    return this.languageServerWrapper.execute(fn);
   }
 
   /**

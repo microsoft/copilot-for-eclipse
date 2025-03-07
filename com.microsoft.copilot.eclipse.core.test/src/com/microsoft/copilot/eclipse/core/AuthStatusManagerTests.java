@@ -84,7 +84,7 @@ class AuthStatusManagerTests {
   }
 
   @Test
-  void testCheckStatusOK() throws InterruptedException {
+  void testCheckStatusOk() throws InterruptedException {
     String mockedUser = "mockedUser";
     // Arrange
     CopilotStatusResult expectedResult = new CopilotStatusResult();

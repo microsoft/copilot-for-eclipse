@@ -1,26 +1,48 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.ITextViewerExtension5;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IFileEditorInput;
+import org.eclipse.ui.IPartService;
+import org.eclipse.ui.IViewPart;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.commands.ICommandService;
+import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
 
 /**
  * Utilities for Eclipse UI.
@@ -30,6 +52,22 @@ public class UiUtils {
   private UiUtils() {
     // prevent instantiation
   }
+
+  /**
+   * Get the active workbench page.
+   */
+  @Nullable
+  public static IWorkbenchPage getActivePage() {
+    IWorkbench workbench = PlatformUI.getWorkbench();
+    IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
+    if (window != null) {
+      return window.getActivePage();
+    }
+    return null;
+  }
+
+  public static final Color SLASH_COMMAND_FORGROUND_COLOR = new Color(48, 108, 170);
+  public static final Color SLASH_COMMAND_BACKGROUND_COLOR = new Color(228, 244, 255);
 
   /**
    * Gets the URI of the file opened in the given text editor.
@@ -55,6 +93,81 @@ public class UiUtils {
       return fileInput.getFile();
     }
     return null;
+  }
+
+  /**
+   * Opens the given file in an editor.
+   */
+  public static IEditorPart openInEditor(IFile file) {
+    try {
+      IWorkbenchPage page = getActivePage();
+      if (page != null) {
+        return IDE.openEditor(page, file);
+      }
+    } catch (PartInitException e) {
+      CopilotCore.LOGGER.error(e);
+    }
+    return null;
+  }
+
+  /**
+   * Opens the file in the editor.
+   */
+  public static List<IFile> getOpenedFiles() {
+    IWorkbenchPage page = getActivePage();
+    if (page == null) {
+      return new ArrayList<>();
+    }
+    IEditorReference[] editorReferences = page.getEditorReferences();
+    ArrayList<IFile> files = new ArrayList<>();
+    if (editorReferences == null) {
+      return files;
+    }
+    for (IEditorReference editorRef : editorReferences) {
+      IEditorInput input;
+      try {
+
+        input = editorRef.getEditorInput();
+      } catch (PartInitException e) {
+        CopilotCore.LOGGER.error(e);
+        continue;
+      }
+      if (input instanceof IFileEditorInput fileEditorInput) {
+        IFile file = fileEditorInput.getFile();
+        files.add(file);
+      }
+    }
+    return files;
+  }
+
+  /**
+   * Returns the file that is currently opened in the editor.
+   */
+  public static IFile getCurrentFile() {
+    IWorkbenchPage page = getActivePage();
+    if (page == null) {
+      return null;
+    }
+    IEditorPart editor = page.getActiveEditor();
+    if (editor instanceof ITextEditor textEditor) {
+      return getFileFromEditor(textEditor);
+    }
+    return null;
+  }
+
+  /**
+   * Returns the part service.
+   */
+  public static IPartService getPartService() {
+    IWorkbench workbench = PlatformUI.getWorkbench();
+    if (workbench == null) {
+      return null;
+    }
+    IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
+    if (window == null) {
+      return null;
+    }
+    return window.getPartService();
   }
 
   /**
@@ -89,6 +202,15 @@ public class UiUtils {
   }
 
   /**
+   * Resizes the given image to the given width and height.
+   */
+  public static Image resizeImage(Display display, Image originalImage, int width, int height) {
+    ImageData originalData = originalImage.getImageData();
+    ImageData resizedData = originalData.scaledTo(width, height);
+    return new Image(display, resizedData);
+  }
+
+  /**
    * Returns the widget offset that corresponds to the given offset in the viewer's input document or <code>-1</code> if
    * there is no such offset.
    */
@@ -112,6 +234,13 @@ public class UiUtils {
   }
 
   /**
+   * Builds an image from a PNG file at the given path.
+   */
+  public static Image buildImageFromPngPath(String path) {
+    return buildImageDescriptorFromPngPath(path).createImage();
+  }
+
+  /**
    * Refreshes the elements of the command with the given ID.
    */
   public static void refreshCopilotMenu() {
@@ -120,4 +249,164 @@ public class UiUtils {
       commandService.refreshElements("com.microsoft.copilot.eclipse.commands.showStatusBarMenu", null);
     }
   }
+
+  /**
+   * Returns the index of the first word in the given text.
+   */
+  public static Point getFirstWordIndex(String text) {
+    int start = 0;
+    int len = text.length();
+    while (start < len && Character.isWhitespace(text.charAt(start))) {
+      start++;
+    }
+    int end = start;
+    while (end < len && !Character.isWhitespace(text.charAt(end))) {
+      end++;
+    }
+    return new Point(start, end);
+  }
+
+  /**
+   * Returns the theme color with the given ID.
+   * 
+   */
+  public static Color getThemeColor(String colorId) {
+    return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry().get(colorId);
+  }
+
+  /**
+   * Returns the view with the given ID and type.
+   *
+   * @param viewId the ID of the view
+   * @param viewType the type of the view
+   * @return the view or <code>null</code> if the view is not found
+   */
+  @Nullable
+  public static <T> T getView(String viewId, Class<T> viewType) {
+    IWorkbenchPage page = getActivePage();
+    if (page == null) {
+      return null;
+    }
+    IViewPart view = page.findView(viewId);
+    if (view == null) {
+      return null;
+    }
+    return viewType.cast(view);
+  }
+
+  /**
+   * Create a button only with an icon. As Button is NOT intended to be subclassed, use a factory method to create a
+   * custom button.
+   */
+  public static Button createIconButton(Composite parent, int style) {
+    Button result = new Button(parent, style);
+    result.setBackground(parent.getBackground());
+    result.addPaintListener(e -> {
+      // Prevent the default border from being drawn
+      e.gc.setBackground(result.getBackground());
+      Rectangle bounds = result.getBounds();
+      e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
+
+      // Draw the button's image if it has one
+      Image image = result.getImage();
+      if (image != null) {
+        Rectangle imgBounds = image.getBounds();
+        int x = (bounds.width - imgBounds.width) / 2;
+        int y = (bounds.height - imgBounds.height) / 2;
+        int oldAlpha = e.gc.getAlpha();
+        if (!result.isEnabled()) {
+          e.gc.setAlpha(oldAlpha / 2);
+        }
+        e.gc.drawImage(image, x, y);
+        e.gc.setAlpha(oldAlpha);
+      }
+    });
+
+    result.addFocusListener(new org.eclipse.swt.events.FocusAdapter() {
+      private Color background = result.getBackground();
+
+      @Override
+      public void focusGained(org.eclipse.swt.events.FocusEvent e) {
+        background = result.getBackground();
+        result.setBackground(getThemeColor(UiConstants.HOVER_BACKGROUND));
+      }
+
+      @Override
+      public void focusLost(org.eclipse.swt.events.FocusEvent e) {
+        result.setBackground(background);
+      }
+    });
+
+    result.addMouseTrackListener(new org.eclipse.swt.events.MouseTrackAdapter() {
+      private Color background = result.getBackground();
+
+      @Override
+      public void mouseEnter(org.eclipse.swt.events.MouseEvent e) {
+        background = result.getBackground();
+        result.setBackground(getThemeColor(UiConstants.HOVER_BACKGROUND));
+      }
+
+      @Override
+      public void mouseExit(org.eclipse.swt.events.MouseEvent e) {
+        result.setBackground(background);
+      }
+    });
+    return result;
+  }
+
+  /**
+   * Returns a bold version of the given font.
+   */
+  public static Font getBoldFont(Display display, Font originalFont) {
+    FontData[] fontData = originalFont.getFontData();
+    for (int i = 0; i < fontData.length; i++) {
+      fontData[i].setStyle(SWT.BOLD);
+    }
+    return new Font(display, fontData);
+  }
+
+
+  /**
+   * Sets the background of the given composite to the background of its parent. As eclipse css may overwrite the result
+   * of setBackground, this method will also add a paint listener to keep the background color consistent.
+   */
+  public static void useParentBackground(Control control) {
+    if (control.getParent() == null) {
+      return;
+    }
+    control.setData(UiConstants.USE_PARENT_BACKGROUND, true);
+    control.setBackground(getParentColor(control));
+
+    control.addPaintListener(e -> {
+      Color currentParentColor = getParentColor(control);
+      if (!currentParentColor.equals(control.getBackground())) {
+        if (control instanceof Composite) {
+          e.gc.setBackground(currentParentColor);
+          Rectangle bounds = control.getBounds();
+          e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
+        } else {
+          control.getDisplay().asyncExec(() -> {
+            if (!control.isDisposed()) {
+              control.setBackground(currentParentColor);
+              control.redraw();
+            }
+          });
+        }
+      }
+    });
+  }
+
+  private static Color getParentColor(Control control) {
+    Composite parent = control.getParent();
+    while (parent != null) {
+      // get the nearest parent that did not use parent background
+      Object data = parent.getData(UiConstants.USE_PARENT_BACKGROUND);
+      if (!Objects.equals(data, Boolean.TRUE)) {
+        return parent.getBackground();
+      }
+      parent = parent.getParent();
+    }
+    return control.getBackground();
+  }
+
 }

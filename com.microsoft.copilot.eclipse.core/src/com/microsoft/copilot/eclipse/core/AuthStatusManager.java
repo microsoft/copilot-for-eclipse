@@ -1,8 +1,7 @@
 package com.microsoft.copilot.eclipse.core;
 
-import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -15,7 +14,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 public class AuthStatusManager {
 
   private CopilotLanguageServerConnection connection;
-  private Set<CopilotAuthStatusListener> copilotAuthStatusListeners;
+  private ConcurrentLinkedQueue<CopilotAuthStatusListener> copilotAuthStatusListeners;
   private CopilotStatusResult copilotStatusResult;
 
   /**
@@ -25,7 +24,7 @@ public class AuthStatusManager {
    */
   public AuthStatusManager(CopilotLanguageServerConnection connection) {
     this.connection = connection;
-    this.copilotAuthStatusListeners = new LinkedHashSet<>();
+    this.copilotAuthStatusListeners = new ConcurrentLinkedQueue<>();
     this.copilotStatusResult = new CopilotStatusResult();
     setCopilotStatus(CopilotStatusResult.LOADING);
   }
@@ -91,8 +90,9 @@ public class AuthStatusManager {
         CopilotCore.LOGGER.error(ex);
         setCopilotStatus(CopilotStatusResult.ERROR);
       } else {
-        setCopilotStatus(result.getStatus());
+        // we will send status change event in set Status, so need to set user first
         setCopilotUser(result.getUser());
+        setCopilotStatus(result.getStatus());
       }
       return null;
     });
@@ -141,13 +141,25 @@ public class AuthStatusManager {
   public void removeCopilotAuthStatusListener(CopilotAuthStatusListener listener) {
     this.copilotAuthStatusListeners.remove(listener);
   }
-  
+
+  public boolean isSignedIn() {
+    return this.copilotStatusResult.isSignedIn();
+  }
+
   public boolean isLoading() {
     return this.copilotStatusResult.isLoading();
   }
 
   public boolean isNotSignedInOrNotAuthorized() {
     return this.copilotStatusResult.isNotSignedIn() || this.copilotStatusResult.isNotAuthorized();
+  }
+
+  public boolean isNotAuthorized() {
+    return this.copilotStatusResult.isNotAuthorized();
+  }
+
+  public boolean isNotSignedIn() {
+    return this.copilotStatusResult.isNotSignedIn();
   }
 
   private void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {

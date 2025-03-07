@@ -21,5 +21,6 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  org.eclipse.jface.text;bundle-version="3.25.200",
  org.eclipse.lsp4j;bundle-version="0.23.1",
  org.eclipse.core.resources,
+ org.eclipse.core.runtime,
  org.eclipse.lsp4j.jsonrpc;bundle-version="0.23.1",
  org.eclipse.core.net;bundle-version="1.5.500"

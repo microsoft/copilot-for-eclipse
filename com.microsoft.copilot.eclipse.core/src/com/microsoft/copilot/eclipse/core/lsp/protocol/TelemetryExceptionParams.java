@@ -45,7 +45,6 @@ public class TelemetryExceptionParams {
     } while (ex != null);
   }
 
-  // Getters
   public String getTransaction() {
     return transaction;
   }
@@ -62,7 +61,6 @@ public class TelemetryExceptionParams {
     return exceptionDetail;
   }
 
-  // Setters
   public void setTransaction(String transaction) {
     this.transaction = transaction;
   }
@@ -79,13 +77,27 @@ public class TelemetryExceptionParams {
     this.exceptionDetail = exceptionDetail;
   }
 
-  // hashCode
   @Override
   public int hashCode() {
-    return Objects.hash(transaction, stacktrace, platform, exceptionDetail);
+    return Objects.hash(exceptionDetail, platform, stacktrace, transaction);
   }
 
-  // toString
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    TelemetryExceptionParams other = (TelemetryExceptionParams) obj;
+    return Objects.equals(exceptionDetail, other.exceptionDetail) && Objects.equals(platform, other.platform)
+        && Objects.equals(stacktrace, other.stacktrace) && Objects.equals(transaction, other.transaction);
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -111,7 +123,6 @@ public class TelemetryExceptionParams {
       this.stacktrace = new CopilotStackTraceElement[0];
     }
 
-    // Getters
     public String getType() {
       return type;
     }
@@ -124,7 +135,6 @@ public class TelemetryExceptionParams {
       return stacktrace;
     }
 
-    // Setters
     public void setType(String type) {
       this.type = type;
     }
@@ -158,13 +168,11 @@ public class TelemetryExceptionParams {
       }
     }
 
-    // hashCode
     @Override
     public int hashCode() {
       return Objects.hash(type, value, Arrays.hashCode(stacktrace));
     }
 
-    // equals
     @Override
     public boolean equals(Object o) {
       if (this == o) {
@@ -196,7 +204,6 @@ public class TelemetryExceptionParams {
     public CopilotStackTraceElement() {
     }
 
-    // Getters
     public String getFilename() {
       return filename;
     }
@@ -217,7 +224,6 @@ public class TelemetryExceptionParams {
       return inApp;
     }
 
-    // Setters
     public void setFilename(String filename) {
       this.filename = filename;
     }
@@ -238,13 +244,11 @@ public class TelemetryExceptionParams {
       this.inApp = inApp;
     }
 
-    // hashCode
     @Override
     public int hashCode() {
       return Objects.hash(filename, lineno, colno, function, inApp);
     }
 
-    // equals
     @Override
     public boolean equals(Object o) {
       if (this == o) {

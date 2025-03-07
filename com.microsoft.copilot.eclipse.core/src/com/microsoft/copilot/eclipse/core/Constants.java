@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.core;
 
+import java.util.Set;
+
 /**
  * A class to hold all the public constants used in the GitHub Copilot core.
  */
@@ -15,4 +17,11 @@ public class Constants {
   public static final String PROXY_KERBEROS_SP = "proxyKerberosSp";
   public static final String GITHUB_ENTERPRISE = "githubEnterprise";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
+  public static final String CHAT_VIEW_ID = "com.microsoft.copilot.eclipse.ui.chat.ChatView";
+  public static final String CHAT_CHANNEL = "chatProgress";
+  // Copied from InelliJ, excluded file extension list
+  // https://github.com/microsoft/copilot-intellij/blob/main/core/src/main/kotlin/com/github/copilot/chat/references/FileSearchService.kt
+  public static final Set<String> EXCLUDED_FILE_TYPE = Set.of("jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff", "ico",
+      "webp", "raw", "indd", "ai", "eps", "pdf", "bin", "exe", "dat", "dll", "so", "class", "jar", "app", "dmg", "iso",
+      "img", "docx", "pptx", "xlsx", "mp3", "wav", "flac", "mp4", "avi", "mov");
 }

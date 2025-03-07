@@ -6,13 +6,21 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.resource.ColorRegistry;
+import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
@@ -25,6 +33,9 @@ public class SwtUtils {
   private SwtUtils() {
     // prevent instantiation
   }
+
+  private static final String INLINE_ANNOTATION_COLOR_KEY = "org.eclipse.ui.editors.inlineAnnotationColor";
+  private static final int DEFAULT_GHOST_TEXT_SCALE = 128;
 
   /**
    * Invokes the given runnable on the display thread.
@@ -51,7 +62,7 @@ public class SwtUtils {
    * @param control the control used for the display
    */
   public static void invokeOnDisplayThread(Runnable runnable, Control control) {
-    if (Objects.isNull(control)) {
+    if (Objects.isNull(control) || control.isDisposed()) {
       invokeOnDisplayThread(runnable);
     } else {
       Display display = control.getDisplay();
@@ -70,10 +81,9 @@ public class SwtUtils {
   public static IEditorPart getActiveEditorPart() {
     AtomicReference<IEditorPart> ref = new AtomicReference<>();
     invokeOnDisplayThread(() -> {
-      IWorkbench workbench = PlatformUI.getWorkbench();
-      IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
-      if (window != null) {
-        ref.set(window.getActivePage().getActiveEditor());
+      IWorkbenchPage page = UiUtils.getActivePage();
+      if (page != null) {
+        ref.set(page.getActiveEditor());
       }
     });
     return ref.get();
@@ -183,5 +193,35 @@ public class SwtUtils {
       }
     }, styledText);
     return ref.get();
+  }
+
+  /**
+   * Get the registered inline annotation color.
+   */
+  @Nullable
+  public static Color getRegisteredInlineAnnotationColor(Display display) {
+    ColorRegistry colorRegistry = JFaceResources.getColorRegistry();
+    if (colorRegistry == null) {
+      return null;
+    }
+    return colorRegistry.get(INLINE_ANNOTATION_COLOR_KEY);
+  }
+
+  /**
+   * Get the default ghost text color.
+   */
+  public static Color getDefaultGhostTextColor(Display display) {
+    return new Color(display, new RGB(DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE));
+  }
+
+  /**
+   * Copy the given text to the clipboard.
+   */
+  public static void copyToClipboard(Control control, String text) {
+    invokeOnDisplayThread(() -> {
+      Clipboard clipboard = new Clipboard(Display.getDefault());
+      clipboard.setContents(new Object[] { text }, new Transfer[] { TextTransfer.getInstance() });
+      clipboard.dispose();
+    }, control);
   }
 }

@@ -4,6 +4,7 @@ Bundle-Name: com.microsoft.copilot.eclipse.core
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.core;singleton:=true
 Bundle-Version: 0.2.0.qualifier
 Export-Package: com.microsoft.copilot.eclipse.core,
+ com.microsoft.copilot.eclipse.core.chat,
  com.microsoft.copilot.eclipse.core.completion,
  com.microsoft.copilot.eclipse.core.format,
  com.microsoft.copilot.eclipse.core.logger,

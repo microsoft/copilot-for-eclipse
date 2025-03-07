@@ -69,6 +69,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     menuManager.add(new Separator());
     addCompletionSettingsAction(menuManager);
 
+    // Open Copilot chat view section
+    menuManager.add(new Separator());
+    addOpenChatViewAction(menuManager);
+
     Shell shell = PlatformUI.getWorkbench().getDisplay().getActiveShell();
     Menu menu = menuManager.createContextMenu(shell);
     menu.setVisible(true);
@@ -136,6 +140,12 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     String copilotStatusTitle = Messages.menu_copilotStatus + ": " + copilotStatus;
 
     MenuActionFactory.createMenuAction(menuManager, copilotStatusTitle, handlerService, copilotStatus, false);
+  }
+
+  private void addOpenChatViewAction(MenuManager menuManager) {
+    ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/github_copilot_chat.png");
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_openChatView, icon, handlerService,
+        "com.microsoft.copilot.eclipse.commands.openChatView", true);
   }
 
   private void addLinkToFeedbackForumAction(MenuManager menuManager) {

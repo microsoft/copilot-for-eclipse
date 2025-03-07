@@ -15,6 +15,9 @@ import org.junit.jupiter.api.BeforeEach;
 
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
+/**
+ * Base class for completion tests.
+ */
 public abstract class CompletionBaseTests {
 
   protected IProject project;
@@ -31,6 +34,12 @@ public abstract class CompletionBaseTests {
     project.delete(true, null);
   }
 
+  /**
+   * Opens the editor for the given file.
+   *
+   * @param file the file to open
+   * @return the editor part
+   */
   protected IEditorPart getEditorPartFor(IFile file) {
     AtomicReference<IEditorPart> ref = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {

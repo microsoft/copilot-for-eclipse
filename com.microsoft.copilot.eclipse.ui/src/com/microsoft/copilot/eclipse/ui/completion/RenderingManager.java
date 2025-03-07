@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.jface.resource.ColorRegistry;
-import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
@@ -14,7 +12,6 @@ import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -24,9 +21,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A class to control completion rendering.
  */
 public class RenderingManager implements PaintListener {
-
-  private static final String INLINE_ANNOTATION_COLOR_KEY = "org.eclipse.ui.editors.inlineAnnotationColor";
-  private static final int DEFAULT_GHOST_TEXT_SCALE = 128;
 
   private List<GhostText> ghostTexts;
 
@@ -56,14 +50,10 @@ public class RenderingManager implements PaintListener {
 
   @Nullable
   private Color getRegisteredInlineAnnotationColor(Display display) {
-    ColorRegistry colorRegistry = JFaceResources.getColorRegistry();
-    if (colorRegistry == null) {
-      return null;
-    }
-    Color color = colorRegistry.get(INLINE_ANNOTATION_COLOR_KEY);
+    Color color = SwtUtils.getRegisteredInlineAnnotationColor(display);
     if (color == null) {
       needDisposeColorResource = true;
-      color = new Color(display, new RGB(DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE));
+      color = SwtUtils.getDefaultGhostTextColor(display);
     }
     return color;
   }

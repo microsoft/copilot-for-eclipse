@@ -13,6 +13,7 @@ import org.eclipse.lsp4e.LanguageServersRegistry;
 import org.eclipse.lsp4e.LanguageServiceAccessor;
 import org.osgi.framework.BundleContext;
 
+import com.microsoft.copilot.eclipse.core.chat.ChatProvider;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
@@ -30,6 +31,7 @@ public class CopilotCore extends Plugin {
   private CompletionProvider completionProvider;
   private FormatOptionProvider formatOptionProvider;
   private GithubPanicErrorReport githubPanicErrorReport;
+  private ChatProvider chatProvider;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -168,4 +170,15 @@ public class CopilotCore extends Plugin {
     }
   }
 
+  /**
+   * Get the chat provider.
+   *
+   * @return the chat provider.
+   */
+  public ChatProvider getChatProvider() {
+    if (chatProvider == null) {
+      chatProvider = new ChatProvider();
+    }
+    return chatProvider;
+  }
 }

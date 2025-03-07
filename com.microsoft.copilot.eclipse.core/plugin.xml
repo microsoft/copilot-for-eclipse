@@ -17,6 +17,7 @@
 			clientImpl="com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageClient"
 			serverInterface="com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServer"
 			singleton="true"
+			launcherBuilder="com.microsoft.copilot.eclipse.core.lsp.CopilotLauncherBuilder"
 			lastDocumentDisconnectedTimeout="30">
 		</server>
 		<contentTypeMapping

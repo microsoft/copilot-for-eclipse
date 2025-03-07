@@ -71,10 +71,10 @@ class CompletionJobTests {
       return new CompletableFuture<>();
     });
 
-    CompletionJob job = new CompletionProvider(mockLsConnection, null).new CompletionJob(mockLsConnection);
     Position position = new Position(0, 0);
     CompletionDocument completionDoc = new CompletionDocument("file://test.java", position);
     completionDoc.setVersion(1);
+    CompletionJob job = new CompletionProvider(mockLsConnection, null).new CompletionJob(mockLsConnection);
     completionDoc.setInsertSpaces(true);
     completionDoc.setTabSize(4);
     job.setCompletionParams(new CompletionParams(completionDoc));
@@ -86,8 +86,7 @@ class CompletionJobTests {
     assertEquals(Status.CANCEL_STATUS, job.getResult());
 
   }
-  
-  
+
   @Test
   void testTriggerCompletionJobWhenCopilotIsSignedOutNotUsingEclipse() throws InterruptedException {
     CopilotStatusResult expectedResult = new CopilotStatusResult();
@@ -98,11 +97,11 @@ class CompletionJobTests {
     CompletableFuture<CompletionResult> future = new CompletableFuture<>();
     future.completeExceptionally(new ExecutionException("Not signed in", new Throwable()));
     when(mockLsConnection.getCompletions(any())).thenReturn(future);
-  
-    CompletionJob job = new CompletionProvider(mockLsConnection, authStatusManager).new CompletionJob(mockLsConnection);
+
     Position position = new Position(0, 0);
     CompletionDocument completionDoc = new CompletionDocument("file://test.java", position);
     completionDoc.setVersion(1);
+    CompletionJob job = new CompletionProvider(mockLsConnection, authStatusManager).new CompletionJob(mockLsConnection);
     completionDoc.setInsertSpaces(true);
     completionDoc.setTabSize(4);
     job.setCompletionParams(new CompletionParams(completionDoc));
@@ -110,7 +109,7 @@ class CompletionJobTests {
 
     IJobManager jobManager = Job.getJobManager();
     jobManager.join(CompletionProvider.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
-  
+
     assertTrue(job.getResult().getMessage().contains("Not signed in"));
     assertEquals(IStatus.ERROR, job.getResult().getSeverity());
     assertEquals(CopilotStatusResult.ERROR, authStatusManager.getCopilotStatus());

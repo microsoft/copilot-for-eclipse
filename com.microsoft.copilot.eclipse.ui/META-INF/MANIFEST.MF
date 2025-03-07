@@ -6,6 +6,7 @@ Bundle-Version: 0.2.0.qualifier
 Bundle-Localization: plugin
 Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.completion,
+ com.microsoft.copilot.eclipse.ui.chat.services,
  com.microsoft.copilot.eclipse.ui.completion.codemining,
  com.microsoft.copilot.eclipse.ui.dialogs,
  com.microsoft.copilot.eclipse.ui.handlers,
@@ -30,4 +31,14 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.2.0",
  org.apache.commons.lang3;bundle-version="3.16.0",
  org.eclipse.core.net;bundle-version="1.5.500",
  org.eclipse.swt;bundle-version="3.127.0",
- org.eclipse.ltk.core.refactoring;bundle-version="3.14.500"
+ org.eclipse.ltk.core.refactoring;bundle-version="3.14.500",
+ org.eclipse.tm4e.ui;bundle-version="0.13.0",
+ org.eclipse.tm4e.core;bundle-version="0.13.0",
+ org.eclipse.tm4e.registry;bundle-version="0.13.0",
+ org.eclipse.mylyn.wikitext;bundle-version="4.4.0",
+ org.eclipse.mylyn.wikitext.markdown;bundle-version="4.4.0",
+ org.eclipse.mylyn.wikitext.ui;bundle-version="4.4.0",
+ org.eclipse.core.jobs;bundle-version="3.15.400",
+ org.eclipse.core.databinding.observable;bundle-version="1.13.300",
+ org.eclipse.jface.databinding;bundle-version="1.15.300",
+ com.google.gson;bundle-version="2.11.0"

@@ -37,7 +37,21 @@
 			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer">
 		</initializer>
 	</extension>
-
+	<extension
+		point="org.eclipse.ui.views">
+		<category
+			name="%page.showViewPage.name"
+			id="com.microsoft.copilot.eclipse.chat">
+		</category>
+		<view
+			id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+			name="%page.showViewPageShowChatView.name"
+			icon="icons/chat/github_copilot_chat.png"
+			class="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+			category="com.microsoft.copilot.eclipse.chat"
+			inject="true">
+		</view>
+	</extension>
 	<!-- Commands registration -->
 	<extension
 		point="org.eclipse.ui.commands">
@@ -57,6 +71,10 @@
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.openChatView"
+			name="%command.showChatView.name">
+		</command>
+		<command
 			id="com.microsoft.copilot.eclipse.commands.signOut"
 			name="%command.signOutFromGitHub.name">
 		</command>
@@ -95,16 +113,16 @@
 			id="com.microsoft.copilot.eclipse.commands.openPreferences"
 			name="%command.openPreferencesPage.name">
 		</command>
-	<command
+		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts"
 			name="%command.openEditKeyboardShortcuts.name">
-	</command>
-	<command
+		</command>
+		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.autoShowCompletions"
 			name="%command.autoShowCompletions.name">
-	</command>
+		</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -155,11 +173,15 @@
 			commandId="com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts">
 		</handler>
 		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.OpenChatViewHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.openChatView">
+		</handler>
+		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.AutoShowCompletionsHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.autoShowCompletions">
 		</handler>
 	</extension>
-	
+
 	<extension
 		point="org.eclipse.ui.contexts">
 		<context
@@ -167,7 +189,7 @@
 			name="Completion Available"
 			description="Context when completion is available"
 			parentId="org.eclipse.ui.textEditorScope">
-	  </context>
+		</context>
 	</extension>
 
 	<!-- Keyboard shortcut registration -->
