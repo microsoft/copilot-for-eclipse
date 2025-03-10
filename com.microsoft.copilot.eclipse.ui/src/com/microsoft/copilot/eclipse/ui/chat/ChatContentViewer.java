@@ -146,6 +146,10 @@ public class ChatContentViewer extends ScrolledComposite {
    * Update the size of scrolled composite when there are content updates.
    */
   private void refreshScrollerLayout() {
+    if (this.isDisposed()) {
+      return;
+    }
+
     Rectangle clientArea = this.getClientArea();
     Point containerSize = cmpContent.computeSize(clientArea.width, SWT.DEFAULT);
     this.setMinSize(containerSize);
