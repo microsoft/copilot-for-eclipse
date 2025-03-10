@@ -365,6 +365,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (p != null) {
       p.removeChatProgressListener(this);
     }
+    // Unbind from the auth status service to dispose of the side effect
+    if (this.chatServiceManager != null) {
+      this.chatServiceManager.getAuthStatusService().unbindChatView(this);
+    }
     if (this.actionBar != null) {
       this.actionBar.unregisterMessageListener(this);
       this.actionBar.dispose();

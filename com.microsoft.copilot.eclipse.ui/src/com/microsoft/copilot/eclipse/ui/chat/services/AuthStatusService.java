@@ -19,6 +19,10 @@ public class AuthStatusService extends ChatBaseService implements CopilotAuthSta
 
   private IObservableValue<String> statusObservable;
 
+  private ISideEffect chatViewSideEffect;
+
+  private ChatView boundChatView;
+
   /**
    * Constructor for the AuthStatusService.
    *
@@ -46,8 +50,13 @@ public class AuthStatusService extends ChatBaseService implements CopilotAuthSta
     if (chatView == null) {
       return;
     }
+
+    // Unbind any previously bound chat view
+    unbindChatView();
+    this.boundChatView = chatView;
+
     ensureRealm(() -> {
-      ISideEffect.create(() -> {
+      chatViewSideEffect = ISideEffect.create(() -> {
         return this.statusObservable.getValue();
       }, chatView::buildViewFor);
     });
@@ -59,10 +68,37 @@ public class AuthStatusService extends ChatBaseService implements CopilotAuthSta
   }
 
   /**
+   * Unbind the currently bound chat view if any.
+   */
+  public void unbindChatView() {
+    if (chatViewSideEffect != null) {
+      chatViewSideEffect.dispose();
+      chatViewSideEffect = null;
+    }
+    boundChatView = null;
+  }
+
+  /**
+   * Unbind the specified chat view if it is currently bound.
+   *
+   * @param chatView the chat view to unbind
+   */
+  public void unbindChatView(ChatView chatView) {
+    if (chatView != null && chatView.equals(boundChatView)) {
+      unbindChatView();
+    }
+  }
+
+  /**
    * Dispose the service.
    */
   public void dispose() {
     this.authStatusManager.removeCopilotAuthStatusListener(this);
+    unbindChatView();
+    if (statusObservable != null) {
+      statusObservable.dispose();
+      statusObservable = null;
+    }
   }
 
 }

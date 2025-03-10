@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import com.google.gson.Gson;
@@ -46,6 +47,9 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
   private IObservableValue<CopilotModel> activeModelObservable;
   private CopilotModel defaultModel;
   private String path;
+
+  // Track side effects for each combo
+  private final Map<Combo, ISideEffect[]> comboSideEffects = new HashMap<>();
 
   /**
    * Constructor for the CopilotModelService.
@@ -164,8 +168,11 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
    * @param combo the combo to set the items
    */
   public void bindModelPicker(final Combo combo) {
+    // First unbind if previously bound to prevent leaks
+    unbindModelPicker(combo);
+
     ensureRealm(() -> {
-      ISideEffect.create(() -> {
+      ISideEffect modelNamesSideEffect = ISideEffect.create(() -> {
         HashMap<String, CopilotModel> modelMap = this.modelObservable.getValue();
         String[] names = modelMap.keySet().toArray(new String[0]);
         Arrays.sort(names, String.CASE_INSENSITIVE_ORDER);
@@ -176,7 +183,7 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
         }
       });
 
-      ISideEffect.create(() -> {
+      ISideEffect activeModelSideEffect = ISideEffect.create(() -> {
         CopilotModel activeModel = this.activeModelObservable.getValue();
         return activeModel == null ? "" : activeModel.getModelName();
       }, (String modelName) -> {
@@ -199,13 +206,55 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
           combo.getParent().getParent().layout();
         }
       });
+
+      // Store the side effects for later disposal
+      comboSideEffects.put(combo, new ISideEffect[] { modelNamesSideEffect, activeModelSideEffect });
+
+      // Add a dispose listener to auto-unbind when the combo is disposed
+      combo.addDisposeListener(e -> unbindModelPicker(combo));
     });
+  }
+
+  /**
+   * Unbind and dispose side effects for a specific combo.
+   *
+   * @param combo the combo to unbind
+   */
+  public void unbindModelPicker(Combo combo) {
+    ISideEffect[] effects = comboSideEffects.remove(combo);
+    if (effects != null) {
+      for (ISideEffect effect : effects) {
+        if (effect != null) {
+          effect.dispose();
+        }
+      }
+    }
   }
 
   /**
    * Dispose the service.
    */
   public void dispose() {
+    // Dispose all combo side effects
+    for (ISideEffect[] effects : comboSideEffects.values()) {
+      for (ISideEffect effect : effects) {
+        if (effect != null) {
+          effect.dispose();
+        }
+      }
+    }
+    comboSideEffects.clear();
+
+    // Dispose observables
+    if (modelObservable != null) {
+      modelObservable.dispose();
+      modelObservable = null;
+    }
+
+    if (activeModelObservable != null) {
+      activeModelObservable.dispose();
+      activeModelObservable = null;
+    }
     this.authStatusManager.removeCopilotAuthStatusListener(this);
   }
 
