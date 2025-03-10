@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
@@ -168,7 +169,10 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   private @Nullable Path findBinary() throws IOException {
-    if (PlatformUtils.isMac() && PlatformUtils.isIntel64()) {
+    // the binary is only supported on macOS and Intel x86_64 with Linux and Windows
+    if (!PlatformUtils.isMac() && !PlatformUtils.isIntel64()) {
+      CopilotCore.LOGGER.error(
+          new IllegalStateException("Unsupport platform for CLS: " + Platform.getOS() + ", " + Platform.getOSArch()));
       return null;
     }
 
