@@ -240,12 +240,11 @@ public class TurnWidget extends Composite {
     gridData.widthHint = size;
     gridData.heightHint = size;
     lblAvatar.setLayoutData(gridData);
-
     lblAvatar.addPaintListener(new PaintListener() {
       @Override
       public void paintControl(PaintEvent e) {
         Image avatar = lblAvatar.getImage();
-        if (avatar == null || avatar.isDisposed()) {
+        if (avatar == null || avatar.isDisposed() || lblAvatar.isDisposed()) {
           return;
         }
 
@@ -255,13 +254,14 @@ public class TurnWidget extends Composite {
         gc.setInterpolation(SWT.HIGH);
 
         Rectangle bounds = e.gc.getClipping();
-        int diameter = Math.min(bounds.width, bounds.height);
 
         // Clear previous content with background color
         gc.setBackground(lblAvatar.getBackground());
         gc.fillRectangle(bounds);
 
         // Create circular clipping path for the image
+        Rectangle imgBounds = avatar.getBounds();
+        int diameter = Math.min(imgBounds.width, imgBounds.height);
         Path path = new Path(getDisplay());
         path.addArc(0, 0, diameter, diameter, 0, 360);
 
@@ -270,7 +270,6 @@ public class TurnWidget extends Composite {
 
         // Draw the image first
         gc.setClipping(path);
-        Rectangle imgBounds = avatar.getBounds();
         gc.drawImage(avatar, 0, 0, imgBounds.width, imgBounds.height, borderWidth, borderWidth,
             diameter - (2 * borderWidth), diameter - (2 * borderWidth));
 
