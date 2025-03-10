@@ -73,7 +73,8 @@ public class ChatContentViewer extends ScrolledComposite {
    * Should be called when user sends a message.
    */
   public void startNewTurn(String workDoneToken, String message) {
-    TurnWidget turnWidget = createNewTurn(workDoneToken, false);
+    TurnWidget turnWidget = new TurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken, false);
+    turns.put(workDoneToken, turnWidget);
     turnWidget.appendMessage(message);
     turnWidget.notifyTurnEnd();
     refreshScrollerLayout();
@@ -83,31 +84,33 @@ public class ChatContentViewer extends ScrolledComposite {
   /**
    * Create a new turn.
    */
-  public TurnWidget createNewTurn(String workDoneToken, boolean isCopilot) {
-    TurnWidget turnWidget = new TurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken, isCopilot);
-    turns.put(workDoneToken, turnWidget);
-    return turnWidget;
+  public void createNewTurn(String workDoneToken, boolean isCopilot) {
+    SwtUtils.invokeOnDisplayThread(() -> {
+      TurnWidget turnWidget = new TurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken, isCopilot);
+      turns.put(workDoneToken, turnWidget);
+    }, this);
+
   }
 
   /**
    * Process turn event.
    */
   public void processTurnEvent(ChatProgressValue value) {
-    if (!turns.containsKey(value.getTurnId())) {
-      CopilotCore.LOGGER.error(new IllegalStateException("turnId not found: " + value.getTurnId()));
-      return;
-    }
-    TurnWidget turnWidget = turns.get(value.getTurnId());
-    if (turnWidget == null) {
-      CopilotCore.LOGGER.error(new IllegalStateException("TurnWidget is null when event comes."));
-      return;
-    }
-    if (value.getKind() == WorkDoneProgressKind.report) {
-      turnWidget.appendMessage(value.getReply());
-    } else if (value.getKind() == WorkDoneProgressKind.end) {
-      turnWidget.notifyTurnEnd();
-    }
     SwtUtils.invokeOnDisplayThread(() -> {
+      if (!turns.containsKey(value.getTurnId())) {
+        CopilotCore.LOGGER.error(new IllegalStateException("turnId not found: " + value.getTurnId()));
+        return;
+      }
+      TurnWidget turnWidget = turns.get(value.getTurnId());
+      if (turnWidget == null) {
+        CopilotCore.LOGGER.error(new IllegalStateException("TurnWidget is null when event comes."));
+        return;
+      }
+      if (value.getKind() == WorkDoneProgressKind.report) {
+        turnWidget.appendMessage(value.getReply());
+      } else if (value.getKind() == WorkDoneProgressKind.end) {
+        turnWidget.notifyTurnEnd();
+      }
       refreshScrollerLayout();
       String message = value.getErrorMessage();
       String reason = value.getErrorReason();

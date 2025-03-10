@@ -240,9 +240,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     switch (value.getKind()) {
       case begin:
         if (this.chatContentViewer != null) {
-          SwtUtils.invokeOnDisplayThread(() -> {
-            this.chatContentViewer.createNewTurn(value.getTurnId(), true);
-          }, mainSection);
+          this.chatContentViewer.createNewTurn(value.getTurnId(), true);
         }
         // new a turn widget
         this.conversationId = value.getConversationId();
@@ -291,7 +289,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getCopilotModelService().getActiveModel();
     String modelName = activeModel == null ? null : activeModel.getModelFamily();
-
+    if (!(this.hasHistory)) {
+      this.hasHistory = true;
+      createConversationPage();
+    }
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation
       CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken, message,
@@ -321,10 +322,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         return null;
       });
     }
-    if (!(this.hasHistory)) {
-      this.hasHistory = true;
-      createConversationPage();
-    }
+
     // TODO: what turn ID to use when we don't have the response yet?
     this.chatContentViewer.startNewTurn(workDoneToken, message);
   }
