@@ -194,9 +194,11 @@ class SourceViewerComposite extends Composite {
 
     ImageDescriptor insertDesc = AbstractUIPlugin.imageDescriptorFromPlugin(UiConstants.WORKBENCH_TEXTEDITOR,
         UiConstants.INSERT_ICON);
-    this.insertIcon = Optional.ofNullable(insertDesc).map(desc -> desc.createImage())
-        .orElseGet(() -> PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_PASTE));
-    Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertIcon, "Insert", "Insert into editor");
+    this.insertIcon = Optional.ofNullable(insertDesc).map(desc -> desc.createImage()).orElse(null);
+    Image pasteIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_PASTE);
+    Image insertButtonIcon = this.insertIcon != null ? this.insertIcon : pasteIcon;
+    Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertButtonIcon, "Insert",
+        "Insert into editor");
     insertButton.addListener(SWT.Selection, this::insert);
 
     result.setVisible(false);
@@ -312,9 +314,6 @@ class SourceViewerComposite extends Composite {
   @Override
   public void dispose() {
     super.dispose();
-    if (copyIcon != null) {
-      copyIcon.dispose();
-    }
     if (insertIcon != null) {
       insertIcon.dispose();
     }

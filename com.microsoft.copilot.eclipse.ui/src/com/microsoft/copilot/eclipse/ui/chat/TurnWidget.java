@@ -197,11 +197,15 @@ public class TurnWidget extends Composite {
    * @param code the code block
    */
   private void createCodeBlock(String language) {
-    this.currentCodeBlock = new SourceViewerComposite(this, SWT.BORDER, this.serviceManager, language, turnId,
+    final SourceViewerComposite codeBlock = new SourceViewerComposite(this, SWT.BORDER, this.serviceManager, language,
+        turnId,
         this.codeBlockIndex);
+    this.addDisposeListener(e -> codeBlock.dispose());
+    codeBlock.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    codeBlock.layout();
+
+    this.currentCodeBlock = codeBlock;
     this.codeBlockIndex++;
-    this.currentCodeBlock.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-    this.currentCodeBlock.layout();
   }
 
   /**
