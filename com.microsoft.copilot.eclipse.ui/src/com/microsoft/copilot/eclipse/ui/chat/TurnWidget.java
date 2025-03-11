@@ -133,7 +133,7 @@ public class TurnWidget extends Composite {
 
   private void processMessageLine(String line) {
     SwtUtils.invokeOnDisplayThread(() -> {
-      if (line.startsWith(CODE_BLOCK_ANNOTATION)) {
+      if (line.trim().startsWith(CODE_BLOCK_ANNOTATION)) {
         if (inCodeBlock) {
           // end of code block
           inCodeBlock = false;
@@ -143,7 +143,7 @@ public class TurnWidget extends Composite {
           inCodeBlock = true;
           mdContentBuilder.setLength(0);
           currentTextBlock = null;
-          String language = line.substring(CODE_BLOCK_ANNOTATION.length()).trim();
+          String language = line.trim().substring(CODE_BLOCK_ANNOTATION.length());
           createCodeBlock(language);
         }
       } else {
