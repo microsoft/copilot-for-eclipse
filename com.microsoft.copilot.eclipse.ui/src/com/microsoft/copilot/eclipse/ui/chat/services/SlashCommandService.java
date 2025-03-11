@@ -24,7 +24,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
  * Service for handling slash commands.
  */
 public class SlashCommandService implements CopilotAuthStatusListener {
-  private List<ConversationTemplate> templates = new  ArrayList<>();
+  private List<ConversationTemplate> templates = new ArrayList<>();
   private HashSet<String> allCommands = new HashSet<>();
   // Exclude intelliJ sepcific slash commands
   private static final Set<String> EXCLUDED_COMMANDS = Set.of("help", "feedback");
@@ -95,13 +95,29 @@ public class SlashCommandService implements CopilotAuthStatusListener {
       return false;
     }
     // Try to recover the text by adding a dot at the cursor position
-    String recoveredText = "^" + text.substring(0, cursorPosition) + "." + text.substring(cursorPosition) + "$";
+    String recoveredText = text.substring(0, cursorPosition) + "." + text.substring(cursorPosition);
     for (String command : allCommands) {
-      if (command.matches(recoveredText)) {
+      if (matchesRecoveredCommand(recoveredText, command)) {
         return true;
       }
     }
     return false;
+  }
+
+  private boolean matchesRecoveredCommand(String recovered, String command) {
+    if (command.length() != recovered.length()) {
+      return false;
+    }
+    int diffCount = 0;
+    for (int i = 0; i < command.length(); i++) {
+      if (command.charAt(i) != recovered.charAt(i)) {
+        diffCount++;
+        if (diffCount > 1) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
