@@ -121,7 +121,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
 
   private void onTextChanged() {
     StyledText tvw = ChatInputTextViewer.this.getTextWidget();
-    Point size = tvw.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    Point size = tvw.computeSize(tvw.getSize().x, SWT.DEFAULT);
     GridData gd = (GridData) tvw.getLayoutData();
     gd.heightHint = Math.min(tvw.getLineHeight() * MAX_INPUT_ROWS, size.y);
     // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
