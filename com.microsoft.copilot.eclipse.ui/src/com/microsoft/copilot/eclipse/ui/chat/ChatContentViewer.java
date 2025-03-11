@@ -179,6 +179,8 @@ public class ChatContentViewer extends ScrolledComposite {
     if (this.warnWidget != null) {
       this.warnWidget.dispose();
     }
+    if (this.errorWidget != null) {
+      this.errorWidget.dispose();
+    }
   }
-
 }
