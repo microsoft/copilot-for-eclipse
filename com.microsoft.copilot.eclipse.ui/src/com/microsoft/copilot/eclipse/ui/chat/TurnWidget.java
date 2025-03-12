@@ -4,14 +4,7 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.Document;
-import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
-import org.eclipse.jface.text.hyperlink.MultipleHyperlinkPresenter;
-import org.eclipse.jface.text.hyperlink.URLHyperlinkDetector;
 import org.eclipse.jface.text.source.SourceViewer;
-import org.eclipse.mylyn.internal.wikitext.ui.editor.syntax.MarkupHyperlinkDetector;
-import org.eclipse.mylyn.internal.wikitext.ui.viewer.AnnotationHyperlinkDetector;
-import org.eclipse.mylyn.wikitext.markdown.MarkdownLanguage;
-import org.eclipse.mylyn.wikitext.ui.viewer.MarkupViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.PaintEvent;
@@ -21,7 +14,6 @@ import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Path;
-import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -172,10 +164,8 @@ public class TurnWidget extends Composite {
     if (currentTextBlock == null) {
       this.createTextBlock();
     }
-    if (currentTextBlock instanceof MarkupViewer markupViewer) {
+    if (currentTextBlock instanceof ChatMarkupViewer markupViewer) {
       markupViewer.setMarkup(text);
-      // reset text presentation to update the style, otherwise the style won't be updated
-      markupViewer.setTextPresentation(markupViewer.getTextPresentation());
     } else {
       currentTextBlock.setDocument(new Document(text));
     }
@@ -215,16 +205,7 @@ public class TurnWidget extends Composite {
    */
   private void createTextBlock() {
     if (isCopilot) {
-      MarkupViewer markupViewer = new MarkupViewer(this, null, SWT.MULTI | SWT.WRAP);
-      markupViewer.setMarkupLanguage(new MarkdownLanguage());
-      markupViewer.setDisplayImages(false);
-      IHyperlinkDetector[] hyperlinkDetectors = { new URLHyperlinkDetector(), new MarkupHyperlinkDetector(),
-          new AnnotationHyperlinkDetector() };
-      markupViewer.setHyperlinkDetectors(hyperlinkDetectors, SWT.NONE);
-      MultipleHyperlinkPresenter hyperlinkPresenter = new MultipleHyperlinkPresenter((RGB) null);
-      markupViewer.setHyperlinkPresenter(hyperlinkPresenter);
-
-      this.currentTextBlock = markupViewer;
+      this.currentTextBlock = new ChatMarkupViewer(this, SWT.MULTI | SWT.WRAP);
     } else {
       this.currentTextBlock = new SourceViewer(this, null, SWT.MULTI | SWT.WRAP);
     }
