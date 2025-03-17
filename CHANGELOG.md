@@ -6,8 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 0.4.0
-### Fixed
+### Added
+- Support ABAP. [#279](https://github.com/microsoft/copilot-eclipse/issues/279)
+
+### Changed
 - Mark org.eclipse.jdt.annotation to optional. [#411](https://github.com/microsoft/copilot-eclipse/issues/411)
+
+### Fixed
+- NPE when IFile.getLocation() is null. [#303](https://github.com/microsoft/copilot-eclipse/issues/303)
+- Illegal state exception in Turn widget. [#496](https://github.com/microsoft/copilot-eclipse/issues/496)
+- SWT resources not disposed properly. [#498](https://github.com/microsoft/copilot-eclipse/issues/498)
+- Markdown viewer fallbacks to textviewer. [#401](https://github.com/microsoft/copilot-eclipse/issues/401)
+- Chat input cannot be rendered as multi line when input text in too long. [#449](https://github.com/microsoft/copilot-eclipse/issues/449)
+- Exception when deleting word leading with brackets in chat input box. [#480](https://github.com/microsoft/copilot-eclipse/issues/480)
 
 ## 0.3.0
 ### Added
