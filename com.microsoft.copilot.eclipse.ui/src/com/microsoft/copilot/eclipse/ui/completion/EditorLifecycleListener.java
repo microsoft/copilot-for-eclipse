@@ -1,14 +1,15 @@
 package com.microsoft.copilot.eclipse.ui.completion;
 
 import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IPartListener;
+import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPart;
+import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 /**
  * Listen to the lifecycle event of an editor parts.
  */
-public class EditorLifecycleListener implements IPartListener {
+public class EditorLifecycleListener implements IPartListener2 {
 
   private EditorsManager manager;
 
@@ -20,29 +21,20 @@ public class EditorLifecycleListener implements IPartListener {
   }
 
   @Override
-  public void partActivated(IWorkbenchPart part) {
-    createCompletionHandlerFor(part);
-
+  public void partActivated(IWorkbenchPartReference partRef) {
+    createCompletionHandlerFor(partRef.getPart(false));
   }
 
   @Override
-  public void partBroughtToTop(IWorkbenchPart part) {
-    // do nothing.
+  public void partInputChanged(IWorkbenchPartReference partRef) {
+    // try to re-create the completion handler for the part to fix the completion manager is not created for the ABAP
+    // editor in the beginning
+    this.partActivated(partRef);
   }
 
   @Override
-  public void partClosed(IWorkbenchPart part) {
-    disposeCompletionHandlerFor(part);
-  }
-
-  @Override
-  public void partDeactivated(IWorkbenchPart part) {
-    // do nothing.
-  }
-
-  @Override
-  public void partOpened(IWorkbenchPart part) {
-    // do nothing.
+  public void partClosed(IWorkbenchPartReference partRef) {
+    disposeCompletionHandlerFor(partRef.getPart(false));
   }
 
   /**

@@ -46,11 +46,32 @@ class CompletionProviderTests {
   private CompletionListener mockListener;
 
   @Test
-  void testShouldNotifyListenersOnCompletion() throws OperationCanceledException, InterruptedException, URISyntaxException {
+  void testShouldGetLocationUriForRemoteFileOnCompletion()
+      throws OperationCanceledException, InterruptedException, URISyntaxException {
     when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(false);
     when(mockLsConnection.getCompletions(any()))
         .thenReturn(CompletableFuture.completedFuture(new CompletionResult(List.of(mock(CompletionItem.class)))));
-    
+
+    IFile mockFile = mock(IFile.class);
+    when(mockFile.getLocation()).thenReturn(null);
+    when(mockFile.getLocationURI()).thenReturn(new URI("file://test.java"));
+    CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
+    completionProvider.addCompletionListener(mockListener);
+    Position position = new Position(0, 0);
+    completionProvider.triggerCompletion(mockFile, position, 1);
+    IJobManager jobManager = Job.getJobManager();
+    jobManager.join(CompletionProvider.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
+    verify(mockLsConnection, times(1)).getCompletions(any());
+    verify(mockFile, times(2)).getLocationURI();
+  }
+
+  @Test
+  void testShouldNotifyListenersOnCompletion()
+      throws OperationCanceledException, InterruptedException, URISyntaxException {
+    when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(false);
+    when(mockLsConnection.getCompletions(any()))
+        .thenReturn(CompletableFuture.completedFuture(new CompletionResult(List.of(mock(CompletionItem.class)))));
+
     IFile mockFile = mock(IFile.class);
     when(mockFile.getLocation()).thenReturn(new Path("file://test,java"));
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
@@ -65,7 +86,7 @@ class CompletionProviderTests {
   @Test
   void testShouldNotTriggerCompletionWhenNotSignedIn() {
     when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(true);
-    
+
     IFile mockFile = mock(IFile.class);
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     completionProvider.addCompletionListener(mockListener);
@@ -77,7 +98,7 @@ class CompletionProviderTests {
 
   @Test
   void testTriggerCompletionJobWithParams() throws InterruptedException, URISyntaxException {
-	when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(false);
+    when(mockStatusManager.isNotSignedInOrNotAuthorized()).thenReturn(false);
     CompletionItem mockCompletionItem = mock(CompletionItem.class);
     CompletionResult expectedResult = new CompletionResult(List.of(mockCompletionItem));
     CompletableFuture<CompletionResult> future = CompletableFuture.completedFuture(expectedResult);

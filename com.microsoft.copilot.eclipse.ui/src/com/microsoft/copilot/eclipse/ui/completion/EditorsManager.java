@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextInputListener;
-import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -53,7 +52,7 @@ public class EditorsManager implements ITextInputListener {
       return null;
     }
 
-    ITextViewer textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+    ITextViewer textViewer = (ITextViewer) editor.getAdapter(ITextViewer.class);
     if (!SwtUtils.isEditable(textViewer)) {
       return null;
     }
@@ -122,7 +121,7 @@ public class EditorsManager implements ITextInputListener {
     CompletionManager handler = editorMap.remove(editor);
     if (handler != null) {
       handler.dispose();
-      ITextViewer textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+      ITextViewer textViewer = (ITextViewer) editor.getAdapter(ITextViewer.class);
       SwtUtils.invokeOnDisplayThread(() -> {
         textViewer.removeTextInputListener(this);
       }, textViewer.getTextWidget());

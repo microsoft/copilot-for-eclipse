@@ -13,7 +13,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
@@ -26,6 +25,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
 /**
  * Provider for inline completion.
@@ -65,7 +65,7 @@ public class CompletionProvider {
       return;
     }
     this.completionJob.cancel();
-    String uriString = LSPEclipseUtils.toUri(file.getLocation().toFile()).toASCIIString();
+    String uriString = FileUtils.getFileUri(file);
     CompletionDocument completionDoc = new CompletionDocument(uriString, position);
     completionDoc.setVersion(documentVersion);
 

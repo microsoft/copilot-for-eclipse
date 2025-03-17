@@ -241,24 +241,20 @@ class SourceViewerComposite extends Composite {
       SwtUtils.getActiveEditorPart();
       try {
         IEditorPart editor = SwtUtils.getActiveEditorPart();
-        if (editor != null && editor instanceof ITextEditor textEditor) {
-          // Get document and selection
-          IDocumentProvider provider = textEditor.getDocumentProvider();
-          IDocument document = Optional.ofNullable(provider).map(p -> p.getDocument(textEditor.getEditorInput()))
-              .orElse(null);
-          if (document == null) {
-            CopilotCore.LOGGER.error(new IllegalStateException("Failed to get the document from the active editor."));
-            MessageDialog.openError(getShell(), "Cannot Insert", "Failed to get the document from the active editor.");
-            return;
-          }
+        if (editor == null) {
+          MessageDialog.openError(getShell(), "Cannot Insert", "No active editor found.");
+          return;
+        }
 
-          ITextSelection selection = (ITextSelection) textEditor.getSelectionProvider().getSelection();
-          // Insert the content at current position
-          int offset = selection.getOffset();
-          document.replace(offset, selection.getLength(), content);
+        ITextEditor textEditor = null;
+        if (editor instanceof ITextEditor) {
+          textEditor = (ITextEditor) editor;
+        } else {
+          textEditor = (ITextEditor) editor.getAdapter(ITextEditor.class);
+        }
 
-          // Set the cursor position after the inserted text
-          textEditor.selectAndReveal(offset + content.length(), 0);
+        if (textEditor != null) {
+          insertIntoTextEditor(textEditor, content);
         } else {
           CopilotCore.LOGGER.error(new IllegalStateException("The active editor doesn't support text insertion."));
           MessageDialog.openError(getShell(), "Cannot Insert", "The active editor doesn't support text insertion.");
@@ -269,6 +265,26 @@ class SourceViewerComposite extends Composite {
             "An error occurred while inserting the code: " + ex.getMessage());
       }
     }
+  }
+
+  private void insertIntoTextEditor(ITextEditor textEditor, String content) throws BadLocationException {
+    IDocumentProvider provider = textEditor.getDocumentProvider();
+    IDocument document = Optional.ofNullable(provider).map(p -> p.getDocument(textEditor.getEditorInput()))
+        .orElse(null);
+
+    if (document == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Failed to get the document from the active editor."));
+      MessageDialog.openError(getShell(), "Cannot Insert", "Failed to get the document from the active editor.");
+      return;
+    }
+
+    ITextSelection selection = (ITextSelection) textEditor.getSelectionProvider().getSelection();
+    // Insert the content at current position
+    int offset = selection.getOffset();
+    document.replace(offset, selection.getLength(), content);
+
+    // Set the cursor position after the inserted text
+    textEditor.selectAndReveal(offset + content.length(), 0);
   }
 
   private static SourceViewerConfiguration getConfiguration(String lang) {

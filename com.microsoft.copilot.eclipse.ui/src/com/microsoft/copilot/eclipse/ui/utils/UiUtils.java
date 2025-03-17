@@ -365,7 +365,6 @@ public class UiUtils {
     return new Font(display, fontData);
   }
 
-
   /**
    * Sets the background of the given composite to the background of its parent. As eclipse css may overwrite the result
    * of setBackground, this method will also add a paint listener to keep the background color consistent.
@@ -408,5 +407,4 @@ public class UiUtils {
     }
     return control.getBackground();
   }
-
 }

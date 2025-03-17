@@ -16,7 +16,6 @@ import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextInputListener;
 import org.eclipse.jface.text.ITextListener;
-import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextSelection;
@@ -95,7 +94,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
   public CompletionManager(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
       ITextEditor editor, LanguageServerSettingManager settingsManager) {
     this.codeMinings = new ArrayList<>();
-    this.textViewer = (ITextViewer) editor.getAdapter(ITextOperationTarget.class);
+    this.textViewer = (ITextViewer) editor.getAdapter(ITextViewer.class);
     this.editorTitle = editor.getTitle();
     // if the text viewer is null, we will not register listeners.
     // the side effect is that the completion will not be triggered for this editor.
@@ -175,10 +174,12 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
   // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/221
   // Can be removed if the code folding does not trigger completion clearing.
   private void registerCodeBlockCollapseListener(ITextEditor editor) {
-    ISourceViewer sourceViewer = (ISourceViewer) editor.getAdapter(ITextOperationTarget.class);
-    if (sourceViewer instanceof ProjectionViewer projectionViewer) {
-      this.annotationModel = projectionViewer.getProjectionAnnotationModel();
-      this.annotationModel.addAnnotationModelListener(this);
+    ITextEditor textEditor = (ITextEditor) editor.getAdapter(ITextEditor.class);
+    if (textEditor instanceof ISourceViewer sourceViewer) {
+      if (sourceViewer instanceof ProjectionViewer projectionViewer) {
+        this.annotationModel = projectionViewer.getProjectionAnnotationModel();
+        this.annotationModel.addAnnotationModelListener(this);
+      }
     }
   }
 

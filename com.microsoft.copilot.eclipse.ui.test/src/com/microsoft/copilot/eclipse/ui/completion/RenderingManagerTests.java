@@ -6,7 +6,6 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.JFaceResources;
-import org.eclipse.jface.text.ITextOperationTarget;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.ui.IEditorPart;
@@ -23,7 +22,7 @@ class RenderingManagerTests extends CompletionBaseTests {
     file.create("".getBytes(), IResource.FORCE, null);
 
     IEditorPart editorPart = getEditorPartFor(file);
-    ITextViewer textViewer = (ITextViewer) editorPart.getAdapter(ITextOperationTarget.class);
+    ITextViewer textViewer = (ITextViewer) editorPart.getAdapter(ITextViewer.class);
 
     RenderingManager manager = new RenderingManager(textViewer);
     manager.dispose();
