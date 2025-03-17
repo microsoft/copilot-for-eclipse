@@ -26,5 +26,5 @@ tbd
 - [ ] Close current milestone and create a new milestone
 - [ ] Update test plan
   - [ ] @jdneo 
-  - [ ] @yanshudan 
+  - [ ] @hithisispolarbear 
   - [ ] @ethanyhou 
