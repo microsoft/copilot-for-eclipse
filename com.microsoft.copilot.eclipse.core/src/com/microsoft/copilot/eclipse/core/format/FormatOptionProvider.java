@@ -103,16 +103,16 @@ public class FormatOptionProvider {
     Map<IProject, LanguageFormatReader> projectToLanguageFormatReaderMap = languageIdToProjectToLanguageFormatReaderMap
         .computeIfAbsent(languageId, k -> new HashMap<>());
 
-    LanguageFormatReader languageFormatReaderfirProject = projectToLanguageFormatReaderMap.get(project);
-    if (languageFormatReaderfirProject == null) {
-      languageFormatReaderfirProject = loadFormatReaderForTheProject(languageId, project);
-      if (languageFormatReaderfirProject == null) {
+    LanguageFormatReader languageFormatReaderForProject = projectToLanguageFormatReaderMap.get(project);
+    if (languageFormatReaderForProject == null) {
+      languageFormatReaderForProject = loadFormatReaderForTheProject(languageId, project);
+      if (languageFormatReaderForProject == null) {
         return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
       }
-      projectToLanguageFormatReaderMap.put(project, languageFormatReaderfirProject);
+      projectToLanguageFormatReaderMap.put(project, languageFormatReaderForProject);
     }
 
-    return languageFormatReaderfirProject.getFormattingOptions();
+    return languageFormatReaderForProject.getFormattingOptions();
   }
 
   private LanguageFormatReader loadFormatReaderForTheProject(String languageId, IProject project) {

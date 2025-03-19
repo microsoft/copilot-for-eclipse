@@ -7,8 +7,6 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChange
 import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.eclipse.lsp4j.FormattingOptions;
 
-import com.microsoft.copilot.eclipse.core.CopilotCore;
-
 /**
  * C/C++ format.
  */
@@ -76,8 +74,6 @@ public class CdtFormatReader extends LanguageFormatReader {
         DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR);
     this.formattingOptions.setInsertSpaces((tabCharString != null ? tabCharString.equalsIgnoreCase("space")
         : PREFERENCE_DEFAULT_TAB_CHAR.equalsIgnoreCase("space")));
-
-    logPreferenceUpdate(DefaultCodeFormatterConstants_FORMATTER_TAB_CHAR, tabCharString);
   }
 
   private void fetchTabSizePreference() {
@@ -86,12 +82,5 @@ public class CdtFormatReader extends LanguageFormatReader {
         DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE);
     this.formattingOptions
         .setTabSize(tabSizeString != null ? Integer.parseInt(tabSizeString) : PREFERENCE_DEFAULT_TAB_SIZE);
-
-    logPreferenceUpdate(DefaultCodeFormatterConstants_FORMATTER_TAB_SIZE, tabSizeString);
-  }
-
-  private void logPreferenceUpdate(String key, String newValue) {
-    CopilotCore.LOGGER.info(String.format("C/C++ format preference cache for %s is updated. key: %s, new value: %s",
-        project.getName(), key, newValue));
   }
 }
