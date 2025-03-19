@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.graphics.Image;
@@ -81,7 +82,7 @@ public class ReferencedFile extends Composite {
   /**
    * Set the file for this widget.
    */
-  protected void setFile(IFile file) {
+  protected void setFile(@Nullable IFile file) {
     this.file = file;
     RowData layoutData = getLayoutData() == null ? new RowData() : (RowData) getLayoutData();
     if (file == null) {

@@ -1,6 +1,9 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.Objects;
+
 import org.eclipse.core.resources.IFile;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.graphics.Image;
@@ -9,11 +12,12 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IPartService;
 import org.eclipse.ui.IWorkbenchPartReference;
+import org.eclipse.ui.ide.ResourceUtil;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -37,9 +41,10 @@ public class CurrentReferencedFile extends ReferencedFile {
   public CurrentReferencedFile(Composite parent) {
     super(parent, null);
     IFile currentFile = UiUtils.getCurrentFile();
-    if (currentFile != null) {
-      setFile(currentFile);
+    if (needExcluded(currentFile)) {
+      currentFile = null;
     }
+    setFile(currentFile);
     updateCloseClickBtnIcon();
     setCloseClickAction(new MouseAdapter() {
       @Override
@@ -52,15 +57,16 @@ public class CurrentReferencedFile extends ReferencedFile {
       @Override
       public void partActivated(IWorkbenchPartReference partRef) {
         if (partRef.getPart(false) instanceof IEditorPart editor) {
-          if (editor.getEditorInput() instanceof IFileEditorInput editorInput) {
-            IFile newFile = editorInput.getFile();
-            IFile file = CurrentReferencedFile.this.getFile();
-            if (newFile.equals(file)) {
-              return;
-            }
-            CurrentReferencedFile.this.setFile(newFile);
-            CurrentReferencedFile.this.updateCloseClickBtnIcon();
+          IFile newFile = ResourceUtil.getFile(editor.getEditorInput());
+          IFile file = CurrentReferencedFile.this.getFile();
+          if (Objects.equals(newFile, file)) {
+            return;
           }
+          if (needExcluded(newFile)) {
+            newFile = null;
+          }
+          CurrentReferencedFile.this.setFile(newFile);
+          CurrentReferencedFile.this.updateCloseClickBtnIcon();
         }
       }
 
@@ -102,6 +108,20 @@ public class CurrentReferencedFile extends ReferencedFile {
 
   public boolean isCurrentFileVisible() {
     return isCurrentFileVisible;
+  }
+
+  /**
+   * Returns true if the file needs to be excluded from 'Current file' reference in chat.
+   */
+  private boolean needExcluded(@Nullable IFile file) {
+    if (file == null) {
+      return true;
+    }
+    String fileExtension = file.getFileExtension();
+    if (fileExtension == null) {
+      return true;
+    }
+    return Constants.EXCLUDED_FILE_TYPE.contains(fileExtension);
   }
 
   @Override
