@@ -23,6 +23,20 @@
 			</toolbar>
 		</menuContribution>
 	</extension>
+	<extension point="org.eclipse.ui.menus">
+		<menuContribution
+			locationURI="menu:org.eclipse.ui.main.menu?endof=additions">
+			<menu
+				id="com.microsoft.copilot.eclipse.ui.menuBar"
+				label="Copilot"
+				mnemonic="C">
+				<dynamic
+					id="com.microsoft.copilot.eclipse.ui.dynamicMenu"
+					class="com.microsoft.copilot.eclipse.ui.handlers.ShowMenuBarMenuHandler">
+				</dynamic>
+			</menu>
+		</menuContribution>
+	</extension>
 	<extension
 		point="org.eclipse.ui.preferencePages">
 		<page

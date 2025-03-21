@@ -23,6 +23,7 @@ public final class Messages extends NLS {
   public static String menu_editKeyboardShortcuts;
   public static String menu_enableCompletions;
   public static String menu_disableCompletions;
+  public static String menu_openChatView;
   public static String signInDialog_title;
   public static String signInDialog_button_cancel;
   public static String signInDialog_button_copyOpen;
@@ -60,7 +61,6 @@ public final class Messages extends NLS {
   public static String preferences_page_github_enterprise_tooltip;
   public static String preferences_page_note_text;
   public static String preferences_page_note_content;
-  public static String menu_openChatView;
   public static String chat_topBanner_newConversationButton_Tooltip;
   public static String chat_actionBar_initialContent;
   public static String chat_actionBar_attachContextButton_Tooltip;
