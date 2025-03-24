@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.0
+### Added
+- Added GitHub Copilot menu to the top menu bar. [#242](https://github.com/microsoft/copilot-eclipse/issues/242)
+
+### Changed
+- Updated the LS to 1.290.0. [PR#529](https://github.com/microsoft/copilot-eclipse/pull/529)
+
+### Fixed
+- Stop append INFO log when format preference changes. [#298](https://github.com/microsoft/copilot-eclipse/issues/298)
+- Should not attach bin files even it was opened in editor (behavior of VSCode). [#465](https://github.com/microsoft/copilot-eclipse/issues/465)
+
 ## 0.4.0
 ### Added
 - Support ABAP. [#279](https://github.com/microsoft/copilot-eclipse/issues/279)
