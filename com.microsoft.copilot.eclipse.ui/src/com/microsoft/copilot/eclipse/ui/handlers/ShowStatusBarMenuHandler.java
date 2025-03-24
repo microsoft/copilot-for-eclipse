@@ -168,11 +168,12 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addCompletionSettingsAction(MenuManager menuManager) {
+    ImageDescriptor placeHolder = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
     if (languageServerSettingManager.isAutoShowCompletionEnabled()) {
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_disableCompletions, handlerService,
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_disableCompletions, placeHolder, handlerService,
           "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
     } else {
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_enableCompletions, handlerService,
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_enableCompletions, placeHolder, handlerService,
           "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
     }
   }

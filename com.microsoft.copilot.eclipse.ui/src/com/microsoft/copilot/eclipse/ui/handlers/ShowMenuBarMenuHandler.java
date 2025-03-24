@@ -40,7 +40,8 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     String label = CopilotUi.getPlugin().getLanguageServerSettingManager().isAutoShowCompletionEnabled()
         ? Messages.menu_disableCompletions
         : Messages.menu_enableCompletions;
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.autoShowCompletions", label, null));
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.autoShowCompletions", label,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
     items.add(new Separator());
 
     // menu: editPreferences
