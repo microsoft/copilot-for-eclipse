@@ -129,6 +129,14 @@ public class SwtUtils {
    * the model offset if out of the text editor's visible range.
    */
   public static void redrawBlockLineAtModelOffset(ITextViewer textViewer, int modelOffset, boolean forceRedraw) {
+    if (textViewer == null || textViewer.getDocument() == null) {
+      return;
+    }
+
+    if (modelOffset < 0 || modelOffset >= textViewer.getDocument().getLength()) {
+      return;
+    }
+
     StyledText styledText = textViewer.getTextWidget();
     int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, modelOffset);
 

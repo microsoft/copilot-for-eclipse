@@ -3,7 +3,6 @@ package com.microsoft.copilot.eclipse.ui.completion;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,23 +19,16 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.text.codemining.ICodeMining;
-import org.eclipse.jface.text.source.Annotation;
-import org.eclipse.jface.text.source.IAnnotationModel;
-import org.eclipse.jface.text.source.IAnnotationModelListener;
-import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.ISourceViewerExtension5;
-import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
-import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
-import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
-import org.eclipse.ltk.core.refactoring.RefactoringCore;
-import org.eclipse.ltk.core.refactoring.history.IRefactoringExecutionListener;
-import org.eclipse.ltk.core.refactoring.history.RefactoringExecutionEvent;
-import org.eclipse.swt.custom.CaretEvent;
-import org.eclipse.swt.custom.CaretListener;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseListener;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextActivation;
 import org.eclipse.ui.contexts.IContextService;
@@ -61,8 +53,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A class to listen events which are completion related and notify the completion manager to render the ghost text or
  * apply the suggestion to document.
  */
-public class CompletionManager implements CaretListener, ITextListener, CompletionListener, IPropertyChangeListener,
-    ITextInputListener, IRefactoringExecutionListener, IAnnotationModelListener {
+public class CompletionManager implements KeyListener, MouseListener, ITextListener, CompletionListener,
+    IPropertyChangeListener, ITextInputListener {
 
   private static final String COMPLETION_CONTEXT = "com.microsoft.copilot.eclipse.completionAvailableContext";
   private static IContextActivation completionContextActivation;
@@ -79,11 +71,9 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
   private org.eclipse.jface.text.Position triggerPosition;
   private List<ICodeMining> codeMinings;
   private int cachedModelOffset;
-  private ProjectionAnnotationModel annotationModel;
 
   private DefaultPositionUpdater positionUpdater;
   private RenderingManager renderingManager;
-  private boolean isRefactoring;
   private boolean autoShowCompletion;
   private LanguageServerSettingManager settingsManager;
 
@@ -118,8 +108,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     if (!initializeDocument()) {
       return;
     }
-
-    RefactoringCore.getHistoryService().addExecutionListener(this);
     this.renderingManager = new RenderingManager(this.textViewer);
     this.settingsManager = settingsManager;
     this.provider = provider;
@@ -137,7 +125,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }, this.styledText);
 
     registerListeners();
-    registerCodeBlockCollapseListener(editor);
   }
 
   private boolean initializeDocument() {
@@ -163,24 +150,13 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
   private void registerListeners() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      this.styledText.addCaretListener(this);
+      this.styledText.addKeyListener(this);
+      this.styledText.addMouseListener(this);
       this.textViewer.addTextListener(this);
       this.textViewer.addTextInputListener(this);
     }, this.styledText);
 
     this.settingsManager.registerPropertyChangeListener(this);
-  }
-
-  // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/221
-  // Can be removed if the code folding does not trigger completion clearing.
-  private void registerCodeBlockCollapseListener(ITextEditor editor) {
-    ITextEditor textEditor = (ITextEditor) editor.getAdapter(ITextEditor.class);
-    if (textEditor instanceof ISourceViewer sourceViewer) {
-      if (sourceViewer instanceof ProjectionViewer projectionViewer) {
-        this.annotationModel = projectionViewer.getProjectionAnnotationModel();
-        this.annotationModel.addAnnotationModelListener(this);
-      }
-    }
   }
 
   /**
@@ -193,6 +169,15 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     if (documentEvent == null) {
       return;
     }
+
+    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
+    // initialize the document version and return. This avoids the ghost text
+    // being rendered when user opens the editor and just clicks in it.
+    if (this.documentVersion < 0) {
+      this.documentVersion = currentVersion;
+      return;
+    }
+    this.documentVersion = currentVersion;
 
     this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());
     if (isReplacement(event)) {
@@ -214,27 +199,12 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         clearCompletionRendering();
       }
     }
-  }
-
-  /**
-   * {@inheritDoc} Listen to the refactoring event and log the refactoring event type.
-   */
-  @Override
-  public void executionNotification(RefactoringExecutionEvent event) {
-    int eventType = event.getEventType();
-    switch (eventType) {
-      case RefactoringExecutionEvent.ABOUT_TO_PERFORM:
-      case RefactoringExecutionEvent.ABOUT_TO_REDO:
-      case RefactoringExecutionEvent.ABOUT_TO_UNDO:
-        isRefactoring = true;
-        break;
-      case RefactoringExecutionEvent.PERFORMED:
-      case RefactoringExecutionEvent.REDONE:
-      case RefactoringExecutionEvent.UNDONE:
-        isRefactoring = false;
-        break;
-      default:
-        isRefactoring = false;
+    if (this.autoShowCompletion) {
+      // Though the suggestionUpdateManager will update the items according to the text change, but that is not always
+      // correct. Thus we will always trigger another completion, whenever cursor position changed, to get the correct
+      // items. This will not affect the ghost text rendering because the CLS also has cache so it will not return items
+      // that are different from the last time as long as the text change is the same as the original completion item.
+      triggerCompletion();
     }
   }
 
@@ -252,54 +222,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
   private boolean isInsertion(TextEvent event) {
     return StringUtils.isEmpty(event.getReplacedText()) && StringUtils.isNotEmpty(event.getText());
-  }
-
-  /**
-   * {@inheritDoc} Listen to the caret move event and update the cached document version. A completion will be triggered
-   * if the document version is changed.
-   */
-  @Override
-  public void caretMoved(CaretEvent event) {
-    // it's guaranteed that the document change event comes earlier than caret
-    // change event. See org.eclipse.swt.custom.StyledText#modifyContent()
-    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
-
-    // initialize the document version and return. This avoids the ghost text
-    // being rendered when user opens the editor and just clicks in it.
-    if (this.documentVersion < 0) {
-      this.documentVersion = currentVersion;
-      return;
-    }
-
-    // always update the trigger position for caret move event to makes sure trigger position is correct.
-    // Sometimes, for example, deleting, the caret event comes before the text changed event.
-    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.caretOffset);
-    this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
-    if (currentVersion == this.documentVersion) {
-      // if the caret position is changed without document version change, we should remove the ghost text.
-      clearCompletionRendering();
-    } else {
-      this.documentVersion = currentVersion;
-      // Though the suggestionUpdateManager will update the items according to the text change, but that is not always
-      // correct. Thus we will always trigger another completion, whenever cursor position changed, to get the correct
-      // items. This will not affect the ghost text rendering because the CLS also has cache so it will not return items
-      // that are different from the last time as long as the text change is the same as the original completion item.
-      if (this.autoShowCompletion && !isRefactoring) {
-        triggerCompletion();
-      }
-    }
-
-    // Redraw the block ghost text line at both old and new offsets to fix legacy vertical indentation issues when text
-    // is outside the visible range or code blocks are collapsed.
-    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
-    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/137
-    if (modelOffset != this.cachedModelOffset) {
-      // The collapsed code block will cause the model offset to flicker, so we need to redraw the block ghost text line
-      // at both old and new offsets.
-      SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, false);
-      SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset, false);
-      this.cachedModelOffset = modelOffset;
-    }
   }
 
   @Override
@@ -435,27 +357,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
   }
 
-  @Override
-  public void modelChanged(IAnnotationModel model) {
-    auditFoldingAnnotations(this.annotationModel);
-  }
-
-  private void auditFoldingAnnotations(ProjectionAnnotationModel annotationModel) {
-    Iterator<Annotation> iterator = annotationModel.getAnnotationIterator();
-    while (iterator.hasNext()) {
-      Annotation annotation = iterator.next();
-      if (annotation instanceof ProjectionAnnotation projectionAnnotation) {
-        boolean isCollapsed = projectionAnnotation.isCollapsed();
-        if (isCollapsed) {
-          // Return each collapsed block will trigger the block line clearing, so we return earlier to only redraw once
-          // here.
-          SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, true);
-          return;
-        }
-      }
-    }
-  }
-
   /**
    * Trigger the inline completion.
    */
@@ -482,7 +383,7 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
     // Clear legacy vertical indentation for the block ghost text line when the line is out of the visible range.
     // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
-    SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, false);
+    redrawBlockLineAtModelOffset(UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset()));
   }
 
   /**
@@ -508,6 +409,11 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
     SwtUtils.invokeOnDisplayThread(() -> {
       this.textViewer.getSelectionProvider().setSelection(new TextSelection(this.triggerPosition.offset, 0));
+      // Since we removed caret listener, we need to manually clear the ghost text when the caret position is changed by
+      // the entire suggestion acceptance to fix the line indentation not cleared issue.
+      if (type == AcceptSuggestionType.FULL) {
+        this.clearCompletionRendering();
+      }
     }, this.textViewer.getTextWidget());
   }
 
@@ -528,8 +434,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
     }
     int endOffset = LSPEclipseUtils.toOffset(item.getRange().getEnd(), this.document);
     this.document.replace(startOffset, endOffset - startOffset, text);
-
-    this.clearCompletionRendering();
   }
 
   /**
@@ -588,8 +492,6 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
       this.document.removePositionUpdater(this.positionUpdater);
     }
 
-    RefactoringCore.getHistoryService().removeExecutionListener(this);
-
     if (this.textViewer != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
         this.textViewer.removeTextListener(this);
@@ -598,12 +500,9 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
 
     if (this.styledText != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
-        this.styledText.removeCaretListener(this);
+        this.styledText.removeKeyListener(this);
+        this.styledText.removeMouseListener(this);
       }, this.styledText);
-    }
-
-    if (this.annotationModel != null) {
-      this.annotationModel.removeAnnotationModelListener(this);
     }
   }
 
@@ -649,6 +548,72 @@ public class CompletionManager implements CaretListener, ITextListener, Completi
         });
         completionContextActivation = null;
       }
+    }
+  }
+
+  @Override
+  public void mouseDoubleClick(MouseEvent e) {
+    // Do nothing
+  }
+
+  @Override
+  public void mouseDown(MouseEvent e) {
+    handleCaretPositionChange();
+  }
+
+  @Override
+  public void mouseUp(MouseEvent e) {
+    // Do nothing
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    // Do nothing
+  }
+
+  @Override
+  public void keyReleased(KeyEvent e) {
+    // Skip completion triggering when the key is ESC
+    if (e.character != SWT.ESC) {
+      handleCaretPositionChange();
+    }
+  }
+
+  /**
+   * Handle caret move, clear and update the ghost text accordingly.
+   *
+   * @param triggerCompletionIfChanged Whether to trigger a new completion if document version changed.
+   */
+  private void handleCaretPositionChange() {
+    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset());
+    if (this.triggerPosition.offset == modelOffset) {
+      return;
+    }
+    this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
+
+    // it's guaranteed that the document change event comes earlier than keyReleased
+    // To verify this behavior, set breakpoints in org.eclipse.lsp4e.DocumentContentSynchronizer
+    // at the line: changeParamsToSend.getTextDocument().setVersion(++version); and this class's keyReleased method.
+    // Then trigger completion to verify the event.
+    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
+    if (currentVersion == this.documentVersion) {
+      // if the caret position is changed without document version change, we should remove the ghost text.
+      clearCompletionRendering();
+    }
+    redrawBlockLineAtModelOffset(modelOffset);
+  }
+
+  private void redrawBlockLineAtModelOffset(int modelOffset) {
+    // Redraw the block ghost text line at both old and new offsets to fix legacy vertical indentation issues when text
+    // is outside the visible range or code blocks are collapsed.
+    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
+    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/137
+    if (modelOffset != this.cachedModelOffset) {
+      // The collapsed code block will cause the model offset to flicker, so we need to redraw the block ghost text line
+      // at both old and new offsets.
+      SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, false);
+      SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset, false);
+      this.cachedModelOffset = modelOffset;
     }
   }
 }
