@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
+import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
@@ -78,7 +79,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
 
   private void init() {
     this.setEditable(true);
-    this.addTextListener((event) -> this.onTextChanged());
+    this.addTextListener(this::onTextChanged);
 
     StyledText tvw = this.getTextWidget();
     tvw.setBackground(tvw.getParent().getBackground());
@@ -119,7 +120,21 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     this.getTextWidget().setStyleRange(new StyleRange(start, end - start, null, null, SWT.NORMAL));
   }
 
-  private void onTextChanged() {
+  private void onTextChanged(TextEvent event) {
+    // Skip refreshing Enter-'\n' in TextEvent to avoid layout-shaking issue.
+    if (isInsertLineBreakOnly(event)) {
+      return;
+    }
+
+    refreshHeightLayout();
+  }
+
+  private boolean isInsertLineBreakOnly(TextEvent event) {
+    String text = event.getText();
+    return text != null && (text.equals("\n") || text.equals("\r\n"));
+  }
+
+  private void refreshHeightLayout() {
     StyledText tvw = ChatInputTextViewer.this.getTextWidget();
     Point size = tvw.computeSize(tvw.getSize().x, SWT.DEFAULT);
     GridData gd = (GridData) tvw.getLayoutData();
@@ -136,6 +151,10 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     if ((e.keyCode == SWT.CR || e.keyCode == SWT.KEYPAD_CR) && isLineBreakInCaret()) {
       // If Shift+Enter is pressed, or the content is empty, insert new line
       if (isShiftHolded(e) || StringUtils.isBlank(text)) {
+        // KeyEvent is later than TextEvent.
+        // Skipped refreshing Enter in TextEvent in onTextChanged() to avoid layout-shaking issue.
+        // Refresh the layout for real new line here in KeyEvent.
+        refreshHeightLayout();
         e.doit = true; // Allow the new line
       } else {
         // Users press Enter to send message, so we should remove the line break
