@@ -37,6 +37,7 @@ public class ChatContentViewer extends ScrolledComposite {
   private Composite errorWidget;
 
   private BaseTurnWidget latestUserTurn;
+  private BaseTurnWidget latestCopilotTurn;
 
   /**
    * Create the composite.
@@ -79,7 +80,7 @@ public class ChatContentViewer extends ScrolledComposite {
     BaseTurnWidget turnWidget = createNewTurn(workDoneToken, false);
     turnWidget.appendMessage(message);
     turnWidget.notifyTurnEnd();
-    this.latestUserTurn = turnWidget;
+
     refreshScrollerLayout();
     scrollToLatestUserTurn();
   }
@@ -93,8 +94,11 @@ public class ChatContentViewer extends ScrolledComposite {
       BaseTurnWidget turnWidget;
       if (isCopilot) {
         turnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken);
+        this.latestCopilotTurn = turnWidget;
       } else {
         turnWidget = new UserTurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken);
+        this.latestUserTurn = turnWidget;
+        this.latestCopilotTurn = null;
       }
       ref.set(turnWidget);
       turns.put(workDoneToken, turnWidget);
@@ -174,10 +178,18 @@ public class ChatContentViewer extends ScrolledComposite {
       return;
     }
 
-    // Calculate the content height,
-    // so that the latest user turn is able to be put at the top of the client area.
-    Point turnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-    int contentHeight = clientArea.height + containerSize.y - turnSize.y;
+    Point userTurnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    Point copilotTurnSize = latestCopilotTurn == null ? new Point(0, 0)
+        : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+
+    // Calculate the content height, so that the latest user turn is able to be put at the top of the client area.
+    int contentHeight = 0;
+    int roundedHeight = userTurnSize.y + copilotTurnSize.y;
+    if (roundedHeight < clientArea.height) {
+      contentHeight = clientArea.height + containerSize.y - roundedHeight;
+    } else {
+      contentHeight = containerSize.y;
+    }
 
     this.setMinHeight(contentHeight);
     this.layout(true, true);
