@@ -1,20 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.Optional;
-
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyledText;
-import org.eclipse.swt.events.PaintEvent;
-import org.eclipse.swt.events.PaintListener;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.graphics.Path;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -23,33 +14,32 @@ import org.eclipse.swt.widgets.Label;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * A custom widget that displays a turn.
+ * Base class for a custom widget that displays a turn.
  */
-public class TurnWidget extends Composite {
-  private static final String CODE_BLOCK_ANNOTATION = "```";
+public abstract class BaseTurnWidget extends Composite {
+  protected static final String CODE_BLOCK_ANNOTATION = "```";
 
-  private ChatServiceManager serviceManager;
+  protected ChatServiceManager serviceManager;
 
   // Widgets
-  private SourceViewer currentTextBlock;
-  private SourceViewerComposite currentCodeBlock;
+  protected SourceViewer currentTextBlock;
+  protected SourceViewerComposite currentCodeBlock;
 
   // Data
-  private StringBuilder sb;
-  private StringBuilder mdContentBuilder;
-  private boolean inCodeBlock;
-  private boolean isCopilot;
-  private String turnId;
-  private int codeBlockIndex;
+  protected StringBuilder sb;
+  protected StringBuilder mdContentBuilder;
+  protected boolean inCodeBlock;
+  protected boolean isCopilot;
+  protected String turnId;
+  protected int codeBlockIndex;
 
   // Resource
-  private Image icon = null;
-  private Font blodFont = null;
+  protected Image icon = null;
+  protected Font boldFont = null;
 
   /**
    * Create the widget.
@@ -57,7 +47,8 @@ public class TurnWidget extends Composite {
    * @param parent the parent composite
    * @param style the style
    */
-  public TurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId, boolean isCopilot) {
+  protected BaseTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId,
+      boolean isCopilot) {
     super(parent, style);
     this.sb = new StringBuilder();
     this.mdContentBuilder = new StringBuilder();
@@ -79,7 +70,6 @@ public class TurnWidget extends Composite {
   }
 
   private void createContent() {
-    // TODO: add avatar
     Composite cmpTitle = new Composite(this, SWT.NONE);
     GridLayout titleLayout = new GridLayout(2, false);
     titleLayout.marginLeft = -2;
@@ -88,22 +78,35 @@ public class TurnWidget extends Composite {
     cmpTitle.setBackground(this.getBackground());
 
     AvatarService avatarService = serviceManager.getAvatarService();
-    icon = isCopilot ? avatarService.getAvatarForCopilot() : avatarService.getAvatarForCurrentUser(getDisplay());
-    Label lblAvatar = isCopilot ? new Label(cmpTitle, SWT.NONE) : buildAvatarLabel(cmpTitle, SWT.NONE);
+    icon = getAvatar(avatarService);
+    Label lblAvatar = createAvatarLabel(cmpTitle);
     lblAvatar.setBackground(this.getBackground());
     lblAvatar.setImage(icon);
 
     Label lblRoleName = new Label(cmpTitle, SWT.NONE);
     lblRoleName.setBackground(this.getBackground());
-    String name = isCopilot ? Messages.chat_turnWidget_copilot
-        : Optional.ofNullable(serviceManager.getAuthStatusManager().getUserName()).filter(s -> !s.isEmpty())
-            .orElse(Messages.chat_turnWidget_user);
+    String name = getRoleName();
     lblRoleName.setText(name);
-    if (blodFont == null) {
-      blodFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
+    if (boldFont == null) {
+      boldFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
     }
-    lblRoleName.setFont(blodFont);
+    lblRoleName.setFont(boldFont);
   }
+
+  /**
+   * Get the avatar image.
+   */
+  protected abstract Image getAvatar(AvatarService avatarService);
+
+  /**
+   * Get the role name.
+   */
+  protected abstract String getRoleName();
+
+  /**
+   * Create the avatar label.
+   */
+  protected abstract Label createAvatarLabel(Composite parent);
 
   /**
    * Add a message to the turn.
@@ -149,7 +152,7 @@ public class TurnWidget extends Composite {
           appendTextToTextViewer(mdContentBuilder.toString());
         }
       }
-    }, TurnWidget.this);
+    }, this);
   }
 
   private void appendTextToSourceViewer(String text) {
@@ -188,8 +191,7 @@ public class TurnWidget extends Composite {
    */
   private void createCodeBlock(String language) {
     final SourceViewerComposite codeBlock = new SourceViewerComposite(this, SWT.BORDER, this.serviceManager, language,
-        turnId,
-        this.codeBlockIndex);
+        turnId, this.codeBlockIndex);
     this.addDisposeListener(e -> codeBlock.dispose());
     codeBlock.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     codeBlock.layout();
@@ -199,79 +201,9 @@ public class TurnWidget extends Composite {
   }
 
   /**
-   * Add a message to the turn.
-   *
-   * @param message the message
+   * Create the appropriate type of text block based on implementation.
    */
-  private void createTextBlock() {
-    if (isCopilot) {
-      this.currentTextBlock = new ChatMarkupViewer(this, SWT.MULTI | SWT.WRAP);
-    } else {
-      this.currentTextBlock = new SourceViewer(this, null, SWT.MULTI | SWT.WRAP);
-    }
-    StyledText styledText = this.currentTextBlock.getTextWidget();
-    styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
-    styledText.setEditable(false);
-    styledText.setBackground(this.getBackground());
-  }
-
-  private Label buildAvatarLabel(Composite parent, int style) {
-    Label lblAvatar = new Label(parent, SWT.DOUBLE_BUFFERED | style);
-    lblAvatar.setBackground(parent.getBackground());
-
-    // Set size based on icon dimensions
-    int size = icon.getBounds().width;
-    GridData gridData = new GridData(SWT.LEFT, SWT.TOP, false, false);
-    gridData.widthHint = size;
-    gridData.heightHint = size;
-    lblAvatar.setLayoutData(gridData);
-    lblAvatar.addPaintListener(new PaintListener() {
-      @Override
-      public void paintControl(PaintEvent e) {
-        Image avatar = lblAvatar.getImage();
-        if (avatar == null || avatar.isDisposed() || lblAvatar.isDisposed()) {
-          return;
-        }
-
-        GC gc = e.gc;
-        gc.setAdvanced(true);
-        gc.setAntialias(SWT.ON);
-        gc.setInterpolation(SWT.HIGH);
-
-        Rectangle bounds = e.gc.getClipping();
-
-        // Clear previous content with background color
-        gc.setBackground(lblAvatar.getBackground());
-        gc.fillRectangle(bounds);
-
-        // Create circular clipping path for the image
-        Rectangle imgBounds = avatar.getBounds();
-        int diameter = Math.min(imgBounds.width, imgBounds.height);
-        Path path = new Path(getDisplay());
-        path.addArc(0, 0, diameter, diameter, 0, 360);
-
-        Color borderColor = getDisplay().getSystemColor(SWT.COLOR_GRAY);
-        int borderWidth = 1;
-
-        // Draw the image first
-        gc.setClipping(path);
-        gc.drawImage(avatar, 0, 0, imgBounds.width, imgBounds.height, borderWidth, borderWidth,
-            diameter - (2 * borderWidth), diameter - (2 * borderWidth));
-
-        // Reset clipping to draw the border
-        gc.setClipping(bounds);
-
-        // Draw border
-        gc.setForeground(borderColor);
-        gc.setLineWidth(borderWidth);
-        gc.drawOval(0, 0, diameter - 1, diameter - 1);
-
-        path.dispose();
-      }
-    });
-
-    return lblAvatar;
-  }
+  protected abstract void createTextBlock();
 
   /**
    * Dispose the widget.
@@ -282,8 +214,8 @@ public class TurnWidget extends Composite {
     if (sb != null) {
       sb.setLength(0);
     }
-    if (blodFont != null) {
-      blodFont.dispose();
+    if (boldFont != null) {
+      boldFont.dispose();
     }
     if (mdContentBuilder != null) {
       mdContentBuilder.setLength(0);

@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
@@ -31,7 +32,7 @@ public class ChatContentViewer extends ScrolledComposite {
 
   private Composite cmpContent;
 
-  private Map<String, TurnWidget> turns;
+  private Map<String, BaseTurnWidget> turns;
   private Composite warnWidget;
   private Composite errorWidget;
 
@@ -73,8 +74,7 @@ public class ChatContentViewer extends ScrolledComposite {
    * Should be called when user sends a message.
    */
   public void startNewTurn(String workDoneToken, String message) {
-    TurnWidget turnWidget = new TurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken, false);
-    turns.put(workDoneToken, turnWidget);
+    BaseTurnWidget turnWidget = createNewTurn(workDoneToken, false);
     turnWidget.appendMessage(message);
     turnWidget.notifyTurnEnd();
     refreshScrollerLayout();
@@ -84,11 +84,20 @@ public class ChatContentViewer extends ScrolledComposite {
   /**
    * Create a new turn.
    */
-  public void createNewTurn(String workDoneToken, boolean isCopilot) {
+  public BaseTurnWidget createNewTurn(String workDoneToken, boolean isCopilot) {
+    AtomicReference<BaseTurnWidget> ref = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
-      TurnWidget turnWidget = new TurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken, isCopilot);
+      BaseTurnWidget turnWidget;
+      if (isCopilot) {
+        turnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken);
+      } else {
+        turnWidget = new UserTurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken);
+      }
+      ref.set(turnWidget);
       turns.put(workDoneToken, turnWidget);
     }, this);
+
+    return ref.get();
 
   }
 
@@ -101,7 +110,7 @@ public class ChatContentViewer extends ScrolledComposite {
         CopilotCore.LOGGER.error(new IllegalStateException("turnId not found: " + value.getTurnId()));
         return;
       }
-      TurnWidget turnWidget = turns.get(value.getTurnId());
+      BaseTurnWidget turnWidget = turns.get(value.getTurnId());
       if (turnWidget == null) {
         CopilotCore.LOGGER.error(new IllegalStateException("TurnWidget is null when event comes."));
         return;
@@ -172,7 +181,7 @@ public class ChatContentViewer extends ScrolledComposite {
   @Override
   public void dispose() {
     super.dispose();
-    for (TurnWidget turn : turns.values()) {
+    for (BaseTurnWidget turn : turns.values()) {
       turn.dispose();
     }
     turns.clear();
