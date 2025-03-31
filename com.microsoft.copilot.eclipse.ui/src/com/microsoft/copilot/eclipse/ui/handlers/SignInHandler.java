@@ -49,8 +49,6 @@ public class SignInHandler extends AbstractHandler {
 
   private class SignInJob extends Job {
 
-    private static final long SIGNIN_TIMEOUT_MILLIS = 180000L;
-
     private final ExecutionEvent event;
 
     /**
@@ -110,7 +108,7 @@ public class SignInHandler extends AbstractHandler {
         if (openResult > 0) {
           UiUtils.openLink(signInInitiateResultHolder.get().getVerificationUri());
           SignInConfirmDialog signInConfirmDialog = new SignInConfirmDialog(shell,
-              signInInitiateResultHolder.get().getUserCode(), SIGNIN_TIMEOUT_MILLIS);
+              signInInitiateResultHolder.get().getUserCode());
           signInConfirmDialog.run();
           handleSignInConfirmation(shell, signInConfirmDialog);
         }

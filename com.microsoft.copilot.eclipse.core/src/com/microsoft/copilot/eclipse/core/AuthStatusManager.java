@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.core;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -12,6 +13,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
  * Manager for the authentication status.
  */
 public class AuthStatusManager {
+
+  public static final long SIGNIN_TIMEOUT_MILLIS = 180000L;
 
   private CopilotLanguageServerConnection connection;
   private ConcurrentLinkedQueue<CopilotAuthStatusListener> copilotAuthStatusListeners;
@@ -51,7 +54,12 @@ public class AuthStatusManager {
    * @throws InterruptedException if the sign in process is interrupted
    */
   public CopilotStatusResult signInConfirm(String userCode) throws InterruptedException, ExecutionException {
-    CopilotStatusResult result = connection.signInConfirm(userCode).get();
+    // If a timeout occurs, NOT_SIGNED_IN will be used as the return value.
+    CopilotStatusResult resultWhenTimeout = new CopilotStatusResult();
+    resultWhenTimeout.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
+
+    CopilotStatusResult result = connection.signInConfirm(userCode)
+        .completeOnTimeout(resultWhenTimeout, SIGNIN_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).get();
     setCopilotUser(result.getUser());
     setCopilotStatus(result.getStatus());
     return result;

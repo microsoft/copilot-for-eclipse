@@ -27,7 +27,7 @@ class AuthStatusManagerTests {
   AuthStatusManager authStatusManager;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     authStatusManager = new AuthStatusManager(mockConnection);
   }
   

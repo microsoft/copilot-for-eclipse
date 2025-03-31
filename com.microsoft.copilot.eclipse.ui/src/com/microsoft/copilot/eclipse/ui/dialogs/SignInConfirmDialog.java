@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.dialogs;
 
+import static com.microsoft.copilot.eclipse.core.AuthStatusManager.SIGNIN_TIMEOUT_MILLIS;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -27,7 +29,6 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class SignInConfirmDialog extends ProgressMonitorDialog {
 
   private final String userCode;
-  private final long timeout;
   private CompletableFuture<CopilotStatusResult> future;
   private IStatus status;
 
@@ -36,12 +37,10 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
    *
    * @param parent the parent shell
    * @param userCode the user code for sign-in confirmation
-   * @param timeout the timeout duration in milliseconds
    */
-  public SignInConfirmDialog(Shell parent, String userCode, long timeout) {
+  public SignInConfirmDialog(Shell parent, String userCode) {
     super(parent);
     this.userCode = userCode;
-    this.timeout = timeout;
     this.future = null;
     this.setCancelable(true);
   }
@@ -89,6 +88,8 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
   }
 
   private class SignInConfirmationTask implements IRunnableWithProgress {
+    private static final int STEP_INTERVAL = 250;
+
     @Override
     public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
       try {
@@ -101,7 +102,7 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
           }
         });
 
-        monitor.beginTask(Messages.signInConfirmDialog_progress, (int) timeout / 250);
+        monitor.beginTask(Messages.signInConfirmDialog_progress, (int) SIGNIN_TIMEOUT_MILLIS / STEP_INTERVAL);
 
         waitForAuthorization(monitor);
 
@@ -117,11 +118,10 @@ public class SignInConfirmDialog extends ProgressMonitorDialog {
     }
 
     private void waitForAuthorization(IProgressMonitor monitor) throws InterruptedException {
-      int step = 250;
-      int steps = (int) timeout / step;
+      int steps = (int) SIGNIN_TIMEOUT_MILLIS / STEP_INTERVAL;
 
       for (int i = 0; i < steps; i++) {
-        Thread.sleep(step);
+        Thread.sleep(STEP_INTERVAL);
 
         if (monitor.isCanceled()) {
           future.cancel(true);
