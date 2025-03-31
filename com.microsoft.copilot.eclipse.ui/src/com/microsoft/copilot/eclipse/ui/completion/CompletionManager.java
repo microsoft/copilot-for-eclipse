@@ -492,18 +492,16 @@ public class CompletionManager implements KeyListener, MouseListener, ITextListe
       this.document.removePositionUpdater(this.positionUpdater);
     }
 
-    if (this.textViewer != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        this.textViewer.removeTextListener(this);
-      });
-    }
+    SwtUtils.invokeOnDisplayThread(() -> {
+      if (this.textViewer != null) {
+        this.textViewer.removeTextInputListener(this);
+      }
 
-    if (this.styledText != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
+      if (this.styledText != null && !this.styledText.isDisposed()) {
         this.styledText.removeKeyListener(this);
         this.styledText.removeMouseListener(this);
-      }, this.styledText);
-    }
+      }
+    });
   }
 
   public SuggestionUpdateManager getSuggestionUpdateManager() {
