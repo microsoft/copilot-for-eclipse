@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "feature/chat" ]
+    branches: [ "main", "feature/agent-mode" ]
   pull_request:
-    branches: [ "main", "feature/chat" ]
+    branches: [ "main", "feature/agent-mode" ]
 
 jobs:
   build:
