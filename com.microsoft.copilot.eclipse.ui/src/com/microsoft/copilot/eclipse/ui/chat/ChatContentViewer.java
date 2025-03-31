@@ -36,6 +36,8 @@ public class ChatContentViewer extends ScrolledComposite {
   private Composite warnWidget;
   private Composite errorWidget;
 
+  private BaseTurnWidget latestUserTurn;
+
   /**
    * Create the composite.
    *
@@ -77,8 +79,9 @@ public class ChatContentViewer extends ScrolledComposite {
     BaseTurnWidget turnWidget = createNewTurn(workDoneToken, false);
     turnWidget.appendMessage(message);
     turnWidget.notifyTurnEnd();
+    this.latestUserTurn = turnWidget;
     refreshScrollerLayout();
-    scrollToBottom();
+    scrollToLatestUserTurn();
   }
 
   /**
@@ -139,7 +142,7 @@ public class ChatContentViewer extends ScrolledComposite {
     }
     this.warnWidget = new WarnWidget(cmpContent, SWT.BOTTOM, errorMessage, code);
     refreshScrollerLayout();
-    scrollToBottom();
+    scrollToLatestUserTurn();
   }
 
   /**
@@ -151,7 +154,7 @@ public class ChatContentViewer extends ScrolledComposite {
     }
     this.errorWidget = new ErrorWidget(cmpContent, SWT.BOTTOM, errorMessage);
     refreshScrollerLayout();
-    scrollToBottom();
+    scrollToLatestUserTurn();
   }
 
   /**
@@ -164,7 +167,19 @@ public class ChatContentViewer extends ScrolledComposite {
 
     Rectangle clientArea = this.getClientArea();
     Point containerSize = cmpContent.computeSize(clientArea.width, SWT.DEFAULT);
-    this.setMinSize(containerSize);
+
+    // Use the default size as a fallback
+    if (latestUserTurn == null) {
+      this.setMinSize(containerSize);
+      return;
+    }
+
+    // Calculate the content height,
+    // so that the latest user turn is able to be put at the top of the client area.
+    Point turnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    int contentHeight = clientArea.height + containerSize.y - turnSize.y;
+
+    this.setMinHeight(contentHeight);
     this.layout(true, true);
   }
 
@@ -176,6 +191,23 @@ public class ChatContentViewer extends ScrolledComposite {
     if (verticalBar != null) {
       this.setOrigin(0, verticalBar.getMaximum());
     }
+  }
+
+  /**
+   * Scroll to the latest user turn. It will be put at the top of the client area.
+   */
+  private void scrollToLatestUserTurn() {
+    // Scroll to the bottom as a fallback.
+    if (latestUserTurn == null) {
+      scrollToBottom();
+      return;
+    }
+
+    // Wait for layout to complete to get accurate positions
+    SwtUtils.invokeOnDisplayThread(() -> {
+      Point turnLocation = latestUserTurn.getLocation();
+      this.setOrigin(0, turnLocation.y);
+    }, this);
   }
 
   @Override
