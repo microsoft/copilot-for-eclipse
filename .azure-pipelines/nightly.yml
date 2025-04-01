@@ -39,16 +39,16 @@ extends:
               - checkout: self
                 fetchTags: false
 
-              # - task: UsePythonVersion@0
-              #   displayName: 'Use Python 3.11.x'
-              #   inputs:
-              #     versionSpec: 3.11.x
+              - task: UsePythonVersion@0
+                displayName: 'Use Python 3.11.x'
+                inputs:
+                  versionSpec: 3.11.x
 
-              # - task: UseDotNet@2
-              #   displayName: 'Use .NET Core 3.1.x'
-              #   inputs:
-              #     packageType: 'sdk'
-              #     version: '3.1.x'
+              - task: UseDotNet@2
+                displayName: 'Use .NET Core 3.1.x'
+                inputs:
+                  packageType: 'sdk'
+                  version: '3.1.x'
 
               - task: JavaToolInstaller@0
                 displayName: Use Java 17
@@ -62,14 +62,14 @@ extends:
                 inputs:
                   version: '20.x'
 
-              # - task: MicroBuildSigningPlugin@4
-              #   displayName: 'Install Signing Plugin'
-              #   inputs:
-              #     signType: real
-              #     azureSubscription: 'MicroBuild Signing Task (MSEng)'
-              #     feedSource: 'https://mseng.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
-              #   env:
-              #     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+              - task: MicroBuildSigningPlugin@4
+                displayName: 'Install Signing Plugin'
+                inputs:
+                  signType: real
+                  azureSubscription: 'MicroBuild Signing Task (MSEng)'
+                  feedSource: 'https://mseng.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
               - bash: npm i
                 workingDirectory: com.microsoft.copilot.eclipse.core/copilot-agent
@@ -97,48 +97,48 @@ extends:
                   rm -rf ./artifacts
                 displayName: Prepare plugin zip
 
-              - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@5
-                displayName: Sign jars
-                inputs:
-                  ConnectedServiceName: $(ConnectedServiceName)
-                  AppRegistrationClientId: $(AppRegistrationClientId)
-                  AppRegistrationTenantId: $(AppRegistrationTenantId)
-                  AuthAKVName: $(AuthAKVName)
-                  AuthCertName: $(AuthCertName)
-                  AuthSignCertName: $(AuthSignCertName)
-                  FolderPath: artifacts/eclipse/folder
-                  Pattern: '*.jar'
-                  signConfigType: inlineSignParams
-                  inlineOperation: |-
-                    [
-                      {
-                        "KeyCode" : "CP-447347-Java",
-                        "OperationCode" : "JavaSign",
-                        "Parameters" : {
-                            "SigAlg" : "SHA256withRSA",
-                            "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
-                        },
-                        "ToolName" : "sign",
-                        "ToolVersion" : "1.0"
-                      },
-                      {
-                        "KeyCode" : "CP-447347-Java",
-                        "OperationCode" : "JavaVerify",
-                        "Parameters" : {},
-                        "ToolName" : "sign",
-                        "ToolVersion" : "1.0"
-                      }
-                    ]
-
-              # - task: CmdLine@2
+              # - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@5
               #   displayName: Sign jars
               #   inputs:
-              #     script: |
-              #       files=$(find . -type f -name "*.jar")
-              #       for file in $files; do
-              #           dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:"$file" /certs:100010171
-              #       done
-              #     workingDirectory: 'artifacts/eclipse/folder'
+              #     ConnectedServiceName: $(ConnectedServiceName)
+              #     AppRegistrationClientId: $(AppRegistrationClientId)
+              #     AppRegistrationTenantId: $(AppRegistrationTenantId)
+              #     AuthAKVName: $(AuthAKVName)
+              #     AuthCertName: $(AuthCertName)
+              #     AuthSignCertName: $(AuthSignCertName)
+              #     FolderPath: artifacts/eclipse/folder
+              #     Pattern: '*.jar'
+              #     signConfigType: inlineSignParams
+              #     inlineOperation: |-
+              #       [
+              #         {
+              #           "KeyCode" : "CP-447347-Java",
+              #           "OperationCode" : "JavaSign",
+              #           "Parameters" : {
+              #               "SigAlg" : "SHA256withRSA",
+              #               "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+              #           },
+              #           "ToolName" : "sign",
+              #           "ToolVersion" : "1.0"
+              #         },
+              #         {
+              #           "KeyCode" : "CP-447347-Java",
+              #           "OperationCode" : "JavaVerify",
+              #           "Parameters" : {},
+              #           "ToolName" : "sign",
+              #           "ToolVersion" : "1.0"
+              #         }
+              #       ]
+
+              - task: CmdLine@2
+                displayName: Sign jars
+                inputs:
+                  script: |
+                    files=$(find . -type f -name "*.jar")
+                    for file in $files; do
+                        dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:"$file" /certs:100010171
+                    done
+                  workingDirectory: 'artifacts/eclipse/folder'
 
               - bash: cd ./artifacts/eclipse/folder && zip -R ../GithubCopilotForEclipse.zip **/*.jar *.jar
                 displayName: Package zip
