@@ -5,7 +5,7 @@ import java.util.Objects;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
- * Capabilities of the Copilot language server.
+ * Copilot Capabilities of the Copilot language server.
  */
 public class CopilotCapabilities {
   private boolean fetch;

@@ -15,7 +15,7 @@ public class InitializationOptions {
   @NonNull
   private NameAndVersion editorPluginInfo;
 
-  private CopilotCapabilities capabilities;
+  private CopilotCapabilities copilotCapabilities;
 
   /**
    * Creates a new InitializationOptions.
@@ -29,10 +29,10 @@ public class InitializationOptions {
    * Creates a new InitializationOptions.
    */
   public InitializationOptions(NameAndVersion editorInfo, NameAndVersion editorPluginInfo,
-      CopilotCapabilities capabilities) {
+      CopilotCapabilities copilotCapabilities) {
     this.editorInfo = editorInfo;
     this.editorPluginInfo = editorPluginInfo;
-    this.capabilities = capabilities;
+    this.copilotCapabilities = copilotCapabilities;
   }
 
   @NonNull
@@ -53,12 +53,12 @@ public class InitializationOptions {
     this.editorPluginInfo = editorPluginInfo;
   }
 
-  public CopilotCapabilities getCapabilities() {
-    return capabilities;
+  public CopilotCapabilities getCopilotCapabilities() {
+    return copilotCapabilities;
   }
 
-  public void setCapabilities(CopilotCapabilities capabilities) {
-    this.capabilities = capabilities;
+  public void setCopilotCapabilities(CopilotCapabilities copilotCapabilities) {
+    this.copilotCapabilities = copilotCapabilities;
   }
 
   @Override
@@ -66,13 +66,13 @@ public class InitializationOptions {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.add("editorInfo", editorInfo);
     builder.add("editorPluginInfo", editorPluginInfo);
-    builder.add("capabilities", capabilities);
+    builder.add("copilotCapabilities", copilotCapabilities);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(capabilities, editorInfo, editorPluginInfo);
+    return Objects.hash(copilotCapabilities, editorInfo, editorPluginInfo);
   }
 
   @Override
@@ -87,7 +87,7 @@ public class InitializationOptions {
       return false;
     }
     InitializationOptions other = (InitializationOptions) obj;
-    return Objects.equals(capabilities, other.capabilities) && Objects.equals(editorInfo, other.editorInfo)
-        && Objects.equals(editorPluginInfo, other.editorPluginInfo);
+    return Objects.equals(copilotCapabilities, other.copilotCapabilities)
+        && Objects.equals(editorInfo, other.editorInfo) && Objects.equals(editorPluginInfo, other.editorPluginInfo);
   }
 }
