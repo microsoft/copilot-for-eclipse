@@ -19,12 +19,14 @@ public class ConversationTurnParams {
   String conversationId;
   @NonNull
   String message;
-  ArrayList<FileReferenceParams> references;
+  List<FileReferenceParams> references;
 
   Boolean computeSuggestions;
   String workspaceFolder;
   String[] ignoredSkills;
   String model;
+
+  String chatMode;
 
   /**
    * Creates a new ConversationTurnParams.
@@ -101,25 +103,49 @@ public class ConversationTurnParams {
     this.model = model;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(workDoneToken, conversationId, message, computeSuggestions, workspaceFolder, ignoredSkills,
-        model);
+  public List<FileReferenceParams> getReferences() {
+    return references;
+  }
+
+  public void setReferences(List<FileReferenceParams> references) {
+    this.references = references;
+  }
+
+  public String getChatMode() {
+    return chatMode;
+  }
+
+  public void setChatMode(String chatMode) {
+    this.chatMode = chatMode;
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(ignoredSkills);
+    result = prime * result + Objects.hash(chatMode, computeSuggestions, conversationId, message, model, references,
+        workDoneToken, workspaceFolder);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (obj == null) {
       return false;
     }
-    ConversationTurnParams that = (ConversationTurnParams) o;
-    return Objects.equals(workDoneToken, that.workDoneToken) && Objects.equals(conversationId, that.conversationId)
-        && Objects.equals(message, that.message) && Objects.equals(computeSuggestions, that.computeSuggestions)
-        && Objects.equals(workspaceFolder, that.workspaceFolder) && Arrays.equals(ignoredSkills, that.ignoredSkills)
-        && Objects.equals(model, that.model);
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    ConversationTurnParams other = (ConversationTurnParams) obj;
+    return chatMode == other.chatMode && Objects.equals(computeSuggestions, other.computeSuggestions)
+        && Objects.equals(conversationId, other.conversationId) && Arrays.equals(ignoredSkills, other.ignoredSkills)
+        && Objects.equals(message, other.message) && Objects.equals(model, other.model)
+        && Objects.equals(references, other.references) && Objects.equals(workDoneToken, other.workDoneToken)
+        && Objects.equals(workspaceFolder, other.workspaceFolder);
   }
 
   @Override
@@ -128,10 +154,12 @@ public class ConversationTurnParams {
     builder.add("workDoneToken", workDoneToken);
     builder.add("conversationId", conversationId);
     builder.add("message", message);
+    builder.add("references", references);
     builder.add("computeSuggestions", computeSuggestions);
     builder.add("workspaceFolder", workspaceFolder);
     builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
     builder.add("model", model);
+    builder.add("chatMode", chatMode);
     return builder.toString();
   }
 }

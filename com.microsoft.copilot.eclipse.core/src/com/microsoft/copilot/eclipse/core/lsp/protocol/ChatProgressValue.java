@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.lsp4j.WorkDoneProgressKind;
@@ -23,6 +24,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
   private ChatStep[] steps;
   private String cancellationReason;
   private ConversationError error;
+  private List<AgentRound> editAgentRounds;
 
   public WorkDoneProgressKind getKind() {
     return kind;
@@ -80,6 +82,10 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     return error != null ? error.getReason() : null;
   }
 
+  public List<AgentRound> getAgentRounds() {
+    return editAgentRounds;
+  }
+
   public void setKind(WorkDoneProgressKind kind) {
     this.kind = kind;
   }
@@ -134,25 +140,36 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
 
   @Override
   public int hashCode() {
-    return Objects.hash(kind, title, conversationId, turnId, reply, annotations, references, hideText, notifications,
-        steps, cancellationReason, error);
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(annotations);
+    result = prime * result + Arrays.hashCode(notifications);
+    result = prime * result + Arrays.hashCode(references);
+    result = prime * result + Arrays.hashCode(steps);
+    result = prime * result + Objects.hash(editAgentRounds, cancellationReason, conversationId, error, hideText, kind,
+        reply, title, turnId);
+    return result;
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (obj == null) {
       return false;
     }
-    ChatProgressValue that = (ChatProgressValue) o;
-    return hideText == that.hideText && Objects.equals(kind, that.kind) && Objects.equals(title, that.title)
-        && Objects.equals(conversationId, that.conversationId) && Objects.equals(turnId, that.turnId)
-        && Objects.equals(reply, that.reply) && Arrays.equals(annotations, that.annotations)
-        && Arrays.equals(references, that.references) && Arrays.equals(notifications, that.notifications)
-        && Objects.equals(cancellationReason, that.cancellationReason) && Arrays.equals(steps, that.steps)
-        && Objects.equals(error, that.error);
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    ChatProgressValue other = (ChatProgressValue) obj;
+    return Objects.equals(editAgentRounds, other.editAgentRounds) && Arrays.equals(annotations, other.annotations)
+        && Objects.equals(cancellationReason, other.cancellationReason)
+        && Objects.equals(conversationId, other.conversationId) && Objects.equals(error, other.error)
+        && hideText == other.hideText && kind == other.kind && Arrays.equals(notifications, other.notifications)
+        && Arrays.equals(references, other.references) && Objects.equals(reply, other.reply)
+        && Arrays.equals(steps, other.steps) && Objects.equals(title, other.title)
+        && Objects.equals(turnId, other.turnId);
   }
 
   @Override
@@ -166,12 +183,11 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     builder.add("annotations", Arrays.toString(annotations));
     builder.add("references", Arrays.toString(references));
     builder.add("hideText", hideText);
-    builder.add("cancellationReason", cancellationReason);
     builder.add("notifications", Arrays.toString(notifications));
     builder.add("steps", Arrays.toString(steps));
-    if (this.error != null) {
-      builder.add("error", this.error.toString());
-    }
+    builder.add("cancellationReason", cancellationReason);
+    builder.add("error", error);
+    builder.add("editAgentRounds", editAgentRounds);
     return builder.toString();
   }
 }

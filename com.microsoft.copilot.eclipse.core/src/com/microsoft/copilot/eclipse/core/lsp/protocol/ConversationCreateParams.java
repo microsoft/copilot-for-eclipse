@@ -22,6 +22,7 @@ public class ConversationCreateParams {
   String[] ignoredSkills;
   String userLanguage;
   String model;
+  String chatMode;
 
   /**
    * Capabilities for the conversation.
@@ -166,26 +167,43 @@ public class ConversationCreateParams {
     this.model = model;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(workDoneToken, Arrays.hashCode(turns), capabilities, computeSuggestions, source,
-        workspaceFolder, Arrays.hashCode(ignoredSkills), userLanguage, model);
+  public String getChatMode() {
+    return chatMode;
+  }
+
+  public void setChatMode(String chatMode) {
+    this.chatMode = chatMode;
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(ignoredSkills);
+    result = prime * result + Arrays.hashCode(turns);
+    result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, references, source,
+        userLanguage, workDoneToken, workspaceFolder);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (obj == null) {
       return false;
     }
-    ConversationCreateParams that = (ConversationCreateParams) o;
-    return computeSuggestions == that.computeSuggestions && Objects.equals(workDoneToken, that.workDoneToken)
-        && Arrays.equals(turns, that.turns) && Objects.equals(capabilities, that.capabilities)
-        && Objects.equals(source, that.source) && Objects.equals(workspaceFolder, that.workspaceFolder)
-        && Arrays.equals(ignoredSkills, that.ignoredSkills) && Objects.equals(userLanguage, that.userLanguage)
-        && Objects.equals(model, that.model);
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    ConversationCreateParams other = (ConversationCreateParams) obj;
+    return Objects.equals(capabilities, other.capabilities) && chatMode == other.chatMode
+        && computeSuggestions == other.computeSuggestions && Arrays.equals(ignoredSkills, other.ignoredSkills)
+        && Objects.equals(model, other.model) && Objects.equals(references, other.references)
+        && Objects.equals(source, other.source) && Arrays.equals(turns, other.turns)
+        && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
+        && Objects.equals(workspaceFolder, other.workspaceFolder);
   }
 
   @Override
@@ -195,11 +213,13 @@ public class ConversationCreateParams {
     builder.add("turns", Arrays.toString(turns));
     builder.add("capabilities", capabilities);
     builder.add("computeSuggestions", computeSuggestions);
+    builder.add("references", references);
     builder.add("source", source);
     builder.add("workspaceFolder", workspaceFolder);
     builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
     builder.add("userLanguage", userLanguage);
     builder.add("model", model);
+    builder.add("chatMode", chatMode);
     return builder.toString();
   }
 
