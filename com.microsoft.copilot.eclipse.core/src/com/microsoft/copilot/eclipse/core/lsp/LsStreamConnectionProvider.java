@@ -17,7 +17,6 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
-import org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;
@@ -132,7 +131,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
           .info("Get JavaScript commands aborted. org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager not found.");
       return null;
     }
-    File nodeJsLocation = NodeJSManager.getNodeJsLocation();
+    File nodeJsLocation = NodeJsManager.getNodeJsLocation();
     if (nodeJsLocation == null) {
       throw new IOException("Failed to find Node.js path");
     }

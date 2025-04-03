@@ -31,7 +31,7 @@ public class GithubExceptionTelemetryHandler extends Handler {
     }
     Throwable ex = (Throwable) property[1];
     CopilotCore copilotCore = CopilotCore.getPlugin();
-    if (copilotCore == null) {
+    if (copilotCore == null || ex == null) {
       return;
     }
     copilotCore.reportException(ex);
