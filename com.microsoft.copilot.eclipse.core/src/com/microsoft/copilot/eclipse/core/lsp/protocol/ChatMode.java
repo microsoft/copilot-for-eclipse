@@ -15,5 +15,4 @@ public enum ChatMode {
    * Agent mode.
    */
   Agent;
-
 }

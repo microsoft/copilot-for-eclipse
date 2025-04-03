@@ -191,11 +191,12 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message, List<IFile> files,
-      String modelName) {
+      String modelName, String chatModeName) {
     Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
       ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken, null);
       param.addFileRefs(files);
       param.setModel(modelName);
+      param.setChatMode(chatModeName);
       return ((CopilotLanguageServer) server).create(param);
     };
     return this.languageServerWrapper.execute(fn);
@@ -205,11 +206,12 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
-      String message, List<IFile> files, String modelName) {
+      String message, List<IFile> files, String modelName, String chatModeName) {
     Function<LanguageServer, CompletableFuture<ChatTurnResult>> fn = server -> {
       ConversationTurnParams param = new ConversationTurnParams(workDoneToken, conversationId, message);
       param.addFileRefs(files);
       param.setModel(modelName);
+      param.setChatMode(chatModeName);
       return ((CopilotLanguageServer) server).addTurn(param);
     };
     return this.languageServerWrapper.execute(fn);

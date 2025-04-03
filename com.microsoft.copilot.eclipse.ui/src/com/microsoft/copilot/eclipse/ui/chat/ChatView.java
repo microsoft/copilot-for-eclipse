@@ -289,6 +289,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getCopilotModelService().getActiveModel();
     String modelName = activeModel == null ? null : activeModel.getModelFamily();
+    String chatModeName = chatServiceManager.getChatModeService().getActiveChatMode();
     if (!(this.hasHistory)) {
       this.hasHistory = true;
       createConversationPage();
@@ -296,7 +297,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation
       CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken, message,
-          files, modelName);
+          files, modelName, chatModeName);
       conversationFutures.add(createConversationFuture);
 
       createConversationFuture.exceptionally(ex -> {
@@ -310,7 +311,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       // send message to existing conversation
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          message, files, modelName);
+          message, files, modelName, chatModeName);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.exceptionally(ex -> {

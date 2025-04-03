@@ -1,14 +1,10 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -16,7 +12,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
@@ -27,7 +22,6 @@ import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -37,16 +31,10 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
  * Manager for chat services.
  */
 public class CopilotModelService extends ChatBaseService implements CopilotAuthStatusListener {
-  private static final String PREF_FILE_NAME = "pref.json";
-  private static final Gson gson = new Gson();
-  private CopilotLanguageServerConnection lsConnection;
-  private AuthStatusManager authStatusManager;
-
   // data
   private IObservableValue<HashMap<String, CopilotModel>> modelObservable;
   private IObservableValue<CopilotModel> activeModelObservable;
   private CopilotModel defaultModel;
-  private String path;
 
   // Track side effects for each combo
   private final Map<Combo, ISideEffect[]> comboSideEffects = new HashMap<>();
@@ -55,8 +43,8 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
    * Constructor for the CopilotModelService.
    */
   public CopilotModelService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
-    this.authStatusManager = authStatusManager;
-    this.lsConnection = lsConnection;
+    super(lsConnection, authStatusManager);
+    
     this.authStatusManager.addCopilotAuthStatusListener(this);
     ensureRealm(() -> {
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
@@ -109,15 +97,12 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
     if (model == null) {
       return;
     }
+
     // Try to remember the model name
-    Path modelPath = getModelPersistentFilePath();
-    if (modelPath != null) {
-      // TODO: should have a service/manager to handle this
-      UserPreference preference = new UserPreference();
-      preference.setModelName(modeleName);
-      String jsonContent = gson.toJson(preference);
-      PlatformUtils.writeFileContent(modelPath, jsonContent);
-    }
+    UserPreference preference = getUserPreference();
+    preference.setModelName(modeleName);
+    persistUserPreference();
+
     ensureRealm(() -> {
       activeModelObservable.setValue(model);
     });
@@ -170,7 +155,6 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
   public void bindModelPicker(final Combo combo) {
     // First unbind if previously bound to prevent leaks
     unbindModelPicker(combo);
-
     ensureRealm(() -> {
       ISideEffect modelNamesSideEffect = ISideEffect.create(() -> {
         HashMap<String, CopilotModel> modelMap = this.modelObservable.getValue();
@@ -200,7 +184,8 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
 
           GridData gridData = (GridData) combo.getLayoutData();
           // Add some padding (dropdown button width + horizontal margins)
-          gridData.widthHint = textExtent.x + 40;
+          int padding = PlatformUtils.isWindows() ? 0 : 40;
+          gridData.widthHint = textExtent.x + padding;
 
           // TODO: how to refresh the layout in a more systematic way?
           combo.getParent().getParent().layout();
@@ -258,38 +243,14 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
     this.authStatusManager.removeCopilotAuthStatusListener(this);
   }
 
-  private @Nullable Path getModelPersistentFilePath() {
-    final String user = this.authStatusManager.getUserName();
-    if (user == null || user.isEmpty()) {
-      CopilotCore.LOGGER.error(new IllegalStateException("User name is empty"));
-      return null;
-    }
-    return Paths.get(this.path, user, PREF_FILE_NAME);
-  }
-
   private String restoreModelName() {
     // TODO: check if the model name is in modelMap
     // get the path for the chat persistence
-    try {
-      if (this.path == null) {
-        ChatPersistence chatPersistence = this.lsConnection.persistence().get();
-        this.path = chatPersistence.getPath();
-      }
-      Path modelFilePath = this.getModelPersistentFilePath();
-      if (modelFilePath == null) {
-        return defaultModel.getModelName();
-      }
-      // read from model file
-      String jsonContent = PlatformUtils.readFileContent(modelFilePath);
-      if (!jsonContent.isEmpty()) {
-        UserPreference preference = gson.fromJson(jsonContent, UserPreference.class);
-        if (preference != null && preference.getModelName() != null) {
-          return preference.getModelName();
-        }
-      }
-    } catch (InterruptedException | ExecutionException | JsonSyntaxException e) {
-      CopilotCore.LOGGER.error("Failed to get chat persistence", e);
+    UserPreference preference = getUserPreference();
+    if (preference != null && preference.getModelName() != null) {
+      return preference.getModelName();
     }
+
     return defaultModel.getModelName();
   }
 }

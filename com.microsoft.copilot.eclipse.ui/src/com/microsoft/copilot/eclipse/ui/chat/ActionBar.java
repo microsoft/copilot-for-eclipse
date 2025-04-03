@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -43,8 +44,10 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatModeService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.CopilotModelService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -201,15 +204,16 @@ public class ActionBar extends Composite implements NewConversationListener {
     attachGd.heightHint = attachImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
     this.btnAttachContext.setLayoutData(attachGd);
 
-    Composite cmpSendOrCancel = new Composite(this.cmpActionArea, SWT.NONE);
-    cmpSendOrCancel.setLayout(new GridLayout(2, false));
-    cmpSendOrCancel.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    UiUtils.useParentBackground(cmpSendOrCancel);
-    setUpModelPicker(cmpSendOrCancel);
+    Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
+    cmpControlBar.setLayout(new GridLayout(3, false));
+    cmpControlBar.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    UiUtils.useParentBackground(cmpControlBar);
+    setUpChatModePicker(cmpControlBar);
+    setUpModelPicker(cmpControlBar);
 
     sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
     cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
-    this.btnMsgToggle = UiUtils.createIconButton(cmpSendOrCancel, SWT.PUSH | SWT.FLAT);
+    this.btnMsgToggle = UiUtils.createIconButton(cmpControlBar, SWT.PUSH | SWT.FLAT);
     this.btnMsgToggle.setEnabled(false);
     this.btnMsgToggle.setImage(sendImage);
     this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
@@ -273,6 +277,25 @@ public class ActionBar extends Composite implements NewConversationListener {
         int index = cmbModelPicker.getSelectionIndex();
         if (index >= 0 && index < models.length) {
           copilotModelService.setActiveModel(models[index]);
+        }
+      }
+    });
+  }
+
+  private void setUpChatModePicker(Composite parent) {
+    Combo cmbChatModePicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
+    cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    String[] chatModeNames = Arrays.stream(ChatMode.values()).map(ChatMode::toString).toArray(String[]::new);
+    cmbChatModePicker.setItems(chatModeNames);
+    ChatModeService chatModeService = chatServiceManager.getChatModeService();
+    chatModeService.bindChatModePicker(cmbChatModePicker);
+    cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        String[] modes = cmbChatModePicker.getItems();
+        int index = cmbChatModePicker.getSelectionIndex();
+        if (index >= 0 && index < modes.length) {
+          chatModeService.setActiveChatMode(modes[index]);
         }
       }
     });

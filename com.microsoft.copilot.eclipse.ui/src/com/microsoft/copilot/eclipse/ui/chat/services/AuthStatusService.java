@@ -15,8 +15,6 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  */
 public class AuthStatusService extends ChatBaseService implements CopilotAuthStatusListener {
 
-  private AuthStatusManager authStatusManager;
-
   private IObservableValue<String> statusObservable;
 
   private ISideEffect chatViewSideEffect;
@@ -29,7 +27,8 @@ public class AuthStatusService extends ChatBaseService implements CopilotAuthSta
    * @param authStatusManager the authentication status manager.
    */
   public AuthStatusService(AuthStatusManager authStatusManager) {
-    this.authStatusManager = authStatusManager;
+    super(null, authStatusManager);
+
     this.authStatusManager.addCopilotAuthStatusListener(this);
     ensureRealm(() -> {
       statusObservable = new WritableValue<>(authStatusManager.getCopilotStatus(), CopilotStatusResult.class);

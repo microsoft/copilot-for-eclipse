@@ -14,6 +14,7 @@ public class ChatServiceManager {
 
   private SlashCommandService slashCommandService;
   private CopilotModelService copilotModelService;
+  private ChatModeService chatModeService;
   private AvatarService avatarService;
   private AuthStatusService authStatusService;
 
@@ -25,6 +26,7 @@ public class ChatServiceManager {
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
     slashCommandService = new SlashCommandService(this.lsConnection, this.authStatusManager);
     copilotModelService = new CopilotModelService(this.lsConnection, this.authStatusManager);
+    chatModeService = new ChatModeService(this.lsConnection, this.authStatusManager);
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
   }
@@ -72,12 +74,22 @@ public class ChatServiceManager {
   }
 
   /**
+   * Get the chat mode service.
+   *
+   * @return the chat mode service
+   */
+  public ChatModeService getChatModeService() {
+    return chatModeService;
+  }
+
+  /**
    * Dispose of the chat services.
    */
   public void dispose() {
     this.avatarService.dispose();
     this.slashCommandService.dispose();
     this.copilotModelService.dispose();
+    this.chatModeService.dispose();
     this.authStatusService.dispose();
   }
 
