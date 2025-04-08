@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
@@ -113,6 +114,12 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("conversation/persistence")
   CompletableFuture<ChatPersistence> persistence(NullParams param);
+
+  /**
+   * Register agent tools to the language server.
+   */
+  @JsonRequest("conversation/registerTools")
+  CompletableFuture<Object> registerTools(RegisterToolsParams params);
 
   /**
    * List copilot models.

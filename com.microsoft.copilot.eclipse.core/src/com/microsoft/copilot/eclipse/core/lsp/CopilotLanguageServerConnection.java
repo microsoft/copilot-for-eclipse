@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
@@ -245,6 +246,18 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ChatPersistence> persistence() {
     Function<LanguageServer, CompletableFuture<ChatPersistence>> fn = server -> ((CopilotLanguageServer) server)
         .persistence(new NullParams());
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Used to register the tools for the language server.
+   */
+  public CompletableFuture<Object> registerTools(RegisterToolsParams params) {
+    Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
+        .registerTools(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
       return null;

@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
@@ -77,8 +78,17 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    * Get the conversation context for the given request.
    */
   @JsonRequest("conversation/context")
-  public CompletableFuture<ConversationContextResult[]> getConversationContext(Object request) {
+  public CompletableFuture<ConversationContextResult[]> getConversationContext(Object params) {
     return CompletableFuture.completedFuture(new ConversationContextResult[] { null, null });
+  }
+
+  /**
+   * Invokes a client tool from the server.
+   */
+  @JsonRequest("conversation/invokeClientTool")
+  public CompletableFuture<Object[]> invokeClientTool(InvokeClientToolParams params) {
+    // TODO: implement this method to invoke the client tool
+    return CompletableFuture.completedFuture(new Object[] { null, null });
   }
 
   /**
