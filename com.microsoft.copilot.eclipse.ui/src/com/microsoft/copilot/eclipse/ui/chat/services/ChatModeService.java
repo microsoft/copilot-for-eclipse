@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -19,6 +20,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
  * Service for managing Copilot chat modes.
@@ -26,6 +28,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 public class ChatModeService extends ChatBaseService implements CopilotAuthStatusListener {
   // Data
   private IObservableValue<ChatMode> activeChatModeObservable;
+
+  private ISideEffect chatViewSideEffect;
 
   // Track side effects for each combo
   private final Map<Combo, ISideEffect[]> comboSideEffects = new HashMap<>();
@@ -48,6 +52,11 @@ public class ChatModeService extends ChatBaseService implements CopilotAuthStatu
    * @param chatModeName the name of the chat mode
    */
   public void setActiveChatMode(String chatModeName) {
+    // Only update if the selected mode is different from the current mode
+    if (Objects.equals(chatModeName, getActiveChatMode().toString())) {
+      return;
+    }
+
     // Persist the chat mode selection
     UserPreference preference = getUserPreference();
     preference.setChatModeName(chatModeName);
@@ -63,9 +72,9 @@ public class ChatModeService extends ChatBaseService implements CopilotAuthStatu
    *
    * @return the active chat mode
    */
-  public String getActiveChatMode() {
+  public ChatMode getActiveChatMode() {
     ChatMode activeChatMode = activeChatModeObservable.getValue();
-    return activeChatMode == null ? ChatMode.Ask.toString() : activeChatMode.toString();
+    return activeChatMode == null ? ChatMode.Ask : activeChatMode;
   }
 
   @Override
@@ -145,6 +154,34 @@ public class ChatModeService extends ChatBaseService implements CopilotAuthStatu
   }
 
   /**
+   * Bind the chat view to the chat mode.
+   */
+  public void bindChatView(ChatView chatView) {
+    if (chatView == null) {
+      return;
+    }
+
+    // Unbind any previously bound chat view
+    unbindChatView();
+
+    ensureRealm(() -> {
+      chatViewSideEffect = ISideEffect.create(() -> {
+        return this.activeChatModeObservable.getValue();
+      }, chatView::buildViewFor);
+    });
+  }
+
+  /**
+   * Unbind the currently bound chat view if any.
+   */
+  public void unbindChatView() {
+    if (chatViewSideEffect != null) {
+      chatViewSideEffect.dispose();
+      chatViewSideEffect = null;
+    }
+  }
+
+  /**
    * Dispose the service.
    */
   public void dispose() {
@@ -158,6 +195,7 @@ public class ChatModeService extends ChatBaseService implements CopilotAuthStatu
     }
 
     comboSideEffects.clear();
+    unbindChatView();
 
     if (activeChatModeObservable != null) {
       activeChatModeObservable.dispose();

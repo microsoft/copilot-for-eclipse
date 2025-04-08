@@ -1,5 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.source.SourceViewer;
@@ -12,6 +15,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -28,6 +32,7 @@ public abstract class BaseTurnWidget extends Composite {
   // Widgets
   protected SourceViewer currentTextBlock;
   protected SourceViewerComposite currentCodeBlock;
+  protected Map<String, AgentStatusLabel> statusLabels;
 
   // Data
   protected StringBuilder sb;
@@ -56,6 +61,7 @@ public abstract class BaseTurnWidget extends Composite {
     this.isCopilot = isCopilot;
     this.turnId = turnId;
     this.codeBlockIndex = 1;
+    this.statusLabels = new HashMap<>();
     this.setBackground(parent.getBackground());
     // editor group
     // align all children vertically
@@ -123,6 +129,37 @@ public abstract class BaseTurnWidget extends Composite {
       String line = sb.substring(0, newlineIndex + 1);
       sb.delete(0, newlineIndex + 1);
       processMessageLine(line);
+    }
+  }
+
+  /**
+   * Add a status message to the turn.
+   *
+   * @param toolCall the tool call of the agent turn
+   */
+  public void appendToolCallStatus(AgentToolCall toolCall) {
+    if (toolCall == null || StringUtils.isEmpty(toolCall.getProgressMessage())) {
+      return;
+    }
+
+    this.sb = new StringBuilder();
+    this.mdContentBuilder = new StringBuilder();
+    this.currentCodeBlock = null;
+    this.currentTextBlock = null;
+
+    AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(), 
+        id -> new AgentStatusLabel(this, SWT.LEFT));
+
+    String status = toolCall.getStatus().toLowerCase();
+    switch (status) {
+      case "running":
+        statusLabel.setRunningStatus(toolCall.getProgressMessage());
+        break;
+      case "completed":
+        statusLabel.setCompletedStatus(toolCall.getProgressMessage());
+        break;
+      default:
+        CopilotCore.LOGGER.error(new IllegalStateException("Unknown status: " + status));
     }
   }
 
@@ -219,6 +256,12 @@ public abstract class BaseTurnWidget extends Composite {
     }
     if (mdContentBuilder != null) {
       mdContentBuilder.setLength(0);
+    }
+    if (statusLabels != null) {
+      for (AgentStatusLabel label : statusLabels.values()) {
+        label.dispose();
+      }
+      statusLabels.clear();
     }
   }
 }

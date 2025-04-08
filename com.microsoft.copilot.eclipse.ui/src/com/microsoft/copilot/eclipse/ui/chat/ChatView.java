@@ -22,6 +22,7 @@ import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
 import com.microsoft.copilot.eclipse.core.chat.ChatProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStep;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
@@ -32,6 +33,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AfterLoginWelcomeViewer;
+import com.microsoft.copilot.eclipse.ui.chat.viewers.AgentModeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.BeforeLoginWelcomeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.LoadingViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.NoSubscriptionViewer;
@@ -54,6 +56,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private Composite noSubscriptionViewer;
   private Composite beforeLoginWelcomeViewer;
   private Composite afterLoginWelcomeViewer;
+  private Composite agentModeViewer;
   private boolean hasHistory = false;
   private String conversationId = "";
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
@@ -81,12 +84,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             return;
           }
           ChatView.this.chatServiceManager.getAuthStatusService().bindChatView(ChatView.this);
+          ChatView.this.chatServiceManager.getChatModeService().bindChatView(ChatView.this);
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
       Job.getJobManager().addJobChangeListener(adapter);
     } else {
       this.chatServiceManager.getAuthStatusService().bindChatView(this);
+      this.chatServiceManager.getChatModeService().bindChatView(this);
     }
   }
 
@@ -108,10 +113,39 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         showNoSubscriptionPage();
         break;
       default:
-        showAfterLoginPage();
+        showChatPage(chatServiceManager.getChatModeService().getActiveChatMode());
         break;
     }
     this.parent.layout();
+  }
+
+  /**
+   * Build the view for the given chat mode.
+   *
+   * @param chatMode the chat mode
+   */
+  public void buildViewFor(ChatMode chatMode) {
+    if (chatMode == null) {
+      return;
+    }
+    this.onCancel();
+    this.onNewConversation();
+    disposeChildren(parent);
+
+    showChatPage(chatMode);
+    this.parent.layout();
+  }
+
+  private void showChatPage(ChatMode chatMode) {
+    switch (chatMode) {
+      case Agent:
+        showAgentModePage();
+        break;
+      case Ask:
+      default:
+        showAfterLoginPage();
+        break;
+    }
   }
 
   private void showLoadingPage() {
@@ -127,6 +161,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private void showNoSubscriptionPage() {
     createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createNoSubscriptionPage();
+  }
+
+  private void showAgentModePage() {
+    // upper bar
+    this.topBanner = new TopBanner(parent, SWT.NONE);
+    this.topBanner.registerNewConversationListener(this);
+
+    // main section
+    createMainSection(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+    if (hasHistory) {
+      createConversationPage();
+    } else {
+      createAgentModePage();
+    }
+
+    // input field
+    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
+    this.actionBar.registerMessageListener(this);
+    this.topBanner.registerNewConversationListener(this.actionBar);
   }
 
   private void showAfterLoginPage() {
@@ -200,6 +254,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.mainSection.layout();
   }
 
+  private void createAgentModePage() {
+    clearChatView();
+    this.agentModeViewer = new AgentModeViewer(this.mainSection, SWT.NONE);
+    this.mainSection.layout();
+  }
+
   private void clearChatView() {
     if (this.mainSection == null || mainSection.isDisposed()) {
       return;
@@ -214,6 +274,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (this.afterLoginWelcomeViewer != null) {
       this.afterLoginWelcomeViewer.dispose();
       this.afterLoginWelcomeViewer = null;
+    }
+    if (this.agentModeViewer != null) {
+      this.agentModeViewer.dispose();
+      this.agentModeViewer = null;
     }
     if (this.chatContentViewer != null) {
       this.chatContentViewer.dispose();
@@ -258,7 +322,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             }
           }
         }
-        if (value.getReply() == null || value.getReply().isEmpty()) {
+        if ((value.getAgentRounds() == null || value.getAgentRounds().isEmpty())
+            && (value.getReply() == null || value.getReply().isEmpty())) {
           return;
         }
         if (this.chatContentViewer != null) {
@@ -289,7 +354,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getCopilotModelService().getActiveModel();
     String modelName = activeModel == null ? null : activeModel.getModelFamily();
-    String chatModeName = chatServiceManager.getChatModeService().getActiveChatMode();
+    String chatModeName = chatServiceManager.getChatModeService().getActiveChatMode().toString();
     if (!(this.hasHistory)) {
       this.hasHistory = true;
       createConversationPage();
@@ -352,7 +417,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.hasHistory = false;
     this.conversationId = "";
     this.onCancel();
-    createAfterLoginWelcomePage();
+    ChatMode chatMode = chatServiceManager.getChatModeService().getActiveChatMode();
+    if (chatMode != null && chatMode.equals(ChatMode.Agent)) {
+      createAgentModePage();
+    } else {
+      createAfterLoginWelcomePage();
+    }
   }
 
   /**
@@ -390,6 +460,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
     if (this.noSubscriptionViewer != null) {
       this.noSubscriptionViewer.dispose();
+    }
+    if (this.agentModeViewer != null) {
+      this.agentModeViewer.dispose();
     }
     super.dispose();
   }

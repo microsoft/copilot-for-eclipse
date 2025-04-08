@@ -160,7 +160,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     Composite signInComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.CENTER);
     Button signInButton = new Button(signInComposite, SWT.PUSH | SWT.WRAP);
     signInButton.setText(Messages.chat_welcomeView_signInButton);
-    signInButton.setToolTipText(Messages.chat_welcomeView_signInButtonTooltip);
+    signInButton.setToolTipText(Messages.chat_welcomeView_signInButton_Tooltip);
     GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, true);
     gridData.widthHint = ALIGNED_WIDTH;
     signInButton.setLayoutData(gridData);

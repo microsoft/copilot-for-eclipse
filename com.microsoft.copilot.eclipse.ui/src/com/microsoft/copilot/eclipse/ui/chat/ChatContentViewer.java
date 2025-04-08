@@ -18,7 +18,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.ScrollBar;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -122,8 +124,26 @@ public class ChatContentViewer extends ScrolledComposite {
         CopilotCore.LOGGER.error(new IllegalStateException("TurnWidget is null when event comes."));
         return;
       }
+
       if (value.getKind() == WorkDoneProgressKind.report) {
-        turnWidget.appendMessage(value.getReply());
+        ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+        boolean isAgentMode = chatServiceManager != null
+            && ChatMode.Agent.equals(chatServiceManager.getChatModeService().getActiveChatMode());
+
+        if (isAgentMode && value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
+          // Handle agent mode responses
+          if (value.getAgentRounds().get(0).getReply() != null) {
+            turnWidget.appendMessage(value.getAgentRounds().get(0).getReply());
+          }
+
+          if (value.getAgentRounds().get(0).getToolCalls() != null
+              && !value.getAgentRounds().get(0).getToolCalls().isEmpty()) {
+            turnWidget.appendToolCallStatus(value.getAgentRounds().get(0).getToolCalls().get(0));
+          }
+        } else {
+          // Handle chat mode responses
+          turnWidget.appendMessage(value.getReply());
+        }
       } else if (value.getKind() == WorkDoneProgressKind.end) {
         turnWidget.notifyTurnEnd();
       }

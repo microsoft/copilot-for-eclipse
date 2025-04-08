@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.swt;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
@@ -64,6 +65,20 @@ public class WrapLabel {
 
   public void setHorizontalIndent(int horizontalIndent) {
     gridData.horizontalIndent = horizontalIndent;
+  }
+
+  /**
+   * Set the layout data of the label.
+   */
+  public void setLayoutData(GridData layoutData) {
+    label.setLayoutData(layoutData);
+  }
+
+  /**
+   * Set the dispose listener of the label.
+   */
+  public void addDisposeListener(DisposeListener listener) {
+    label.addDisposeListener(listener);
   }
 
   private void updateWidth() {

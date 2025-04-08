@@ -17,7 +17,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 /**
  * A widget that displays a initial chat introduction.
  */
-public class AfterLoginWelcomeViewer extends BaseViewer {
+public class AgentModeViewer extends BaseViewer {
   private Image mainIcon;
   private Font mainLabelFont;
   private Image attachContextIcon;
@@ -28,7 +28,7 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
    * @param parent the parent composite
    * @param style the style
    */
-  public AfterLoginWelcomeViewer(Composite parent, int style) {
+  public AgentModeViewer(Composite parent, int style) {
     super(parent, style);
 
     buildMainIconAndLabel();
@@ -43,12 +43,25 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
     Label icon = new Label(iconLabelComposite, SWT.NONE);
+    icon.addDisposeListener(e -> {
+      if (this.mainIcon != null && !this.mainIcon.isDisposed()) {
+        this.mainIcon.dispose();
+      }
+    });
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
-    label.setText(Messages.chat_initialChatView_title);
+    label.setText(Messages.chat_agentModeView_title);
     label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+    GridData labelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    labelGridData.widthHint = ALIGNED_LABEL_WIDTH;
+    label.setLayoutData(labelGridData);
+
+    WrapLabel subtitle = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    subtitle.setText(Messages.chat_agentModeView_subtitle);
+    subtitle.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+
     FontData fontData = new FontData();
     fontData.setHeight(16);
     fontData.setStyle(SWT.BOLD);
@@ -57,15 +70,26 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     }
     this.mainLabelFont = new Font(Display.getCurrent(), fontData);
     label.setFont(mainLabelFont);
+    label.addDisposeListener(e -> {
+      if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
+        this.mainLabelFont.dispose();
+      }
+    });
 
     WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
-    subLabel.setText(Messages.chat_aiWarn_description);
+    subLabel.setText(Messages.chat_agentModeView_description);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     GridData subLabelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     subLabelGridData.widthHint = ALIGNED_LABEL_WIDTH;
     subLabelGridData.verticalIndent = 10;
     subLabel.setLayoutData(subLabelGridData);
 
+    WrapLabel warnLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
+    warnLabel.setText(Messages.chat_aiWarn_description);
+    warnLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+    GridData warnGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    warnGridData.widthHint = ALIGNED_LABEL_WIDTH;
+    warnLabel.setLayoutData(warnGridData);
   }
 
   private void buildSubComposite() {
@@ -77,24 +101,15 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     subComposite.setLayoutData(gridData);
 
     this.attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_initialChatView_attactContextSuffix);
+    subComposite.addDisposeListener(e -> {
+      if (this.attachContextIcon != null && !this.attachContextIcon.isDisposed()) {
+        this.attachContextIcon.dispose();
+      }
+    });
+    buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_agentModeView_attachContextSuffix);
 
     WrapLabel subLabel = new WrapLabel(subComposite, SWT.CENTER);
-    subLabel.setText(Messages.chat_initialChatView_useCommandsIntro);
+    subLabel.setText(Messages.chat_agentModeView_useCommandsIntro);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-  }
-
-  @Override
-  public void dispose() {
-    if (this.attachContextIcon != null) {
-      this.attachContextIcon.dispose();
-    }
-    if (this.mainIcon != null) {
-      this.mainIcon.dispose();
-    }
-    if (this.mainLabelFont != null) {
-      this.mainLabelFont.dispose();
-    }
-    super.dispose();
   }
 }

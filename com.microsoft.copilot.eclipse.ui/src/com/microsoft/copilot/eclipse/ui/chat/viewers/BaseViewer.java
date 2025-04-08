@@ -12,6 +12,7 @@ import org.eclipse.swt.widgets.Label;
  */
 public abstract class BaseViewer extends Composite {
   public static final int ALIGNED_WIDTH = 300;
+  public static final int ALIGNED_LABEL_WIDTH = 480;
   public static int ALIGNED_MARGIN_TOP = 10;
 
   BaseViewer(Composite parent, int style) {

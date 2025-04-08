@@ -74,7 +74,7 @@ public final class Messages extends NLS {
   public static String chat_welcomeView_freeCopilotIntroPrefix;
   public static String chat_welcomeView_freeCopilotIntroSuffix;
   public static String chat_welcomeView_signInButton;
-  public static String chat_welcomeView_signInButtonTooltip;
+  public static String chat_welcomeView_signInButton_Tooltip;
   public static String chat_welcomeView_termsPrefix;
   public static String chat_welcomeView_termsLink;
   public static String chat_welcomeView_termsSuffix;
@@ -87,10 +87,15 @@ public final class Messages extends NLS {
   public static String chat_welcomeView_footerSettingsPrefix;
   public static String chat_welcomeView_footerSettingsLink;
   public static String chat_welcomeView_footerSettingsSuffix;
+  public static String chat_aiWarn_description;
   public static String chat_initialChatView_title;
-  public static String chat_initialChatView_description;
   public static String chat_initialChatView_attactContextSuffix;
   public static String chat_initialChatView_useCommandsIntro;
+  public static String chat_agentModeView_title;
+  public static String chat_agentModeView_subtitle;
+  public static String chat_agentModeView_description;
+  public static String chat_agentModeView_attachContextSuffix;
+  public static String chat_agentModeView_useCommandsIntro;
   public static String chat_loadingView_title;
   public static String chat_loadingView_description;
   public static String chat_noAuthView_title;
