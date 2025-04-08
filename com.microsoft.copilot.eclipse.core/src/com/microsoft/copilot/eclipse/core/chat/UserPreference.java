@@ -11,29 +11,30 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
  */
 public class UserPreference {
 
-  private String modelName;
+  private String chatModel;
   private String chatModeName;
 
   /**
-   * Gets the name of the AI model.
+   * Gets the id of the Chat model.
    *
-   * @return the model name
+   * @return the model id
    */
-  public synchronized String getModelName() {
-    return modelName;
+  public synchronized String getChatModel() {
+    return chatModel;
   }
 
   /**
-   * Sets the name of the AI model.
+   * Sets the id of the Chat model.
    *
-   * @param modelName the model name
+   * @param id the model id
    */
-  public synchronized void setModelName(String modelName) {
-    this.modelName = modelName;
+  public synchronized void setChatModel(String id) {
+    this.chatModel = id;
   }
 
   /**
-   * Gets the name of the chat mode.
+   * Gets the name of the chat mode. For all the available modes, see:
+   * {@link com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode}.
    *
    * @return the chat mode name
    */
@@ -52,7 +53,7 @@ public class UserPreference {
 
   @Override
   public int hashCode() {
-    return Objects.hash(chatModeName, modelName);
+    return Objects.hash(chatModeName, chatModel);
   }
 
   @Override
@@ -67,13 +68,13 @@ public class UserPreference {
       return false;
     }
     UserPreference other = (UserPreference) obj;
-    return Objects.equals(chatModeName, other.chatModeName) && Objects.equals(modelName, other.modelName);
+    return Objects.equals(chatModeName, other.chatModeName) && Objects.equals(chatModel, other.chatModel);
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("modelName", modelName);
+    builder.add("chatModel", chatModel);
     builder.add("chatModeName", chatModeName);
     return builder.toString();
   }

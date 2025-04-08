@@ -44,7 +44,7 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
    */
   public CopilotModelService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
     super(lsConnection, authStatusManager);
-    
+
     this.authStatusManager.addCopilotAuthStatusListener(this);
     ensureRealm(() -> {
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
@@ -66,16 +66,16 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
               if (defaultModel == null) {
                 defaultModel = model;
               }
-              modelMap.put(model.getModelName(), model);
+              modelMap.put(model.getId(), model);
             }
           }
           ensureRealm(() -> {
             modelObservable.setValue(modelMap);
           });
 
-          final String modelName = restoreModelName();
+          final String modelId = restoreModelId();
           ensureRealm(() -> {
-            activeModelObservable.setValue(modelMap.get(modelName));
+            activeModelObservable.setValue(modelMap.get(modelId));
           });
         } catch (InterruptedException | ExecutionException e) {
           CopilotCore.LOGGER.error("Failed to list models", e);
@@ -93,14 +93,16 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
    * @param modeleName the name of the model
    */
   public void setActiveModel(String modeleName) {
-    CopilotModel model = modelObservable.getValue().get(modeleName);
+    CopilotModel model = modelObservable.getValue().values().stream().filter(m -> m.getModelName().equals(modeleName))
+        .findFirst().orElse(null);
+
     if (model == null) {
       return;
     }
 
     // Try to remember the model name
     UserPreference preference = getUserPreference();
-    preference.setModelName(modeleName);
+    preference.setChatModel(model.getId());
     persistUserPreference();
 
     ensureRealm(() -> {
@@ -158,7 +160,7 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
     ensureRealm(() -> {
       ISideEffect modelNamesSideEffect = ISideEffect.create(() -> {
         HashMap<String, CopilotModel> modelMap = this.modelObservable.getValue();
-        String[] names = modelMap.keySet().toArray(new String[0]);
+        String[] names = modelMap.values().stream().map(CopilotModel::getModelName).toArray(String[]::new);
         Arrays.sort(names, String.CASE_INSENSITIVE_ORDER);
         return names;
       }, (String[] modelNames) -> {
@@ -243,14 +245,14 @@ public class CopilotModelService extends ChatBaseService implements CopilotAuthS
     this.authStatusManager.removeCopilotAuthStatusListener(this);
   }
 
-  private String restoreModelName() {
+  private String restoreModelId() {
     // TODO: check if the model name is in modelMap
     // get the path for the chat persistence
     UserPreference preference = getUserPreference();
-    if (preference != null && preference.getModelName() != null) {
-      return preference.getModelName();
+    if (preference != null && preference.getChatModel() != null) {
+      return preference.getChatModel();
     }
 
-    return defaultModel.getModelName();
+    return defaultModel.getId();
   }
 }
