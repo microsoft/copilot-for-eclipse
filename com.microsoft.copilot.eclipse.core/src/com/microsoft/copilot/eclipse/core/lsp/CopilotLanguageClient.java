@@ -97,6 +97,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   @Override
   public void notifyProgress(ProgressParams progress) {
     var chatProgress = (ChatProgressValue) progress.getValue().getLeft();
-    CopilotCore.getPlugin().getChatProvider().notifyProgress(chatProgress);
+    CopilotCore.getPlugin().getChatEventsManager().notifyProgress(chatProgress);
   }
 }

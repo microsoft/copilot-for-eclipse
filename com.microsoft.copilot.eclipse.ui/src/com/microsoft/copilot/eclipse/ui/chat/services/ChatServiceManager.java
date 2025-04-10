@@ -17,6 +17,7 @@ public class ChatServiceManager {
   private ChatModeService chatModeService;
   private AvatarService avatarService;
   private AuthStatusService authStatusService;
+  private AgentToolService agentToolService;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -29,6 +30,7 @@ public class ChatServiceManager {
     chatModeService = new ChatModeService(this.lsConnection, this.authStatusManager);
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
+    agentToolService = new AgentToolService(this.lsConnection);
   }
 
   /**
@@ -83,6 +85,15 @@ public class ChatServiceManager {
   }
 
   /**
+   * Get the agent tool service.
+   *
+   * @return the agent tool service
+   */
+  public AgentToolService getAgentToolService() {
+    return agentToolService;
+  }
+
+  /**
    * Dispose of the chat services.
    */
   public void dispose() {
@@ -91,6 +102,7 @@ public class ChatServiceManager {
     this.copilotModelService.dispose();
     this.chatModeService.dispose();
     this.authStatusService.dispose();
+    this.agentToolService.dispose();
   }
 
 }

@@ -11,6 +11,15 @@ public class LanguageModelTextPart {
 
   private String value;
 
+  /**
+   * Constructor for LanguageModelTextPart.
+   *
+   * @param value the text content of the part
+   */
+  public LanguageModelTextPart(String value) {
+    this.value = value;
+  }
+
   public String getValue() {
     return value;
   }

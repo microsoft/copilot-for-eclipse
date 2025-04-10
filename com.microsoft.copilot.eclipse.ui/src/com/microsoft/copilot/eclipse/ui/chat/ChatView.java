@@ -18,8 +18,8 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.part.ViewPart;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
-import com.microsoft.copilot.eclipse.core.chat.ChatProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -85,6 +85,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
           ChatView.this.chatServiceManager.getAuthStatusService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getChatModeService().bindChatView(ChatView.this);
+          ChatView.this.chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
@@ -92,6 +93,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       this.chatServiceManager.getAuthStatusService().bindChatView(this);
       this.chatServiceManager.getChatModeService().bindChatView(this);
+      this.chatServiceManager.getAgentToolService().bindChatView(this);
     }
   }
 
@@ -343,7 +345,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void setFocus() {
-    ChatProvider p = CopilotCore.getPlugin().getChatProvider();
+    ChatEventsManager p = CopilotCore.getPlugin().getChatEventsManager();
     if (p != null && p.chatProgressListeners.size() == 0) {
       p.addChatProgressListener(this);
     }
@@ -426,11 +428,25 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
+   * Get the current conversation ID.
+   */
+  public String getConversationId() {
+    return this.conversationId;
+  }
+
+  /**
+   * Get the current chat content viewer.
+   */
+  public ChatContentViewer getChatContentViewer() {
+    return this.chatContentViewer;
+  }
+
+  /**
    * Dispose the view.
    */
   @Override
   public void dispose() {
-    ChatProvider p = CopilotCore.getPlugin().getChatProvider();
+    ChatEventsManager p = CopilotCore.getPlugin().getChatEventsManager();
     if (p != null) {
       p.removeChatProgressListener(this);
     }

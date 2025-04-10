@@ -119,7 +119,7 @@ public interface CopilotLanguageServer extends LanguageServer {
    * Register agent tools to the language server.
    */
   @JsonRequest("conversation/registerTools")
-  CompletableFuture<Object> registerTools(RegisterToolsParams params);
+  CompletableFuture<String> registerTools(RegisterToolsParams params);
 
   /**
    * List copilot models.

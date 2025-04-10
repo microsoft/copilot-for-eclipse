@@ -1,10 +1,13 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
@@ -16,7 +19,12 @@ public abstract class BaseTool {
   /**
    * Invoke the tool.
    */
-  public abstract CompletableFuture<String> invoke(InputSchema inputSchema, ChatView chatView);
+  public abstract CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, String> input, ChatView chatView);
+
+  /**
+   * Get the registration information of the tool.
+   */
+  public abstract LanguageModelToolInformation getToolInformation();
 
   /**
    * Needs user's confirmation to continue.

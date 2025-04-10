@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.Document;
@@ -11,6 +12,7 @@ import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
@@ -35,7 +37,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected Map<String, AgentStatusLabel> statusLabels;
 
   // Data
-  protected StringBuilder sb;
+  protected StringBuilder messageBuffer;
   protected StringBuilder mdContentBuilder;
   protected boolean inCodeBlock;
   protected boolean isCopilot;
@@ -55,7 +57,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected BaseTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId,
       boolean isCopilot) {
     super(parent, style);
-    this.sb = new StringBuilder();
+    this.messageBuffer = new StringBuilder();
     this.mdContentBuilder = new StringBuilder();
     this.serviceManager = serviceManager;
     this.isCopilot = isCopilot;
@@ -123,11 +125,11 @@ public abstract class BaseTurnWidget extends Composite {
     if (StringUtils.isEmpty(message)) {
       return;
     }
-    sb.append(message);
+    messageBuffer.append(message);
     int newlineIndex;
-    while ((newlineIndex = sb.indexOf("\n")) != -1) {
-      String line = sb.substring(0, newlineIndex + 1);
-      sb.delete(0, newlineIndex + 1);
+    while ((newlineIndex = messageBuffer.indexOf("\n")) != -1) {
+      String line = messageBuffer.substring(0, newlineIndex + 1);
+      messageBuffer.delete(0, newlineIndex + 1);
       processMessageLine(line);
     }
   }
@@ -142,12 +144,9 @@ public abstract class BaseTurnWidget extends Composite {
       return;
     }
 
-    this.sb = new StringBuilder();
-    this.mdContentBuilder = new StringBuilder();
-    this.currentCodeBlock = null;
-    this.currentTextBlock = null;
+    reset();
 
-    AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(), 
+    AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(),
         id -> new AgentStatusLabel(this, SWT.LEFT));
 
     String status = toolCall.getStatus().toLowerCase();
@@ -215,10 +214,21 @@ public abstract class BaseTurnWidget extends Composite {
    * Notify the end of the turn.
    */
   public void notifyTurnEnd() {
-    if (sb.length() > 0) {
-      this.processMessageLine(sb.toString());
-      sb.setLength(0);
+    if (messageBuffer.length() > 0) {
+      this.processMessageLine(messageBuffer.toString());
+      messageBuffer.setLength(0);
     }
+  }
+
+  private void reset() {
+    if (messageBuffer.length() > 0) {
+      this.processMessageLine(messageBuffer.toString());
+    }
+    this.messageBuffer.setLength(0);
+    this.mdContentBuilder.setLength(0);
+    this.currentCodeBlock = null;
+    this.currentTextBlock = null;
+    this.inCodeBlock = false;
   }
 
   /**
@@ -243,13 +253,64 @@ public abstract class BaseTurnWidget extends Composite {
   protected abstract void createTextBlock();
 
   /**
+   * Prompts the user to confirm or deny a tool execution.
+   *
+   * @param confirmationPrompt The message explaining what tool execution requires confirmation
+   */
+  public CompletableFuture<Boolean> requestToolExecutionConfirmation(String confirmationPrompt) {
+    // process all the messages before showing the confirmation dialog
+    reset();
+
+    Composite widgetParent = new Composite(this, SWT.BORDER);
+    widgetParent.setLayout(new GridLayout(1, false));
+    widgetParent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    new Label(widgetParent, SWT.NONE).setText(confirmationPrompt);
+
+    GridLayout actionLayout = new GridLayout(2, false);
+    actionLayout.marginLeft = 0;
+    actionLayout.marginRight = 0;
+    actionLayout.marginWidth = 0;
+    actionLayout.horizontalSpacing = 0;
+    Composite actionArea = new Composite(widgetParent, SWT.NONE);
+    actionArea.setLayout(actionLayout);
+    actionArea.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+    CompletableFuture<Boolean> future = new CompletableFuture<>();
+    Button continueButton = new Button(actionArea, SWT.PUSH);
+    continueButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+    continueButton.setText("Continue");
+    continueButton.addListener(SWT.Selection, e -> {
+      future.complete(true);
+      widgetParent.dispose();
+      if (this.getParent() != null) {
+        this.getParent().layout();
+      }
+    });
+
+    Button cancelButton = new Button(actionArea, SWT.PUSH);
+    cancelButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+    cancelButton.setText("Cancel");
+    cancelButton.addListener(SWT.Selection, e -> {
+      future.complete(false);
+      widgetParent.dispose();
+      if (this.getParent() != null) {
+        this.getParent().layout();
+      }
+    });
+
+    this.getParent().layout();
+
+    return future;
+  }
+
+  /**
    * Dispose the widget.
    */
   @Override
   public void dispose() {
     super.dispose();
-    if (sb != null) {
-      sb.setLength(0);
+    if (messageBuffer != null) {
+      messageBuffer.setLength(0);
     }
     if (boldFont != null) {
       boldFont.dispose();

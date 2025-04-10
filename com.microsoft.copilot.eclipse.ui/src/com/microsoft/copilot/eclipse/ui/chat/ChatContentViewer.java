@@ -160,6 +160,13 @@ public class ChatContentViewer extends ScrolledComposite {
     }, this);
   }
 
+  /**
+   * Get an existed turn widget by turn ID.
+   */
+  public BaseTurnWidget getTurnWidget(String turnId) {
+    return turns.get(turnId);
+  }
+
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code) {
     if (this.warnWidget != null) {
       this.warnWidget.dispose();
