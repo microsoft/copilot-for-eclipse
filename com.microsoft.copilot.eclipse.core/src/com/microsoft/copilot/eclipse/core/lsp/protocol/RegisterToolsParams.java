@@ -27,6 +27,15 @@ public class RegisterToolsParams {
     this.tools = tools;
   }
 
+  /**
+   * Adds a toolInfo to the list of LanguageModelToolInformation.
+   *
+   * @param toolInfo the LanguageModelToolInformation to add
+   */
+  public void addTool(LanguageModelToolInformation toolInfo) {
+    this.tools.add(toolInfo);
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(tools);

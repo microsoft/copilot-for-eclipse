@@ -11,15 +11,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelTextPart;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalTool;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -44,7 +46,39 @@ public class AgentToolService implements ToolInvocationListener {
    * Register default tools.
    */
   private void registerDefaultTools() {
+    registerTool(new RunInTerminalTool());
     // TODO: Register additional default tools here
+
+    // Register the tools to the language server
+    registerToolWithServer();
+
+    ChatEventsManager chatEventsManager = CopilotCore.getPlugin().getChatEventsManager();
+    if (chatEventsManager != null) {
+      chatEventsManager.addAgentToolListener(this);
+    }
+  }
+
+  /**
+   * Register tools to the language server.
+   *
+   * @param registerToolsParams The parameters for tool registration
+   * @return true if registration was successful, false otherwise
+   */
+  private void registerToolWithServer() {
+    RegisterToolsParams registerToolsParams = new RegisterToolsParams();
+    for (BaseTool tool : getAllTools()) {
+      registerToolsParams.addTool(tool.getToolInformation());
+    }
+
+    lsConnection.registerTools(registerToolsParams).thenAccept(registrationResult -> {
+      if (!Objects.equals("OK", registrationResult)) {
+        CopilotCore.LOGGER
+            .error(new IllegalStateException("Tool registration failed with result: " + registrationResult));
+      }
+    }).exceptionally(e -> {
+      CopilotCore.LOGGER.error("Error registering tools with the server", e);
+      return null;
+    });
   }
 
   /**
@@ -114,26 +148,34 @@ public class AgentToolService implements ToolInvocationListener {
   public CompletableFuture<LanguageModelToolResult[]> invokeTool(String toolName, @Nullable Map<String, String> input,
       String turnId, @Nullable ChatView chatView) {
     BaseTool tool = getTool(toolName);
+    LanguageModelToolResult result = new LanguageModelToolResult();
     if (tool == null) {
-      LanguageModelToolResult result = new LanguageModelToolResult();
-      result.getContent()
-          .add(new LanguageModelTextPart("Tool invocation failed due to the tool not found: " + toolName));
+      result.addContent("Tool invocation failed due to the tool not found: " + toolName);
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
     BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(turnId);
     AtomicReference<CompletableFuture<Boolean>> ref = new AtomicReference<>();
-    SwtUtils.invokeOnDisplayThread(() -> {
-      ref.set(turnWidget.requestToolExecutionConfirmation(tool.getConfirmedMessage()));
-    });
+    if (tool.needConfirmation()) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        ref.set(turnWidget.requestToolExecutionConfirmation(tool.getConfirmedMessage()));
+      });
+    } else {
+      ref.set(CompletableFuture.completedFuture(true));
+    }
 
     return ref.get().thenCompose(confirmed -> {
       if (Boolean.TRUE.equals(confirmed)) {
-        return tool.invoke(input, chatView);
+        try {
+          return tool.invoke(input, chatView);
+        } catch (Exception e) {
+          CopilotCore.LOGGER.error("Error invoking the tool " + toolName + " due to exception: ", e);
+          result.addContent("Tool invocation failed due to exception: " + e.getMessage());
+          return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+        }
       } else {
         CopilotCore.LOGGER.info("Tool invocation cancelled by user.");
-        LanguageModelToolResult result = new LanguageModelToolResult();
-        result.getContent().add(new LanguageModelTextPart("Tool invocation cancelled by user."));
+        result.addContent("Tool invocation cancelled by user.");
         return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
       }
     });

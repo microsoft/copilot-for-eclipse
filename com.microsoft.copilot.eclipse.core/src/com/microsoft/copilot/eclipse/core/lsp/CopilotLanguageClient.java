@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp;
 
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -22,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
@@ -86,9 +88,17 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    * Invokes a client tool from the server.
    */
   @JsonRequest("conversation/invokeClientTool")
-  public CompletableFuture<Object[]> invokeClientTool(InvokeClientToolParams params) {
-    // TODO: implement this method to invoke the client tool
-    return CompletableFuture.completedFuture(new Object[] { null, null });
+  public CompletableFuture<Object> invokeClientTool(InvokeClientToolParams params) {
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        LanguageModelToolResult[] toolResult = CopilotCore.getPlugin().getChatEventsManager().invokeAgentTool(params)
+            .get();
+        return toolResult;
+      } catch (InterruptedException | ExecutionException e) {
+        CopilotCore.LOGGER.error(e);
+        return new String[] { "Failed to invoke the tool due to exception: " + e.getMessage() };
+      }
+    });
   }
 
   /**
