@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalTool;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -47,6 +48,7 @@ public class AgentToolService implements ToolInvocationListener {
    */
   private void registerDefaultTools() {
     registerTool(new RunInTerminalTool());
+    registerTool(new GetErrorsTool());
     // TODO: Register additional default tools here
 
     // Register the tools to the language server
@@ -145,7 +147,7 @@ public class AgentToolService implements ToolInvocationListener {
    * @param toolName The name of the tool to invoke
    * @return The result of the tool invocation, or null if the tool was not found
    */
-  public CompletableFuture<LanguageModelToolResult[]> invokeTool(String toolName, @Nullable Map<String, String> input,
+  public CompletableFuture<LanguageModelToolResult[]> invokeTool(String toolName, @Nullable Map<String, Object> input,
       String turnId, @Nullable ChatView chatView) {
     BaseTool tool = getTool(toolName);
     LanguageModelToolResult result = new LanguageModelToolResult();
@@ -191,7 +193,7 @@ public class AgentToolService implements ToolInvocationListener {
     if (chatContentViewer == null || chatContentViewer.getTurnWidget(params.getTurnId()) == null) {
       return null;
     }
-    return invokeTool(params.getName(), (Map<String, String>) params.getInput(), params.getTurnId(), boundChatView);
+    return invokeTool(params.getName(), (Map<String, Object>) params.getInput(), params.getTurnId(), boundChatView);
   }
 
   /**

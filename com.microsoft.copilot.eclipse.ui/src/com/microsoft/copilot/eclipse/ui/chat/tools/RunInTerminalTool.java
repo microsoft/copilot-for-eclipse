@@ -63,9 +63,9 @@ public class RunInTerminalTool extends BaseTool {
   }
 
   @Override
-  public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, String> input, ChatView chatView) {
+  public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
     resultFuture = new CompletableFuture<>();
-    String command = input.get("command");
+    String command = (String) input.get("command");
     if (StringUtils.isBlank(command)) {
       LanguageModelToolResult toolResult = new LanguageModelToolResult();
       toolResult.addContent("The tool cannot be invoked due to the command is null or empty.");
