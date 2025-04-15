@@ -247,9 +247,7 @@ public class RunInTerminalTool extends BaseTool {
         } else {
           String result = sb.substring(0, indexOfEndSignal);
           sb.setLength(0);
-          LanguageModelToolResult toolResult = new LanguageModelToolResult();
-          toolResult.addContent(result.trim());
-          resultFuture.complete(new LanguageModelToolResult[] { toolResult });
+          resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(result.trim()) });
         }
         indexOfEndSignal = sb.lastIndexOf(EXECUTION_END_SIGNAL);
         signalCount++;

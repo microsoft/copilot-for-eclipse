@@ -24,6 +24,14 @@ public class LanguageModelToolResult {
   }
 
   /**
+   * Creates a new LanguageModelToolResult with content.
+   */
+  public LanguageModelToolResult(String resultContent) {
+    this.content = new ArrayList<>();
+    this.content.add(new LanguageModelTextPart(resultContent));
+  }
+
+  /**
    * Creates a new LanguageModelToolResult with the specified content value.
    *
    * @param contentValue the content value to set to the LanguageModelTextPart.

@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalTool;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -48,6 +49,7 @@ public class AgentToolService implements ToolInvocationListener {
    */
   private void registerDefaultTools() {
     registerTool(new RunInTerminalTool());
+    registerTool(new EditFileTool());
     registerTool(new GetErrorsTool());
     // TODO: Register additional default tools here
 
