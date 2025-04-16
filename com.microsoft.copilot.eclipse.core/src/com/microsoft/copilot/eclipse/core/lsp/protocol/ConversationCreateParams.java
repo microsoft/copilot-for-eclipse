@@ -84,12 +84,11 @@ public class ConversationCreateParams {
   /**
    * Creates a new ConversationCreateParams.
    */
-  public ConversationCreateParams(String prompt, String workDoneToken, String wsFolder) {
+  public ConversationCreateParams(String prompt, String workDoneToken) {
     this.workDoneToken = workDoneToken;
     this.turns = new Turn[] { new Turn(prompt, null, null) };
     this.capabilities = new Capabilities();
     this.computeSuggestions = true;
-    this.workspaceFolder = wsFolder;
     this.references = new ArrayList<>();
     this.ignoredSkills = new String[0];
     this.userLanguage = "en";

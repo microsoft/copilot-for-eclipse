@@ -65,7 +65,7 @@ public class CompletionProvider {
       return;
     }
     this.completionJob.cancel();
-    String uriString = FileUtils.getFileUri(file);
+    String uriString = FileUtils.getResourceUri(file);
     CompletionDocument completionDoc = new CompletionDocument(uriString, position);
     completionDoc.setVersion(documentVersion);
 

@@ -26,6 +26,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
@@ -34,6 +35,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
  * Language Server for Copilot agent.
@@ -194,7 +196,8 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message, List<IFile> files,
       String modelName, String chatModeName) {
     Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
-      ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken, null);
+      ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken);
+      param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       param.addFileRefs(files);
       param.setModel(modelName);
       param.setChatMode(chatModeName);
@@ -213,6 +216,7 @@ public class CopilotLanguageServerConnection {
       param.addFileRefs(files);
       param.setModel(modelName);
       param.setChatMode(chatModeName);
+      param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       return ((CopilotLanguageServer) server).addTurn(param);
     };
     return this.languageServerWrapper.execute(fn);
@@ -272,6 +276,13 @@ public class CopilotLanguageServerConnection {
       return ((CopilotLanguageServer) server).listModels(new NullParams());
     };
     return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Notify the language server that watched files have changed.
+   */
+  public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
+    this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
   }
 
   /**

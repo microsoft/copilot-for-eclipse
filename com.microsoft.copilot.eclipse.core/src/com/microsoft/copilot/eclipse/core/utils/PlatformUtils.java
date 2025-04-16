@@ -2,12 +2,17 @@ package com.microsoft.copilot.eclipse.core.utils;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -126,6 +131,15 @@ public class PlatformUtils {
       }
     }
     return null;
+  }
+
+  /**
+   * Return the workspace root URI string.
+   */
+  public static String getWorkspaceRootUri() {
+    IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+    URI uri = LSPEclipseUtils.toUri((IResource) workspaceRoot);
+    return uri != null ? uri.toASCIIString() : "";
   }
 
 }

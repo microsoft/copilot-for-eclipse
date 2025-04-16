@@ -15,6 +15,7 @@
 			<unit id="org.eclipse.tm.terminal.feature.feature.group" version="0.0.0"/>
 			<unit id="org.eclipse.tm.terminal.view.feature.feature.group" version="0.0.0"/>
 			<unit id="org.eclipse.tm.terminal.control.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit" version="0.0.0"/>
 		</location>
 		<location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
 				<!-- Wildwebdeveloper version 1.3.2 is the latest version that support JavaSE-17 as the execution environment -->

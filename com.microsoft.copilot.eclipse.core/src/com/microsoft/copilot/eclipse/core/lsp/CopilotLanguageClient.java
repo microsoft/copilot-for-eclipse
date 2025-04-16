@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -13,6 +14,7 @@ import org.eclipse.lsp4e.LanguageClientImpl;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
@@ -22,6 +24,8 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -31,6 +35,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
  */
 @SuppressWarnings("restriction")
 public class CopilotLanguageClient extends LanguageClientImpl {
+
+  private WatchedFileManager watchedFileManager;
 
   private static final String SIGNUP_URL = "https://github.com/github-copilot/signup";
 
@@ -108,5 +114,28 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public void notifyProgress(ProgressParams progress) {
     var chatProgress = (ChatProgressValue) progress.getValue().getLeft();
     CopilotCore.getPlugin().getChatEventsManager().notifyProgress(chatProgress);
+  }
+
+  /**
+   * Get the conversation context for the given request.
+   */
+  @JsonRequest("copilot/watchedFiles")
+  public CompletableFuture<GetWatchedFilesResponse> getWatchedFiles(GetWatchedFilesRequest params) {
+    if (watchedFileManager == null) {
+      watchedFileManager = new WatchedFileManager();
+    }
+    return CompletableFuture.completedFuture(new GetWatchedFilesResponse(watchedFileManager.getWatchedFiles(params)));
+  }
+
+  @Override
+  public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
+    // Ideally, we should return each IProject as a workspace folder, but given that when
+    // creating a new conversation or new conversation turn, the uri of the workspace folder
+    // is required to use the @project (or @workspace) agent. There is no easy way to guess which
+    // IProject should be used. So we are returning the workspace root as a single workspace folder.
+    final WorkspaceFolder folder = new WorkspaceFolder();
+    folder.setUri(PlatformUtils.getWorkspaceRootUri());
+    folder.setName("workspace-root"); // $NON-NLS-1$
+    return CompletableFuture.completedFuture(List.of(folder));
   }
 }
