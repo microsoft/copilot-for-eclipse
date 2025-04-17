@@ -2,7 +2,6 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -44,7 +43,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatModeService;
@@ -285,18 +283,13 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpChatModePicker(Composite parent) {
     Combo cmbChatModePicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    String[] chatModeNames = Arrays.stream(ChatMode.values()).map(ChatMode::toString).toArray(String[]::new);
-    cmbChatModePicker.setItems(chatModeNames);
     ChatModeService chatModeService = chatServiceManager.getChatModeService();
     chatModeService.bindChatModePicker(cmbChatModePicker);
     cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        String[] modes = cmbChatModePicker.getItems();
         int index = cmbChatModePicker.getSelectionIndex();
-        if (index >= 0 && index < modes.length) {
-          chatModeService.setActiveChatMode(modes[index]);
-        }
+        chatModeService.setActiveChatMode(index);
       }
     });
   }

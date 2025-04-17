@@ -9,10 +9,27 @@ public enum ChatMode {
   /**
    * Normal chat mode.
    */
-  Ask,
+  Ask {
+    @Override
+    public String displayName() {
+      return "Ask";
+    }
+  },
 
   /**
    * Agent mode.
    */
-  Agent;
+  Agent {
+    @Override
+    public String displayName() {
+      return "Agent (Preview)";
+    }
+  };
+
+  /**
+   * Returns a human-readable display name for the chat mode.
+   *
+   * @return The display name for this chat mode.
+   */
+  public abstract String displayName();
 }

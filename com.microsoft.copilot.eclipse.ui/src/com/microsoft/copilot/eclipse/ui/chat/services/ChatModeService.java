@@ -3,7 +3,6 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -21,6 +20,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Service for managing Copilot chat modes.
@@ -49,14 +49,16 @@ public class ChatModeService extends ChatBaseService implements CopilotAuthStatu
   /**
    * Set the active chat mode.
    *
-   * @param chatModeName the name of the chat mode
+   * @param index the index of the chat mode to set
    */
-  public void setActiveChatMode(String chatModeName) {
+  public void setActiveChatMode(int index) {
+    ChatMode[] modes = ChatMode.values();
     // Only update if the selected mode is different from the current mode
-    if (Objects.equals(chatModeName, getActiveChatMode().toString())) {
+    if (index < 0 || index >= modes.length) {
       return;
     }
 
+    String chatModeName = modes[index].toString();
     // Persist the chat mode selection
     UserPreference preference = getUserPreference();
     preference.setChatModeName(chatModeName);
@@ -104,14 +106,23 @@ public class ChatModeService extends ChatBaseService implements CopilotAuthStatu
     // First unbind if previously bound to prevent leaks
     unbindChatModePicker(combo);
 
+    SwtUtils.invokeOnDisplayThread(() -> {
+      if (combo.isDisposed()) {
+        return;
+      }
+      String[] items = Arrays.stream(ChatMode.values()).map(ChatMode::displayName).toArray(String[]::new);
+      combo.setItems(items);
+    }, combo);
+
     ensureRealm(() -> {
       ISideEffect activeChatModeSideEffect = ISideEffect.create(() -> {
         ChatMode activeMode = this.activeChatModeObservable.getValue();
-        return activeMode == null ? ChatMode.Ask.toString() : activeMode.toString();
-      }, (String modeName) -> {
+        return activeMode == null ? ChatMode.Ask : activeMode;
+      }, (ChatMode mode) -> {
         if (combo.isDisposed()) {
           return;
         }
+        String modeName = mode.displayName();
         int index = Arrays.asList(combo.getItems()).indexOf(modeName);
         if (index >= 0) {
           combo.select(index);
