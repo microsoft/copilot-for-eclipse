@@ -10,6 +10,14 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 public class InputSchemaPropertyValue {
   private String type;
   private String description;
+  private InputSchemaPropertyValue items;
+
+  /**
+   * Constructor for InputSchemaPropertyValue.
+   */
+  public InputSchemaPropertyValue(String type) {
+    this(type, "");
+  }
 
   /**
    * Constructor for InputSchemaPropertyValue.
@@ -35,9 +43,17 @@ public class InputSchemaPropertyValue {
     this.description = description;
   }
 
+  public InputSchemaPropertyValue getItems() {
+    return items;
+  }
+
+  public void setItems(InputSchemaPropertyValue items) {
+    this.items = items;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(description, type);
+    return Objects.hash(description, items, type);
   }
 
   @Override
@@ -52,7 +68,8 @@ public class InputSchemaPropertyValue {
       return false;
     }
     InputSchemaPropertyValue other = (InputSchemaPropertyValue) obj;
-    return Objects.equals(description, other.description) && Objects.equals(type, other.type);
+    return Objects.equals(description, other.description) && Objects.equals(items, other.items)
+        && Objects.equals(type, other.type);
   }
 
   @Override
@@ -60,6 +77,7 @@ public class InputSchemaPropertyValue {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.add("type", type);
     builder.add("description", description);
+    builder.add("items", items);
     return builder.toString();
   }
 }

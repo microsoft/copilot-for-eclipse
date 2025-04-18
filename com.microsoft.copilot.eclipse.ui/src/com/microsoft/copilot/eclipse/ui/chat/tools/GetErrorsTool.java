@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.ui.chat.ChatView;
  */
 public class GetErrorsTool extends BaseTool {
   private static final String TOOL_NAME = "get_errors";
+  private static final String FILE_PATHS = "filePaths";
 
   /**
    * Constructor for the GetErrorsTool.
@@ -58,12 +59,14 @@ public class GetErrorsTool extends BaseTool {
     inputSchema.setType("object");
 
     // Define the properties of the input schema
-    Map<String, InputSchemaPropertyValue> properties = new HashMap<>();
-    properties.put("filePaths", new InputSchemaPropertyValue("array", ""));
+    InputSchemaPropertyValue items = new InputSchemaPropertyValue("string");
+    InputSchemaPropertyValue propertyValue = new InputSchemaPropertyValue("array");
+    propertyValue.setItems(items);
+    Map<String, InputSchemaPropertyValue> properties = new HashMap<>(Map.of(FILE_PATHS, propertyValue));
 
     // Set the properties and required fields for the input schema
     inputSchema.setProperties(properties);
-    inputSchema.setRequired(Arrays.asList("filePaths"));
+    inputSchema.setRequired(Arrays.asList(FILE_PATHS));
 
     // Attach the input schema to the tool information
     toolInfo.setInputSchema(inputSchema);
@@ -74,7 +77,7 @@ public class GetErrorsTool extends BaseTool {
   @Override
   public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
     LanguageModelToolResult toolResult = new LanguageModelToolResult();
-    List<String> fileUris = validateInput(input.get("filePaths"));
+    List<String> fileUris = validateInput(input.get(FILE_PATHS));
     if (fileUris == null) {
       toolResult.addContent("The value of filePaths is not in the type of string array.");
     } else if (fileUris.isEmpty()) {
