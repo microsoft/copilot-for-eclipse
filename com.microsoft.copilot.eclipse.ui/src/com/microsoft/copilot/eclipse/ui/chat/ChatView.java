@@ -442,6 +442,20 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
+   * Get the current main setion.
+   */
+  public Composite getMainSection() {
+    return this.mainSection;
+  }
+
+  /**
+   * Register a new conversation listener to the action bar.
+   */
+  public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
+    this.topBanner.registerNewConversationListener(listener);
+  }
+
+  /**
    * Dispose the view.
    */
   @Override

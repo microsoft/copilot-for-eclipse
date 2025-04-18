@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileToolService;
 
 /**
  * Manager for chat services.
@@ -18,6 +19,7 @@ public class ChatServiceManager {
   private AvatarService avatarService;
   private AuthStatusService authStatusService;
   private AgentToolService agentToolService;
+  private EditFileToolService editFileToolService;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -31,6 +33,7 @@ public class ChatServiceManager {
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
+    editFileToolService = new EditFileToolService();
   }
 
   /**
@@ -94,6 +97,15 @@ public class ChatServiceManager {
   }
 
   /**
+   * Get the edit file tool service.
+   *
+   * @return the edit file tool service
+   */
+  public EditFileToolService getEditFileToolService() {
+    return editFileToolService;
+  }
+
+  /**
    * Dispose of the chat services.
    */
   public void dispose() {
@@ -103,6 +115,7 @@ public class ChatServiceManager {
     this.chatModeService.dispose();
     this.authStatusService.dispose();
     this.agentToolService.dispose();
+    this.editFileToolService.dispose();
   }
 
 }
