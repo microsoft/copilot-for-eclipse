@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.1
+### Fixed
+- Annotation model is null when triggering completion. [#468](https://github.com/microsoft/copilot-eclipse/issues/468)
+- Input text box shakes when sending message by hitting Enter-Key. [#540](https://github.com/microsoft/copilot-eclipse/issues/540)
+- SWTException when disposing completion manager. [#547](https://github.com/microsoft/copilot-eclipse/issues/547)
+- Timeout error shows late when fail to login. [#482](https://github.com/microsoft/copilot-eclipse/issues/482)
+- Improve auto scroll to bottom behavior. [#451](https://github.com/microsoft/copilot-eclipse/issues/451)
+- Fixed schema name copilotCapabilities. [PR#556](https://github.com/microsoft/copilot-eclipse/pull/556)
+- Wrong node runtime may be found. [#557](https://github.com/microsoft/copilot-eclipse/issues/557)
+
 ## 0.5.0
 ### Added
 - Added GitHub Copilot menu to the top menu bar. [#242](https://github.com/microsoft/copilot-eclipse/issues/242)
