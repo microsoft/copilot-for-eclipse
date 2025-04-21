@@ -44,10 +44,13 @@ public class RunInTerminalTool extends BaseTool {
   private StringBuilder sb;
   private CompletableFuture<LanguageModelToolResult[]> resultFuture;
   private int signalCount = 0;
+  private String currentCommand;
+  private int signalRemoveCount;
   private static final Object lock = new Object();
 
+  private static final int DETECTION_LEN = 10;
   private static final String TOOL_NAME = "run_in_terminal";
-  private static final String EXECUTION_END_SIGNAL = "Execution finished. Return to Copilot chat to continue.";
+  private static final String EXECUTION_END_SIGNAL = "Execution finished. Return to Copilot Chat to continue.";
 
   /**
    * Constructor for RunInTerminalTool.
@@ -89,8 +92,8 @@ public class RunInTerminalTool extends BaseTool {
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDescription("""
-        Run a shell command in a terminal. State is persistent across tool calls.\n- Use this tool instead of
-        printing a shell codeblock and asking the user to run it.
+        Run a shell command in a terminal. State is persistent across tool calls.
+        - Use this tool instead of printing a shell codeblock and asking the user to run it.
         - If the command is a long-running background process, you MUST pass isBackground=true.
         Background terminals will return a terminal ID which you can use to check the output
         of a background process with copilot_getTerminalOutput.
@@ -135,9 +138,12 @@ public class RunInTerminalTool extends BaseTool {
     // TODO: Add background process support
     resultFuture = new CompletableFuture<>();
     signalCount = 0;
+    sb.setLength(0);
+    signalRemoveCount = -1;
     String endSignalCommand = PlatformUtils.isWindows() ? "& echo " + EXECUTION_END_SIGNAL
         : "; echo " + EXECUTION_END_SIGNAL;
     String finalCommands = command + endSignalCommand + System.lineSeparator();
+    this.currentCommand = finalCommands;
     synchronized (lock) {
       if (this.terminalViewControl == null) {
         final Map<String, Object> properties = prepareTerminalProperties();
@@ -238,11 +244,29 @@ public class RunInTerminalTool extends BaseTool {
       content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", "");
 
       sb.append(content);
+      String currentCommand = RunInTerminalTool.this.currentCommand;
+      if (StringUtils.isBlank(currentCommand) || currentCommand.length() < DETECTION_LEN) {
+        resultFuture.complete(new LanguageModelToolResult[] {
+            new LanguageModelToolResult("Failed to execute the command: command unavailable.") });
+        sb.setLength(0);
+        return;
+      }
+      if (signalRemoveCount < 0) {
+        // Ideally, the command should appear after the shell prompt. If it appears that the command appear
+        // first, that means the terminal is not ready when the command is sent to it. In that case, the signal
+        // will appear totally three times. Otherwise, it will appear two times.
+        if (content.startsWith(currentCommand.substring(0, DETECTION_LEN))) {
+          signalRemoveCount = 2;
+        } else {
+          signalRemoveCount = 1;
+        }
+
+      }
       int indexOfEndSignal = sb.lastIndexOf(EXECUTION_END_SIGNAL);
 
       while (indexOfEndSignal >= 0) {
-        // TODO: Test the platform specific check for the end signal
-        if (PlatformUtils.isWindows() && signalCount == 0 || !PlatformUtils.isWindows() && signalCount <= 1) {
+        signalCount++;
+        if (signalCount <= signalRemoveCount) {
           sb.delete(0, indexOfEndSignal + EXECUTION_END_SIGNAL.length());
         } else {
           String result = sb.substring(0, indexOfEndSignal);
@@ -250,7 +274,6 @@ public class RunInTerminalTool extends BaseTool {
           resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(result.trim()) });
         }
         indexOfEndSignal = sb.lastIndexOf(EXECUTION_END_SIGNAL);
-        signalCount++;
       }
     };
   }
