@@ -51,9 +51,9 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     updateProxySettings();
     getSettings().setEnableAutoCompletions(preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION));
     getSettings().getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
+    getSettings().setMcpServers(preferenceStore.getString(Constants.MCP));
     getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
     getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
-
   }
 
   /**
@@ -89,6 +89,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         Boolean autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
         this.settings.setEnableAutoCompletions(autoShowCompletion);
         CopilotCore.LOGGER.info("Auto show completion is now " + event.getNewValue());
+        break;
+      case Constants.MCP:
+        this.settings.setMcpServers((String) event.getNewValue());
+        CopilotCore.LOGGER.info("MCP is now \n" + event.getNewValue());
         break;
       default:
         return;

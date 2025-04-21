@@ -32,6 +32,7 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class CopilotPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
   private Label lblProxyNoteContent;
+  private Label mcpNoteContentLabel;
   private Composite parent;
   private ControlListener controlListener;
   private Font boldFont;
@@ -127,6 +128,39 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
     addField(sftGhe);
 
+    // mcp group
+    Group mcpGroup = new Group(parent, SWT.NONE);
+    mcpGroup.setLayout(gl);
+    gdf.applyTo(mcpGroup);
+    mcpGroup.setText(Messages.preferences_page_mcp_settings);
+    // add mcp field
+    var mcpFieldContainer = new Composite(mcpGroup, SWT.NONE);
+    mcpFieldContainer.setLayout(gl);
+    mcpFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    var mcpField = new StringFieldEditor(Constants.MCP, Messages.preferences_page_mcp, StringFieldEditor.UNLIMITED, 20,
+        StringFieldEditor.VALIDATE_ON_KEY_STROKE, mcpFieldContainer);
+    mcpField.getLabelControl(mcpFieldContainer).setToolTipText(Messages.preferences_page_mcp_tooltip);
+    // @formatter:off
+    mcpField.getLabelControl(mcpFieldContainer).setLayoutData(new GridData(
+        SWT.LEFT, 
+        SWT.TOP, 
+        false, 
+        false, 
+        2, // The label-control will take up 2 column cells itself, so the text-control will be underneath it.
+        1));
+    // @formatter:on
+    addField(mcpField);
+    // add note to mcp field
+    var mcpNote = new Composite(mcpGroup, SWT.NONE);
+    mcpNote.setLayout(glTextIndent);
+    mcpNote.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
+    var mcpNoteLabel = new Label(mcpNote, SWT.NONE);
+    mcpNoteLabel.setText(Messages.preferences_page_note_text);
+    mcpNoteLabel.setFont(boldFont);
+    this.mcpNoteContentLabel = new Label(mcpNote, SWT.WRAP);
+    this.mcpNoteContentLabel.setText(Messages.preferences_page_mcp_note_content);
+    this.mcpNoteContentLabel.setLayoutData(gd);
+
     this.controlListener = new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
@@ -135,6 +169,7 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
         var pg = CopilotPreferencesPage.this;
         gd.widthHint = pg.getFieldEditorParent().getSize().x - 20;
         pg.lblProxyNoteContent.setLayoutData(gd);
+        pg.mcpNoteContentLabel.setLayoutData(gd);
         pg.getFieldEditorParent().layout();
       }
     };

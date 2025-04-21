@@ -52,13 +52,17 @@ public final class Messages extends NLS {
   public static String preferences_page_enable_strict_ssl;
   public static String preferences_page_proxy_kerberos_sp;
   public static String preferences_page_github_enterprise;
+  public static String preferences_page_mcp;
   public static String preferences_page_proxy_config_link;
   public static String preferences_page_proxy_settings;
   public static String preferences_page_editor_settings;
   public static String preferences_page_auth_settings;
+  public static String preferences_page_mcp_settings;
   public static String preferences_page_enable_strict_ssl_tooltip;
   public static String preferences_page_proxy_config_link_tooltip;
   public static String preferences_page_github_enterprise_tooltip;
+  public static String preferences_page_mcp_tooltip;
+  public static String preferences_page_mcp_note_content;
   public static String preferences_page_note_text;
   public static String preferences_page_note_content;
   public static String chat_topBanner_newConversationButton_Tooltip;

@@ -31,6 +31,7 @@ class LanguageServerSettingManagerTests {
     IProxyService mockProxyService = mock(IProxyService.class);
     CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+	  when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
     var params = new DidChangeConfigurationParams();
     params.setSettings(new CopilotLanguageServerSettings());
 
@@ -41,7 +42,7 @@ class LanguageServerSettingManagerTests {
     manager.syncConfiguration();
 
     // assert
-    verify(mockLsConnection, times(1)).updateConfig(params);
+	  verify(mockLsConnection, times(1)).updateConfig(params);
   }
 
   @Test
@@ -57,6 +58,7 @@ class LanguageServerSettingManagerTests {
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+	  when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://localhost:8080");
@@ -70,7 +72,7 @@ class LanguageServerSettingManagerTests {
     manager.syncConfiguration();
 
     // assert
-    verify(mockLsConnection, times(1)).updateConfig(params);
+	  verify(mockLsConnection, times(1)).updateConfig(params);
   }
 
   @Test
@@ -88,6 +90,7 @@ class LanguageServerSettingManagerTests {
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+	  when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://user:password@localhost:8080");
@@ -101,7 +104,7 @@ class LanguageServerSettingManagerTests {
     manager.syncConfiguration();
 
     // assert
-    verify(mockLsConnection, times(1)).updateConfig(params);
+	  verify(mockLsConnection, times(1)).updateConfig(params);
   }
 
 }

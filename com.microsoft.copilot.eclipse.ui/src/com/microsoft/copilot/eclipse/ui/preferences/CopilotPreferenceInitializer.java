@@ -18,5 +18,6 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.ENABLE_STRICT_SSL, true);
     pref.setDefault(Constants.PROXY_KERBEROS_SP, "");
     pref.setDefault(Constants.GITHUB_ENTERPRISE, "");
+    pref.setDefault(Constants.MCP, "");
   }
 }

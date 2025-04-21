@@ -163,9 +163,111 @@ public class CopilotLanguageServerSettings {
 
   }
 
+  /**
+   * Github settings.
+   */
+  public class GitHubSettings {
+    @SerializedName("copilot")
+    private CopilotSettings copilotSettings;
+
+    /**
+     * Constructor.
+     */
+    public GitHubSettings() {
+      this.copilotSettings = new CopilotSettings();
+    }
+
+    public CopilotSettings getCopilotSettings() {
+      return copilotSettings;
+    }
+
+    public void setCopilotSettings(CopilotSettings copilotSettings) {
+      this.copilotSettings = copilotSettings;
+    }
+
+    @Override
+    public String toString() {
+      ToStringBuilder builder = new ToStringBuilder(this);
+      builder.add("copilotSettings", copilotSettings);
+      return builder.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(copilotSettings);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      GitHubSettings other = (GitHubSettings) obj;
+      return Objects.equals(copilotSettings, other.copilotSettings);
+    }
+  }
+
+  /**
+   * Copilot settings.
+   */
+  public class CopilotSettings {
+    @SerializedName("mcp")
+    private String mcpServers;
+
+    /**
+     * Constructor.
+     */
+    public CopilotSettings() {
+      this.mcpServers = "";
+    }
+
+    public String getMcpServers() {
+      return mcpServers;
+    }
+
+    public void setMcpServers(String mcpServers) {
+      this.mcpServers = mcpServers;
+    }
+
+    @Override
+    public String toString() {
+      ToStringBuilder builder = new ToStringBuilder(this);
+      builder.add("mcpServers", mcpServers);
+      return builder.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(mcpServers);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      CopilotSettings other = (CopilotSettings) obj;
+      return Objects.equals(mcpServers, other.mcpServers);
+    }
+  }
+
   @SerializedName("github-enterprise")
   private GithubEnterprise githubEnterprise;
   private Http http;
+  @SerializedName("github")
+  private GitHubSettings githubSettings;
 
   /**
    * Constructor.
@@ -175,6 +277,7 @@ public class CopilotLanguageServerSettings {
     this.enableAutoCompletions = true;
     this.http = new Http();
     this.githubEnterprise = new GithubEnterprise();
+    this.githubSettings = new GitHubSettings();
   }
 
   /**
@@ -249,6 +352,21 @@ public class CopilotLanguageServerSettings {
     this.http = http;
   }
 
+  public GitHubSettings getGithubSettings() {
+    return githubSettings;
+  }
+
+  public void setGithubSettings(GitHubSettings githubSettings) {
+    this.githubSettings = githubSettings;
+  }
+
+  /**
+   * set mcp servers.
+   */
+  public void setMcpServers(String mcpServers) {
+    this.getGithubSettings().getCopilotSettings().setMcpServers(mcpServers);
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -256,12 +374,13 @@ public class CopilotLanguageServerSettings {
     builder.add("enableAutoCompletions", enableAutoCompletions);
     builder.add("githubEnterprise", githubEnterprise);
     builder.add("http", http);
+    builder.add("githubSettings", githubSettings);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(enableAutoCompletions, githubEnterprise, http, showEditorCompletions);
+    return Objects.hash(enableAutoCompletions, githubSettings, githubEnterprise, http, showEditorCompletions);
   }
 
   @Override
@@ -276,7 +395,7 @@ public class CopilotLanguageServerSettings {
       return false;
     }
     CopilotLanguageServerSettings other = (CopilotLanguageServerSettings) obj;
-    return enableAutoCompletions == other.enableAutoCompletions
+    return enableAutoCompletions == other.enableAutoCompletions && Objects.equals(githubSettings, other.githubSettings)
         && Objects.equals(githubEnterprise, other.githubEnterprise) && Objects.equals(http, other.http)
         && showEditorCompletions == other.showEditorCompletions;
   }
