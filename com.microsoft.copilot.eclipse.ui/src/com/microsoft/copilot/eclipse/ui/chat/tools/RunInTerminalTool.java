@@ -43,14 +43,9 @@ public class RunInTerminalTool extends BaseTool {
   private Image terminalIcon;
   private StringBuilder sb;
   private CompletableFuture<LanguageModelToolResult[]> resultFuture;
-  private int signalCount = 0;
-  private String currentCommand;
-  private int signalRemoveCount;
   private static final Object lock = new Object();
 
-  private static final int DETECTION_LEN = 10;
   private static final String TOOL_NAME = "run_in_terminal";
-  private static final String EXECUTION_END_SIGNAL = "Execution finished. Return to Copilot Chat to continue.";
 
   /**
    * Constructor for RunInTerminalTool.
@@ -137,13 +132,14 @@ public class RunInTerminalTool extends BaseTool {
 
     // TODO: Add background process support
     resultFuture = new CompletableFuture<>();
-    signalCount = 0;
-    sb.setLength(0);
-    signalRemoveCount = -1;
-    String endSignalCommand = PlatformUtils.isWindows() ? "& echo " + EXECUTION_END_SIGNAL
-        : "; echo " + EXECUTION_END_SIGNAL;
-    String finalCommands = command + endSignalCommand + System.lineSeparator();
-    this.currentCommand = finalCommands;
+    // Retain only the last line (prompt) in the output buffer
+    if (!sb.isEmpty()) {
+      int lastLineStart = sb.lastIndexOf(StringUtils.LF);
+      if (lastLineStart > 0) {
+        sb.delete(0, lastLineStart);
+      }
+    }
+    final String finalCommand = command + System.lineSeparator();
     synchronized (lock) {
       if (this.terminalViewControl == null) {
         final Map<String, Object> properties = prepareTerminalProperties();
@@ -160,7 +156,7 @@ public class RunInTerminalTool extends BaseTool {
                 return;
               } else {
                 bringCopilotTerminalToFront();
-                terminalViewControl.pasteString(finalCommands);
+                terminalViewControl.pasteString(finalCommand);
               }
             } else {
               CopilotCore.LOGGER.error("Failed to open terminal console", status.getException());
@@ -169,7 +165,7 @@ public class RunInTerminalTool extends BaseTool {
         }
       } else {
         bringCopilotTerminalToFront();
-        this.terminalViewControl.pasteString(finalCommands);
+        this.terminalViewControl.pasteString(finalCommand);
       }
     }
   }
@@ -236,44 +232,33 @@ public class RunInTerminalTool extends BaseTool {
   }
 
   private ITerminalServiceOutputStreamMonitorListener buildOutputStreamMonitorListener() {
-    // signalCount will be used here to count the number of appearances of the end signal, because it will appear more
-    // than once. The first appearance is the command itself, the second is the end signal of the execution.
     return (byteBuffer, bytesRead) -> {
       String content = new String(byteBuffer, 0, bytesRead);
       // Remove ANSI escape sequences
       content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", "");
 
       sb.append(content);
-      String currentCommand = RunInTerminalTool.this.currentCommand;
-      if (StringUtils.isBlank(currentCommand) || currentCommand.length() < DETECTION_LEN) {
-        resultFuture.complete(new LanguageModelToolResult[] {
-            new LanguageModelToolResult("Failed to execute the command: command unavailable.") });
-        sb.setLength(0);
-        return;
-      }
-      if (signalRemoveCount < 0) {
-        // Ideally, the command should appear after the shell prompt. If it appears that the command appear
-        // first, that means the terminal is not ready when the command is sent to it. In that case, the signal
-        // will appear totally three times. Otherwise, it will appear two times.
-        if (content.startsWith(currentCommand.substring(0, DETECTION_LEN))) {
-          signalRemoveCount = 2;
-        } else {
-          signalRemoveCount = 1;
-        }
+      String terminalOutput = sb.toString();
+      int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
+      if (lastNewLineIndex > 0) {
+        String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
 
-      }
-      int indexOfEndSignal = sb.lastIndexOf(EXECUTION_END_SIGNAL);
+        // Check if last line is a prompt line
+        if (StringUtils.isNotBlank(lastLine)) {
+          char lastChar = lastLine.charAt(lastLine.length() - 1);
+          boolean isPromptChar = lastChar == '>' || lastChar == '#' || lastChar == '$' || lastChar == '%';
 
-      while (indexOfEndSignal >= 0) {
-        signalCount++;
-        if (signalCount <= signalRemoveCount) {
-          sb.delete(0, indexOfEndSignal + EXECUTION_END_SIGNAL.length());
-        } else {
-          String result = sb.substring(0, indexOfEndSignal);
-          sb.setLength(0);
-          resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(result.trim()) });
+          if (isPromptChar) {
+            // Extract result text between prompts
+            String contentWithoutLastPrompt = terminalOutput.substring(0, lastNewLineIndex);
+            int promptStartIndex = contentWithoutLastPrompt.indexOf(lastLine);
+
+            if (promptStartIndex >= 0) {
+              String commandResult = contentWithoutLastPrompt.substring(promptStartIndex + lastLine.length()).trim();
+              resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(commandResult) });
+            }
+          }
         }
-        indexOfEndSignal = sb.lastIndexOf(EXECUTION_END_SIGNAL);
       }
     };
   }
