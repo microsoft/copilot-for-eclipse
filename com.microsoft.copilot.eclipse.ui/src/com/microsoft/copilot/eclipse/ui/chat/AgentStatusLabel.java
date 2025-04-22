@@ -5,6 +5,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -17,6 +18,9 @@ public class AgentStatusLabel extends Composite {
   private Image completedIcon;
   private Label iconLabel;
   private Label textLabel;
+  private int currentFrame = 1;
+  private static final int TOTAL_FRAMES = 8; // Adjust based on actual number of spinner images
+  private Runnable animationRunnable;
 
   /**
    * Create the composite.
@@ -28,6 +32,7 @@ public class AgentStatusLabel extends Composite {
     super(parent, style);
     setLayout(new GridLayout(2, false));
     this.addDisposeListener(e -> {
+      stopAnimation();
       if (this.runningIcon != null && !this.runningIcon.isDisposed()) {
         this.runningIcon.dispose();
       }
@@ -43,6 +48,7 @@ public class AgentStatusLabel extends Composite {
    * @param statusText the text to display when the agent is completed
    */
   public void setCompletedStatus(String statusText) {
+    stopAnimation();
     if (this.iconLabel == null) {
       this.iconLabel = new Label(this, SWT.LEFT);
     }
@@ -65,12 +71,52 @@ public class AgentStatusLabel extends Composite {
       this.iconLabel = new Label(this, SWT.LEFT);
     }
 
-    if (this.runningIcon == null) {
-      this.runningIcon = UiUtils.buildImageFromPngPath("/icons/spinner/1.png");
-    }
-    iconLabel.setImage(runningIcon);
+    // Stop any existing animation
+    stopAnimation();
+
+    // Start new animation
+    startAnimation();
 
     setText(statusText);
+  }
+
+  private void startAnimation() {
+    final Display display = getDisplay();
+
+    animationRunnable = new Runnable() {
+      @Override
+      public void run() {
+        if (isDisposed() || iconLabel.isDisposed()) {
+          return;
+        }
+
+        // Dispose previous image
+        if (runningIcon != null && !runningIcon.isDisposed()) {
+          runningIcon.dispose();
+        }
+
+        // Load the next frame
+        String imagePath = String.format("/icons/spinner/%d.png", currentFrame);
+        runningIcon = UiUtils.buildImageFromPngPath(imagePath);
+        iconLabel.setImage(runningIcon);
+
+        // Update frame counter
+        currentFrame = (currentFrame % TOTAL_FRAMES) + 1;
+
+        // Schedule next frame
+        display.timerExec(100, this);
+      }
+    };
+
+    // Start the animation
+    display.timerExec(0, animationRunnable);
+  }
+
+  private void stopAnimation() {
+    if (animationRunnable != null) {
+      getDisplay().timerExec(-1, animationRunnable);
+      animationRunnable = null;
+    }
   }
 
   private void setText(String text) {
