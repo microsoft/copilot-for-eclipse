@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
@@ -19,6 +20,8 @@ public class ConversationCreateParams {
   ArrayList<FileReferenceParams> references;
   String source = "panel";
   String workspaceFolder;
+  List<WorkspaceFolder> workspaceFolders;
+
   String[] ignoredSkills;
   String userLanguage;
   String model;
@@ -154,6 +157,14 @@ public class ConversationCreateParams {
     this.workspaceFolder = workspaceFolder;
   }
 
+  public List<WorkspaceFolder> getWorkspaceFolders() {
+    return workspaceFolders;
+  }
+
+  public void setWorkspaceFolders(List<WorkspaceFolder> workspaceFolders) {
+    this.workspaceFolders = workspaceFolders;
+  }
+
   public void setIgnoredSkills(String[] ignoredSkills) {
     this.ignoredSkills = ignoredSkills;
   }
@@ -181,7 +192,7 @@ public class ConversationCreateParams {
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Arrays.hashCode(turns);
     result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, references, source,
-        userLanguage, workDoneToken, workspaceFolder);
+        userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -197,12 +208,13 @@ public class ConversationCreateParams {
       return false;
     }
     ConversationCreateParams other = (ConversationCreateParams) obj;
-    return Objects.equals(capabilities, other.capabilities) && chatMode == other.chatMode
+    return Objects.equals(capabilities, other.capabilities) && Objects.equals(chatMode, other.chatMode)
         && computeSuggestions == other.computeSuggestions && Arrays.equals(ignoredSkills, other.ignoredSkills)
         && Objects.equals(model, other.model) && Objects.equals(references, other.references)
         && Objects.equals(source, other.source) && Arrays.equals(turns, other.turns)
         && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
-        && Objects.equals(workspaceFolder, other.workspaceFolder);
+        && Objects.equals(workspaceFolder, other.workspaceFolder)
+        && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
 
   @Override
@@ -215,6 +227,7 @@ public class ConversationCreateParams {
     builder.add("references", references);
     builder.add("source", source);
     builder.add("workspaceFolder", workspaceFolder);
+    builder.add("workspaceFolders", workspaceFolders);
     builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
     builder.add("userLanguage", userLanguage);
     builder.add("model", model);

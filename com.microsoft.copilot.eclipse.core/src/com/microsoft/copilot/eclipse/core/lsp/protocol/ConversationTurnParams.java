@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
@@ -23,6 +24,7 @@ public class ConversationTurnParams {
 
   Boolean computeSuggestions;
   String workspaceFolder;
+  List<WorkspaceFolder> workspaceFolders;
   String[] ignoredSkills;
   String model;
 
@@ -119,13 +121,21 @@ public class ConversationTurnParams {
     this.chatMode = chatMode;
   }
 
+  public List<WorkspaceFolder> getWorkspaceFolders() {
+    return workspaceFolders;
+  }
+
+  public void setWorkspaceFolders(List<WorkspaceFolder> workspaceFolders) {
+    this.workspaceFolders = workspaceFolders;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Objects.hash(chatMode, computeSuggestions, conversationId, message, model, references,
-        workDoneToken, workspaceFolder);
+        workDoneToken, workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -141,11 +151,12 @@ public class ConversationTurnParams {
       return false;
     }
     ConversationTurnParams other = (ConversationTurnParams) obj;
-    return chatMode == other.chatMode && Objects.equals(computeSuggestions, other.computeSuggestions)
+    return Objects.equals(chatMode, other.chatMode) && Objects.equals(computeSuggestions, other.computeSuggestions)
         && Objects.equals(conversationId, other.conversationId) && Arrays.equals(ignoredSkills, other.ignoredSkills)
         && Objects.equals(message, other.message) && Objects.equals(model, other.model)
         && Objects.equals(references, other.references) && Objects.equals(workDoneToken, other.workDoneToken)
-        && Objects.equals(workspaceFolder, other.workspaceFolder);
+        && Objects.equals(workspaceFolder, other.workspaceFolder)
+        && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
 
   @Override
@@ -157,6 +168,7 @@ public class ConversationTurnParams {
     builder.add("references", references);
     builder.add("computeSuggestions", computeSuggestions);
     builder.add("workspaceFolder", workspaceFolder);
+    builder.add("workspaceFolders", workspaceFolders);
     builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
     builder.add("model", model);
     builder.add("chatMode", chatMode);

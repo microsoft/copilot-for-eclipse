@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -198,6 +199,7 @@ public class CopilotLanguageServerConnection {
     Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
       ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
+      param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
       param.addFileRefs(files);
       param.setModel(modelName);
       param.setChatMode(chatModeName);
@@ -217,6 +219,7 @@ public class CopilotLanguageServerConnection {
       param.setModel(modelName);
       param.setChatMode(chatModeName);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
+      param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
       return ((CopilotLanguageServer) server).addTurn(param);
     };
     return this.languageServerWrapper.execute(fn);

@@ -19,11 +19,14 @@ import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jgit.ignore.IgnoreNode;
 import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.lsp4j.FileEvent;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
@@ -36,6 +39,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 class WatchedFileManager {
 
   public static final String GITIGNORE = ".gitignore";
+
+  private static final String GIT = ".git";
 
   /**
    * Currently the CLS only accept at-most 10000 files to index.
@@ -89,8 +94,8 @@ class WatchedFileManager {
   }
 
   private void addGitIgnorePatterns(IContainer container) {
-    if (container == null || !container.exists()) {
-      return; // Early return if container is invalid
+    if (isInvalidToScan(container)) {
+      return;
     }
 
     try {
@@ -111,17 +116,18 @@ class WatchedFileManager {
   }
 
   private void collectFiles(IContainer container) throws CoreException {
-    if (container == null || !container.exists()) {
+    if (files.size() >= MAX_WATCHED_FILE_NUM) {
       return;
     }
 
-    if (files.size() >= MAX_WATCHED_FILE_NUM) {
+    if (isInvalidToScan(container)) {
       return;
     }
 
     // Process all resources in the container
     for (IResource member : container.members()) {
-      if (!member.exists()) {
+      // skip IProject member to avoid duplication, (nested project will be scanned in the outer loop)
+      if (!member.exists() || isProject(member)) {
         continue;
       }
 
@@ -142,12 +148,35 @@ class WatchedFileManager {
     }
   }
 
-  // Helper method to find the IgnoreNode entry that controls a given path
-  private Map.Entry<String, IgnoreNode> findControllingIgnoreEntry(String uri) {
-    if (uri == null) {
-      return null;
+  private boolean isInvalidToScan(IContainer container) {
+    if (container == null || !container.exists() || (container instanceof IProject project && !project.isOpen())) {
+      return true;
     }
 
+    // Do not include .git content, this block list may need to expand per requirement.
+    if (GIT.equals(container.getName())) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private boolean isProject(IResource resource) {
+    if (!(resource instanceof IContainer)) {
+      return false;
+    }
+    for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
+      IPath projectPath = project.getLocation();
+      IPath resourcePath = resource.getLocation();
+      if (projectPath != null && projectPath.equals(resourcePath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Helper method to find the IgnoreNode entry that controls a given path
+  private Map.Entry<String, IgnoreNode> findControllingIgnoreEntry(@NonNull String uri) {
     Map.Entry<String, IgnoreNode> result = null;
     for (Map.Entry<String, IgnoreNode> entry : ignoreNodeMap.entrySet()) {
       if (uri.startsWith(entry.getKey())) {
@@ -169,6 +198,12 @@ class WatchedFileManager {
     if (StringUtils.isEmpty(uri)) {
       return false;
     }
+    String extension = uri.substring(uri.lastIndexOf(".") + 1);
+    // ignore binary files
+    if (Constants.EXCLUDED_FILE_TYPE.contains(extension)) {
+      return false;
+    }
+
     Map.Entry<String, IgnoreNode> controllingEntry = findControllingIgnoreEntry(uri);
     if (controllingEntry == null) {
       return true;
@@ -184,7 +219,7 @@ class WatchedFileManager {
       }
 
       // Check if the file should be ignored
-      return controllingNode.isIgnored(relativePath, false) != IgnoreNode.MatchResult.IGNORED;
+      return controllingNode.isIgnored(relativePath, isDirecotry) != IgnoreNode.MatchResult.IGNORED;
     }
   }
 
@@ -203,7 +238,7 @@ class WatchedFileManager {
     }
 
     private @Nullable DidChangeCopilotWatchedFilesParams toDidChangeCopilotWatchedFilesParams(IResourceChangeEvent e) {
-      if (!isPostChangeEvent(e) && !isPreDeletEvent(e)) {
+      if (!isPostChangeEvent(e) && !isPreDeleteEvent(e)) {
         return null;
       }
 
@@ -211,7 +246,7 @@ class WatchedFileManager {
 
       if (isPostChangeEvent(e) && e.getDelta() != null) {
         collectFileChanges(e.getDelta(), fileChanges);
-      } else if (isPreDeletEvent(e) && e.getResource() != null) {
+      } else if (isPreDeleteEvent(e) && e.getResource() != null) {
         IResource resource = e.getResource();
         if (resource.exists()) {
           addResourceDeletion(resource, fileChanges);
@@ -279,7 +314,7 @@ class WatchedFileManager {
       return e.getType() == IResourceChangeEvent.POST_CHANGE;
     }
 
-    private boolean isPreDeletEvent(IResourceChangeEvent e) {
+    private boolean isPreDeleteEvent(IResourceChangeEvent e) {
       return e.getType() == IResourceChangeEvent.PRE_DELETE;
     }
 
