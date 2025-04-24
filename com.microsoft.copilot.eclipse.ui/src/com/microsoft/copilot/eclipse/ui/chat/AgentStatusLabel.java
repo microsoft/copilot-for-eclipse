@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -17,7 +18,7 @@ public class AgentStatusLabel extends Composite {
   private Image runningIcon;
   private Image completedIcon;
   private Label iconLabel;
-  private Label textLabel;
+  private ChatMarkupViewer textLabel;
   private int currentFrame = 1;
   private static final int TOTAL_FRAMES = 8; // Adjust based on actual number of spinner images
   private Runnable animationRunnable;
@@ -31,6 +32,7 @@ public class AgentStatusLabel extends Composite {
   public AgentStatusLabel(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(2, false));
+    setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
     this.addDisposeListener(e -> {
       stopAnimation();
       if (this.runningIcon != null && !this.runningIcon.isDisposed()) {
@@ -121,10 +123,13 @@ public class AgentStatusLabel extends Composite {
 
   private void setText(String text) {
     if (this.textLabel == null) {
-      textLabel = new Label(this, SWT.LEFT);
-      textLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
-      textLabel.setForeground((this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY)));
+      textLabel = new ChatMarkupViewer(this, SWT.LEFT | SWT.WRAP);
+      StyledText styledText = textLabel.getTextWidget();
+      styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
+      styledText.setEditable(false);
+      styledText.setBackground(this.getBackground());
+      styledText.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     }
-    textLabel.setText(text);
+    textLabel.setMarkup(text);
   }
 }
