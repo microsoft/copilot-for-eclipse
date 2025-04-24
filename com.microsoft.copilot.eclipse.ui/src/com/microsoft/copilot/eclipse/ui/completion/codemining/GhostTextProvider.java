@@ -63,7 +63,7 @@ public class GhostTextProvider extends AbstractCodeMiningProvider {
     if (codeMinings == null || codeMinings.isEmpty()) {
       return Collections.emptyList();
     }
-    IFile file = UiUtils.getFileFromEditor(belongingEditor);
+    IFile file = UiUtils.getFileFromTextEditor(belongingEditor);
     if (file == null) {
       return codeMinings;
     }

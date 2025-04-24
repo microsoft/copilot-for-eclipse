@@ -32,6 +32,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
+import org.eclipse.ui.IReusableEditor;
 import org.eclipse.ui.IWorkbenchPage;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -155,9 +156,10 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
         createFileChangeSummaryBar(file, chatView);
         cacheTheOriginalFileContent(file);
         applyCopilotChangesToFile(code, file);
-        compareStringWithFile(fileContentCache.get(file), file);
-        resultFuture.complete(
-            new LanguageModelToolResult[] { new LanguageModelToolResult("File edit finished successfully.") });
+        updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
+
+        // Must return the updated content as a result to the CLS.
+        resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(code) });
       } else {
         resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(
             "The code provided is not a valid string. Please check the code and try again.") });
@@ -173,12 +175,12 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
   /**
    * Compares the given string with the content of the given file in a compare editor.
    *
-   * @param proposedContent The string content from the GitHub Copilot agent to compare.
-   * @param file The user's file to compare with.
+   * @param originalFileContent The original string content of the file to compare with.
+   * @param file The user's file with the proposed changes has been applied.
    * @throws InvocationTargetException If the operation is canceled.
    * @throws InterruptedException If the operation is canceled.
    */
-  private void compareStringWithFile(String proposedContent, IFile file) {
+  private void compareStringWithFile(String originalFileContent, IFile file) {
     try {
       // Create a new CompareConfiguration
       CompareConfiguration config = new CompareConfiguration();
@@ -202,8 +204,8 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
           monitor.beginTask("Calculating differences", 10);
           setTitle(Messages.agent_tool_compareEditor_TitlePrefix + file.getName());
           // Keep proposedChanges virtual file's name and type same as the originalFile original file's name and type
-          EditableStringCompareInput proposedChanges = new EditableStringCompareInput(proposedContent, file.getName(),
-              file.getFileExtension());
+          EditableStringCompareInput proposedChanges = new EditableStringCompareInput(originalFileContent,
+              file.getName(), file.getFileExtension());
           EditableFileCompareInput originalFile = new EditableFileCompareInput(file);
 
           // Create a diff node with proper configuration for text comparison
@@ -237,6 +239,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
 
             // If user keeps the changes with keyboard shortcut, we also need to complete the file.
             CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
+            fileContentCache.remove(file);
           }
         }
       };
@@ -249,6 +252,19 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       });
     } catch (InvocationTargetException | InterruptedException e) {
       CopilotCore.LOGGER.error("Error opening compare editor", e);
+    }
+  }
+
+  private void updateOrCreateCompareStringWithFile(String originalFileContent, IFile file) {
+    CompareEditorInput input = compareEditorInputMap.get(file);
+    if (input != null) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        CompareUI.reuseCompareEditor(input, (IReusableEditor) getCompareEditor(input));
+      });
+      bringCompareEditorToTop(input);
+    } else {
+      // If not, create a new compare editor
+      compareStringWithFile(originalFileContent, file);
     }
   }
 
@@ -272,6 +288,11 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
   }
 
   private void cacheTheOriginalFileContent(IFile file) {
+    if (fileContentCache.containsKey(file)) {
+      // We only need to cache the original file content once to keep the initial file content so that we can undo the
+      // entire file edit even the file has been modified for multiple rounds.
+      return;
+    }
     try (InputStream inputStream = file.getContents()) {
       String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
       fileContentCache.put(file, content);
@@ -284,21 +305,27 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     AtomicReference<Boolean> ref = new AtomicReference<>(false);
     SwtUtils.invokeOnDisplayThread(() -> {
       IWorkbenchPage page = UiUtils.getActivePage();
-      if (page == null) {
-        return;
-      }
-
-      // Find the editor associated with this input and bring it to top
-      for (IEditorReference editorRef : page.getEditorReferences()) {
-        IEditorPart editor = editorRef.getEditor(false);
-        if (editor != null && editor.getEditorInput().equals(input)) {
-          page.bringToTop(editor);
-          ref.set(true);
-          break;
-        }
+      IEditorPart editor = getCompareEditor(input);
+      if (editor != null) {
+        page.bringToTop(editor);
+        ref.set(true);
       }
     });
     return ref.get();
+  }
+
+  private IEditorPart getCompareEditor(CompareEditorInput input) {
+    IWorkbenchPage page = UiUtils.getActivePage();
+    if (page == null) {
+      return null;
+    }
+    for (IEditorReference editorRef : page.getEditorReferences()) {
+      IEditorPart editor = editorRef.getEditor(false);
+      if (editor != null && editor.getEditorInput().equals(input)) {
+        return editor;
+      }
+    }
+    return null;
   }
 
   private void closeCompareEditor(IFile file) {
@@ -353,6 +380,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       }
     }
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
+    fileContentCache.remove(file);
   }
 
   @Override
@@ -378,6 +406,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       }
     }
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
+    fileContentCache.remove(file);
   }
 
   @Override
@@ -437,11 +466,18 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     this.fileContentCache.clear();
   }
 
-  // File input with edit support
-  private class EditableFileCompareInput implements ITypedElement, IStreamContentAccessor, IEditableContent {
+  /**
+   * Editable file compare input class to handle file content editing on the compare editor.
+   */
+  public class EditableFileCompareInput implements ITypedElement, IStreamContentAccessor, IEditableContent {
     private IFile file;
     private byte[] modifiedContent = null;
 
+    /**
+     * Constructor for EditableFileCompareInput.
+     *
+     * @param file The file to be edited.
+     */
     public EditableFileCompareInput(IFile file) {
       this.file = file;
     }
@@ -459,6 +495,10 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     @Override
     public String getType() {
       return file.getFileExtension();
+    }
+
+    public IFile getFile() {
+      return file;
     }
 
     @Override

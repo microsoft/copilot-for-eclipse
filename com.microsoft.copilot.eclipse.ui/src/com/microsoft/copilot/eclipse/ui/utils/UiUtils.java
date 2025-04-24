@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.compare.CompareEditorInput;
+import org.eclipse.compare.ITypedElement;
+import org.eclipse.compare.internal.CompareEditor;
+import org.eclipse.compare.structuremergeviewer.ICompareInput;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -38,11 +42,13 @@ import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.ide.IDE;
+import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool.EditableFileCompareInput;
 
 /**
  * Utilities for Eclipse UI.
@@ -70,6 +76,30 @@ public class UiUtils {
   public static final Color SLASH_COMMAND_BACKGROUND_COLOR = new Color(228, 244, 255);
 
   /**
+   * Returns the file that is currently opened in the editor.
+   */
+  @Nullable
+  public static IFile getCurrentFile() {
+    IWorkbenchPage page = getActivePage();
+    if (page == null) {
+      return null;
+    }
+
+    IEditorPart editor = page.getActiveEditor();
+    if (editor == null) {
+      return null;
+    }
+
+    // Check editor type and retrieve file accordingly
+    if (editor instanceof ITextEditor textEditor) {
+      return getFileFromTextEditor(textEditor);
+    } else if (editor instanceof CompareEditor compareEditor) {
+      return getFileFromCompareEditor(compareEditor);
+    }
+    return null;
+  }
+
+  /**
    * Gets the URI of the file opened in the given text editor.
    */
   @Nullable
@@ -87,10 +117,26 @@ public class UiUtils {
    * Gets the file opened in the given text editor.
    */
   @Nullable
-  public static IFile getFileFromEditor(ITextEditor editor) {
+  public static IFile getFileFromTextEditor(ITextEditor editor) {
     IEditorInput input = editor.getEditorInput();
     if (input instanceof IFileEditorInput fileInput) {
       return fileInput.getFile();
+    }
+    return ResourceUtil.getFile(input);
+  }
+
+  /**
+   * Gets the relative file opened in the given compare editor.
+   */
+  @Nullable
+  public static IFile getFileFromCompareEditor(CompareEditor editor) {
+    IEditorInput input = editor.getEditorInput();
+    Object compareResult = ((CompareEditorInput) input).getCompareResult();
+    if (compareResult instanceof ICompareInput compareInput) {
+      ITypedElement left = compareInput.getLeft();
+      if (left instanceof EditableFileCompareInput leftNode) {
+        return leftNode.getFile();
+      }
     }
     return null;
   }
@@ -143,21 +189,6 @@ public class UiUtils {
       }
     }
     return files;
-  }
-
-  /**
-   * Returns the file that is currently opened in the editor.
-   */
-  public static IFile getCurrentFile() {
-    IWorkbenchPage page = getActivePage();
-    if (page == null) {
-      return null;
-    }
-    IEditorPart editor = page.getActiveEditor();
-    if (editor instanceof ITextEditor textEditor) {
-      return getFileFromEditor(textEditor);
-    }
-    return null;
   }
 
   /**

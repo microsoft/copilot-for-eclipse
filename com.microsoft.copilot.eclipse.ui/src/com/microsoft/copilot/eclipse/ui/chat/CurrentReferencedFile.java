@@ -15,7 +15,6 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IPartService;
 import org.eclipse.ui.IWorkbenchPartReference;
-import org.eclipse.ui.ide.ResourceUtil;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -56,8 +55,8 @@ public class CurrentReferencedFile extends ReferencedFile {
     this.listener = new IPartListener2() {
       @Override
       public void partActivated(IWorkbenchPartReference partRef) {
-        if (partRef.getPart(false) instanceof IEditorPart editor) {
-          IFile newFile = ResourceUtil.getFile(editor.getEditorInput());
+        if (partRef.getPart(false) instanceof IEditorPart) {
+          IFile newFile = UiUtils.getCurrentFile();
           IFile file = CurrentReferencedFile.this.getFile();
           if (Objects.equals(newFile, file)) {
             return;
@@ -75,8 +74,10 @@ public class CurrentReferencedFile extends ReferencedFile {
         IFile newFile = UiUtils.getCurrentFile();
         if (newFile == null) {
           CurrentReferencedFile.this.setFile(null);
-          CurrentReferencedFile.this.updateCloseClickBtnIcon();
+        } else {
+          CurrentReferencedFile.this.setFile(newFile);
         }
+        CurrentReferencedFile.this.updateCloseClickBtnIcon();
       }
     };
     partService = UiUtils.getPartService();
