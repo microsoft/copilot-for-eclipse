@@ -1,8 +1,9 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,16 +37,28 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Tool for running a command in eclipse internal terminal.
  */
 public class RunInTerminalTool extends BaseTool {
+  // Shared constants and static fields
+  private static final Object lock = new Object();
+  private static final String TOOL_NAME = "run_in_terminal";
+
+  // Background terminal constants and static fields
+  private static final Map<String, StringBuilder> backgroundCommandOutputs = new HashMap<>();
+  private static final String BACKGROUND_TERMINAL_PREFIX = Messages.agent_tool_terminal_copilotTerminalTitle + "-";
+
+  // Non-background terminal field
+  private ITerminalViewControl persistentTerminalViewControl;
+
+  // Terminal UI-related fields
   private ITerminalControl terminalControl;
-  private ITerminalViewControl terminalViewControl;
   private CTabFolder tabFolder;
   private CTabItem copilotTabItem;
   private Image terminalIcon;
-  private StringBuilder sb;
-  private CompletableFuture<LanguageModelToolResult[]> resultFuture;
-  private static final Object lock = new Object();
 
-  private static final String TOOL_NAME = "run_in_terminal";
+  // Output and command state
+  private StringBuilder sb;
+
+  // Shared future for the tool invoke async result
+  private CompletableFuture<LanguageModelToolResult[]> resultFuture;
 
   /**
    * Constructor for RunInTerminalTool.
@@ -69,7 +82,15 @@ public class RunInTerminalTool extends BaseTool {
       toolResult.addContent("The tool cannot be invoked due to the command is null or empty.");
       resultFuture.complete(new LanguageModelToolResult[] { toolResult });
     } else {
-      executeCommand(command, false);
+      boolean isBackground = false;
+      Object isBackgroundObj = input.get("isBackground");
+
+      if (isBackgroundObj instanceof Boolean) {
+        isBackground = (Boolean) isBackgroundObj;
+      } else if (isBackgroundObj instanceof String) {
+        isBackground = Boolean.parseBoolean((String) isBackgroundObj);
+      }
+      executeCommand(command, isBackground);
     }
     return resultFuture;
   }
@@ -104,20 +125,20 @@ public class RunInTerminalTool extends BaseTool {
     // Define the properties of the input schema
     Map<String, InputSchemaPropertyValue> properties = new HashMap<>();
     properties.put("command", new InputSchemaPropertyValue("string", "The command to run in the terminal"));
-    properties.put("explaination", new InputSchemaPropertyValue("string", """
+    properties.put("explanation", new InputSchemaPropertyValue("string", """
         A one-sentence description of what the command does.
         This will be shown to the user before the command is run."""));
     properties.put("isBackground", new InputSchemaPropertyValue("boolean", """
         Whether the command starts a background process.
         If true, the command will run in the background and you will not see the output.
         If false, the tool call will block on the command finishing, and then you will get the output.
-        Examples of backgrond processes: building in watch mode, starting a server.
-        You can check the output of a backgrond process later on by using copilot_getTerminalOutput.
+        Examples of background processes: building in watch mode, starting a server.
+        You can check the output of a background process later on by using copilot_getTerminalOutput.
         """));
 
     // Set the properties and required fields for the input schema
     inputSchema.setProperties(properties);
-    inputSchema.setRequired(Arrays.asList("command", "explaination", "isBackground"));
+    inputSchema.setRequired(List.of("command", "explanation", "isBackground"));
 
     // Attach the input schema to the tool information
     toolInfo.setInputSchema(inputSchema);
@@ -139,40 +160,56 @@ public class RunInTerminalTool extends BaseTool {
         sb.delete(0, lastLineStart);
       }
     }
+
+    String executionId = UUID.randomUUID().toString();
     final String finalCommand = command + System.lineSeparator();
     synchronized (lock) {
-      if (this.terminalViewControl == null) {
-        final Map<String, Object> properties = prepareTerminalProperties();
-
-        ITerminalService service = TerminalServiceFactory.getService();
-        if (service != null) {
-          service.openConsole(properties, status -> {
-            if (status.isOK()) {
-              // Continue initialization only after console is opened
-              finalizeTerminalSetup();
-              if (terminalViewControl == null) {
-                CopilotCore.LOGGER.error("Failed to open terminal console",
-                    new IllegalStateException("Terminal view control cannot be setup for RunInTerminalTool."));
-                return;
-              } else {
-                bringCopilotTerminalToFront();
-                terminalViewControl.pasteString(finalCommand);
-              }
-            } else {
-              CopilotCore.LOGGER.error("Failed to open terminal console", status.getException());
-            }
-          });
-        }
-      } else {
+      if (!isBackground && this.persistentTerminalViewControl != null) {
         bringCopilotTerminalToFront();
-        this.terminalViewControl.pasteString(finalCommand);
+        this.persistentTerminalViewControl.pasteString(finalCommand);
+        return;
       }
+
+      ITerminalService service = TerminalServiceFactory.getService();
+      if (service == null) {
+        resultFuture.complete(new LanguageModelToolResult[] {
+            new LanguageModelToolResult("Failed to open terminal console due to terminal service is null.") });
+        return;
+      }
+
+      service.openConsole(prepareTerminalProperties(isBackground, executionId), status -> {
+        if (status.isOK()) {
+          ITerminalViewControl terminalViewControl = finalizeTerminalSetup(executionId, isBackground);
+          if (terminalViewControl == null) {
+            CopilotCore.LOGGER.error("Failed to open terminal console",
+                new IllegalStateException("Terminal view control cannot be setup for RunInTerminalTool."));
+            resultFuture.complete(new LanguageModelToolResult[] {
+                new LanguageModelToolResult("Terminal view control cannot be setup for RunInTerminalTool.") });
+            return;
+          }
+
+          if (!isBackground) {
+            this.persistentTerminalViewControl = terminalViewControl;
+            bringCopilotTerminalToFront();
+          }
+          terminalViewControl.pasteString(finalCommand);
+        } else {
+          CopilotCore.LOGGER.error("Failed to open terminal console", status.getException());
+          resultFuture.complete(new LanguageModelToolResult[] {
+              new LanguageModelToolResult("Failed to open terminal console" + status.getException()) });
+        }
+      });
+    }
+
+    if (isBackground) {
+      resultFuture.complete(new LanguageModelToolResult[] {
+          new LanguageModelToolResult("Command is running in terminal with ID=" + executionId) });
     }
   }
 
-  private Map<String, Object> prepareTerminalProperties() {
+  private Map<String, Object> prepareTerminalProperties(boolean runInBackground, String executionId) {
     Map<String, Object> properties = new HashMap<>();
-    properties.put(ITerminalsConnectorConstants.PROP_TITLE, Messages.agent_tool_terminal_copilotTerminalTitle);
+
     properties.put(ITerminalsConnectorConstants.PROP_ENCODING, "UTF-8");
     properties.put(ITerminalsConnectorConstants.PROP_TITLE_DISABLE_ANSI_TITLE, true);
 
@@ -181,24 +218,36 @@ public class RunInTerminalTool extends BaseTool {
       properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "cmd.exe");
     }
 
-    properties.put(ITerminalsConnectorConstants.PROP_FORCE_NEW, false);
+    properties.put(ITerminalsConnectorConstants.PROP_FORCE_NEW, true);
     properties.put(ITerminalsConnectorConstants.PROP_DELEGATE_ID,
         "org.eclipse.tm.terminal.connector.local.launcher.local");
-    properties.put(ITerminalsConnectorConstants.PROP_STDOUT_LISTENERS,
-        new ITerminalServiceOutputStreamMonitorListener[] { buildOutputStreamMonitorListener() });
+
+    if (runInBackground) {
+      properties.put(ITerminalsConnectorConstants.PROP_TITLE, buildBackgroundTerminalTitle(executionId));
+      properties.put(ITerminalsConnectorConstants.PROP_STDOUT_LISTENERS,
+          new ITerminalServiceOutputStreamMonitorListener[] { buildOutputStreamMonitorListener(true, executionId) });
+    } else {
+      properties.put(ITerminalsConnectorConstants.PROP_TITLE, Messages.agent_tool_terminal_copilotTerminalTitle);
+      properties.put(ITerminalsConnectorConstants.PROP_STDOUT_LISTENERS,
+          new ITerminalServiceOutputStreamMonitorListener[] { buildOutputStreamMonitorListener(false, null) });
+    }
+
     return properties;
   }
 
-  private void finalizeTerminalSetup() {
+  private ITerminalViewControl finalizeTerminalSetup(String executionId, boolean isBackground) {
+    String title = isBackground ? buildBackgroundTerminalTitle(executionId)
+        : Messages.agent_tool_terminal_copilotTerminalTitle;
     synchronized (lock) {
-      terminalControl = getTerminalControl();
+      terminalControl = getTerminalControl(title, isBackground);
       if (terminalControl != null && terminalControl instanceof ITerminalViewControl iterminalviewcontrol) {
-        this.terminalViewControl = iterminalviewcontrol;
+        return iterminalviewcontrol;
       }
     }
+    return null;
   }
 
-  private ITerminalControl getTerminalControl() {
+  private ITerminalControl getTerminalControl(String terminalTitle, boolean isBackground) {
     AtomicReference<ITerminalControl> ref = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
       try {
@@ -209,12 +258,16 @@ public class RunInTerminalTool extends BaseTool {
             tabFolder = view.getAdapter(CTabFolder.class);
             if (tabFolder != null) {
               for (CTabItem item : tabFolder.getItems()) {
-                if (Messages.agent_tool_terminal_copilotTerminalTitle.equals(item.getText())) {
-                  copilotTabItem = item;
+                if (terminalTitle.equals(item.getText())) {
                   terminalIcon = UiUtils.buildImageFromPngPath("/icons/github_copilot_signed_in.png");
-                  copilotTabItem.setImage(terminalIcon);
-                  copilotTabItem.addDisposeListener(buildDisposeListener());
-                  ref.set((ITerminalControl) copilotTabItem.getData());
+                  item.setImage(terminalIcon);
+                  item.addDisposeListener(
+                      buildDisposeListener(terminalTitle.replace(BACKGROUND_TERMINAL_PREFIX, ""), isBackground));
+                  if (!isBackground) {
+                    // Foreground terminal command will reuse the tab item, so keep a reference to the tab item
+                    copilotTabItem = item;
+                  }
+                  ref.set((ITerminalControl) item.getData());
                   break;
                 }
               }
@@ -231,14 +284,19 @@ public class RunInTerminalTool extends BaseTool {
     return ref.get();
   }
 
-  private ITerminalServiceOutputStreamMonitorListener buildOutputStreamMonitorListener() {
+  private ITerminalServiceOutputStreamMonitorListener buildOutputStreamMonitorListener(boolean isBackground,
+      String executionId) {
+    StringBuilder output = isBackground ? new StringBuilder() : sb;
+    if (isBackground) {
+      backgroundCommandOutputs.put(executionId, output);
+    }
+
     return (byteBuffer, bytesRead) -> {
       String content = new String(byteBuffer, 0, bytesRead);
       // Remove ANSI escape sequences
       content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", "");
-
-      sb.append(content);
-      String terminalOutput = sb.toString();
+      output.append(content);
+      String terminalOutput = output.toString();
       int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
       if (lastNewLineIndex > 0) {
         String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
@@ -263,13 +321,24 @@ public class RunInTerminalTool extends BaseTool {
     };
   }
 
-  private DisposeListener buildDisposeListener() {
+  private String buildBackgroundTerminalTitle(String executionId) {
+    return BACKGROUND_TERMINAL_PREFIX + executionId;
+  }
+
+  private DisposeListener buildDisposeListener(String executionId, boolean isBackground) {
     return e -> {
-      terminalControl = null;
-      terminalViewControl = null;
-      if (terminalIcon != null && !terminalIcon.isDisposed()) {
-        terminalIcon.dispose();
-        terminalIcon = null;
+      if (isBackground) {
+        backgroundCommandOutputs.remove(executionId);
+      } else {
+        persistentTerminalViewControl = null;
+      }
+
+      if (backgroundCommandOutputs.isEmpty() && persistentTerminalViewControl == null) {
+        terminalControl = null;
+        if (terminalIcon != null && !terminalIcon.isDisposed()) {
+          terminalIcon.dispose();
+          terminalIcon = null;
+        }
       }
     };
   }
@@ -280,5 +349,66 @@ public class RunInTerminalTool extends BaseTool {
         tabFolder.setSelection(copilotTabItem);
       }, tabFolder);
     }
+  }
+
+  /**
+   * Tool for getting the output of a terminal command previously started with run_in_terminal.
+   */
+  public static class GetTerminalOutputTool extends BaseTool {
+    private static final String TOOL_NAME = "get_terminal_output";
+
+    /**
+     * Constructor for GetTerminalOutputTool.
+     */
+    public GetTerminalOutputTool() {
+      this.name = TOOL_NAME;
+    }
+
+    @Override
+    public LanguageModelToolInformation getToolInformation() {
+      // Create a new instance of LanguageModelToolInformation
+      LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
+
+      // Set the name and description of the tool
+      toolInfo.setName(TOOL_NAME);
+      toolInfo.setDescription("Get the output of a terminal command previous started with run_in_terminal.");
+
+      // Define the input schema for the tool
+      InputSchema inputSchema = new InputSchema();
+      inputSchema.setType("object");
+
+      // Define the properties of the input schema
+      Map<String, InputSchemaPropertyValue> properties = new HashMap<>();
+      properties.put("id", new InputSchemaPropertyValue("string", "The ID of the terminal command output to check."));
+
+      // Set the properties and required fields for the input schema
+      inputSchema.setProperties(properties);
+      inputSchema.setRequired(List.of("id"));
+
+      // Attach the input schema to the tool information
+      toolInfo.setInputSchema(inputSchema);
+
+      return toolInfo;
+    }
+
+    @Override
+    public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
+      String id = (String) input.get("id");
+      LanguageModelToolResult toolResult = new LanguageModelToolResult();
+      CompletableFuture<LanguageModelToolResult[]> resultFuture = new CompletableFuture<>();
+      if (StringUtils.isBlank(id)) {
+        toolResult.addContent("The tool cannot be invoked due to the ID is null or empty.");
+      } else {
+        StringBuilder output = backgroundCommandOutputs.get(id);
+        if (output == null) {
+          toolResult.addContent("Invalid terminal ID " + id);
+        } else {
+          toolResult.addContent(output.toString());
+        }
+      }
+      resultFuture.complete(new LanguageModelToolResult[] { toolResult });
+      return resultFuture;
+    }
+
   }
 }
