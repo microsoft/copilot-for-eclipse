@@ -43,7 +43,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
@@ -385,11 +384,14 @@ public class ActionBar extends Composite implements NewConversationListener {
   public void notifySend(String workDoneToken, String message) {
     List<IFile> allFiles = new ArrayList<>(this.uriToFile.values());
     IFile currentFile = this.currentFileRef.getFile();
-    if (!this.currentFileRef.isCurrentFileVisible() || FileUtils.getResourceUri(currentFile) == null) {
-      currentFile = null;
-    } else {
-      allFiles.add(currentFile);
+    if (currentFile != null) {
+      if (!this.currentFileRef.isCurrentFileVisible() || FileUtils.getResourceUri(currentFile) == null) {
+        currentFile = null;
+      } else {
+        allFiles.add(currentFile);
+      }
     }
+
     for (MessageListener listener : this.messageListeners) {
       listener.onSend(workDoneToken, message, new ArrayList<>(allFiles), currentFile);
     }
