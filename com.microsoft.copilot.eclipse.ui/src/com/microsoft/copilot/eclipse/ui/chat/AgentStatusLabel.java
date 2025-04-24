@@ -101,6 +101,8 @@ public class AgentStatusLabel extends Composite {
         String imagePath = String.format("/icons/spinner/%d.png", currentFrame);
         runningIcon = UiUtils.buildImageFromPngPath(imagePath);
         iconLabel.setImage(runningIcon);
+        // request layout to update the icon, otherwise the scale of the spinner will be wrong
+        iconLabel.requestLayout();
 
         // Update frame counter
         currentFrame = (currentFrame % TOTAL_FRAMES) + 1;

@@ -349,7 +349,7 @@ public class FileChangeSummaryBar extends Composite {
       // Create action buttons only when the file is not handled
       if (!fileIsHandled) {
         keepButton = UiUtils.createIconButton(actionsArea, SWT.PUSH | SWT.FLAT);
-        Image keepImg = UiUtils.buildImageFromPngPath("/icons/complete_status.png");
+        Image keepImg = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
         this.addDisposeListener(e -> {
           if (keepImg != null && !keepImg.isDisposed()) {
             keepImg.dispose();
