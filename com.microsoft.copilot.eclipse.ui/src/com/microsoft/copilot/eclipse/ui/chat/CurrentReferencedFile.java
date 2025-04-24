@@ -55,29 +55,12 @@ public class CurrentReferencedFile extends ReferencedFile {
     this.listener = new IPartListener2() {
       @Override
       public void partActivated(IWorkbenchPartReference partRef) {
-        if (partRef.getPart(false) instanceof IEditorPart) {
-          IFile newFile = UiUtils.getCurrentFile();
-          IFile file = CurrentReferencedFile.this.getFile();
-          if (Objects.equals(newFile, file)) {
-            return;
-          }
-          if (needExcluded(newFile)) {
-            newFile = null;
-          }
-          CurrentReferencedFile.this.setFile(newFile);
-          CurrentReferencedFile.this.updateCloseClickBtnIcon();
-        }
+        updateCurrentReferencedFile(partRef);
       }
 
       @Override
       public void partClosed(IWorkbenchPartReference partRef) {
-        IFile newFile = UiUtils.getCurrentFile();
-        if (newFile == null) {
-          CurrentReferencedFile.this.setFile(null);
-        } else {
-          CurrentReferencedFile.this.setFile(newFile);
-        }
-        CurrentReferencedFile.this.updateCloseClickBtnIcon();
+        updateCurrentReferencedFile(partRef);
       }
     };
     partService = UiUtils.getPartService();
@@ -97,6 +80,21 @@ public class CurrentReferencedFile extends ReferencedFile {
     descriptionLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     descriptionLabel.moveAbove(lblClose);
     UiUtils.useParentBackground(descriptionLabel);
+  }
+
+  private void updateCurrentReferencedFile(IWorkbenchPartReference partRef) {
+    if (partRef.getPart(false) instanceof IEditorPart) {
+      IFile newFile = UiUtils.getCurrentFile();
+      IFile file = CurrentReferencedFile.this.getFile();
+      if (Objects.equals(newFile, file)) {
+        return;
+      }
+      if (needExcluded(newFile)) {
+        newFile = null;
+      }
+      CurrentReferencedFile.this.setFile(newFile);
+      CurrentReferencedFile.this.updateCloseClickBtnIcon();
+    }
   }
 
   private void updateCloseClickBtnIcon() {
