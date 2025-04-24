@@ -99,6 +99,11 @@ public class UiUtils {
    * Opens the given file in an editor.
    */
   public static IEditorPart openInEditor(IFile file) {
+    if (file == null || !file.exists()) {
+      CopilotCore.LOGGER.error(new IllegalArgumentException("Cannot open editor: file is null or doesn't exist"));
+      return null;
+    }
+
     try {
       IWorkbenchPage page = getActivePage();
       if (page != null) {
