@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
@@ -17,7 +18,8 @@ public class ConversationCreateParams {
   Turn[] turns;
   Capabilities capabilities;
   boolean computeSuggestions;
-  ArrayList<FileReferenceParams> references;
+  TextDocumentIdentifier textDocument;
+  List<FileReferenceParams> references;
   String source = "panel";
   String workspaceFolder;
   List<WorkspaceFolder> workspaceFolders;
@@ -101,56 +103,60 @@ public class ConversationCreateParams {
     return workDoneToken;
   }
 
-  public Turn[] getTurns() {
-    return turns;
-  }
-
-  public Capabilities getCapabilities() {
-    return capabilities;
-  }
-
-  public boolean isComputeSuggestions() {
-    return computeSuggestions;
-  }
-
-  public String getSource() {
-    return source;
-  }
-
-  public String getWorkspaceFolder() {
-    return workspaceFolder;
-  }
-
-  public String[] getIgnoredSkills() {
-    return ignoredSkills;
-  }
-
-  public String getUserLanguage() {
-    return userLanguage;
-  }
-
-  public String getModel() {
-    return model;
-  }
-
   public void setWorkDoneToken(String workDoneToken) {
     this.workDoneToken = workDoneToken;
+  }
+
+  public Turn[] getTurns() {
+    return turns;
   }
 
   public void setTurns(Turn[] turns) {
     this.turns = turns;
   }
 
+  public Capabilities getCapabilities() {
+    return capabilities;
+  }
+
   public void setCapabilities(Capabilities capabilities) {
     this.capabilities = capabilities;
+  }
+
+  public boolean isComputeSuggestions() {
+    return computeSuggestions;
   }
 
   public void setComputeSuggestions(boolean computeSuggestions) {
     this.computeSuggestions = computeSuggestions;
   }
 
+  public TextDocumentIdentifier getTextDocument() {
+    return textDocument;
+  }
+
+  public void setTextDocument(TextDocumentIdentifier textDocument) {
+    this.textDocument = textDocument;
+  }
+
+  public List<FileReferenceParams> getReferences() {
+    return references;
+  }
+
+  public void setReferences(List<FileReferenceParams> references) {
+    this.references = references;
+  }
+
+  public String getSource() {
+    return source;
+  }
+
   public void setSource(String source) {
     this.source = source;
+  }
+
+  public String getWorkspaceFolder() {
+    return workspaceFolder;
   }
 
   public void setWorkspaceFolder(String workspaceFolder) {
@@ -165,12 +171,24 @@ public class ConversationCreateParams {
     this.workspaceFolders = workspaceFolders;
   }
 
+  public String[] getIgnoredSkills() {
+    return ignoredSkills;
+  }
+
   public void setIgnoredSkills(String[] ignoredSkills) {
     this.ignoredSkills = ignoredSkills;
   }
 
+  public String getUserLanguage() {
+    return userLanguage;
+  }
+
   public void setUserLanguage(String userLanguage) {
     this.userLanguage = userLanguage;
+  }
+
+  public String getModel() {
+    return model;
   }
 
   public void setModel(String model) {
@@ -192,7 +210,7 @@ public class ConversationCreateParams {
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Arrays.hashCode(turns);
     result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, references, source,
-        userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
+        textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -211,9 +229,9 @@ public class ConversationCreateParams {
     return Objects.equals(capabilities, other.capabilities) && Objects.equals(chatMode, other.chatMode)
         && computeSuggestions == other.computeSuggestions && Arrays.equals(ignoredSkills, other.ignoredSkills)
         && Objects.equals(model, other.model) && Objects.equals(references, other.references)
-        && Objects.equals(source, other.source) && Arrays.equals(turns, other.turns)
-        && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
-        && Objects.equals(workspaceFolder, other.workspaceFolder)
+        && Objects.equals(source, other.source) && Objects.equals(textDocument, other.textDocument)
+        && Arrays.equals(turns, other.turns) && Objects.equals(userLanguage, other.userLanguage)
+        && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
 
@@ -224,6 +242,7 @@ public class ConversationCreateParams {
     builder.add("turns", Arrays.toString(turns));
     builder.add("capabilities", capabilities);
     builder.add("computeSuggestions", computeSuggestions);
+    builder.add("textDocument", textDocument);
     builder.add("references", references);
     builder.add("source", source);
     builder.add("workspaceFolder", workspaceFolder);

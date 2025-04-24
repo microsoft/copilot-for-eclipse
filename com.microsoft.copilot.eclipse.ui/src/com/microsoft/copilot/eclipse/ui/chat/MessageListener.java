@@ -14,7 +14,7 @@ public interface MessageListener {
    * @param workDoneToken the work done token
    * @param message the message
    */
-  public void onSend(String workDoneToken, String message, List<IFile> files);
+  public void onSend(String workDoneToken, String message, List<IFile> references, IFile currentFile);
 
   /**
    * Called when a message is cancelled.

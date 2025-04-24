@@ -3,16 +3,14 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.Objects;
 
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
  * Document information for completion.
  */
-public class CompletionDocument {
-
-  @NonNull
-  private String uri;
+public class CompletionDocument extends TextDocumentIdentifier {
 
   @NonNull
   private Position position;
@@ -27,16 +25,8 @@ public class CompletionDocument {
    * Create a new CompletionDocument.
    */
   public CompletionDocument(@NonNull String uri, @NonNull Position position) {
-    this.uri = uri;
+    super(uri);
     this.position = position;
-  }
-
-  public String getUri() {
-    return uri;
-  }
-
-  public void setUri(String uri) {
-    this.uri = uri;
   }
 
   public Position getPosition() {
@@ -73,7 +63,10 @@ public class CompletionDocument {
 
   @Override
   public int hashCode() {
-    return Objects.hash(insertSpaces, position, tabSize, uri, version);
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + Objects.hash(insertSpaces, position, tabSize, version);
+    return result;
   }
 
   @Override
@@ -81,7 +74,7 @@ public class CompletionDocument {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
+    if (!super.equals(obj)) {
       return false;
     }
     if (getClass() != obj.getClass()) {
@@ -89,17 +82,17 @@ public class CompletionDocument {
     }
     CompletionDocument other = (CompletionDocument) obj;
     return insertSpaces == other.insertSpaces && Objects.equals(position, other.position) && tabSize == other.tabSize
-        && Objects.equals(uri, other.uri) && version == other.version;
+        && version == other.version;
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("uri", uri);
     builder.add("position", position);
     builder.add("insertSpaces", insertSpaces);
     builder.add("tabSize", tabSize);
     builder.add("version", version);
+    builder.add("uri", getUri());
     return builder.toString();
   }
 

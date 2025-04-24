@@ -11,6 +11,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
@@ -36,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
@@ -195,7 +197,7 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message, List<IFile> files,
-      String modelName, String chatModeName) {
+      IFile currentFile, String modelName, String chatModeName) {
     Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
       ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
@@ -203,6 +205,9 @@ public class CopilotLanguageServerConnection {
       param.addFileRefs(files);
       param.setModel(modelName);
       param.setChatMode(chatModeName);
+      if (currentFile != null) {
+        param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
+      }
       return ((CopilotLanguageServer) server).create(param);
     };
     return this.languageServerWrapper.execute(fn);
@@ -212,7 +217,7 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
-      String message, List<IFile> files, String modelName, String chatModeName) {
+      String message, List<IFile> files, IFile currentFile, String modelName, String chatModeName) {
     Function<LanguageServer, CompletableFuture<ChatTurnResult>> fn = server -> {
       ConversationTurnParams param = new ConversationTurnParams(workDoneToken, conversationId, message);
       param.addFileRefs(files);
@@ -220,6 +225,9 @@ public class CopilotLanguageServerConnection {
       param.setChatMode(chatModeName);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+      if (currentFile != null) {
+        param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
+      }
       return ((CopilotLanguageServer) server).addTurn(param);
     };
     return this.languageServerWrapper.execute(fn);

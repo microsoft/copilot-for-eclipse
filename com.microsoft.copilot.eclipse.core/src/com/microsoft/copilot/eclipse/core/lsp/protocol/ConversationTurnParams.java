@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
@@ -21,7 +22,7 @@ public class ConversationTurnParams {
   @NonNull
   String message;
   List<FileReferenceParams> references;
-
+  TextDocumentIdentifier textDocument;
   Boolean computeSuggestions;
   String workspaceFolder;
   List<WorkspaceFolder> workspaceFolders;
@@ -53,56 +54,24 @@ public class ConversationTurnParams {
     return workDoneToken;
   }
 
-  public String getConversationId() {
-    return conversationId;
-  }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public Boolean getComputeSuggestions() {
-    return computeSuggestions;
-  }
-
-  public String getWorkspaceFolder() {
-    return workspaceFolder;
-  }
-
-  public String[] getIgnoredSkills() {
-    return ignoredSkills;
-  }
-
-  public String getModel() {
-    return model;
-  }
-
   public void setWorkDoneToken(String workDoneToken) {
     this.workDoneToken = workDoneToken;
+  }
+
+  public String getConversationId() {
+    return conversationId;
   }
 
   public void setConversationId(String conversationId) {
     this.conversationId = conversationId;
   }
 
+  public String getMessage() {
+    return message;
+  }
+
   public void setMessage(String message) {
     this.message = message;
-  }
-
-  public void setComputeSuggestions(Boolean computeSuggestions) {
-    this.computeSuggestions = computeSuggestions;
-  }
-
-  public void setWorkspaceFolder(String workspaceFolder) {
-    this.workspaceFolder = workspaceFolder;
-  }
-
-  public void setIgnoredSkills(String[] ignoredSkills) {
-    this.ignoredSkills = ignoredSkills;
-  }
-
-  public void setModel(String model) {
-    this.model = model;
   }
 
   public List<FileReferenceParams> getReferences() {
@@ -111,6 +80,46 @@ public class ConversationTurnParams {
 
   public void setReferences(List<FileReferenceParams> references) {
     this.references = references;
+  }
+
+  public TextDocumentIdentifier getTextDocument() {
+    return textDocument;
+  }
+
+  public void setTextDocument(TextDocumentIdentifier textDocument) {
+    this.textDocument = textDocument;
+  }
+
+  public Boolean getComputeSuggestions() {
+    return computeSuggestions;
+  }
+
+  public void setComputeSuggestions(Boolean computeSuggestions) {
+    this.computeSuggestions = computeSuggestions;
+  }
+
+  public String getWorkspaceFolder() {
+    return workspaceFolder;
+  }
+
+  public void setWorkspaceFolder(String workspaceFolder) {
+    this.workspaceFolder = workspaceFolder;
+  }
+
+  public String[] getIgnoredSkills() {
+    return ignoredSkills;
+  }
+
+  public void setIgnoredSkills(String[] ignoredSkills) {
+    this.ignoredSkills = ignoredSkills;
+  }
+
+  public String getModel() {
+    return model;
+  }
+
+  public void setModel(String model) {
+    this.model = model;
   }
 
   public String getChatMode() {
@@ -135,7 +144,7 @@ public class ConversationTurnParams {
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Objects.hash(chatMode, computeSuggestions, conversationId, message, model, references,
-        workDoneToken, workspaceFolder, workspaceFolders);
+        textDocument, workDoneToken, workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -154,8 +163,8 @@ public class ConversationTurnParams {
     return Objects.equals(chatMode, other.chatMode) && Objects.equals(computeSuggestions, other.computeSuggestions)
         && Objects.equals(conversationId, other.conversationId) && Arrays.equals(ignoredSkills, other.ignoredSkills)
         && Objects.equals(message, other.message) && Objects.equals(model, other.model)
-        && Objects.equals(references, other.references) && Objects.equals(workDoneToken, other.workDoneToken)
-        && Objects.equals(workspaceFolder, other.workspaceFolder)
+        && Objects.equals(references, other.references) && Objects.equals(textDocument, other.textDocument)
+        && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
 
@@ -166,6 +175,7 @@ public class ConversationTurnParams {
     builder.add("conversationId", conversationId);
     builder.add("message", message);
     builder.add("references", references);
+    builder.add("textDocument", textDocument);
     builder.add("computeSuggestions", computeSuggestions);
     builder.add("workspaceFolder", workspaceFolder);
     builder.add("workspaceFolders", workspaceFolders);
