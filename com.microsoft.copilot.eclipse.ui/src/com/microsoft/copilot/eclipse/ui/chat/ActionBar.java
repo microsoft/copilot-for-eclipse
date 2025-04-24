@@ -45,9 +45,8 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
-import com.microsoft.copilot.eclipse.ui.chat.services.ChatModeService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.chat.services.CopilotModelService;
+import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -266,7 +265,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpModelPicker(Composite parent) {
     this.cmbModelPicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    CopilotModelService copilotModelService = chatServiceManager.getCopilotModelService();
+    UserPreferenceService copilotModelService = chatServiceManager.getUserPreferenceService();
     copilotModelService.bindModelPicker(cmbModelPicker);
     this.cmbModelPicker.addSelectionListener(new SelectionAdapter() {
       @Override
@@ -283,13 +282,13 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpChatModePicker(Composite parent) {
     Combo cmbChatModePicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    ChatModeService chatModeService = chatServiceManager.getChatModeService();
-    chatModeService.bindChatModePicker(cmbChatModePicker);
+    UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
+    userPreferenceService.bindChatModePicker(cmbChatModePicker);
     cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
         int index = cmbChatModePicker.getSelectionIndex();
-        chatModeService.setActiveChatMode(index);
+        userPreferenceService.setActiveChatMode(index);
       }
     });
   }

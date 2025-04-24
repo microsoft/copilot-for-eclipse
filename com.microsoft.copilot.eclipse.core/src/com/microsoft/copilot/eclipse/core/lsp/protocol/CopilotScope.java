@@ -12,4 +12,6 @@ public class CopilotScope {
   public static final String INLINE = "inline";
   // Scope targeting code completions.
   public static final String COMPLETION = "completion";
+  // Scope targeting the agent mode.
+  public static final String AGENT_PANEL = "agent-panel";
 }

@@ -84,7 +84,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             return;
           }
           ChatView.this.chatServiceManager.getAuthStatusService().bindChatView(ChatView.this);
-          ChatView.this.chatServiceManager.getChatModeService().bindChatView(ChatView.this);
+          ChatView.this.chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
           Job.getJobManager().removeJobChangeListener(this);
         }
@@ -92,7 +92,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       Job.getJobManager().addJobChangeListener(adapter);
     } else {
       this.chatServiceManager.getAuthStatusService().bindChatView(this);
-      this.chatServiceManager.getChatModeService().bindChatView(this);
+      this.chatServiceManager.getUserPreferenceService().bindChatView(this);
       this.chatServiceManager.getAgentToolService().bindChatView(this);
     }
   }
@@ -115,7 +115,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         showNoSubscriptionPage();
         break;
       default:
-        showChatPage(chatServiceManager.getChatModeService().getActiveChatMode());
+        showChatPage(chatServiceManager.getUserPreferenceService().getActiveChatMode());
         break;
     }
     this.parent.layout();
@@ -354,9 +354,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   @Override
   public void onSend(String workDoneToken, String message, List<IFile> files) {
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
-    CopilotModel activeModel = chatServiceManager.getCopilotModelService().getActiveModel();
+    CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
     String modelName = activeModel == null ? null : activeModel.getModelFamily();
-    String chatModeName = chatServiceManager.getChatModeService().getActiveChatMode().toString();
+    String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
     if (!(this.hasHistory)) {
       this.hasHistory = true;
       createConversationPage();
@@ -419,7 +419,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.hasHistory = false;
     this.conversationId = "";
     this.onCancel();
-    ChatMode chatMode = chatServiceManager.getChatModeService().getActiveChatMode();
+    ChatMode chatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
     if (chatMode != null && chatMode.equals(ChatMode.Agent)) {
       createAgentModePage();
     } else {

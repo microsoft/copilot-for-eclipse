@@ -75,7 +75,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     toolInfo.setDescription("""
         Insert new code into an existing file in the workspace.
         Use this tool once per file that needs to be modified, even if there are multiple changes for a file.
-        Generate the \"explanation\" property first.
+        Generate the "explanation" property first.
         The system is very smart and can understand how to apply your edits to the files,
         you just need to provide minimal hints.
         Avoid repeating existing code, instead use comments to represent regions of unchanged code.

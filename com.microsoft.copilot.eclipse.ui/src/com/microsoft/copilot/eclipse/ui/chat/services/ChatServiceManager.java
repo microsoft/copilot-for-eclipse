@@ -14,8 +14,7 @@ public class ChatServiceManager {
   private AuthStatusManager authStatusManager;
 
   private SlashCommandService slashCommandService;
-  private CopilotModelService copilotModelService;
-  private ChatModeService chatModeService;
+  private UserPreferenceService userPreferenceService;
   private AvatarService avatarService;
   private AuthStatusService authStatusService;
   private AgentToolService agentToolService;
@@ -28,8 +27,7 @@ public class ChatServiceManager {
     this.lsConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
     slashCommandService = new SlashCommandService(this.lsConnection, this.authStatusManager);
-    copilotModelService = new CopilotModelService(this.lsConnection, this.authStatusManager);
-    chatModeService = new ChatModeService(this.lsConnection, this.authStatusManager);
+    userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager);
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
@@ -74,17 +72,8 @@ public class ChatServiceManager {
    *
    * @return the copilot model service
    */
-  public CopilotModelService getCopilotModelService() {
-    return copilotModelService;
-  }
-
-  /**
-   * Get the chat mode service.
-   *
-   * @return the chat mode service
-   */
-  public ChatModeService getChatModeService() {
-    return chatModeService;
+  public UserPreferenceService getUserPreferenceService() {
+    return userPreferenceService;
   }
 
   /**
@@ -111,8 +100,7 @@ public class ChatServiceManager {
   public void dispose() {
     this.avatarService.dispose();
     this.slashCommandService.dispose();
-    this.copilotModelService.dispose();
-    this.chatModeService.dispose();
+    this.userPreferenceService.dispose();
     this.authStatusService.dispose();
     this.agentToolService.dispose();
     this.editFileToolService.dispose();

@@ -128,7 +128,7 @@ public class ChatContentViewer extends ScrolledComposite {
       if (value.getKind() == WorkDoneProgressKind.report) {
         ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
         boolean isAgentMode = chatServiceManager != null
-            && ChatMode.Agent.equals(chatServiceManager.getChatModeService().getActiveChatMode());
+            && ChatMode.Agent.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode());
 
         if (isAgentMode && value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
           // Handle agent mode responses
