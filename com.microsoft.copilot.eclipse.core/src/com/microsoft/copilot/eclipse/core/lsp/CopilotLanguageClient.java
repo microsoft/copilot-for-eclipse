@@ -15,6 +15,8 @@ import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
@@ -26,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -39,35 +42,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   private WatchedFileManager watchedFileManager;
 
   private static final String SIGNUP_URL = "https://github.com/github-copilot/signup";
-
-  @Override
-  public CompletableFuture<ShowDocumentResult> showDocument(ShowDocumentParams params) {
-    if (params.getUri() != null && params.getUri().startsWith(LSPEclipseUtils.HTTP) && params.getSelection() == null) {
-      // override the method to open the URL in the browser, ideally, core should not have UI dependencies,
-      // TODO: we should figure out a way to move this to UI plugin.
-      openLink(params.getUri());
-      if (params.getUri().contains(SIGNUP_URL)) {
-        // refresh the status after user signs up copilot
-        Job job = new Job("Refreshing Copilot status") {
-          @Override
-          protected IStatus run(IProgressMonitor monitor) {
-            AuthStatusManager manager = CopilotCore.getPlugin().getAuthStatusManager();
-            if (manager != null) {
-              manager.checkStatus();
-            }
-            return Status.OK_STATUS;
-          }
-        };
-        job.setSystem(true);
-        job.setPriority(Job.LONG);
-        job.schedule(5 * 1000L /* ms */);
-      }
-
-      return CompletableFuture.completedFuture(new ShowDocumentResult(true));
-    } else {
-      return super.showDocument(params);
-    }
-  }
 
   private static boolean openLink(String link) {
     String encodedUrl = PlatformUtils.escapeSpaceInUrl(link);
@@ -108,12 +82,35 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Handles the progress notification for chat replies.
+   * Prompt for user confirmation before invoking a tool.
    */
+  @JsonRequest("conversation/invokeClientToolConfirmation")
+  public CompletableFuture<Object[]> confirmClientTool(InvokeClientToolConfirmationParams params) {
+    return CopilotCore.getPlugin().getChatEventsManager().confirmAgentToolInvocation(params).thenApply(result -> {
+      if (result == null) {
+        return new Object[] { null,
+            new ResponseError(ResponseErrorCode.InternalError, "Failed to get the confirmation from user.", null) };
+      } else {
+        return new Object[] { result, null };
+      }
+    }).exceptionally(e -> {
+      Throwable cause = e.getCause() != null ? e.getCause() : e;
+      CopilotCore.LOGGER.error(e);
+      return new Object[] { null, new ResponseError(ResponseErrorCode.RequestFailed,
+          "Failed to get the confirmation from user due to exception", cause) };
+    });
+  }
+
   @Override
-  public void notifyProgress(ProgressParams progress) {
-    var chatProgress = (ChatProgressValue) progress.getValue().getLeft();
-    CopilotCore.getPlugin().getChatEventsManager().notifyProgress(chatProgress);
+  public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
+    // Ideally, we should return each IProject as a workspace folder, but given that when
+    // creating a new conversation or new conversation turn, the uri of the workspace folder
+    // is required to use the @project (or @workspace) agent. There is no easy way to guess which
+    // IProject should be used. So we are returning the workspace root as a single workspace folder.
+    final WorkspaceFolder folder = new WorkspaceFolder();
+    folder.setUri(PlatformUtils.getWorkspaceRootUri());
+    folder.setName("workspace-root"); // $NON-NLS-1$
+    return CompletableFuture.completedFuture(List.of(folder));
   }
 
   /**
@@ -127,15 +124,41 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     return CompletableFuture.completedFuture(new GetWatchedFilesResponse(watchedFileManager.getWatchedFiles(params)));
   }
 
+  /**
+   * Handles the progress notification for chat replies.
+   */
   @Override
-  public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
-    // Ideally, we should return each IProject as a workspace folder, but given that when
-    // creating a new conversation or new conversation turn, the uri of the workspace folder
-    // is required to use the @project (or @workspace) agent. There is no easy way to guess which
-    // IProject should be used. So we are returning the workspace root as a single workspace folder.
-    final WorkspaceFolder folder = new WorkspaceFolder();
-    folder.setUri(PlatformUtils.getWorkspaceRootUri());
-    folder.setName("workspace-root"); // $NON-NLS-1$
-    return CompletableFuture.completedFuture(List.of(folder));
+  public void notifyProgress(ProgressParams progress) {
+    var chatProgress = (ChatProgressValue) progress.getValue().getLeft();
+    CopilotCore.getPlugin().getChatEventsManager().notifyProgress(chatProgress);
+  }
+
+  @Override
+  public CompletableFuture<ShowDocumentResult> showDocument(ShowDocumentParams params) {
+    if (params.getUri() != null && params.getUri().startsWith(LSPEclipseUtils.HTTP) && params.getSelection() == null) {
+      // override the method to open the URL in the browser, ideally, core should not have UI dependencies,
+      // TODO: we should figure out a way to move this to UI plugin.
+      openLink(params.getUri());
+      if (params.getUri().contains(SIGNUP_URL)) {
+        // refresh the status after user signs up copilot
+        Job job = new Job("Refreshing Copilot status") {
+          @Override
+          protected IStatus run(IProgressMonitor monitor) {
+            AuthStatusManager manager = CopilotCore.getPlugin().getAuthStatusManager();
+            if (manager != null) {
+              manager.checkStatus();
+            }
+            return Status.OK_STATUS;
+          }
+        };
+        job.setSystem(true);
+        job.setPriority(Job.LONG);
+        job.schedule(5 * 1000L /* ms */);
+      }
+
+      return CompletableFuture.completedFuture(new ShowDocumentResult(true));
+    } else {
+      return super.showDocument(params);
+    }
   }
 }

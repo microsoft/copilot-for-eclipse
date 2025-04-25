@@ -23,6 +23,7 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConfirmationMessages;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
@@ -96,8 +97,9 @@ public class RunInTerminalTool extends BaseTool {
   }
 
   @Override
-  public String getConfirmedMessage() {
-    return "The tool is about to run the following command in the terminal.\nDo you want to continue?";
+  public ConfirmationMessages getConfirmationMessages() {
+    return new ConfirmationMessages("Run command in terminal",
+        "The tool is about to run the following command in the terminal.");
   }
 
   @Override
@@ -142,6 +144,10 @@ public class RunInTerminalTool extends BaseTool {
 
     // Attach the input schema to the tool information
     toolInfo.setInputSchema(inputSchema);
+
+    if (needConfirmation()) {
+      toolInfo.setConfirmationMessages(getConfirmationMessages());
+    }
 
     return toolInfo;
   }
@@ -366,8 +372,7 @@ public class RunInTerminalTool extends BaseTool {
 
     @Override
     public LanguageModelToolInformation getToolInformation() {
-      // Create a new instance of LanguageModelToolInformation
-      LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
+      LanguageModelToolInformation toolInfo = super.getToolInformation();
 
       // Set the name and description of the tool
       toolInfo.setName(TOOL_NAME);

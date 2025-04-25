@@ -14,20 +14,23 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
  * Parameters for creating a conversation.
  */
 public class ConversationCreateParams {
-  String workDoneToken;
-  Turn[] turns;
-  Capabilities capabilities;
-  boolean computeSuggestions;
-  TextDocumentIdentifier textDocument;
-  List<FileReferenceParams> references;
-  String source = "panel";
-  String workspaceFolder;
-  List<WorkspaceFolder> workspaceFolders;
+  private String workDoneToken;
+  private Turn[] turns;
+  private Capabilities capabilities;
+  private boolean computeSuggestions;
+  private TextDocumentIdentifier textDocument;
+  private List<FileReferenceParams> references;
+  private String source = "panel";
+  private String workspaceFolder;
+  private List<WorkspaceFolder> workspaceFolders;
 
-  String[] ignoredSkills;
-  String userLanguage;
-  String model;
-  String chatMode;
+  private String[] ignoredSkills;
+  private String userLanguage;
+  private String model;
+  private String chatMode;
+
+  // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
+  private boolean needToolCallConfirmation;
 
   /**
    * Capabilities for the conversation.
@@ -203,14 +206,22 @@ public class ConversationCreateParams {
     this.chatMode = chatMode;
   }
 
+  public boolean isNeedToolCallConfirmation() {
+    return needToolCallConfirmation;
+  }
+
+  public void setNeedToolCallConfirmation(boolean needToolCallConfirmation) {
+    this.needToolCallConfirmation = needToolCallConfirmation;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Arrays.hashCode(turns);
-    result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, references, source,
-        textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
+    result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, needToolCallConfirmation,
+        references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -228,10 +239,11 @@ public class ConversationCreateParams {
     ConversationCreateParams other = (ConversationCreateParams) obj;
     return Objects.equals(capabilities, other.capabilities) && Objects.equals(chatMode, other.chatMode)
         && computeSuggestions == other.computeSuggestions && Arrays.equals(ignoredSkills, other.ignoredSkills)
-        && Objects.equals(model, other.model) && Objects.equals(references, other.references)
-        && Objects.equals(source, other.source) && Objects.equals(textDocument, other.textDocument)
-        && Arrays.equals(turns, other.turns) && Objects.equals(userLanguage, other.userLanguage)
-        && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
+        && Objects.equals(model, other.model) && needToolCallConfirmation == other.needToolCallConfirmation
+        && Objects.equals(references, other.references) && Objects.equals(source, other.source)
+        && Objects.equals(textDocument, other.textDocument) && Arrays.equals(turns, other.turns)
+        && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
+        && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
 
@@ -251,6 +263,7 @@ public class ConversationCreateParams {
     builder.add("userLanguage", userLanguage);
     builder.add("model", model);
     builder.add("chatMode", chatMode);
+    builder.add("needToolCallConfirmation", needToolCallConfirmation);
     return builder.toString();
   }
 

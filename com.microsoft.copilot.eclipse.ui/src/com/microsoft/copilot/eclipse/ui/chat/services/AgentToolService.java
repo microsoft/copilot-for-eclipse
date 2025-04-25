@@ -14,7 +14,9 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
@@ -66,7 +68,7 @@ public class AgentToolService implements ToolInvocationListener {
 
     ChatEventsManager chatEventsManager = CopilotCore.getPlugin().getChatEventsManager();
     if (chatEventsManager != null) {
-      chatEventsManager.addAgentToolListener(this);
+      chatEventsManager.registerAgentToolListener(this);
     }
   }
 
@@ -158,7 +160,7 @@ public class AgentToolService implements ToolInvocationListener {
    * @return The result of the tool invocation, or null if the tool was not found
    */
   public CompletableFuture<LanguageModelToolResult[]> invokeTool(String toolName, @Nullable Map<String, Object> input,
-      String turnId, @Nullable ChatView chatView) {
+      @Nullable ChatView chatView) {
     BaseTool tool = getTool(toolName);
     LanguageModelToolResult result = new LanguageModelToolResult();
     if (tool == null) {
@@ -166,44 +168,46 @@ public class AgentToolService implements ToolInvocationListener {
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
-    BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(turnId);
-    AtomicReference<CompletableFuture<Boolean>> ref = new AtomicReference<>();
-    if (tool.needConfirmation()) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        ref.set(turnWidget.requestToolExecutionConfirmation(tool.getConfirmedMessage()));
-      });
-    } else {
-      ref.set(CompletableFuture.completedFuture(true));
-    }
-
-    return ref.get().thenCompose(confirmed -> {
-      if (Boolean.TRUE.equals(confirmed)) {
-        try {
-          return tool.invoke(input, chatView);
-        } catch (Exception e) {
-          CopilotCore.LOGGER.error("Error invoking the tool " + toolName + " due to exception: ", e);
-          result.addContent("Tool invocation failed due to exception: " + e.getMessage());
-          return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
-        }
-      } else {
-        CopilotCore.LOGGER.info("Tool invocation cancelled by user.");
-        result.addContent("Tool invocation cancelled by user.");
-        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
-      }
-    });
+    return tool.invoke(input, chatView);
   }
 
   @Override
   public CompletableFuture<LanguageModelToolResult[]> onToolInvocation(InvokeClientToolParams params) {
-    if (boundChatView == null || !Objects.equals(params.getConversationId(), boundChatView.getConversationId())) {
+    if (!validToolConfirmInvokeParams(params.getConversationId(), params.getTurnId())) {
+      return null;
+    }
+    return invokeTool(params.getName(), (Map<String, Object>) params.getInput(), boundChatView);
+  }
+
+  @Override
+  public CompletableFuture<LanguageModelToolConfirmationResult> onToolConfirmation(
+      InvokeClientToolConfirmationParams params) {
+    if (!validToolConfirmInvokeParams(params.getConversationId(), params.getTurnId())) {
       return null;
     }
 
-    ChatContentViewer chatContentViewer = boundChatView.getChatContentViewer();
-    if (chatContentViewer == null || chatContentViewer.getTurnWidget(params.getTurnId()) == null) {
+    BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
+    if (turnWidget == null) {
       return null;
     }
-    return invokeTool(params.getName(), (Map<String, Object>) params.getInput(), params.getTurnId(), boundChatView);
+    AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref = new AtomicReference<>();
+    SwtUtils.invokeOnDisplayThread(() -> {
+      ref.set(turnWidget.requestToolExecutionConfirmation(params.getTitle(), params.getMessage(), params.getInput()));
+    });
+
+    return ref.get();
+  }
+
+  private boolean validToolConfirmInvokeParams(String conversationId, String turnId) {
+    if (boundChatView == null || !Objects.equals(conversationId, boundChatView.getConversationId())) {
+      return false;
+    }
+
+    ChatContentViewer chatContentViewer = boundChatView.getChatContentViewer();
+    if (chatContentViewer == null || chatContentViewer.getTurnWidget(turnId) == null) {
+      return false;
+    }
+    return true;
   }
 
   /**

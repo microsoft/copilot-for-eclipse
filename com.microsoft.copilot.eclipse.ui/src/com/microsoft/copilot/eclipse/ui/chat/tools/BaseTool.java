@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConfirmationMessages;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
@@ -23,7 +24,13 @@ public abstract class BaseTool {
   /**
    * Get the registration information of the tool.
    */
-  public abstract LanguageModelToolInformation getToolInformation();
+  public LanguageModelToolInformation getToolInformation() {
+    LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
+    if (needConfirmation()) {
+      toolInfo.setConfirmationMessages(getConfirmationMessages());
+    }
+    return toolInfo;
+  }
 
   /**
    * Needs user's confirmation to continue.
@@ -33,10 +40,10 @@ public abstract class BaseTool {
   }
 
   /**
-   * Get confirmed message.
+   * Get confirmed messages.
    */
-  public String getConfirmedMessage() {
-    return "";
+  public ConfirmationMessages getConfirmationMessages() {
+    return new ConfirmationMessages();
   }
 
   /**

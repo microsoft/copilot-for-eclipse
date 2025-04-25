@@ -18,6 +18,8 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -255,16 +257,44 @@ public abstract class BaseTurnWidget extends Composite {
   /**
    * Prompts the user to confirm or deny a tool execution.
    *
-   * @param confirmationPrompt The message explaining what tool execution requires confirmation
+   * @param title The title of the confirmation dialog.
+   * @param message The message to display in the confirmation dialog.
    */
-  public CompletableFuture<Boolean> requestToolExecutionConfirmation(String confirmationPrompt) {
+  public CompletableFuture<LanguageModelToolConfirmationResult> requestToolExecutionConfirmation(String title,
+      String message, Object input) {
     // process all the messages before showing the confirmation dialog
     reset();
 
     Composite widgetParent = new Composite(this, SWT.BORDER);
     widgetParent.setLayout(new GridLayout(1, false));
     widgetParent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    new Label(widgetParent, SWT.NONE).setText(confirmationPrompt);
+
+    // Title of the confirmation dialog
+    Label titleLbl = new Label(widgetParent, SWT.NONE);
+    titleLbl.setText(title);
+    if (boldFont == null) {
+      boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
+    }
+    titleLbl.setFont(boldFont);
+
+    // Confirmation message of the confirmation dialog
+    new Label(widgetParent, SWT.NONE).setText(message);
+
+    // More information about the tool invocation
+    if (input != null) {
+      // TODO: Improve the logic to show more information about the tool invocation when confirm with users. The
+      // following code only works for the run in terminal tool.
+      Map<String, Object> inputMap = (Map<String, Object>) input;
+      if (inputMap.containsKey("command")) {
+        Label commandLbl = new Label(widgetParent, SWT.NONE);
+        commandLbl.setText((String) inputMap.get("command"));
+        commandLbl.setBackground(getBackground());
+      }
+
+      if (inputMap.containsKey("explanation")) {
+        new Label(widgetParent, SWT.NONE).setText((String) inputMap.get("explanation"));
+      }
+    }
 
     GridLayout actionLayout = new GridLayout(2, false);
     actionLayout.marginLeft = 0;
@@ -275,12 +305,12 @@ public abstract class BaseTurnWidget extends Composite {
     actionArea.setLayout(actionLayout);
     actionArea.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-    CompletableFuture<Boolean> future = new CompletableFuture<>();
+    CompletableFuture<LanguageModelToolConfirmationResult> future = new CompletableFuture<>();
     Button continueButton = new Button(actionArea, SWT.PUSH);
     continueButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
     continueButton.setText("Continue");
     continueButton.addListener(SWT.Selection, e -> {
-      future.complete(true);
+      future.complete(new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
       widgetParent.dispose();
       if (this.getParent() != null) {
         this.getParent().layout();
@@ -291,7 +321,7 @@ public abstract class BaseTurnWidget extends Composite {
     cancelButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
     cancelButton.setText("Cancel");
     cancelButton.addListener(SWT.Selection, e -> {
-      future.complete(false);
+      future.complete(new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
       widgetParent.dispose();
       if (this.getParent() != null) {
         this.getParent().layout();

@@ -26,6 +26,11 @@ public class LanguageModelToolInformation {
    */
   private InputSchema inputSchema;
 
+  /**
+   * A message that should be shown to the user when the tool is invoked.
+   */
+  private ConfirmationMessages confirmationMessages;
+
   public String getName() {
     return name;
   }
@@ -50,9 +55,17 @@ public class LanguageModelToolInformation {
     this.inputSchema = inputSchema;
   }
 
+  public ConfirmationMessages getConfirmationMessages() {
+    return confirmationMessages;
+  }
+
+  public void setConfirmationMessages(ConfirmationMessages confirmationMessages) {
+    this.confirmationMessages = confirmationMessages;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(description, inputSchema, name);
+    return Objects.hash(confirmationMessages, description, inputSchema, name);
   }
 
   @Override
@@ -67,7 +80,8 @@ public class LanguageModelToolInformation {
       return false;
     }
     LanguageModelToolInformation other = (LanguageModelToolInformation) obj;
-    return Objects.equals(description, other.description) && Objects.equals(inputSchema, other.inputSchema)
+    return Objects.equals(confirmationMessages, other.confirmationMessages)
+        && Objects.equals(description, other.description) && Objects.equals(inputSchema, other.inputSchema)
         && Objects.equals(name, other.name);
   }
 
@@ -77,6 +91,7 @@ public class LanguageModelToolInformation {
     builder.add("name", name);
     builder.add("description", description);
     builder.add("inputSchema", inputSchema);
+    builder.add("confirmationMessages", confirmationMessages);
     return builder.toString();
   }
 }

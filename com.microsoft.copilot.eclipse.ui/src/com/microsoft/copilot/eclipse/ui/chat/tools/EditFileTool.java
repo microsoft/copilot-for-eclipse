@@ -68,8 +68,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
 
   @Override
   public LanguageModelToolInformation getToolInformation() {
-    // Create a new instance of LanguageModelToolInformation
-    LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
+    LanguageModelToolInformation toolInfo = super.getToolInformation();
 
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);

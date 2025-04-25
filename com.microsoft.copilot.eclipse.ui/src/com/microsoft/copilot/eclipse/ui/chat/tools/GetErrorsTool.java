@@ -41,18 +41,16 @@ public class GetErrorsTool extends BaseTool {
 
   @Override
   public LanguageModelToolInformation getToolInformation() {
-    // Create a new instance of LanguageModelToolInformation
-    LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
+    LanguageModelToolInformation toolInfo = super.getToolInformation();
 
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
-    toolInfo.setDescription(
-        """
-            Get any compile or lint errors in a code file.
-            If the user mentions errors or problems in a file, they may be referring to these.
-            Use the tool to see the same errors that the user is seeing.
-            Also use this tool after editing a file to validate the change.
-            """);
+    toolInfo.setDescription("""
+        Get any compile or lint errors in a code file.
+        If the user mentions errors or problems in a file, they may be referring to these.
+        Use the tool to see the same errors that the user is seeing.
+        Also use this tool after editing a file to validate the change.
+        """);
 
     // Define the input schema for the tool
     InputSchema inputSchema = new InputSchema();

@@ -39,18 +39,12 @@ public class CreateFileTool extends BaseTool {
 
   @Override
   public boolean needConfirmation() {
-    return true;
-  }
-
-  @Override
-  public String getConfirmedMessage() {
-    return "The tool is about to create a file to your workspace.\nDo you want to continue?";
+    return false;
   }
 
   @Override
   public LanguageModelToolInformation getToolInformation() {
-    // Create a new instance of LanguageModelToolInformation
-    LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
+    LanguageModelToolInformation toolInfo = super.getToolInformation();
 
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
@@ -74,7 +68,6 @@ public class CreateFileTool extends BaseTool {
 
     // Attach the input schema to the tool information
     toolInfo.setInputSchema(inputSchema);
-
     return toolInfo;
   }
 

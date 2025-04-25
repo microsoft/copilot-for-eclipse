@@ -205,6 +205,8 @@ public class CopilotLanguageServerConnection {
       param.addFileRefs(files);
       param.setModel(modelName);
       param.setChatMode(chatModeName);
+      // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
+      param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {
         param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
       }
@@ -225,6 +227,8 @@ public class CopilotLanguageServerConnection {
       param.setChatMode(chatModeName);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+      // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
+      param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {
         param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
       }

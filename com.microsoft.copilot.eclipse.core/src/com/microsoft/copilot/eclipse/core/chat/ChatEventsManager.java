@@ -4,7 +4,9 @@ import java.util.LinkedHashSet;
 import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 
 /**
@@ -20,14 +22,13 @@ public class ChatEventsManager {
   /**
    * List of agent tool listeners.
    */
-  public LinkedHashSet<ToolInvocationListener> agentToolListeners;
+  public ToolInvocationListener agentToolListener;
 
   /**
    * Creates a new chat progress provider.
    */
   public ChatEventsManager() {
     this.chatProgressListeners = new LinkedHashSet<>();
-    this.agentToolListeners = new LinkedHashSet<>();
   }
 
   /**
@@ -58,8 +59,8 @@ public class ChatEventsManager {
    *
    * @param listener the listener to add
    */
-  public void addAgentToolListener(ToolInvocationListener listener) {
-    this.agentToolListeners.add(listener);
+  public void registerAgentToolListener(ToolInvocationListener listener) {
+    this.agentToolListener = listener;
   }
 
   /**
@@ -67,8 +68,18 @@ public class ChatEventsManager {
    *
    * @param listener the listener to remove
    */
-  public void removeAgentToolListener(ToolInvocationListener listener) {
-    this.agentToolListeners.remove(listener);
+  public void unregisterAgentToolListener(ToolInvocationListener listener) {
+    this.agentToolListener = null;
+  }
+
+  /**
+   * Notify the listeners when the agent tool should be confirmed.
+   *
+   * @param params the parameters for the tool confirmation
+   */
+  public CompletableFuture<LanguageModelToolConfirmationResult> confirmAgentToolInvocation(
+      InvokeClientToolConfirmationParams params) {
+    return this.agentToolListener.onToolConfirmation(params);
   }
 
   /**
@@ -77,9 +88,6 @@ public class ChatEventsManager {
    * @param params the parameters for the tool invocation
    */
   public CompletableFuture<LanguageModelToolResult[]> invokeAgentTool(InvokeClientToolParams params) {
-    for (ToolInvocationListener listener : this.agentToolListeners) {
-      return listener.onToolInvocation(params);
-    }
-    return null;
+    return this.agentToolListener.onToolInvocation(params);
   }
 }
