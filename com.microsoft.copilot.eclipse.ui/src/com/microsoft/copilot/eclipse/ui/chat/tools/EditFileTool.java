@@ -380,6 +380,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       }
     }
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
+    updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
     fileContentCache.remove(file);
   }
 
@@ -406,6 +407,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       }
     }
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
+    updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
     fileContentCache.remove(file);
   }
 
