@@ -1,22 +1,13 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.Objects;
-
 import org.eclipse.core.resources.IFile;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IPartListener2;
-import org.eclipse.ui.IPartService;
-import org.eclipse.ui.IWorkbenchPartReference;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -28,9 +19,6 @@ public class CurrentReferencedFile extends ReferencedFile {
   private static Image visibleImage = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/eye.png").createImage();
   private static Image invisibleImage = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/eye_closed.png")
       .createImage();
-  private IPartListener2 listener;
-  private boolean isCurrentFileVisible = true;
-  private IPartService partService;
 
   private Label descriptionLabel;
 
@@ -39,34 +27,6 @@ public class CurrentReferencedFile extends ReferencedFile {
    */
   public CurrentReferencedFile(Composite parent) {
     super(parent, null);
-    IFile currentFile = UiUtils.getCurrentFile();
-    if (needExcluded(currentFile)) {
-      currentFile = null;
-    }
-    setFile(currentFile);
-    updateCloseClickBtnIcon();
-    setCloseClickAction(new MouseAdapter() {
-      @Override
-      public void mouseDown(org.eclipse.swt.events.MouseEvent e) {
-        isCurrentFileVisible = !isCurrentFileVisible;
-        updateCloseClickBtnIcon();
-      }
-    });
-    this.listener = new IPartListener2() {
-      @Override
-      public void partActivated(IWorkbenchPartReference partRef) {
-        updateCurrentReferencedFile(partRef);
-      }
-
-      @Override
-      public void partClosed(IWorkbenchPartReference partRef) {
-        updateCurrentReferencedFile(partRef);
-      }
-    };
-    partService = UiUtils.getPartService();
-    if (partService != null) {
-      partService.addPartListener(listener);
-    }
 
     // change to 4 col layout
     GridLayout layout = new GridLayout(4, false);
@@ -82,22 +42,10 @@ public class CurrentReferencedFile extends ReferencedFile {
     UiUtils.useParentBackground(descriptionLabel);
   }
 
-  private void updateCurrentReferencedFile(IWorkbenchPartReference partRef) {
-    if (partRef.getPart(false) instanceof IEditorPart) {
-      IFile newFile = UiUtils.getCurrentFile();
-      IFile file = CurrentReferencedFile.this.getFile();
-      if (Objects.equals(newFile, file)) {
-        return;
-      }
-      if (needExcluded(newFile)) {
-        newFile = null;
-      }
-      CurrentReferencedFile.this.setFile(newFile);
-      CurrentReferencedFile.this.updateCloseClickBtnIcon();
-    }
-  }
-
-  private void updateCloseClickBtnIcon() {
+  /**
+   * update the visible icon.
+   */
+  public void updateCloseClickBtnIcon(boolean isCurrentFileVisible) {
     if (isCurrentFileVisible) {
       setCloseClickBtnIcon(visibleImage);
     } else {
@@ -105,29 +53,9 @@ public class CurrentReferencedFile extends ReferencedFile {
     }
   }
 
-  public boolean isCurrentFileVisible() {
-    return isCurrentFileVisible;
-  }
-
-  /**
-   * Returns true if the file needs to be excluded from 'Current file' reference in chat.
-   */
-  private boolean needExcluded(@Nullable IFile file) {
-    if (file == null) {
-      return true;
-    }
-    String fileExtension = file.getFileExtension();
-    if (fileExtension == null) {
-      return true;
-    }
-    return Constants.EXCLUDED_FILE_TYPE.contains(fileExtension);
-  }
-
   @Override
-  public void dispose() {
-    super.dispose();
-    if (partService != null) {
-      partService.removePartListener(listener);
-    }
+  public void setFile(IFile file) {
+    super.setFile(file);
   }
+
 }

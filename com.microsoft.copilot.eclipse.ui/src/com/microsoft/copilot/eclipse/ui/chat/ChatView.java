@@ -352,7 +352,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   @Override
-  public void onSend(String workDoneToken, String message, List<IFile> references, IFile currentFile) {
+  public void onSend(String workDoneToken, String message, List<IFile> references) {
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
     String modelName = activeModel == null ? null : activeModel.getModelFamily();
@@ -361,6 +361,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.hasHistory = true;
       createConversationPage();
     }
+
+    IFile currentFile = chatServiceManager.getReferencedFileService().getCurrentFile();
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation
       CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken, message,

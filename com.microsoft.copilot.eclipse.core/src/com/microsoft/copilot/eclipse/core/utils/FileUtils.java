@@ -19,6 +19,10 @@ public class FileUtils {
    * @return A URI string or null if no URI could be determined
    */
   public static String getResourceUri(IResource resource) {
+    if (resource == null) {
+      return null;
+    }
+
     // Try standard file location first
     if (resource.getLocation() != null) {
       URI url = LSPEclipseUtils.toUri(resource);

@@ -16,7 +16,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 public class ConversationCreateParams {
   private String workDoneToken;
   private Turn[] turns;
-  private Capabilities capabilities;
+  private ConversationCapabilities capabilities;
   private boolean computeSuggestions;
   private TextDocumentIdentifier textDocument;
   private List<FileReferenceParams> references;
@@ -33,69 +33,13 @@ public class ConversationCreateParams {
   private boolean needToolCallConfirmation;
 
   /**
-   * Capabilities for the conversation.
-   */
-  public class Capabilities {
-    boolean allSkills;
-    String[] skills;
-
-    /**
-     * Creates a new Capabilities.
-     */
-    public Capabilities() {
-      this.allSkills = true;
-      this.skills = new String[0];
-    }
-
-    public boolean isAllSkills() {
-      return allSkills;
-    }
-
-    public String[] getSkills() {
-      return skills;
-    }
-
-    public void setAllSkills(boolean allSkills) {
-      this.allSkills = allSkills;
-    }
-
-    public void setSkills(String[] skills) {
-      this.skills = skills;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(allSkills, Arrays.hashCode(skills));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Capabilities that = (Capabilities) o;
-      return allSkills == that.allSkills && Arrays.equals(skills, that.skills);
-    }
-
-    @Override
-    public String toString() {
-      ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("allSkills", allSkills);
-      builder.add("skills", Arrays.toString(skills));
-      return builder.toString();
-    }
-  }
-
-  /**
    * Creates a new ConversationCreateParams.
    */
   public ConversationCreateParams(String prompt, String workDoneToken) {
     this.workDoneToken = workDoneToken;
     this.turns = new Turn[] { new Turn(prompt, null, null) };
-    this.capabilities = new Capabilities();
+    this.capabilities = new ConversationCapabilities();
+    this.capabilities.setSkills(List.of(ConversationCapabilities.CURRENT_EDITOR_SKILL));
     this.computeSuggestions = true;
     this.references = new ArrayList<>();
     this.ignoredSkills = new String[0];
@@ -118,11 +62,11 @@ public class ConversationCreateParams {
     this.turns = turns;
   }
 
-  public Capabilities getCapabilities() {
+  public ConversationCapabilities getCapabilities() {
     return capabilities;
   }
 
-  public void setCapabilities(Capabilities capabilities) {
+  public void setCapabilities(ConversationCapabilities capabilities) {
     this.capabilities = capabilities;
   }
 

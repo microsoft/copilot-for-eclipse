@@ -76,6 +76,9 @@ public class CopilotUi extends AbstractUIPlugin {
               CopilotCore.getPlugin().getCompletionProvider(), mgr);
           CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
           CopilotUi.this.chatServiceManager = new ChatServiceManager();
+          // inject the chat service manager into the core plugin, so that it can be used to handle
+          // some server to client request that needs to be handled with UI logics.
+          CopilotCore.getPlugin().setChatServiceManager(chatServiceManager);
           CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
           // sync to language server on load
           mgr.syncConfiguration();

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -24,13 +25,18 @@ import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
+import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
@@ -60,8 +66,30 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    * Get the conversation context for the given request.
    */
   @JsonRequest("conversation/context")
-  public CompletableFuture<ConversationContextResult[]> getConversationContext(Object params) {
-    return CompletableFuture.completedFuture(new ConversationContextResult[] { null, null });
+  public CompletableFuture<Object[]> getConversationContext(ConversationContextParams params) {
+    switch (params.skillId()) {
+      case ConversationCapabilities.CURRENT_EDITOR_SKILL:
+        IChatServiceManager chatServiceManager = CopilotCore.getPlugin().getChatServiceManager();
+        if (chatServiceManager == null) {
+          CopilotCore.LOGGER.error(new IllegalStateException("Chat service manager is null"));
+          break;
+        }
+        IReferencedFileService fileService = chatServiceManager.getReferencedFileService();
+        if (fileService == null) {
+          CopilotCore.LOGGER.error(new IllegalStateException("File service is null"));
+          break;
+        }
+
+        IFile file = fileService.getCurrentFile();
+        if (file == null) {
+          break;
+        }
+        String uri = FileUtils.getResourceUri(file);
+        return CompletableFuture.completedFuture(new Object[] { new CurrentEditorContext(uri), null });
+      default:
+        break;
+    }
+    return CompletableFuture.completedFuture(new Object[] { null, null });
   }
 
   /**

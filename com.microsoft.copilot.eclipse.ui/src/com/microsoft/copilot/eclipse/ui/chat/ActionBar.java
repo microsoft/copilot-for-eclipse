@@ -43,10 +43,10 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -179,6 +179,8 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpFileRef.setLayout(rowLayout);
     UiUtils.useParentBackground(this.cmpFileRef);
     this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
+    ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
+    referencedFileService.bindCurrentFileWidget(currentFileRef);
 
     GridLayout glActionArea = new GridLayout(2, false);
     // Same as RowLayout above, need to set marginWidth/Height and marginLeft/Right/Top/Bottom separately in GridLayout
@@ -383,17 +385,8 @@ public class ActionBar extends Composite implements NewConversationListener {
    */
   public void notifySend(String workDoneToken, String message) {
     List<IFile> allFiles = new ArrayList<>(this.uriToFile.values());
-    IFile currentFile = this.currentFileRef.getFile();
-    if (currentFile != null) {
-      if (!this.currentFileRef.isCurrentFileVisible() || FileUtils.getResourceUri(currentFile) == null) {
-        currentFile = null;
-      } else {
-        allFiles.add(currentFile);
-      }
-    }
-
     for (MessageListener listener : this.messageListeners) {
-      listener.onSend(workDoneToken, message, new ArrayList<>(allFiles), currentFile);
+      listener.onSend(workDoneToken, message, new ArrayList<>(allFiles));
     }
   }
 
