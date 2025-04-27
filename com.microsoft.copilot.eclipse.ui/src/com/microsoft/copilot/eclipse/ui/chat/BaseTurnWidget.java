@@ -265,12 +265,13 @@ public abstract class BaseTurnWidget extends Composite {
     // process all the messages before showing the confirmation dialog
     reset();
 
-    Composite widgetParent = new Composite(this, SWT.BORDER);
+    Composite widgetParent = new Composite(this, SWT.BORDER | SWT.WRAP);
     widgetParent.setLayout(new GridLayout(1, false));
     widgetParent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
     // Title of the confirmation dialog
-    Label titleLbl = new Label(widgetParent, SWT.NONE);
+    Label titleLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
+    titleLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     titleLbl.setText(title);
     if (boldFont == null) {
       boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
@@ -278,7 +279,10 @@ public abstract class BaseTurnWidget extends Composite {
     titleLbl.setFont(boldFont);
 
     // Confirmation message of the confirmation dialog
-    new Label(widgetParent, SWT.NONE).setText(message);
+    Label messageLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
+    GridData messageGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
+    messageLbl.setLayoutData(messageGridData);
+    messageLbl.setText(message);
 
     // More information about the tool invocation
     if (input != null) {
@@ -286,13 +290,16 @@ public abstract class BaseTurnWidget extends Composite {
       // following code only works for the run in terminal tool.
       Map<String, Object> inputMap = (Map<String, Object>) input;
       if (inputMap.containsKey("command")) {
-        Label commandLbl = new Label(widgetParent, SWT.NONE);
+        Label commandLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
+        commandLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
         commandLbl.setText((String) inputMap.get("command"));
         commandLbl.setBackground(getBackground());
       }
 
       if (inputMap.containsKey("explanation")) {
-        new Label(widgetParent, SWT.NONE).setText((String) inputMap.get("explanation"));
+        Label explanationLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
+        explanationLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+        explanationLbl.setText((String) inputMap.get("explanation"));
       }
     }
 
