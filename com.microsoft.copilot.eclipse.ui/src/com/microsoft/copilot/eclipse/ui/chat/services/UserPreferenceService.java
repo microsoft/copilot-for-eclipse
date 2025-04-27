@@ -407,58 +407,58 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     int padding = PlatformUtils.isWindows() ? 0 : EXTRA_PADDING;
     gridData.widthHint = textExtent.x + padding;
 
-    // TODO: how to refresh the layout in a more systematic way?
-    combo.getParent().getParent().layout();
+    combo.requestLayout();
   }
 
   /**
    * Dispose the service.
    */
   public void dispose() {
-    disposeAllSideEffects();
-    // the mode change side effect is created in the constructor, dispose it separately.
-    if (modeChangeSideEffect != null) {
-      modeChangeSideEffect.dispose();
-      modeChangeSideEffect = null;
-    }
-    disposeAllObservables();
+    // Ideally we should dispose all side effects and observable here. But since the service is
+    // singleton and will only be disposed when the bundle is stopped. So right now they are not
+    // explicitly disposed here.
     this.authStatusManager.removeCopilotAuthStatusListener(this);
   }
 
   private void disposeAllSideEffects() {
-    for (ISideEffect[] effects : modelComboSideEffects.values()) {
-      for (ISideEffect effect : effects) {
-        if (effect != null) {
-          effect.dispose();
+    ensureRealm(() -> {
+      for (ISideEffect[] effects : modelComboSideEffects.values()) {
+        for (ISideEffect effect : effects) {
+          if (effect != null) {
+            effect.dispose();
+          }
         }
       }
-    }
-    modelComboSideEffects.clear();
 
-    for (ISideEffect[] effects : chatModeComboSideEffects.values()) {
-      for (ISideEffect effect : effects) {
-        if (effect != null) {
-          effect.dispose();
+      for (ISideEffect[] effects : chatModeComboSideEffects.values()) {
+        for (ISideEffect effect : effects) {
+          if (effect != null) {
+            effect.dispose();
+          }
         }
       }
-    }
+    });
+
+    modelComboSideEffects.clear();
     chatModeComboSideEffects.clear();
   }
 
   private void disposeAllObservables() {
-    if (modelObservable != null) {
-      modelObservable.dispose();
-      modelObservable = null;
-    }
+    ensureRealm(() -> {
+      if (modelObservable != null) {
+        modelObservable.dispose();
+        modelObservable = null;
+      }
 
-    if (activeModelObservable != null) {
-      activeModelObservable.dispose();
-      activeModelObservable = null;
-    }
+      if (activeModelObservable != null) {
+        activeModelObservable.dispose();
+        activeModelObservable = null;
+      }
 
-    if (activeChatModeObservable != null) {
-      activeChatModeObservable.dispose();
-      activeChatModeObservable = null;
-    }
+      if (activeChatModeObservable != null) {
+        activeChatModeObservable.dispose();
+        activeChatModeObservable = null;
+      }
+    });
   }
 }

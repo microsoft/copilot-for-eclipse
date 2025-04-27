@@ -6,11 +6,11 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.databinding.swt.DisplayRealm;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.tm4e.core.internal.utils.StringUtils;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -93,15 +93,12 @@ public abstract class ChatBaseService {
       Realm realm = Realm.getDefault();
       if (realm == null) {
         realm = DisplayRealm.getRealm(Display.getCurrent());
-        Realm.runWithDefault(realm, runnable);
-      } else {
-        runnable.run();
       }
+      Realm.runWithDefault(realm, runnable::run);
     } else {
-      // We're in a background thread, so use syncExec
       SwtUtils.invokeOnDisplayThread(() -> {
         Realm realm = DisplayRealm.getRealm(Display.getDefault());
-        Realm.runWithDefault(realm, runnable);
+        Realm.runWithDefault(realm, runnable::run);
       });
     }
   }
@@ -121,7 +118,7 @@ public abstract class ChatBaseService {
     }
 
     final String user = this.authStatusManager.getUserName();
-    if (StringUtils.isNullOrEmpty(user)) {
+    if (StringUtils.isBlank(user)) {
       CopilotCore.LOGGER.error(new IllegalStateException("User name is empty"));
       return null;
     }

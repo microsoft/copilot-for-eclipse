@@ -41,6 +41,12 @@ public class SwtUtils {
    * Invokes the given runnable on the display thread.
    */
   public static void invokeOnDisplayThread(Runnable runnable) {
+    Display currentDisplay = Display.getCurrent();
+    if (currentDisplay != null) {
+      runnable.run();
+      return;
+    }
+
     IWorkbench workbench = PlatformUI.getWorkbench();
     IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
     if (windows != null && windows.length > 0) {
@@ -52,7 +58,7 @@ public class SwtUtils {
       }
     }
 
-    runnable.run();
+    Display.getDefault().syncExec(runnable);
   }
 
   /**
