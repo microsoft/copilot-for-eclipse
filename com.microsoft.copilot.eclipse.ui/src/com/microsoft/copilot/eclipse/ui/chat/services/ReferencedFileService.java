@@ -113,19 +113,17 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   private void unbindCurrentFileWidget() {
-    if (currentReferencedFileSideEffect != null) {
-      ensureRealm(() -> {
-        if (currentReferencedFileSideEffect != null) {
-          currentReferencedFileSideEffect.dispose();
-          currentReferencedFileSideEffect = null;
-        }
+    ensureRealm(() -> {
+      if (currentReferencedFileSideEffect != null) {
+        currentReferencedFileSideEffect.dispose();
+        currentReferencedFileSideEffect = null;
+      }
 
-        if (isCurrentFileVisibleSideEffect != null) {
-          isCurrentFileVisibleSideEffect.dispose();
-          isCurrentFileVisibleSideEffect = null;
-        }
-      });
-    }
+      if (isCurrentFileVisibleSideEffect != null) {
+        isCurrentFileVisibleSideEffect.dispose();
+        isCurrentFileVisibleSideEffect = null;
+      }
+    });
   }
 
   private void updateCurrentReferencedFile(IWorkbenchPartReference partRef) {
@@ -133,7 +131,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       return;
     }
     IFile currentFile = UiUtils.getCurrentFile();
-    if (needExcluded(currentFile)) {
+    if (shouldExcluded(currentFile)) {
       return;
     }
     ensureRealm(() -> currentFileObservable.setValue(currentFile));
@@ -142,15 +140,11 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   /**
    * Returns true if the file needs to be excluded from 'Current file' reference in chat.
    */
-  private boolean needExcluded(@Nullable IFile file) {
-    if (file == null) {
+  private boolean shouldExcluded(@Nullable IFile file) {
+    if (file == null || file.getFileExtension() == null) {
       return true;
     }
-    String fileExtension = file.getFileExtension();
-    if (fileExtension == null) {
-      return true;
-    }
-    return Constants.EXCLUDED_FILE_TYPE.contains(fileExtension);
+    return Constants.EXCLUDED_FILE_TYPE.contains(file.getFileExtension());
   }
 
   /**
