@@ -255,6 +255,10 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
   }
 
   private void updateOrCreateCompareStringWithFile(String originalFileContent, IFile file) {
+    if (originalFileContent == null) {
+      return;
+    }
+
     CompareEditorInput input = compareEditorInputMap.get(file);
     if (input != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
@@ -437,23 +441,30 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
 
   @Override
   public void onAllChangesResolved() {
-    Map<IFile, Boolean> files = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
-        .getChangedFiles();
-    for (IFile file : files.keySet()) {
-      closeCompareEditor(file);
-    }
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().setFileChangeSummaryBarButtonStatus(false);
-    disposeFileChangeSummaryBar();
+    cleanupChangedFiles(false);
   }
 
   @Override
   public void onNewConversation() {
+    cleanupChangedFiles(true);
+  }
+
+  /**
+   * Common method to handle cleanup of file changes.
+   *
+   * @param undoChanges Whether to undo changes to each file or not.
+   */
+  private void cleanupChangedFiles(boolean undoChanges) {
     Map<IFile, Boolean> files = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
         .getChangedFiles();
     for (IFile file : files.keySet()) {
-      // TODO: Add a confirmation dialog to ask the user if they want to keep or undo the changes
-      onUndoChange(file);
+      if (undoChanges) {
+        // TODO: Add a confirmation dialog to ask the user if they want to keep or undo the changes
+        onUndoChange(file);
+      }
+      closeCompareEditor(file);
     }
+    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().setChangedFiles(new LinkedHashMap<>());
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().setFileChangeSummaryBarButtonStatus(false);
     disposeFileChangeSummaryBar();
   }
@@ -563,7 +574,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
 
     @Override
     public InputStream getContents() throws CoreException {
-      return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+      return new ByteArrayInputStream(content == null ? new byte[0] : content.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
