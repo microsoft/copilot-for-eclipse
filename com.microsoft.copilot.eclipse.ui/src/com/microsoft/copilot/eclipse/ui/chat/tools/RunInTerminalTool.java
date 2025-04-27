@@ -18,6 +18,8 @@ import org.eclipse.tm.terminal.view.core.TerminalServiceFactory;
 import org.eclipse.tm.terminal.view.core.interfaces.ITerminalService;
 import org.eclipse.tm.terminal.view.core.interfaces.ITerminalServiceOutputStreamMonitorListener;
 import org.eclipse.tm.terminal.view.core.interfaces.constants.ITerminalsConnectorConstants;
+import org.eclipse.tm.terminal.view.ui.activator.UIPlugin;
+import org.eclipse.tm.terminal.view.ui.interfaces.IPreferenceKeys;
 import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
@@ -222,6 +224,13 @@ public class RunInTerminalTool extends BaseTool {
     // Only set target terminal for Windows
     if (PlatformUtils.isWindows()) {
       properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "cmd.exe");
+    } else {
+      // Only set the process args if not already set by user preferences
+      String args = UIPlugin.getScopedPreferences()
+          .getString(IPreferenceKeys.PREF_LOCAL_TERMINAL_DEFAULT_SHELL_UNIX_ARGS);
+      if (StringUtils.isBlank(args)) {
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_ARGS, "-l");
+      }
     }
 
     properties.put(ITerminalsConnectorConstants.PROP_FORCE_NEW, true);
