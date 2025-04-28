@@ -5,10 +5,7 @@ import java.io.StringWriter;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
 import org.eclipse.jface.text.hyperlink.MultipleHyperlinkPresenter;
-import org.eclipse.jface.text.hyperlink.URLHyperlinkDetector;
 import org.eclipse.jface.text.source.AnnotationModel;
-import org.eclipse.mylyn.internal.wikitext.ui.editor.syntax.MarkupHyperlinkDetector;
-import org.eclipse.mylyn.internal.wikitext.ui.viewer.AnnotationHyperlinkDetector;
 import org.eclipse.mylyn.wikitext.markdown.MarkdownLanguage;
 import org.eclipse.mylyn.wikitext.parser.builder.HtmlDocumentBuilder;
 import org.eclipse.mylyn.wikitext.ui.viewer.MarkupViewer;
@@ -22,8 +19,10 @@ class ChatMarkupViewer extends MarkupViewer {
     super(parent, null, styles);
     this.setMarkupLanguage(new MarkdownLanguage());
     this.setDisplayImages(false);
-    IHyperlinkDetector[] hyperlinkDetectors = { new URLHyperlinkDetector(), new MarkupHyperlinkDetector(),
-        new AnnotationHyperlinkDetector() };
+
+    IHyperlinkDetector[] hyperlinkDetectors = {
+        new FileAnnotationHyperlinkDetector()
+    };
     this.setHyperlinkDetectors(hyperlinkDetectors, SWT.NONE);
 
     // TODO: set hyperlink color based on theme
