@@ -130,7 +130,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (chatMode == null) {
       return;
     }
-    this.onCancel();
     this.onNewConversation();
     disposeChildren(parent);
 
@@ -418,9 +417,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onNewConversation() {
+    this.onCancel();
     this.hasHistory = false;
     this.conversationId = "";
-    this.onCancel();
     ChatMode chatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
     if (chatMode != null && chatMode.equals(ChatMode.Agent)) {
       createAgentModePage();

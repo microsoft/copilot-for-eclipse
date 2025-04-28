@@ -90,6 +90,12 @@ public class UiUtils {
       return null;
     }
 
+    IEditorInput input = editor.getEditorInput();
+    IFile file = ResourceUtil.getFile(input);
+    if (file != null) {
+      return file;
+    }
+
     // Check editor type and retrieve file accordingly
     if (editor instanceof ITextEditor textEditor) {
       return getFileFromTextEditor(textEditor);

@@ -9,6 +9,8 @@ import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener2;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
@@ -48,7 +50,10 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
       @Override
       public void partClosed(IWorkbenchPartReference partRef) {
-        updateCurrentReferencedFile(partRef);
+        IWorkbenchPage page = UiUtils.getActivePage();
+        if (page == null || page.getEditorReferences().length == 0) {
+          ensureRealm(() -> currentFileObservable.setValue(null));
+        }
       }
     };
     registerPartListener();
@@ -99,7 +104,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       widget.addDisposeListener(e -> unbindCurrentFileWidget());
     });
 
-    updateCurrentReferencedFile(null);
+    updateCurrentReferencedFile(UiUtils.getCurrentFile());
   }
 
   /**
@@ -127,14 +132,19 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   private void updateCurrentReferencedFile(IWorkbenchPartReference partRef) {
-    if (partRef != null && !(partRef.getPart(false) instanceof IEditorPart)) {
+    IWorkbenchPart part = partRef.getPart(false);
+    if (!(part instanceof IEditorPart)) {
       return;
     }
-    IFile currentFile = UiUtils.getCurrentFile();
+    updateCurrentReferencedFile(UiUtils.getCurrentFile());
+  }
+
+  private void updateCurrentReferencedFile(IFile currentFile) {
     if (shouldExcluded(currentFile)) {
-      return;
+      currentFile = null;
     }
-    ensureRealm(() -> currentFileObservable.setValue(currentFile));
+    final IFile finalCurrentFile = currentFile;
+    ensureRealm(() -> currentFileObservable.setValue(finalCurrentFile));
   }
 
   /**
