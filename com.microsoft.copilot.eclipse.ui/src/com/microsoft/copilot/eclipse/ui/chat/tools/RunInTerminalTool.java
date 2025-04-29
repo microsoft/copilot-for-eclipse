@@ -324,7 +324,8 @@ public class RunInTerminalTool extends BaseTool {
         String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
 
         // Check if last line is a prompt line
-        if (StringUtils.isNotBlank(lastLine)) {
+        // Mac always has single '%' as last line, that's not what we want.
+        if (StringUtils.isNotBlank(lastLine) && lastLine.length() != 1) {
           char lastChar = lastLine.charAt(lastLine.length() - 1);
           boolean isPromptChar = lastChar == '>' || lastChar == '#' || lastChar == '$' || lastChar == '%';
 
@@ -332,9 +333,15 @@ public class RunInTerminalTool extends BaseTool {
             // Extract result text between prompts
             String contentWithoutLastPrompt = terminalOutput.substring(0, lastNewLineIndex);
             int promptStartIndex = contentWithoutLastPrompt.indexOf(lastLine);
+            // If the prompt line is not found, set start index to 0. Sometimes it starts with the commandResult.
+            if (promptStartIndex == -1) {
+              promptStartIndex = 0;
+            } else {
+              promptStartIndex += lastLine.length();
+            }
 
-            if (promptStartIndex >= 0) {
-              String commandResult = contentWithoutLastPrompt.substring(promptStartIndex + lastLine.length()).trim();
+            if (!contentWithoutLastPrompt.isBlank()) {
+              String commandResult = contentWithoutLastPrompt.substring(promptStartIndex).trim();
               resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(commandResult) });
             }
           }
