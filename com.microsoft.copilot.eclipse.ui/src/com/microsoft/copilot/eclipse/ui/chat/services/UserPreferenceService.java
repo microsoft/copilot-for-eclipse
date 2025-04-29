@@ -50,7 +50,6 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   private final Map<Combo, ISideEffect[]> modelComboSideEffects = new HashMap<>();
   private final Map<Combo, ISideEffect[]> chatModeComboSideEffects = new HashMap<>();
   private ISideEffect chatViewSideEffect;
-  private ISideEffect modeChangeSideEffect;
 
   /**
    * Constructor for the CopilotModelService.
@@ -63,7 +62,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       activeChatModeObservable = new WritableValue<>(null, ChatMode.class);
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       activeModelObservable = new WritableValue<>(null, CopilotModel.class);
-      modeChangeSideEffect = ISideEffect.create(() -> {
+      ISideEffect.create(() -> {
         ChatMode mode = activeChatModeObservable.getValue();
         final Map<String, CopilotModel> modelsForCurrentMode = new HashMap<>();
         String scope = modeToScope(mode);
@@ -81,32 +80,34 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   private void init() {
-    Job job = new Job("Fetching model list...") {
-      @Override
-      protected IStatus run(IProgressMonitor monitor) {
-        try {
-          // fetch the models
-          CopilotModel[] modelArray = lsConnection.listModels().get();
-          for (CopilotModel model : modelArray) {
-            boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
-            boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
-            if (defaultModel == null && supportsChat && supportsAgent) {
-              defaultModel = model;
+    if (authStatusManager.isSignedIn()) {
+      Job job = new Job("Fetching model list...") {
+        @Override
+        protected IStatus run(IProgressMonitor monitor) {
+          try {
+            // fetch the models
+            CopilotModel[] modelArray = lsConnection.listModels().get();
+            for (CopilotModel model : modelArray) {
+              boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
+              boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
+              if (defaultModel == null && supportsChat && supportsAgent) {
+                defaultModel = model;
+              }
+              if (supportsChat || supportsAgent) {
+                models.put(model.getId(), model);
+              }
             }
-            if (supportsChat || supportsAgent) {
-              models.put(model.getId(), model);
-            }
-          }
 
-          restoreFromUserPreference();
-        } catch (InterruptedException | ExecutionException e) {
-          CopilotCore.LOGGER.error("Failed to list models", e);
+            restoreFromUserPreference();
+          } catch (InterruptedException | ExecutionException e) {
+            CopilotCore.LOGGER.error("Failed to list models", e);
+          }
+          return Status.OK_STATUS;
         }
-        return Status.OK_STATUS;
-      }
-    };
-    job.setSystem(true);
-    job.schedule();
+      };
+      job.setSystem(true);
+      job.schedule();
+    }
   }
 
   private void restoreFromUserPreference() {
@@ -180,11 +181,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     String status = copilotStatusResult.getStatus();
     switch (status) {
       case CopilotStatusResult.OK, CopilotStatusResult.NOT_AUTHORIZED:
-        restoreFromUserPreference();
+        init();
         break;
       default:
         disposeAllSideEffects();
-        disposeAllObservables();
         break;
     }
   }
@@ -443,22 +443,4 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     chatModeComboSideEffects.clear();
   }
 
-  private void disposeAllObservables() {
-    ensureRealm(() -> {
-      if (modelObservable != null) {
-        modelObservable.dispose();
-        modelObservable = null;
-      }
-
-      if (activeModelObservable != null) {
-        activeModelObservable.dispose();
-        activeModelObservable = null;
-      }
-
-      if (activeChatModeObservable != null) {
-        activeChatModeObservable.dispose();
-        activeChatModeObservable = null;
-      }
-    });
-  }
 }
