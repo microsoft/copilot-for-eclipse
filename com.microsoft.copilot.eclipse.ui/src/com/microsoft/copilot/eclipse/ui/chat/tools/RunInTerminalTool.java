@@ -310,6 +310,11 @@ public class RunInTerminalTool extends BaseTool {
       String content = new String(byteBuffer, 0, bytesRead);
       // Remove ANSI escape sequences
       content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", "");
+      if (PlatformUtils.isWindows()) {
+        // Remove terminal title sequences in Windows
+        // It sometimes appears at the last line, which will also destroy the validation of the last prompt line.
+        content = content.replaceAll("\u001B\\][0-9];.*?(\u0007|\u001B\\\\)", "");
+      }
       output.append(content);
       String terminalOutput = output.toString();
       int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
