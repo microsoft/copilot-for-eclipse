@@ -318,7 +318,7 @@ public class RunInTerminalTool extends BaseTool {
         content = content.replaceAll("\u001B\\][0-9];.*?(\u0007|\u001B\\\\)", "");
       }
       output.append(content);
-      String terminalOutput = output.toString();
+      String terminalOutput = output.toString().trim();
       int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
       if (lastNewLineIndex > 0) {
         String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
