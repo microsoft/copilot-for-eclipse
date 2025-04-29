@@ -95,7 +95,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     setLayout(gl);
     setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
-    ChatInputTextViewer tv = new ChatInputTextViewer(this, SWT.MULTI | SWT.WRAP, chatServiceManager);
+    ChatInputTextViewer tv = new ChatInputTextViewer(this, chatServiceManager);
     tv.setEditable(true);
     tv.addTextListener(new ITextListener() {
       @Override

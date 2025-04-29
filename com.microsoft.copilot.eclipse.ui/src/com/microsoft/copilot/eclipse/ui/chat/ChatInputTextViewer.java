@@ -43,8 +43,8 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   private boolean needDisposeColorResource;
   private Color placeholderColor;
 
-  public ChatInputTextViewer(Composite parent, int styles, ChatServiceManager chatServiceManager) {
-    super(parent, styles);
+  public ChatInputTextViewer(Composite parent, ChatServiceManager chatServiceManager) {
+    super(parent, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
     this.parent = parent;
     this.chatServiceManager = chatServiceManager;
     this.init();
@@ -85,6 +85,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     tvw.setBackground(tvw.getParent().getBackground());
     tvw.setLayout(new GridLayout(1, false));
     tvw.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    tvw.setAlwaysShowScrollBars(false);
 
     tvw.addModifyListener(new ModifyListener() {
       @Override
