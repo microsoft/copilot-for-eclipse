@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.swt.SWT;
@@ -12,14 +13,15 @@ import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -49,6 +51,10 @@ public abstract class BaseTurnWidget extends Composite {
   // Resource
   protected Image icon = null;
   protected Font boldFont = null;
+  protected InvokeToolConfirmationDialog confirmDialog;
+
+  // Event handling
+  protected EventHandler cancelMsgEventHandler;
 
   /**
    * Create the widget.
@@ -77,6 +83,13 @@ public abstract class BaseTurnWidget extends Composite {
 
     createContent();
     layout();
+
+    // TODO: the event broker can be injected once we fully migrated to e4 and use ui injection
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    this.cancelMsgEventHandler = event -> {
+      cancelToolConfirmation();
+    };
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_CANCELLED, cancelMsgEventHandler);
   }
 
   private void createContent() {
@@ -97,10 +110,13 @@ public abstract class BaseTurnWidget extends Composite {
     lblRoleName.setBackground(this.getBackground());
     String name = getRoleName();
     lblRoleName.setText(name);
-    if (boldFont == null) {
-      boldFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
+    if (this.boldFont == null) {
+      this.boldFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
     }
-    lblRoleName.setFont(boldFont);
+    lblRoleName.setFont(this.boldFont);
+    lblRoleName.addDisposeListener(e -> {
+      this.boldFont.dispose();
+    });
   }
 
   /**
@@ -226,6 +242,14 @@ public abstract class BaseTurnWidget extends Composite {
     if (messageBuffer.length() > 0) {
       this.processMessageLine(messageBuffer.toString());
     }
+
+    // Cancel the existing dialog to prevent resource leaks
+    // TODO: Support multiple confirmation dialogs so that we can pend multiple tool invocations
+    if (this.confirmDialog != null) {
+      this.confirmDialog.cancelConfirmation();
+      this.confirmDialog = null;
+    }
+
     this.messageBuffer.setLength(0);
     this.mdContentBuilder.setLength(0);
     this.currentCodeBlock = null;
@@ -259,85 +283,32 @@ public abstract class BaseTurnWidget extends Composite {
    *
    * @param title The title of the confirmation dialog.
    * @param message The message to display in the confirmation dialog.
+   * @param input The input object to be passed to the tool.
    */
   public CompletableFuture<LanguageModelToolConfirmationResult> requestToolExecutionConfirmation(String title,
       String message, Object input) {
     // process all the messages before showing the confirmation dialog
     reset();
 
-    Composite widgetParent = new Composite(this, SWT.BORDER | SWT.WRAP);
-    widgetParent.setLayout(new GridLayout(1, false));
-    widgetParent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-
-    // Title of the confirmation dialog
-    Label titleLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
-    titleLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    titleLbl.setText(title);
-    if (boldFont == null) {
-      boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
-    }
-    titleLbl.setFont(boldFont);
-
-    // Confirmation message of the confirmation dialog
-    Label messageLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
-    GridData messageGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
-    messageLbl.setLayoutData(messageGridData);
-    messageLbl.setText(message);
-
-    // More information about the tool invocation
-    if (input != null) {
-      // TODO: Improve the logic to show more information about the tool invocation when confirm with users. The
-      // following code only works for the run in terminal tool.
-      Map<String, Object> inputMap = (Map<String, Object>) input;
-      if (inputMap.containsKey("command")) {
-        Label commandLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
-        commandLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        commandLbl.setText((String) inputMap.get("command"));
-        commandLbl.setBackground(getBackground());
-      }
-
-      if (inputMap.containsKey("explanation")) {
-        Label explanationLbl = new Label(widgetParent, SWT.LEFT | SWT.WRAP);
-        explanationLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        explanationLbl.setText((String) inputMap.get("explanation"));
-      }
-    }
-
-    GridLayout actionLayout = new GridLayout(2, false);
-    actionLayout.marginLeft = 0;
-    actionLayout.marginRight = 0;
-    actionLayout.marginWidth = 0;
-    actionLayout.horizontalSpacing = 0;
-    Composite actionArea = new Composite(widgetParent, SWT.NONE);
-    actionArea.setLayout(actionLayout);
-    actionArea.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-
-    CompletableFuture<LanguageModelToolConfirmationResult> future = new CompletableFuture<>();
-    Button continueButton = new Button(actionArea, SWT.PUSH);
-    continueButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
-    continueButton.setText("Continue");
-    continueButton.addListener(SWT.Selection, e -> {
-      future.complete(new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
-      widgetParent.dispose();
-      if (this.getParent() != null) {
-        this.getParent().layout();
-      }
-    });
-
-    Button cancelButton = new Button(actionArea, SWT.PUSH);
-    cancelButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
-    cancelButton.setText("Cancel");
-    cancelButton.addListener(SWT.Selection, e -> {
-      future.complete(new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
-      widgetParent.dispose();
-      if (this.getParent() != null) {
-        this.getParent().layout();
-      }
-    });
+    this.confirmDialog = new InvokeToolConfirmationDialog(this, title, message, input);
+    CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture = this.confirmDialog
+        .getConfirmationFuture();
 
     this.getParent().layout();
 
-    return future;
+    return toolConfirmationFuture;
+  }
+
+  /**
+   * Cancels the current tool confirmation dialog programmatically. This has the same effect as clicking the Cancel
+   * button in the confirmation dialog.
+   */
+  public void cancelToolConfirmation() {
+    if (this.confirmDialog == null) {
+      return;
+    }
+    this.confirmDialog.cancelConfirmation();
+    this.confirmDialog = null;
   }
 
   /**
@@ -349,9 +320,6 @@ public abstract class BaseTurnWidget extends Composite {
     if (messageBuffer != null) {
       messageBuffer.setLength(0);
     }
-    if (boldFont != null) {
-      boldFont.dispose();
-    }
     if (mdContentBuilder != null) {
       mdContentBuilder.setLength(0);
     }
@@ -360,6 +328,12 @@ public abstract class BaseTurnWidget extends Composite {
         label.dispose();
       }
       statusLabels.clear();
+    }
+    // TODO: the event broker can be injected once we fully migrated to e4 and use ui injection
+    if (this.cancelMsgEventHandler != null) {
+      IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+      eventBroker.unsubscribe(this.cancelMsgEventHandler);
+      this.cancelMsgEventHandler = null;
     }
   }
 }
