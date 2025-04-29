@@ -90,11 +90,11 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
             for (CopilotModel model : modelArray) {
               boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
               boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
-              if (defaultModel == null && supportsChat && supportsAgent) {
-                defaultModel = model;
-              }
               if (supportsChat || supportsAgent) {
                 models.put(model.getId(), model);
+              }
+              if (defaultModel == null && model.isChatDefault()) {
+                defaultModel = model;
               }
             }
 
