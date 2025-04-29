@@ -5,6 +5,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.e4.core.contexts.EclipseContextFactory;
+import org.eclipse.e4.core.contexts.IEclipseContext;
+import org.eclipse.e4.core.services.events.IEventBroker;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
+
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
@@ -19,6 +26,7 @@ public class AuthStatusManager {
   private CopilotLanguageServerConnection connection;
   private ConcurrentLinkedQueue<CopilotAuthStatusListener> copilotAuthStatusListeners;
   private CopilotStatusResult copilotStatusResult;
+  private IEventBroker eventBroker;
 
   /**
    * Constructor for the AuthStatusManager.
@@ -29,6 +37,9 @@ public class AuthStatusManager {
     this.connection = connection;
     this.copilotAuthStatusListeners = new ConcurrentLinkedQueue<>();
     this.copilotStatusResult = new CopilotStatusResult();
+    BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
+    IEclipseContext serviceContext = EclipseContextFactory.getServiceContext(bundleContext);
+    eventBroker = serviceContext.get(IEventBroker.class);
     setCopilotStatus(CopilotStatusResult.LOADING);
   }
 
@@ -175,6 +186,9 @@ public class AuthStatusManager {
       for (CopilotAuthStatusListener listener : this.copilotAuthStatusListeners) {
         listener.onDidCopilotStatusChange(copilotStatusResult);
       }
+    }
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, copilotStatusResult);
     }
   }
 }

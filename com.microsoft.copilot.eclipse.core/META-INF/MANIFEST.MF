@@ -34,4 +34,6 @@ Require-Bundle: org.eclipse.lsp4e;bundle-version="0.18.12",
  org.apache.httpcomponents.client5.httpclient5;bundle-version="5.3.1",
  org.apache.httpcomponents.core5.httpcore5;bundle-version="5.2.3",
  org.eclipse.jgit;bundle-version="7.1.0",
- org.osgi.service.event;bundle-version="1.4.1"
+ org.osgi.service.event;bundle-version="1.4.1",
+ org.eclipse.e4.core.services;bundle-version="2.4.4",
+ org.eclipse.e4.core.contexts;bundle-version="1.13.0"
