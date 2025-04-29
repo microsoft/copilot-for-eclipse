@@ -64,6 +64,12 @@ public class FileChangeSummaryBar extends Composite {
       return;
     }
 
+    if (filesMap.isEmpty()) {
+      handler.onAllChangesResolved();
+      requestLayout();
+      return;
+    }
+
     GridLayout gl = new GridLayout(1, false);
     setLayout(gl);
     gl.marginWidth = 0;

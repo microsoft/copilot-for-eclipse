@@ -425,6 +425,13 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
 
   @Override
   public void onRemoveFile(IFile file) {
+    Map<IFile, Boolean> changedFiles = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
+        .getChangedFiles();
+    
+    // If the file is not handled by user, we need to undo the changes made to the file before removing it.
+    if (changedFiles.containsKey(file) && !changedFiles.get(file)) {
+      onUndoChange(file);
+    }
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().removeFile(file);
   }
 
