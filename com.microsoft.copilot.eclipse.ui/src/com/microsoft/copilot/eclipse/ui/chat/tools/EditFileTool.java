@@ -154,7 +154,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       if (input.get("code") instanceof String code) {
         createFileChangeSummaryBar(file, chatView);
         cacheTheOriginalFileContent(file);
-        applyCopilotChangesToFile(code, file);
+        applyChangesToFile(code, file);
         updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
 
         // Must return the updated content as a result to the CLS.
@@ -271,11 +271,11 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     }
   }
 
-  private void applyCopilotChangesToFile(String proposedContent, IFile file) {
+  private void applyChangesToFile(String changedContent, IFile file) {
     try {
 
       // Convert the string content to an input stream
-      ByteArrayInputStream inputStream = new ByteArrayInputStream(proposedContent.getBytes(StandardCharsets.UTF_8));
+      ByteArrayInputStream inputStream = new ByteArrayInputStream(changedContent.getBytes(StandardCharsets.UTF_8));
 
       // Set the file contents
       file.setContents(inputStream, true, true, new NullProgressMonitor());
@@ -398,20 +398,8 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
 
   @Override
   public void onUndoChange(IFile file) {
-    String fileCache = fileContentCache.get(file);
-    boolean handled = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().getChangedFiles()
-        .get(file);
-    // Only process the file if it is not already handled
-    if (fileCache != null && !handled) {
-      try (ByteArrayInputStream inputStream = new ByteArrayInputStream(fileCache.getBytes(StandardCharsets.UTF_8))) {
-        file.setContents(inputStream, true, true, new NullProgressMonitor());
-      } catch (IOException | CoreException e) {
-        CopilotCore.LOGGER.error("Error undoing changes to file", e);
-      }
-    }
+    undoChangesToFile(file);
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
-    updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
-    fileContentCache.remove(file);
   }
 
   @Override
@@ -430,7 +418,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     
     // If the file is not handled by user, we need to undo the changes made to the file before removing it.
     if (changedFiles.containsKey(file) && !changedFiles.get(file)) {
-      onUndoChange(file);
+      undoChangesToFile(file);
     }
     CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().removeFile(file);
   }
@@ -454,6 +442,19 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
   @Override
   public void onNewConversation() {
     cleanupChangedFiles(true);
+  }
+  
+  private void undoChangesToFile(IFile file) {  
+    String fileCache = fileContentCache.get(file);
+    boolean handled = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().getChangedFiles()
+        .get(file);
+    
+    // Only process the file if it is not already handled
+    if (fileCache != null && !handled) {
+      applyChangesToFile(fileCache, file);
+    }
+    updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
+    fileContentCache.remove(file);
   }
 
   /**

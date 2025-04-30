@@ -66,7 +66,6 @@ public class FileChangeSummaryBar extends Composite {
 
     if (filesMap.isEmpty()) {
       handler.onAllChangesResolved();
-      requestLayout();
       return;
     }
 
@@ -90,7 +89,7 @@ public class FileChangeSummaryBar extends Composite {
     this.changedFiles = new ChangedFiles(this, SWT.NONE, filesMap);
 
     this.setButtonStatus(enableButtons);
-    this.parent.layout(true, true);
+    requestLayout();
   }
 
   /**
