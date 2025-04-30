@@ -191,7 +191,7 @@ public class ChatContentViewer extends ScrolledComposite {
   /**
    * Update the size of scrolled composite when there are content updates.
    */
-  private void refreshScrollerLayout() {
+  public void refreshScrollerLayout() {
     if (this.isDisposed()) {
       return;
     }

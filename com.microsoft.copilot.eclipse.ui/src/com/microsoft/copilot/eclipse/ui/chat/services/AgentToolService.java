@@ -211,6 +211,7 @@ public class AgentToolService implements ToolInvocationListener {
     AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
       ref.set(turnWidget.requestToolExecutionConfirmation(params.getTitle(), params.getMessage(), params.getInput()));
+      boundChatView.getChatContentViewer().refreshScrollerLayout();
     });
 
     return ref.get();
