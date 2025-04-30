@@ -61,7 +61,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   @Override
   public void proxyInfoChanged(IProxyChangeEvent event) {
-    CopilotCore.LOGGER.info("Proxy info changed");
     updateProxySettings();
     syncConfiguration();
   }
@@ -75,24 +74,19 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.ENABLE_STRICT_SSL:
         var newVal = Boolean.parseBoolean(event.getNewValue().toString());
         this.settings.getHttp().setProxyStrictSsl(newVal);
-        CopilotCore.LOGGER.info("Strict SSL is now " + event.getNewValue());
         break;
       case Constants.PROXY_KERBEROS_SP:
         this.settings.getHttp().setProxyKerberosServicePrincipal((String) event.getNewValue());
-        CopilotCore.LOGGER.info("Kerberos SP is now " + event.getNewValue());
         break;
       case Constants.GITHUB_ENTERPRISE:
         this.settings.getGithubEnterprise().setUri((String) event.getNewValue());
-        CopilotCore.LOGGER.info("GitHub Enterprise URI is now '" + event.getNewValue() + "'");
         break;
       case Constants.AUTO_SHOW_COMPLETION:
         Boolean autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
         this.settings.setEnableAutoCompletions(autoShowCompletion);
-        CopilotCore.LOGGER.info("Auto show completion is now " + event.getNewValue());
         break;
       case Constants.MCP:
         this.settings.setMcpServers((String) event.getNewValue());
-        CopilotCore.LOGGER.info("MCP is now \n" + event.getNewValue());
         break;
       default:
         return;
@@ -121,17 +115,9 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     proxyData = getProxy();
     if (proxyData == null) {
       settings.getHttp().setProxy(null);
-      CopilotCore.LOGGER.info("No proxy data found");
       return;
     }
     settings.getHttp().setProxy(createProxyString(proxyData));
-    if (proxyData.getUserId() != null) {
-      CopilotCore.LOGGER.info(String.format("Proxy will be updated to %s://[username]:[password]@%s:%s",
-          proxyData.getType(), proxyData.getHost(), proxyData.getPort()));
-    } else {
-      CopilotCore.LOGGER.info(String.format("Proxy will be updated to %s", settings.getHttp().getProxy()));
-    }
-
   }
 
   /**
@@ -145,7 +131,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       return null;
     }
     if (!proxyService.isProxiesEnabled()) {
-      CopilotCore.LOGGER.info("Proxies are disabled");
       return null;
     }
     IProxyData[] proxyDataArr = proxyService.select(URI.create(Constants.GITHUB_COPILOT_URL));
@@ -163,7 +148,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public static String createProxyString(IProxyData proxyData) {
     if (proxyData == null) {
-      CopilotCore.LOGGER.info("Proxy data is null");
       return null;
     }
 
