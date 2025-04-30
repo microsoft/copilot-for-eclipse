@@ -58,7 +58,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A custom widget that displays a turn.
  */
 public class ActionBar extends Composite implements NewConversationListener {
-  private Button btnAttachContext;
   private Button btnMsgToggle;
   private Combo cmbModelPicker;
   private ChatInputTextViewer inputTextViewer;
@@ -90,10 +89,31 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.chatServiceManager = chatServiceManager;
     this.setBackground(UiUtils.getThemeColor(UiConstants.EDITOR_BACKGROUND));
     GridLayout gl = new GridLayout(1, false);
-    gl.marginHeight = 10;
+    gl.marginHeight = 5;
     gl.verticalSpacing = 0;
     setLayout(gl);
     setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    RowLayout rowLayout = new RowLayout();
+    rowLayout.wrap = true;
+    rowLayout.pack = true;
+    rowLayout.justify = false;
+    rowLayout.type = SWT.HORIZONTAL;
+    // marginWidth/marginHeight will not overwrite marginLeft/Right marginTop/Bottom
+    // both of them are used to compute size in row layout, so set them separately
+    rowLayout.marginWidth = 0;
+    rowLayout.marginHeight = 0;
+    rowLayout.marginRight = 0;
+    rowLayout.marginLeft = 0;
+    rowLayout.marginTop = 0;
+    rowLayout.marginBottom = 10;
+    this.cmpFileRef = new Composite(this, SWT.NONE);
+    this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    this.cmpFileRef.setLayout(rowLayout);
+    new AddContextButton(this.cmpFileRef, this);
+    this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
+    ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
+    referencedFileService.bindCurrentFileWidget(currentFileRef);
 
     ChatInputTextViewer tv = new ChatInputTextViewer(this, chatServiceManager);
     tv.setEditable(true);
@@ -163,27 +183,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     });
     ca.install(tv);
 
-    RowLayout rowLayout = new RowLayout();
-    rowLayout.wrap = true;
-    rowLayout.pack = true;
-    rowLayout.justify = false;
-    rowLayout.type = SWT.HORIZONTAL;
-    // marginWidth/marginHeight will not overwrite marginLeft/Right marginTop/Bottom
-    // both of them are used to compute size in row layout, so set them separately
-    rowLayout.marginWidth = 0;
-    rowLayout.marginHeight = 0;
-    rowLayout.marginRight = 0;
-    rowLayout.marginLeft = 0;
-    rowLayout.marginTop = 10;
-    rowLayout.marginBottom = 0;
-    this.cmpFileRef = new Composite(this, SWT.NONE);
-    this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    this.cmpFileRef.setLayout(rowLayout);
-    UiUtils.useParentBackground(this.cmpFileRef);
-    this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
-    ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
-    referencedFileService.bindCurrentFileWidget(currentFileRef);
-
     GridLayout glActionArea = new GridLayout(2, false);
     // Same as RowLayout above, need to set marginWidth/Height and marginLeft/Right/Top/Bottom separately in GridLayout
     glActionArea.marginWidth = 0;
@@ -197,29 +196,23 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     UiUtils.useParentBackground(this.cmpActionArea);
 
-    this.btnAttachContext = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-    attachImage = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    this.btnAttachContext.setImage(attachImage);
-    this.btnAttachContext.setToolTipText(Messages.chat_actionBar_attachContextButton_Tooltip);
-    GridData attachGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-    attachGd.widthHint = attachImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
-    attachGd.heightHint = attachImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
-    this.btnAttachContext.setLayoutData(attachGd);
-
     Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
-    cmpControlBar.setLayout(new GridLayout(3, false));
-    cmpControlBar.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    GridLayout glControlBar = new GridLayout(2, false);
+    glControlBar.marginWidth = 0;
+    glControlBar.marginLeft = 0;
+    cmpControlBar.setLayout(glControlBar);
+    cmpControlBar.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, true, false));
     UiUtils.useParentBackground(cmpControlBar);
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
 
     sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
     cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
-    this.btnMsgToggle = UiUtils.createIconButton(cmpControlBar, SWT.PUSH | SWT.FLAT);
+    this.btnMsgToggle = UiUtils.createIconButton(cmpActionArea, SWT.PUSH | SWT.FLAT);
     this.btnMsgToggle.setEnabled(false);
     this.btnMsgToggle.setImage(sendImage);
     this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
-    GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
+    GridData sendGd = new GridData(SWT.RIGHT, SWT.BOTTOM, false, false);
     sendGd.widthHint = sendImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
     sendGd.heightHint = sendImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
     this.btnMsgToggle.setLayoutData(sendGd);
@@ -234,37 +227,37 @@ public class ActionBar extends Composite implements NewConversationListener {
         }
       }
     });
+  }
 
-    this.btnAttachContext.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-        List<IFile> files = selectFile();
-        if (files.isEmpty()) {
-          return;
-        }
-        // selectFile makes sure the file doesn't duplicate
-        for (IFile file : files) {
-          URI fileUri = file.getLocationURI();
-          // skip if the file is already in the list, note that for now we won't check the
-          // duplication with the current file, which is the same behavior as vscode.
-          if (fileUri == null || uriToFile.containsKey(fileUri.toASCIIString())) {
-            continue;
-          }
-          ReferencedFile fileRef = new ReferencedFile(ActionBar.this.cmpFileRef, file);
-          fileRef.setCloseClickAction(new MouseAdapter() {
-            @Override
-            public void mouseDown(org.eclipse.swt.events.MouseEvent e) {
-              ActionBar.this.uriToFile.remove(fileUri.toASCIIString());
-              fileRef.dispose();
-              refreshLayout();
-            }
-          });
-          uriToFile.put(fileUri.toASCIIString(), file);
-        }
-        refreshLayout();
+  /**
+   * Handles the add context button click event. This is temporary solution. Should be removed once referenced file
+   * service is implemented.
+   */
+  public void onAddContextClicked() {
+    List<IFile> files = selectFile();
+    if (files.isEmpty()) {
+      return;
+    }
+    // selectFile makes sure the file doesn't duplicate
+    for (IFile file : files) {
+      URI fileUri = file.getLocationURI();
+      // skip if the file is already in the list, note that for now we won't check the
+      // duplication with the current file, which is the same behavior as vscode.
+      if (fileUri == null || uriToFile.containsKey(fileUri.toASCIIString())) {
+        continue;
       }
-    });
-    layout();
+      ReferencedFile fileRef = new ReferencedFile(ActionBar.this.cmpFileRef, file);
+      fileRef.setCloseClickAction(new MouseAdapter() {
+        @Override
+        public void mouseDown(org.eclipse.swt.events.MouseEvent e) {
+          ActionBar.this.uriToFile.remove(fileUri.toASCIIString());
+          fileRef.dispose();
+          refreshLayout();
+        }
+      });
+      uriToFile.put(fileUri.toASCIIString(), file);
+    }
+    refreshLayout();
   }
 
   private void setUpModelPicker(Composite parent) {
