@@ -50,6 +50,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     titleLbl.setText(title);
     this.boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
     titleLbl.setFont(boldFont);
+    UiUtils.useParentBackground(titleLbl);
     titleLbl.addDisposeListener(e -> {
       boldFont.dispose();
     });
@@ -59,7 +60,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     GridData messageGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
     messageLbl.setLayoutData(messageGridData);
     messageLbl.setText(message);
-
+    UiUtils.useParentBackground(messageLbl);
     // More information about the tool invocation
     if (input != null) {
       // TODO: Improve the logic to show more information about the tool invocation when confirm with users. The
@@ -77,6 +78,7 @@ public class InvokeToolConfirmationDialog extends Composite {
         Label explanationLbl = new Label(this, SWT.LEFT | SWT.WRAP);
         explanationLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
         explanationLbl.setText((String) inputMap.get("explanation"));
+        UiUtils.useParentBackground(explanationLbl);
       }
     }
 
@@ -92,6 +94,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     Composite actionArea = new Composite(this, SWT.NONE);
     actionArea.setLayout(actionLayout);
     actionArea.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    UiUtils.useParentBackground(actionArea);
 
     Button continueButton = new Button(actionArea, SWT.PUSH);
     continueButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
