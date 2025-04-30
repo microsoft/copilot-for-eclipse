@@ -165,11 +165,17 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
       @Override
       public void controlResized(ControlEvent e) {
         // resize the note label
-        GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
         var pg = CopilotPreferencesPage.this;
-        gd.widthHint = pg.getFieldEditorParent().getSize().x - 20;
+        int width = pg.getFieldEditorParent().getSize().x - 20;
+
+        GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
+        gd.widthHint = width;
         pg.lblProxyNoteContent.setLayoutData(gd);
-        pg.mcpNoteContentLabel.setLayoutData(gd);
+
+        GridData mcpNoteContentGrid = new GridData(SWT.FILL, SWT.FILL, true, true);
+        mcpNoteContentGrid.widthHint = width;
+        pg.mcpNoteContentLabel.setLayoutData(mcpNoteContentGrid);
+
         pg.getFieldEditorParent().layout();
       }
     };
