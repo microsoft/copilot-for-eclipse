@@ -32,7 +32,7 @@ public class AgentStatusLabel extends Composite {
   public AgentStatusLabel(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(2, false));
-    setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
+    setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     this.addDisposeListener(e -> {
       stopAnimation();
       if (this.runningIcon != null && !this.runningIcon.isDisposed()) {
