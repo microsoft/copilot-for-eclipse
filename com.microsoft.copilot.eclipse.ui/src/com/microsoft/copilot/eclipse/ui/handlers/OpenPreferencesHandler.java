@@ -18,8 +18,8 @@ public class OpenPreferencesHandler extends AbstractHandler {
   public Object execute(ExecutionEvent event) throws ExecutionException {
     Shell shell = SwtUtils.getShellFromEvent(event);
     PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(shell,
-        "com.microsoft.copilot.eclipse.ui.preferences.page",
-        new String[] { "com.microsoft.copilot.eclipse.ui.preferences.page" }, null);
+        "com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage",
+        new String[] { "com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage" }, null);
     dialog.open();
 
     return null;

@@ -40,9 +40,15 @@
 	<extension
 		point="org.eclipse.ui.preferencePages">
 		<page
-			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
-			id="com.microsoft.copilot.eclipse.ui.preferences.page"
-			name="%page.preferencesPage.name">
+			id="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			name="%page.preferencesPage.name"
+			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage">
+		</page>
+		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage"
+			name="MCP"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage">
 		</page>
 	</extension>
 	<extension
