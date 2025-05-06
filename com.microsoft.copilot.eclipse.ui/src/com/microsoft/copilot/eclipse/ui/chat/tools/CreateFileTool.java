@@ -1,9 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,10 +9,14 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Path;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
@@ -77,7 +79,7 @@ public class CreateFileTool extends BaseTool {
 
     String pathStr = (String) input.get("filePath");
     if (StringUtils.isBlank(pathStr)) {
-      result.addContent("Invalid file path");
+      result.addContent("Invalid file path: path cannot be empty");
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
@@ -87,22 +89,59 @@ public class CreateFileTool extends BaseTool {
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
-    Path path = Paths.get(pathStr);
     try {
-      // Create file and its parent directories if they don't exist using NIO to avoid workspace issues for Eclipse
-      Files.createDirectories(path.getParent());
-      Files.write(path, content.getBytes());
+      // Resolve file in workspace
+      IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+      IPath eclipsePath = Path.fromOSString(pathStr);
+      IFile file = workspaceRoot.getFileForLocation(eclipsePath);
 
-      // Refresh the created file to make it visible for the Eclipse workspace
-      org.eclipse.core.runtime.Path eclipsePath = new org.eclipse.core.runtime.Path(pathStr);
-      IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(eclipsePath);
+      if (file == null) {
+        result.addContent("Invalid file path: " + pathStr + " does not exist in the workspace.");
+        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+      }
+
+      // Check if file already exists
+      if (file.exists()) {
+        result.addContent("Failed: file already exists: " + pathStr + ". Please use edit file tool to update.");
+        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+      }
+
+      // Create parent folders if needed
+      createParentFolders(file.getParent());
+
+      // Create file with content
+      try (ByteArrayInputStream contentStream = new ByteArrayInputStream(content.getBytes())) {
+        file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
+      }
       file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
-      SwtUtils.invokeOnDisplayThread(() -> UiUtils.openInEditor(file));
 
-      result.addContent("File created at: " + pathStr);
-    } catch (IOException | CoreException e) {
+      // Open file in editor
+      SwtUtils.invokeOnDisplayThread(() -> UiUtils.openInEditor(file));
+      result.addContent("File created at: " + file.getFullPath().toOSString());
+    } catch (CoreException e) {
       result.addContent("Error creating file: " + e.getMessage());
+    } catch (IOException e) {
+      result.addContent("Error handling file stream: " + e.getMessage());
     }
+
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+  }
+
+  /**
+   * Creates parent folders if they don't exist.
+   *
+   * @param parent The parent resource
+   * @throws CoreException If there's an error creating the folders
+   */
+  private void createParentFolders(IResource parent) throws CoreException {
+    if (parent == null || parent.exists()) {
+      return;
+    }
+
+    createParentFolders(parent.getParent());
+
+    if (parent instanceof IFolder) {
+      ((IFolder) parent).create(IResource.FORCE, true, new NullProgressMonitor());
+    }
   }
 }
