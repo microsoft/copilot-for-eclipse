@@ -4,6 +4,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -45,12 +46,15 @@ public class ReferencedFile extends Composite {
     lblFileName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
     UiUtils.useParentBackground(this.lblFileName);
 
-    lblFileName.addMouseListener(new MouseAdapter() {
+    MouseAdapter mouseAdapter = new MouseAdapter() {
       @Override
-      public void mouseDown(org.eclipse.swt.events.MouseEvent e) {
+      public void mouseDown(MouseEvent e) {
         UiUtils.openInEditor(ReferencedFile.this.file);
       }
-    });
+    };
+    lblFileName.addMouseListener(mouseAdapter);
+    lblfileIcon.addMouseListener(mouseAdapter);
+    this.addMouseListener(mouseAdapter);
 
     lblClose = new Label(this, SWT.NONE);
     lblClose.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
@@ -59,6 +63,7 @@ public class ReferencedFile extends Composite {
 
     setFile(file);
     UiUtils.useParentBackground(this);
+    this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
   }
 
   /**
