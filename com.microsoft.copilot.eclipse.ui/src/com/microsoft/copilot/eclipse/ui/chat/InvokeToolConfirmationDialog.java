@@ -91,6 +91,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     actionLayout.marginRight = 0;
     actionLayout.marginWidth = 0;
     actionLayout.horizontalSpacing = 0;
+    actionLayout.marginHeight = 0;
     Composite actionArea = new Composite(this, SWT.NONE);
     actionArea.setLayout(actionLayout);
     actionArea.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));

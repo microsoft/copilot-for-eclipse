@@ -42,6 +42,8 @@ public class AgentStatusLabel extends Composite {
         this.completedIcon.dispose();
       }
     });
+    iconLabel = new Label(this, SWT.LEFT);
+    UiUtils.useParentBackground(iconLabel);
   }
 
   /**
@@ -51,9 +53,6 @@ public class AgentStatusLabel extends Composite {
    */
   public void setCompletedStatus(String statusText) {
     stopAnimation();
-    if (this.iconLabel == null) {
-      this.iconLabel = new Label(this, SWT.LEFT);
-    }
 
     if (this.completedIcon == null) {
       this.completedIcon = UiUtils.buildImageFromPngPath("/icons/complete_status.png");
@@ -69,10 +68,6 @@ public class AgentStatusLabel extends Composite {
    * @param statusText the text to display when the agent is running
    */
   public void setRunningStatus(String statusText) {
-    if (this.iconLabel == null) {
-      this.iconLabel = new Label(this, SWT.LEFT);
-    }
-
     // Stop any existing animation
     stopAnimation();
 

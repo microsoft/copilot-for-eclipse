@@ -110,6 +110,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpFileRef = new Composite(this, SWT.NONE);
     this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.cmpFileRef.setLayout(rowLayout);
+    UiUtils.useParentBackground(this.cmpFileRef);
     new AddContextButton(this.cmpFileRef, this);
     this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
     ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
