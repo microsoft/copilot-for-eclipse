@@ -73,8 +73,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     }
     e.gc.setForeground(placeholderColor);
     StyledText styledText = this.getTextWidget();
-    e.gc.drawString(Messages.chat_actionBar_initialContent, styledText.getLeftMargin(), styledText.getTopMargin(),
-        true);
+    e.gc.drawString(getPlaceholderText(), styledText.getLeftMargin(), styledText.getTopMargin(), true);
   }
 
   private void init() {
@@ -230,6 +229,16 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
 
   private void handleSendMessage() {
     Optional.ofNullable(this.sendMessageHandler).ifPresent(handler -> handler.accept(this.getContent()));
+  }
+
+  private String getPlaceholderText() {
+    switch (chatServiceManager.getUserPreferenceService().getActiveChatMode()) {
+      case Agent:
+        return Messages.chat_actionBar_initialContentForAgent;
+      case Ask:
+      default:
+        return Messages.chat_actionBar_initialContent;
+    }
   }
 
   public void dispose() {
