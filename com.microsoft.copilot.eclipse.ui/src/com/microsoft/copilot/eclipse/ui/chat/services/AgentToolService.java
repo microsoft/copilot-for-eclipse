@@ -8,17 +8,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.ui.PlatformUI;
-import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
-import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
@@ -41,7 +36,6 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 public class AgentToolService implements ToolInvocationListener {
   private ConcurrentHashMap<String, BaseTool> tools;
   private ChatView boundChatView;
-  private EventHandler registerToolEventHandler;
 
   protected CopilotLanguageServerConnection lsConnection;
 
@@ -52,15 +46,6 @@ public class AgentToolService implements ToolInvocationListener {
     this.tools = new ConcurrentHashMap<>();
     this.lsConnection = lsConnection;
     registerDefaultTools();
-    // TODO: the event broker can be injected once we fully migrated to e4 and use ui injection
-    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-    this.registerToolEventHandler = event -> {
-      Object data = event.getProperty(IEventBroker.DATA);
-      if (data instanceof CopilotStatusResult result && result.isSignedIn()) {
-        registerToolWithServer();
-      }
-    };
-    eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, this.registerToolEventHandler);
   }
 
   /**
@@ -94,23 +79,20 @@ public class AgentToolService implements ToolInvocationListener {
    * @return true if registration was successful, false otherwise
    */
   private void registerToolWithServer() {
-    // TODO: no need to check sign in once https://github.com/microsoft/copilot-client/issues/325 is fixed
-    if (CopilotCore.getPlugin().getAuthStatusManager().isSignedIn()) {
-      RegisterToolsParams registerToolsParams = new RegisterToolsParams();
-      for (BaseTool tool : getAllTools()) {
-        registerToolsParams.addTool(tool.getToolInformation());
-      }
-
-      lsConnection.registerTools(registerToolsParams).thenAccept(registrationResult -> {
-        if (!Objects.equals("OK", registrationResult)) {
-          CopilotCore.LOGGER
-              .error(new IllegalStateException("Tool registration failed with result: " + registrationResult));
-        }
-      }).exceptionally(e -> {
-        CopilotCore.LOGGER.error("Error registering tools with the server", e);
-        return null;
-      });
+    RegisterToolsParams registerToolsParams = new RegisterToolsParams();
+    for (BaseTool tool : getAllTools()) {
+      registerToolsParams.addTool(tool.getToolInformation());
     }
+
+    lsConnection.registerTools(registerToolsParams).thenAccept(registrationResult -> {
+      if (!Objects.equals("OK", registrationResult)) {
+        CopilotCore.LOGGER
+            .error(new IllegalStateException("Tool registration failed with result: " + registrationResult));
+      }
+    }).exceptionally(e -> {
+      CopilotCore.LOGGER.error("Error registering tools with the server", e);
+      return null;
+    });
   }
 
   /**
@@ -235,14 +217,5 @@ public class AgentToolService implements ToolInvocationListener {
   public void dispose() {
     this.tools.clear();
     unbindChatView();
-
-    // TODO: the event broker can be injected once we fully migrated to e4 and use ui injection
-    if (this.registerToolEventHandler != null) {
-      IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-      if (eventBroker != null) {
-        eventBroker.unsubscribe(this.registerToolEventHandler);
-      }
-      this.registerToolEventHandler = null;
-    }
   }
 }
