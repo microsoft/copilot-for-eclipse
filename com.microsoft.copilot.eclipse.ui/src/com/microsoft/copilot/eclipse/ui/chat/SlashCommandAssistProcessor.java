@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.Objects;
+
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
@@ -17,6 +19,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.SlashCommandService;
@@ -100,6 +103,10 @@ class SlashCommandAssistProcessor implements IContentAssistProcessor {
     java.util.List<ICompletionProposal> proposals = new java.util.ArrayList<>();
     SlashCommandService slashCommandService = chatServiceManager.getSlashCommandService();
     if (!slashCommandService.isTempaltesReady()) {
+      return new ICompletionProposal[0];
+    }
+    // So far no template supports agent mode.
+    if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
       return new ICompletionProposal[0];
     }
     ConversationTemplate[] templates = slashCommandService.getTemplates();

@@ -107,9 +107,5 @@ public class AgentModeViewer extends BaseViewer {
       }
     });
     buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_agentModeView_attachContextSuffix);
-
-    WrapLabel subLabel = new WrapLabel(subComposite, SWT.CENTER);
-    subLabel.setText(Messages.chat_agentModeView_useCommandsIntro);
-    subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
 }

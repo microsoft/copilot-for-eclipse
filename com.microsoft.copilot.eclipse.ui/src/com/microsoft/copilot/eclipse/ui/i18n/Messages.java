@@ -99,7 +99,6 @@ public final class Messages extends NLS {
   public static String chat_agentModeView_subtitle;
   public static String chat_agentModeView_description;
   public static String chat_agentModeView_attachContextSuffix;
-  public static String chat_agentModeView_useCommandsIntro;
   public static String chat_loadingView_title;
   public static String chat_loadingView_description;
   public static String chat_noAuthView_title;
