@@ -1,7 +1,9 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -10,7 +12,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Platform;
@@ -49,6 +53,13 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       startJsLspAgent(e);
     }
     CopilotCore.LOGGER.info("Lsp agent started successfully.");
+  }
+
+  @Override
+  protected ProcessBuilder createProcessBuilder() {
+    ProcessBuilder pb = super.createProcessBuilder();
+    pb.environment().putAll(getLoginShellEnvironment());
+    return pb;
   }
 
   private void startBinaryLspAgent() throws IOException {
@@ -208,6 +219,54 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       CopilotCore.LOGGER.error(e);
       return null;
     }
+  }
+
+  /**
+   * Get the login shell environment variables on MacOS. Otherwise, some of the mcp server cannot be started due to
+   * missing environment variables.
+   */
+  private Map<String, String> getLoginShellEnvironment() {
+    Map<String, String> env = new HashMap<>();
+
+    // Only proceed on macOS
+    if (PlatformUtils.isMac()) {
+      Process process = null;
+      try {
+        // Execute login shell and get environment variables
+        ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-l", "-c", "env");
+        process = pb.start();
+
+        try (BufferedReader reader = new BufferedReader(
+            new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+            int separator = line.indexOf('=');
+            if (separator > 0) {
+              String key = line.substring(0, separator);
+              String value = line.substring(separator + 1);
+              env.put(key, value);
+            }
+          }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+          CopilotCore.LOGGER.error(
+              new IllegalStateException("Failed to get login shell environment variables. Exit code: " + exitCode));
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        CopilotCore.LOGGER.error("Interrupted while getting login shell environment variables", e);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("IOException while getting login shell environment variables", e);
+      } finally {
+        if (process != null && process.isAlive()) {
+          process.destroy();
+        }
+      }
+    }
+
+    return env;
   }
 
 }
