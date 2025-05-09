@@ -2,12 +2,16 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -56,6 +60,18 @@ public class CurrentReferencedFile extends ReferencedFile {
   @Override
   public void setFile(IFile file) {
     super.setFile(file);
+  }
+
+  @Override
+  protected void setCloseClickAction() {
+    lblClose.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseDown(MouseEvent e) {
+        ReferencedFileService referencedFileService = CopilotUi.getPlugin().getChatServiceManager()
+            .getReferencedFileService();
+        referencedFileService.toggleIsVisible();
+      }
+    });
   }
 
 }

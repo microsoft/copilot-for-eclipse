@@ -1,12 +1,15 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.swt.events.MouseAdapter;
-import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPage;
@@ -17,6 +20,8 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
+import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
 import com.microsoft.copilot.eclipse.ui.chat.CurrentReferencedFile;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -28,8 +33,14 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   private IObservableValue<IFile> currentFileObservable;
   private IObservableValue<Boolean> isCurrentFileVisibleObservable;
 
+  // The reason that we use map to dedup the context file is that the hashCode() method
+  // of the IFile checks the full path, which will fail to dedup when it comes to multi-module
+  // project, so we use the URI instead.
+  private IObservableValue<Map<String, IFile>> referencedFilesObservable;
+
   private ISideEffect currentReferencedFileSideEffect;
   private ISideEffect isCurrentFileVisibleSideEffect;
+  private ISideEffect referencedFilesSideEffect;
 
   private IPartListener2 listener;
 
@@ -41,6 +52,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     ensureRealm(() -> {
       currentFileObservable = new WritableValue<>(null, IFile.class);
       isCurrentFileVisibleObservable = new WritableValue<>(true, Boolean.class);
+      referencedFilesObservable = new WritableValue<>(new LinkedHashMap<>(), Map.class);
     });
     this.listener = new IPartListener2() {
       @Override
@@ -61,15 +73,22 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   @Override
   public IFile getCurrentFile() {
-    final IFile[] result = new IFile[1];
+    final AtomicReference<IFile> result = new AtomicReference<>();
     ensureRealm(() -> {
-      if (Boolean.TRUE.equals(isCurrentFileVisibleObservable.getValue())) {
-        result[0] = currentFileObservable.getValue();
-      } else {
-        result[0] = null;
-      }
+      result.set(
+          Boolean.TRUE.equals(isCurrentFileVisibleObservable.getValue()) ? currentFileObservable.getValue() : null);
     });
-    return result[0];
+    return result.get();
+  }
+
+  @Override
+  public List<IFile> getReferencedFiles() {
+    final AtomicReference<List<IFile>> result = new AtomicReference<>();
+    ensureRealm(() -> {
+      Map<String, IFile> files = referencedFilesObservable.getValue();
+      result.set(List.copyOf(files.values()));
+    });
+    return result.get();
   }
 
   /**
@@ -77,13 +96,6 @@ public class ReferencedFileService extends ChatBaseService implements IReference
    */
   public void bindCurrentFileWidget(CurrentReferencedFile widget) {
     unbindCurrentFileWidget();
-
-    widget.setCloseClickAction(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        toggleIsVisible();
-      }
-    });
 
     ensureRealm(() -> {
       currentReferencedFileSideEffect = ISideEffect.create(currentFileObservable::getValue, (IFile file) -> {
@@ -117,6 +129,58 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     });
   }
 
+  /**
+   * Binds the action bar with the referenced files observable.
+   */
+  public void bindReferencedFilesWidget(ActionBar actionBar) {
+    ensureRealm(() -> {
+      if (referencedFilesSideEffect != null) {
+        referencedFilesSideEffect.dispose();
+        referencedFilesSideEffect = null;
+      }
+
+      referencedFilesSideEffect = ISideEffect.create(referencedFilesObservable::getValue,
+          (Map<String, IFile> files) -> {
+            if (actionBar.isDisposed()) {
+              return;
+            }
+            actionBar.updateReferencedFiles(List.copyOf(files.values()));
+          });
+    });
+  }
+
+  /**
+   * Update the referenced files observable.
+   */
+  public void updateReferencedFiles(List<IFile> files) {
+    ensureRealm(() -> {
+      Map<String, IFile> fileMap = new LinkedHashMap<>();
+      for (IFile file : files) {
+        if (file != null && !isExcluded(file)) {
+          String uri = FileUtils.getResourceUri(file);
+          if (uri != null) {
+            fileMap.put(uri, file);
+          }
+        }
+      }
+      referencedFilesObservable.setValue(fileMap);
+    });
+  }
+
+  /**
+   * Remove the uri from the referenced files observable.
+   */
+  public void removeReferencedFile(String uri) {
+    ensureRealm(() -> {
+      Map<String, IFile> fileMap = referencedFilesObservable.getValue();
+      IFile removedFile = fileMap.remove(uri);
+      if (removedFile == null) {
+        return;
+      }
+      referencedFilesObservable.setValue(new LinkedHashMap<>(fileMap));
+    });
+  }
+
   private void unbindCurrentFileWidget() {
     ensureRealm(() -> {
       if (currentReferencedFileSideEffect != null) {
@@ -140,7 +204,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   private void updateCurrentReferencedFile(IFile currentFile) {
-    if (shouldExcluded(currentFile)) {
+    if (isExcluded(currentFile)) {
       currentFile = null;
     }
     final IFile finalCurrentFile = currentFile;
@@ -150,7 +214,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   /**
    * Returns true if the file needs to be excluded from 'Current file' reference in chat.
    */
-  private boolean shouldExcluded(@Nullable IFile file) {
+  private boolean isExcluded(@Nullable IFile file) {
     if (file == null || file.getFileExtension() == null) {
       return true;
     }

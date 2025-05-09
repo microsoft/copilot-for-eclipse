@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,6 @@ import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContentAssistant;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
@@ -39,6 +37,7 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
@@ -69,10 +68,6 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image cancelImage;
   private Image attachImage;
   private boolean isSendButton = true;
-  // The reason that we use map to dedup the context file is that the hashCode() method
-  // of the IFile checks the full path, which will fail to dedup when it comes to multi-module
-  // project, so we use the URI instead.
-  private Map<String, IFile> uriToFile = new LinkedHashMap<>();
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
 
   private ChatServiceManager chatServiceManager;
@@ -111,10 +106,11 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.cmpFileRef.setLayout(rowLayout);
     UiUtils.useParentBackground(this.cmpFileRef);
-    new AddContextButton(this.cmpFileRef, this);
+    new AddContextButton(this.cmpFileRef);
     this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
     ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
     referencedFileService.bindCurrentFileWidget(currentFileRef);
+    referencedFileService.bindReferencedFilesWidget(this);
 
     ChatInputTextViewer tv = new ChatInputTextViewer(this, chatServiceManager);
     tv.setEditable(true);
@@ -231,32 +227,21 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   /**
-   * Handles the add context button click event. This is temporary solution. Should be removed once referenced file
-   * service is implemented.
+   * Update the referenced file widgets when the file set changes.
    */
-  public void onAddContextClicked() {
-    List<IFile> files = selectFile();
-    if (files.isEmpty()) {
+  public void updateReferencedFiles(List<IFile> files) {
+    if (files == null) {
       return;
     }
-    // selectFile makes sure the file doesn't duplicate
-    for (IFile file : files) {
-      URI fileUri = file.getLocationURI();
-      // skip if the file is already in the list, note that for now we won't check the
-      // duplication with the current file, which is the same behavior as vscode.
-      if (fileUri == null || uriToFile.containsKey(fileUri.toASCIIString())) {
-        continue;
+
+    for (Control child : cmpFileRef.getChildren()) {
+      if (child instanceof ReferencedFile && !(child instanceof CurrentReferencedFile)) {
+        child.dispose();
       }
-      ReferencedFile fileRef = new ReferencedFile(ActionBar.this.cmpFileRef, file);
-      fileRef.setCloseClickAction(new MouseAdapter() {
-        @Override
-        public void mouseDown(org.eclipse.swt.events.MouseEvent e) {
-          ActionBar.this.uriToFile.remove(fileUri.toASCIIString());
-          fileRef.dispose();
-          refreshLayout();
-        }
-      });
-      uriToFile.put(fileUri.toASCIIString(), file);
+    }
+
+    for (IFile file : files) {
+      new ReferencedFile(this.cmpFileRef, file);
     }
     refreshLayout();
   }
@@ -382,9 +367,8 @@ public class ActionBar extends Composite implements NewConversationListener {
    * @param message the message
    */
   public void notifySend(String workDoneToken, String message) {
-    List<IFile> allFiles = new ArrayList<>(this.uriToFile.values());
     for (MessageListener listener : this.messageListeners) {
-      listener.onSend(workDoneToken, message, new ArrayList<>(allFiles));
+      listener.onSend(workDoneToken, message);
     }
   }
 
@@ -440,9 +424,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     }
     if (cancelImage != null && !cancelImage.isDisposed()) {
       cancelImage.dispose();
-    }
-    if (uriToFile != null) {
-      uriToFile.clear();
     }
     if (attachImage != null) {
       attachImage.dispose();

@@ -1,9 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.List;
-
-import org.eclipse.core.resources.IFile;
-
 /**
  * Listener for sending and canceling messages.
  */
@@ -14,7 +10,7 @@ public interface MessageListener {
    * @param workDoneToken the work done token
    * @param message the message
    */
-  public void onSend(String workDoneToken, String message, List<IFile> references);
+  public void onSend(String workDoneToken, String message);
 
   /**
    * Called when a message is cancelled.

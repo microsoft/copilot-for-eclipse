@@ -32,6 +32,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AfterLoginWelcomeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AgentModeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.BeforeLoginWelcomeViewer;
@@ -130,11 +131,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (chatMode == null) {
       return;
     }
-    this.onNewConversation();
-    disposeChildren(parent);
-
-    showChatPage(chatMode);
-    this.parent.layout();
+    this.onCancel();
+    if (!hasHistory) {
+      disposeChildren(parent);
+      showChatPage(chatMode);
+      this.parent.layout();
+    }
   }
 
   private void showChatPage(ChatMode chatMode) {
@@ -351,7 +353,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   @Override
-  public void onSend(String workDoneToken, String message, List<IFile> references) {
+  public void onSend(String workDoneToken, String message) {
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
     String modelName = activeModel == null ? null : activeModel.getModelFamily();
@@ -361,7 +363,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createConversationPage();
     }
 
-    IFile currentFile = chatServiceManager.getReferencedFileService().getCurrentFile();
+    ReferencedFileService fileService = chatServiceManager.getReferencedFileService();
+    IFile currentFile = fileService.getCurrentFile();
+    List<IFile> references = fileService.getReferencedFiles();
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation
       CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken, message,
@@ -426,6 +430,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       createAfterLoginWelcomePage();
     }
+    chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
   }
 
   /**

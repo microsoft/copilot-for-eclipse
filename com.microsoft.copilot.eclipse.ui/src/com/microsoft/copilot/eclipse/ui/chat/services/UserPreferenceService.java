@@ -349,6 +349,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       }, (String[] modelNames) -> {
         if (!combo.isDisposed()) {
           combo.setItems(modelNames);
+          updateSelectionForActiveModel(combo);
         }
       });
 
@@ -380,6 +381,28 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
+   * Helper method to update selection based on active model.
+   */
+  private void updateSelectionForActiveModel(Combo combo) {
+    CopilotModel activeModel = this.activeModelObservable.getValue();
+    ChatMode activeMode = this.activeChatModeObservable.getValue();
+    String modelName = null;
+
+    if (ensureModelCanBeEnabled(activeModel, activeMode)) {
+      modelName = activeModel.getModelName();
+    } else if (defaultModel != null) {
+      modelName = defaultModel.getModelName();
+    }
+
+    if (modelName != null && combo.getItemCount() > 0) {
+      int index = Arrays.asList(combo.getItems()).indexOf(modelName);
+      if (index >= 0) {
+        updateSelectedItem(combo, modelName, index);
+      }
+    }
+  }
+
+  /**
    * Unbind and dispose side effects for a specific combo.
    *
    * @param combo the combo to unbind
@@ -396,6 +419,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   private void updateSelectedItem(final Combo combo, String itemName, int index) {
+    if (combo.getSelectionIndex() == index) {
+      return;
+    }
     combo.select(index);
     // adjust the width according to the item
     GC gc = new GC(combo);

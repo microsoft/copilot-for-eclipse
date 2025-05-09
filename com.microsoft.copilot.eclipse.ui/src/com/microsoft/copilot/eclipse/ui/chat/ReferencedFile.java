@@ -14,6 +14,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -58,19 +61,30 @@ public class ReferencedFile extends Composite {
 
     lblClose = new Label(this, SWT.NONE);
     lblClose.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+    setCloseClickAction();
+
     lblImage = UiUtils.buildImageFromPngPath("/icons/close.png");
     UiUtils.useParentBackground(this.lblClose);
 
     setFile(file);
     UiUtils.useParentBackground(this);
+    this.addDisposeListener(e -> lblImage.dispose());
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
   }
 
   /**
    * Set the mouse click adapter for the close button.
    */
-  public void setCloseClickAction(MouseAdapter adapter) {
-    lblClose.addMouseListener(adapter);
+  protected void setCloseClickAction() {
+    lblClose.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseDown(MouseEvent e) {
+        ReferencedFileService referencedFileService = CopilotUi.getPlugin().getChatServiceManager()
+            .getReferencedFileService();
+        String uri = FileUtils.getResourceUri(file);
+        referencedFileService.removeReferencedFile(uri);
+      }
+    });
   }
 
   /**
@@ -115,12 +129,6 @@ public class ReferencedFile extends Composite {
     if (chatView != null) {
       chatView.layout(true, true);
     }
-  }
-
-  @Override
-  public void dispose() {
-    super.dispose();
-    lblImage.dispose();
   }
 
   /**
