@@ -4,7 +4,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileToolService;
+import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 
 /**
  * Manager for chat services.
@@ -19,7 +19,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private AvatarService avatarService;
   private AuthStatusService authStatusService;
   private AgentToolService agentToolService;
-  private EditFileToolService editFileToolService;
+  private FileToolService fileToolService;
   private ReferencedFileService referencedFileService;
 
   /**
@@ -33,7 +33,7 @@ public class ChatServiceManager implements IChatServiceManager {
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
-    editFileToolService = new EditFileToolService();
+    fileToolService = new FileToolService();
     referencedFileService = new ReferencedFileService();
   }
 
@@ -93,8 +93,8 @@ public class ChatServiceManager implements IChatServiceManager {
    *
    * @return the edit file tool service
    */
-  public EditFileToolService getEditFileToolService() {
-    return editFileToolService;
+  public FileToolService getFileToolService() {
+    return fileToolService;
   }
 
   @Override
@@ -111,7 +111,6 @@ public class ChatServiceManager implements IChatServiceManager {
     this.userPreferenceService.dispose();
     this.authStatusService.dispose();
     this.agentToolService.dispose();
-    this.editFileToolService.dispose();
     this.referencedFileService.dispose();
   }
 

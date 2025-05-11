@@ -21,6 +21,11 @@ public class CopilotEventConstants {
   private static final String TOPIC_AUTH = TOPIC_BASE + "AUTH/";
 
   /**
+   * Event when new conversation is started.
+   */
+  public static final String TOPIC_CHAT_NEW_CONVERSATION = TOPIC_CHAT + "NEW_CONVERSATION";
+
+  /**
    * Event when a chat message is cancelled.
    */
   public static final String TOPIC_CHAT_MESSAGE_CANCELLED = TOPIC_CHAT + "MESSAGE_CANCELLED";

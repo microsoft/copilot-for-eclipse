@@ -2,38 +2,21 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareEditorInput;
-import org.eclipse.compare.CompareUI;
-import org.eclipse.compare.IEditableContent;
-import org.eclipse.compare.IStreamContentAccessor;
-import org.eclipse.compare.ITypedElement;
-import org.eclipse.compare.structuremergeviewer.DiffNode;
-import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IEditorReference;
-import org.eclipse.ui.IReusableEditor;
-import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.lsp4j.FileChangeType;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -42,28 +25,20 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformat
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
-import com.microsoft.copilot.eclipse.ui.chat.FileChangeSummaryBar;
-import com.microsoft.copilot.eclipse.ui.chat.NewConversationListener;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 
 /**
  * Tool for editing files.
  */
-public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, NewConversationListener {
-  private static final String TOOL_NAME = "insert_edit_into_file";
-  private Map<IFile, CompareEditorInput> compareEditorInputMap;
-  private Map<IFile, String> fileContentCache;
-  private FileChangeSummaryBar fileChangeSummaryBar;
+public class EditFileTool extends FileToolBase implements FileChangeSummaryHandler {
+  public static final String TOOL_NAME = "insert_edit_into_file";
 
   /**
    * Constructor for EditFileTool.
    */
   public EditFileTool() {
+    super();
     this.name = TOOL_NAME;
-    this.compareEditorInputMap = new ConcurrentHashMap<>();
-    this.fileContentCache = new ConcurrentHashMap<>();
   }
 
   @Override
@@ -152,7 +127,7 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
       }
 
       if (input.get("code") instanceof String code) {
-        createFileChangeSummaryBar(file, chatView);
+        CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Changed);
         cacheTheOriginalFileContent(file);
         applyChangesToFile(code, file);
         updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
@@ -169,106 +144,6 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
           "The file path provided is not a valid string. Please check the path and try again.") });
     }
     return resultFuture;
-  }
-
-  /**
-   * Compares the given string with the content of the given file in a compare editor.
-   *
-   * @param originalFileContent The original string content of the file to compare with.
-   * @param file The user's file with the proposed changes has been applied.
-   * @throws InvocationTargetException If the operation is canceled.
-   * @throws InterruptedException If the operation is canceled.
-   */
-  private void compareStringWithFile(String originalFileContent, IFile file) {
-    try {
-      // Create a new CompareConfiguration
-      CompareConfiguration config = new CompareConfiguration();
-      config.setLeftLabel(Messages.agent_tool_compareEditor_proposedChangesTitle.replaceAll("\"", ""));
-      config.setRightLabel(file.getName());
-
-      // Enable editing on the proposed changes side and disable it on the original file side. Eclipse's original side
-      // and
-      // changes side are swapped, so we need to set the left side as editable to edit the proposed changes.
-      config.setLeftEditable(true);
-      config.setRightEditable(false);
-
-      // Set up the configuration to properly show differences
-      config.setProperty(CompareConfiguration.USE_OUTLINE_VIEW, Boolean.TRUE);
-      config.setProperty(CompareConfiguration.SHOW_PSEUDO_CONFLICTS, Boolean.TRUE);
-      config.setProperty(CompareConfiguration.IGNORE_WHITESPACE, Boolean.FALSE);
-
-      CompareEditorInput input = new CompareEditorInput(config) {
-        @Override
-        protected Object prepareInput(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-          monitor.beginTask("Calculating differences", 10);
-          setTitle(Messages.agent_tool_compareEditor_TitlePrefix + file.getName());
-          // Keep proposedChanges virtual file's name and type same as the originalFile original file's name and type
-          EditableStringCompareInput proposedChanges = new EditableStringCompareInput(originalFileContent,
-              file.getName(), file.getFileExtension());
-          EditableFileCompareInput originalFile = new EditableFileCompareInput(file);
-
-          // Create a diff node with proper configuration for text comparison
-          DiffNode diffNode = new DiffNode(null, Differencer.CHANGE, null, originalFile, proposedChanges);
-
-          monitor.done();
-          return diffNode;
-        }
-
-        @Override
-        public void saveChanges(IProgressMonitor monitor) throws CoreException {
-          // We need to set the right side as editable to save the changes made to the proposed changes. Otherwise, the
-          // changes won't be saved.
-          if (isDirty()) {
-            config.setRightEditable(true);
-            super.saveChanges(monitor);
-
-            // Get the diff node which contains the comparison inputs
-            DiffNode diffNode = (DiffNode) getCompareResult();
-            if (diffNode != null) {
-              // Get the right side input (the original file with any edits made)
-              EditableFileCompareInput inputToBeApplied = (EditableFileCompareInput) diffNode.getLeft();
-
-              // Save the modified content back to the file
-              try (InputStream inputStream = inputToBeApplied.getContents()) {
-                file.setContents(inputStream, true, true, monitor);
-              } catch (IOException e) {
-                CopilotCore.LOGGER.error("Error saving compare editor changes to file", e);
-              }
-            }
-
-            // If user keeps the changes with keyboard shortcut, we also need to complete the file.
-            CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
-            fileContentCache.remove(file);
-          }
-        }
-      };
-      input.run(new NullProgressMonitor());
-
-      // TODO: Add a progress monitor to show the progress of the operation input.run(new NullProgressMonitor());
-      compareEditorInputMap.put(file, input);
-      SwtUtils.invokeOnDisplayThread(() -> {
-        CompareUI.openCompareEditor(input);
-      });
-    } catch (InvocationTargetException | InterruptedException e) {
-      CopilotCore.LOGGER.error("Error opening compare editor", e);
-    }
-  }
-
-  private void updateOrCreateCompareStringWithFile(String originalFileContent, IFile file) {
-    if (originalFileContent == null) {
-      return;
-    }
-
-    CompareEditorInput input = compareEditorInputMap.get(file);
-    if (input != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        CompareUI.reuseCompareEditor(input, (IReusableEditor) getCompareEditor(input));
-      });
-      bringCompareEditorToTop(input);
-    } else {
-      // If not, create a new compare editor
-      compareStringWithFile(originalFileContent, file);
-    }
   }
 
   private void applyChangesToFile(String changedContent, IFile file) {
@@ -290,137 +165,41 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
     }
   }
 
-  private void cacheTheOriginalFileContent(IFile file) {
-    if (fileContentCache.containsKey(file)) {
-      // We only need to cache the original file content once to keep the initial file content so that we can undo the
-      // entire file edit even the file has been modified for multiple rounds.
-      return;
-    }
-    try (InputStream inputStream = file.getContents()) {
-      String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-      fileContentCache.put(file, content);
-    } catch (IOException | CoreException e) {
-      CopilotCore.LOGGER.error("Error caching original file content", e);
-    }
-  }
-
-  private boolean bringCompareEditorToTop(CompareEditorInput input) {
-    AtomicReference<Boolean> ref = new AtomicReference<>(false);
-    SwtUtils.invokeOnDisplayThread(() -> {
-      IWorkbenchPage page = UiUtils.getActivePage();
-      IEditorPart editor = getCompareEditor(input);
-      if (editor != null) {
-        page.bringToTop(editor);
-        ref.set(true);
-      }
-    });
-    return ref.get();
-  }
-
-  private IEditorPart getCompareEditor(CompareEditorInput input) {
-    IWorkbenchPage page = UiUtils.getActivePage();
-    if (page == null) {
-      return null;
-    }
-    for (IEditorReference editorRef : page.getEditorReferences()) {
-      IEditorPart editor = editorRef.getEditor(false);
-      if (editor != null && editor.getEditorInput().equals(input)) {
-        return editor;
-      }
-    }
-    return null;
-  }
-
-  private void closeCompareEditor(IFile file) {
-    CompareEditorInput input = compareEditorInputMap.get(file);
-    if (input != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        IWorkbenchPage page = UiUtils.getActivePage();
-        if (page == null) {
-          return;
-        }
-        IEditorReference[] editorRefs = page.getEditorReferences();
-        for (IEditorReference ref : editorRefs) {
-          IEditorPart editor = ref.getEditor(false);
-          if (editor != null && editor.getEditorInput() == input) {
-            page.closeEditor(editor, false);
-            break;
-          }
-        }
-      });
-    }
-    compareEditorInputMap.remove(file);
-  }
-
-  private void createFileChangeSummaryBar(IFile file, ChatView chatView) {
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (fileChangeSummaryBar == null) {
-        CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().setChangedFiles(new LinkedHashMap<>() {
-          {
-            put(file, false);
-          }
-        });
-        fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getMainSection(), SWT.NONE, this);
-        chatView.registerNewConversationListenerToTheTopBanner(this);
-      } else {
-        CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().addChangedFile(file);
-      }
-      chatView.getMainSection().layout(true, true);
-    });
-  }
-
   @Override
   public void onKeepChange(IFile file) {
-    CompareEditorInput input = compareEditorInputMap.get(file);
-    boolean handled = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().getChangedFiles()
-        .get(file);
-    // Only process the file if it is not already handled
-    if (input != null && !handled) {
-      try {
-        input.saveChanges(new NullProgressMonitor());
-      } catch (CoreException e) {
-        CopilotCore.LOGGER.error("Error saving changes to file", e);
-      }
-    }
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
-    updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
     fileContentCache.remove(file);
+    closeCompareEditor(file);
   }
 
   @Override
-  public void onKeepAllChanges() {
-    Map<IFile, Boolean> files = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
-        .getChangedFiles();
-    for (IFile file : files.keySet()) {
+  public void onKeepAllChanges(List<IFile> files) {
+    for (IFile file : files) {
       onKeepChange(file);
     }
   }
 
   @Override
-  public void onUndoChange(IFile file) {
+  public void onUndoChange(IFile file) throws CoreException {
     undoChangesToFile(file);
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().completeFile(file);
+    closeCompareEditor(file);
   }
 
   @Override
-  public void onUndoAllChanges() {
-    Map<IFile, Boolean> files = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
-        .getChangedFiles();
-    for (IFile file : files.keySet()) {
+  public void onUndoAllChanges(List<IFile> files) throws CoreException {
+    for (IFile file : files) {
       onUndoChange(file);
     }
   }
 
   @Override
-  public void onRemoveFile(IFile file) {
-    Map<IFile, Boolean> changedFiles = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
+  public void onRemoveFile(IFile file) throws CoreException {
+    Map<IFile, FileChangeProperty> changedFiles = CopilotUi.getPlugin().getChatServiceManager().getFileToolService()
         .getChangedFiles();
-    
+
     // If the file is not handled by user, we need to undo the changes made to the file before removing it.
-    if (changedFiles.containsKey(file) && !changedFiles.get(file)) {
+    if (changedFiles.containsKey(file) && !changedFiles.get(file).isHandled()) {
       undoChangesToFile(file);
     }
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().removeFile(file);
   }
 
   @Override
@@ -435,176 +214,19 @@ public class EditFileTool extends BaseTool implements FileChangeSummaryHandler, 
   }
 
   @Override
-  public void onAllChangesResolved() {
-    cleanupChangedFiles(false);
+  public void onResolveAllChanges() {
+    cleanupChangedFiles();
   }
 
-  @Override
-  public void onNewConversation() {
-    cleanupChangedFiles(true);
-  }
-  
-  private void undoChangesToFile(IFile file) {  
+  private void undoChangesToFile(IFile file) {
     String fileCache = fileContentCache.get(file);
-    boolean handled = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().getChangedFiles()
-        .get(file);
-    
+    boolean handled = CopilotUi.getPlugin().getChatServiceManager().getFileToolService().getChangedFiles().get(file)
+        .isHandled();
+
     // Only process the file if it is not already handled
     if (fileCache != null && !handled) {
       applyChangesToFile(fileCache, file);
     }
-    updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
     fileContentCache.remove(file);
-  }
-
-  /**
-   * Common method to handle cleanup of file changes.
-   *
-   * @param undoChanges Whether to undo changes to each file or not.
-   */
-  private void cleanupChangedFiles(boolean undoChanges) {
-    Map<IFile, Boolean> files = CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
-        .getChangedFiles();
-    for (IFile file : files.keySet()) {
-      if (undoChanges) {
-        // TODO: Add a confirmation dialog to ask the user if they want to keep or undo the changes
-        onUndoChange(file);
-      }
-      closeCompareEditor(file);
-    }
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().setChangedFiles(new LinkedHashMap<>());
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService().setFileChangeSummaryBarButtonStatus(false);
-    disposeFileChangeSummaryBar();
-  }
-
-  private void disposeFileChangeSummaryBar() {
-    if (fileChangeSummaryBar != null) {
-      fileChangeSummaryBar.dispose();
-      fileChangeSummaryBar = null;
-    }
-    this.compareEditorInputMap.clear();
-    this.fileContentCache.clear();
-  }
-
-  /**
-   * Editable file compare input class to handle file content editing on the compare editor.
-   */
-  public class EditableFileCompareInput implements ITypedElement, IStreamContentAccessor, IEditableContent {
-    private IFile file;
-    private byte[] modifiedContent = null;
-
-    /**
-     * Constructor for EditableFileCompareInput.
-     *
-     * @param file The file to be edited.
-     */
-    public EditableFileCompareInput(IFile file) {
-      this.file = file;
-    }
-
-    @Override
-    public String getName() {
-      return file.getName();
-    }
-
-    @Override
-    public Image getImage() {
-      return null;
-    }
-
-    @Override
-    public String getType() {
-      return file.getFileExtension();
-    }
-
-    public IFile getFile() {
-      return file;
-    }
-
-    @Override
-    public InputStream getContents() throws CoreException {
-      if (modifiedContent != null) {
-        return new ByteArrayInputStream(modifiedContent);
-      }
-      return file.getContents();
-    }
-
-    @Override
-    public boolean isEditable() {
-      return true;
-    }
-
-    @Override
-    public void setContent(byte[] newContent) {
-      this.modifiedContent = newContent;
-    }
-
-    @Override
-    public ITypedElement replace(ITypedElement dest, ITypedElement src) {
-      if (src instanceof IStreamContentAccessor sca) {
-        try (InputStream is = sca.getContents()) {
-          // Just store changes in memory
-          modifiedContent = is.readAllBytes();
-        } catch (IOException | CoreException e) {
-          CopilotCore.LOGGER.error("Error occurred while replacing file content", e);
-        }
-      }
-      return this;
-    }
-  }
-
-  // String input with edit support
-  private class EditableStringCompareInput implements ITypedElement, IStreamContentAccessor, IEditableContent {
-    private String content;
-    private String name;
-    private String type;
-
-    public EditableStringCompareInput(String content, String name, String type) {
-      this.content = content;
-      this.name = name;
-      this.type = type;
-    }
-
-    @Override
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public Image getImage() {
-      return null;
-    }
-
-    @Override
-    public String getType() {
-      return type;
-    }
-
-    @Override
-    public InputStream getContents() throws CoreException {
-      return new ByteArrayInputStream(content == null ? new byte[0] : content.getBytes(StandardCharsets.UTF_8));
-    }
-
-    @Override
-    public boolean isEditable() {
-      return true;
-    }
-
-    @Override
-    public void setContent(byte[] newContent) {
-      content = new String(newContent, StandardCharsets.UTF_8);
-    }
-
-    @Override
-    public ITypedElement replace(ITypedElement dest, ITypedElement src) {
-      if (src instanceof IStreamContentAccessor sca) {
-        try (InputStream is = sca.getContents()) {
-          content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException | CoreException e) {
-          CopilotCore.LOGGER.error("Error occurred while replacing string content", e);
-        }
-      }
-      return this;
-    }
   }
 }

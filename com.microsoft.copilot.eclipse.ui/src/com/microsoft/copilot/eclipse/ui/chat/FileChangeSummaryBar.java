@@ -26,7 +26,8 @@ import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileChangeSummaryHandler;
+import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
+import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -34,11 +35,12 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * show the summary of file changes in the Copilot chat view.
  */
 public class FileChangeSummaryBar extends Composite {
+  private FileToolService fileToolService;
 
   private FileChangeSummaryTitleBar titleBar;
-  private FileChangeSummaryHandler handler;
   private ChangedFiles changedFiles;
   private Composite parent;
+  private boolean enableButtons = false;
 
   /**
    * Constructs a new FileChangeSummaryBar with the given parent and style.
@@ -46,12 +48,10 @@ public class FileChangeSummaryBar extends Composite {
    * @param parent the parent composite
    * @param style the style of the composite
    */
-  public FileChangeSummaryBar(Composite parent, int style, FileChangeSummaryHandler handler) {
+  public FileChangeSummaryBar(Composite parent, int style) {
     super(parent, style | SWT.BORDER);
-    this.handler = handler;
     this.parent = parent;
-    CopilotUi.getPlugin().getChatServiceManager().getEditFileToolService()
-        .bindFileChangeSummaryBar(FileChangeSummaryBar.this);
+    this.fileToolService = CopilotUi.getPlugin().getChatServiceManager().getFileToolService();
   }
 
   /**
@@ -59,13 +59,13 @@ public class FileChangeSummaryBar extends Composite {
    *
    * @param filesMap a map of files and their change status
    */
-  public void buildSummaryBarFor(Map<IFile, Boolean> filesMap, boolean enableButtons) {
+  public void buildSummaryBarFor(Map<IFile, FileChangeProperty> filesMap) {
     if (filesMap == null || isDisposed()) {
       return;
     }
 
     if (filesMap.isEmpty()) {
-      handler.onAllChangesResolved();
+      this.fileToolService.onResolveAllChanges();
       return;
     }
 
@@ -88,7 +88,7 @@ public class FileChangeSummaryBar extends Composite {
     }
     this.changedFiles = new ChangedFiles(this, SWT.NONE, filesMap);
 
-    this.setButtonStatus(enableButtons);
+    this.setButtonStatus(this.enableButtons);
     requestLayout();
   }
 
@@ -98,6 +98,7 @@ public class FileChangeSummaryBar extends Composite {
    * @param enable true to enable the buttons, false to disable them
    */
   public void setButtonStatus(boolean enable) {
+    this.enableButtons = enable;
     if (titleBar != null) {
       if (titleBar.doneButton != null) {
         titleBar.doneButton.setEnabled(enable);
@@ -129,9 +130,6 @@ public class FileChangeSummaryBar extends Composite {
       changedFiles.dispose();
       changedFiles = null;
     }
-    if (handler != null) {
-      handler = null;
-    }
     super.dispose();
     this.parent.layout(true, true);
   }
@@ -142,7 +140,7 @@ public class FileChangeSummaryBar extends Composite {
     private Button undoButton;
     private Button doneButton;
 
-    public FileChangeSummaryTitleBar(Composite parent, int style, Map<IFile, Boolean> filesMap) {
+    public FileChangeSummaryTitleBar(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
       super(parent, style);
       GridLayout gl = new GridLayout(2, false);
       gl.marginWidth = 0;
@@ -160,7 +158,7 @@ public class FileChangeSummaryBar extends Composite {
       GridData labelGridData = new GridData(SWT.BEGINNING, SWT.CENTER, true, false);
       titleLabel.setLayoutData(labelGridData);
 
-      updateTitleBarButtons(filesMap.values().stream().filter(value -> !value).count() == 0);
+      updateTitleBarButtons(filesMap.values().stream().filter(value -> !value.isHandled()).count() == 0);
     }
 
     private void updateTitleBarButtons(boolean isExecutionFinished) {
@@ -187,7 +185,7 @@ public class FileChangeSummaryBar extends Composite {
         doneButton.addSelectionListener(new SelectionAdapter() {
           @Override
           public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            handler.onAllChangesResolved();
+            fileToolService.onResolveAllChanges();
           }
         });
       } else {
@@ -199,7 +197,7 @@ public class FileChangeSummaryBar extends Composite {
         keepButton.addSelectionListener(new SelectionAdapter() {
           @Override
           public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            handler.onKeepAllChanges();
+            fileToolService.onKeepAllChanges();
           }
         });
 
@@ -211,7 +209,7 @@ public class FileChangeSummaryBar extends Composite {
         undoButton.addSelectionListener(new SelectionAdapter() {
           @Override
           public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            handler.onUndoAllChanges();
+            fileToolService.onUndoAllChanges();
           }
         });
       }
@@ -224,7 +222,7 @@ public class FileChangeSummaryBar extends Composite {
     private final Composite contentArea;
     private List<FileRow> fileRows; // List to keep track of file rows
 
-    public ChangedFiles(Composite parent, int style, Map<IFile, Boolean> filesMap) {
+    public ChangedFiles(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
       super(parent, style);
 
       // Main layout
@@ -249,7 +247,7 @@ public class FileChangeSummaryBar extends Composite {
         }
 
         Image image = labelProvider.getImage(file);
-        fileRows.add(new FileRow(contentArea, SWT.NONE, image, file, filesMap.get(file)));
+        fileRows.add(new FileRow(contentArea, SWT.NONE, image, file, filesMap.get(file).isHandled()));
       }
 
       // Update layout
@@ -296,7 +294,7 @@ public class FileChangeSummaryBar extends Composite {
       fileInfo.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseUp(MouseEvent e) {
-          handler.onViewDiff(file);
+          fileToolService.onViewDiff(file);
         }
       });
 
@@ -307,7 +305,7 @@ public class FileChangeSummaryBar extends Composite {
       iconLabel.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseUp(MouseEvent e) {
-          handler.onViewDiff(file);
+          fileToolService.onViewDiff(file);
         }
       });
 
@@ -318,7 +316,7 @@ public class FileChangeSummaryBar extends Composite {
       nameLabel.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseUp(MouseEvent e) {
-          handler.onViewDiff(file);
+          fileToolService.onViewDiff(file);
         }
       });
 
@@ -338,7 +336,7 @@ public class FileChangeSummaryBar extends Composite {
       pathLabel.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseUp(MouseEvent e) {
-          handler.onViewDiff(file);
+          fileToolService.onViewDiff(file);
         }
       });
 
@@ -369,7 +367,7 @@ public class FileChangeSummaryBar extends Composite {
         keepButton.addSelectionListener(new SelectionAdapter() {
           @Override
           public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            handler.onKeepChange(file);
+            fileToolService.onKeepChange(file);
           }
         });
 
@@ -384,7 +382,7 @@ public class FileChangeSummaryBar extends Composite {
         undoButton.addSelectionListener(new SelectionAdapter() {
           @Override
           public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            handler.onUndoChange(file);
+            fileToolService.onUndoChange(file);
           }
         });
       }
@@ -400,7 +398,7 @@ public class FileChangeSummaryBar extends Composite {
       removeButton.addSelectionListener(new SelectionAdapter() {
         @Override
         public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-          handler.onRemoveFile(file);
+          fileToolService.onRemoveFile(file);
         }
       });
 
@@ -433,7 +431,7 @@ public class FileChangeSummaryBar extends Composite {
       addMouseListener(new MouseAdapter() {
         @Override
         public void mouseUp(MouseEvent e) {
-          handler.onViewDiff(file);
+          fileToolService.onViewDiff(file);
         }
       });
     }

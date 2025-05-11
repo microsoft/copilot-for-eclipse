@@ -2,8 +2,10 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -17,25 +19,29 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.lsp4j.FileChangeType;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Tool for creating files.
  */
-public class CreateFileTool extends BaseTool {
-  private static final String TOOL_NAME = "create_file";
+public class CreateFileTool extends FileToolBase implements FileChangeSummaryHandler {
+  public static final String TOOL_NAME = "create_file";
 
   /**
    * Constructor for CreateFileTool.
    */
   public CreateFileTool() {
+    super();
     this.name = TOOL_NAME;
   }
 
@@ -112,7 +118,9 @@ public class CreateFileTool extends BaseTool {
       // Create file with content
       try (ByteArrayInputStream contentStream = new ByteArrayInputStream(content.getBytes())) {
         file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
+        cacheTheOriginalFileContent(file);
       }
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Created);
       file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
 
       // Open file in editor
@@ -143,5 +151,53 @@ public class CreateFileTool extends BaseTool {
     if (parent instanceof IFolder) {
       ((IFolder) parent).create(IResource.FORCE, true, new NullProgressMonitor());
     }
+  }
+
+  @Override
+  public void onKeepAllChanges(List<IFile> files) {
+    for (IFile file : files) {
+      onKeepChange(file);
+    }
+  }
+
+  @Override
+  public void onKeepChange(IFile file) {
+    closeCompareEditor(file);
+  }
+
+  @Override
+  public void onUndoAllChanges(List<IFile> files) throws CoreException {
+    for (IFile file : files) {
+      onUndoChange(file);
+    }
+  }
+
+  @Override
+  public void onUndoChange(IFile file) throws CoreException {
+    if (file != null && file.exists()) {
+      file.delete(true, new NullProgressMonitor());
+    }
+    closeCompareEditor(file);
+  }
+
+  @Override
+  public void onRemoveFile(IFile file) throws CoreException {
+    Map<IFile, FileChangeProperty> changedFiles = CopilotUi.getPlugin().getChatServiceManager().getFileToolService()
+        .getChangedFiles();
+
+    // If the file is not handled by user, we need to undo the changes made to the file before removing it.
+    if (changedFiles.containsKey(file) && !changedFiles.get(file).isHandled()) {
+      onUndoChange(file);
+    }
+  }
+
+  @Override
+  public void onViewDiff(IFile file) {
+    compareStringWithFile(StringUtils.EMPTY, file);
+  }
+
+  @Override
+  public void onResolveAllChanges() {
+    cleanupChangedFiles();
   }
 }

@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.LinkedHashSet;
 
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -10,7 +11,9 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -81,6 +84,8 @@ public class TopBanner extends Composite {
     for (NewConversationListener listener : this.newConversationListeners) {
       listener.onNewConversation();
     }
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker.post(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, null);
   }
 
   @Override

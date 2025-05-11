@@ -48,7 +48,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
-import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool.EditableFileCompareInput;
+import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolBase.EditableFileCompareInput;
 
 /**
  * Utilities for Eclipse UI.

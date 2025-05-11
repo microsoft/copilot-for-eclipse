@@ -61,6 +61,11 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       }
 
       @Override
+      public void partBroughtToTop(IWorkbenchPartReference partRef) {
+        updateCurrentReferencedFile(partRef);
+      }
+
+      @Override
       public void partClosed(IWorkbenchPartReference partRef) {
         IWorkbenchPage page = UiUtils.getActivePage();
         if (page == null || page.getEditorReferences().length == 0) {

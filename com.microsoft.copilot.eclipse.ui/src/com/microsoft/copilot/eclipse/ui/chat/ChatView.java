@@ -87,6 +87,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           ChatView.this.chatServiceManager.getAuthStatusService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
+          ChatView.this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
@@ -95,6 +96,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.chatServiceManager.getAuthStatusService().bindChatView(this);
       this.chatServiceManager.getUserPreferenceService().bindChatView(this);
       this.chatServiceManager.getAgentToolService().bindChatView(this);
+      this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
     }
   }
 

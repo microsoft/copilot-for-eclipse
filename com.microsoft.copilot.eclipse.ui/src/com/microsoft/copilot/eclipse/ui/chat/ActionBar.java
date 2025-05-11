@@ -291,7 +291,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     } else {
       updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
     }
-    this.chatServiceManager.getEditFileToolService().setFileChangeSummaryBarButtonStatus(true);
+    this.chatServiceManager.getFileToolService().setFileChangeSummaryBarButtonStatus(true);
   }
 
   private void handleSendMessage() {

@@ -120,7 +120,7 @@ public class AgentToolService implements ToolInvocationListener {
    * @param toolName The name of the tool
    * @return The tool, or null if not found
    */
-  private BaseTool getTool(String toolName) {
+  public BaseTool getTool(String toolName) {
     return tools.get(toolName);
   }
 
