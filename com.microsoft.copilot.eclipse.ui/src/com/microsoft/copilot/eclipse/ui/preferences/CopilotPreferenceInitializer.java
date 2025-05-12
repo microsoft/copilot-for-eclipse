@@ -19,5 +19,6 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.PROXY_KERBEROS_SP, "");
     pref.setDefault(Constants.GITHUB_ENTERPRISE, "");
     pref.setDefault(Constants.MCP, "");
+    pref.setDefault(Constants.MCP_TOOLS_STATUS, "");
   }
 }

@@ -1,7 +1,12 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.eclipse.core.net.proxy.IProxyChangeEvent;
 import org.eclipse.core.net.proxy.IProxyChangeListener;
 import org.eclipse.core.net.proxy.IProxyData;
@@ -15,6 +20,10 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsStatusCollection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpToolStatus;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpToolsStatusCollection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 
 /**
  * A class to manage the proxy service for the Copilot Language Server.
@@ -88,6 +97,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.MCP:
         this.settings.setMcpServers((String) event.getNewValue());
         break;
+      case Constants.MCP_TOOLS_STATUS:
+        // Event value JSON format: {"server1":{"tool1":true,"tool2":false},"server2":{"tool1":true}}
+        String mcpToolsStatus = event.getNewValue().toString();
+        updateMcpToolsStatus(mcpToolsStatus);
+        return;
       default:
         return;
     }
@@ -106,6 +120,46 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       copilotCore.getGithubPanicErrorReport().setProxyData(proxyData);
     }
     this.copilotLanguageServerConnection.updateConfig(params);
+  }
+
+  private void updateMcpToolsStatus(String mcpToolsStatus) {
+    try {
+      Gson gson = new Gson();
+      Map<String, Map<String, Boolean>> toolStatusMap = gson.fromJson(mcpToolsStatus,
+          new TypeToken<Map<String, Map<String, Boolean>>>() {
+          }.getType());
+
+      UpdateMcpToolsStatusParams params = new UpdateMcpToolsStatusParams();
+      List<McpServerToolsStatusCollection> serverList = new ArrayList<>();
+      params.setServers(serverList);
+
+      for (Map.Entry<String, Map<String, Boolean>> serverEntry : toolStatusMap.entrySet()) {
+        String serverName = serverEntry.getKey();
+        Map<String, Boolean> tools = serverEntry.getValue();
+
+        McpServerToolsStatusCollection serverToolsStatus = new McpServerToolsStatusCollection();
+        serverToolsStatus.setName(serverName);
+
+        List<McpToolsStatusCollection> toolStatusList = new ArrayList<>();
+        serverToolsStatus.setTools(toolStatusList);
+
+        for (Map.Entry<String, Boolean> toolEntry : tools.entrySet()) {
+          String toolName = toolEntry.getKey();
+          boolean enabled = toolEntry.getValue();
+
+          McpToolsStatusCollection toolStatus = new McpToolsStatusCollection();
+          toolStatus.setName(toolName);
+          toolStatus.setStatus(enabled ? McpToolStatus.enabled.toString() : McpToolStatus.disabled.toString());
+          toolStatusList.add(toolStatus);
+        }
+
+        serverList.add(serverToolsStatus);
+      }
+
+      this.copilotLanguageServerConnection.updateMcpToolsStatus(params);
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to parse MCP tools status JSON", e);
+    }
   }
 
   /**

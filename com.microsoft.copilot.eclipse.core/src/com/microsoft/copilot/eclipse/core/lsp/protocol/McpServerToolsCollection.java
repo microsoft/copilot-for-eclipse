@@ -6,14 +6,15 @@ import java.util.Objects;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
- * This class is used to provide a collection of tools that can be used by a language model.
+ * This class is used to provide a collection of tools that can be used by a language model. Referenced by: 1.The
+ * notification from the endpoint copilot/mcpTools. 2.The response from the endpoint mcp/updateToolsStatus.
  */
 public class McpServerToolsCollection {
   private String name;
 
   private McpServerStatus status;
 
-  private List<LanguageModelToolInformation> tools;
+  private List<McpToolInformation> tools;
 
   public String getName() {
     return name;
@@ -31,11 +32,11 @@ public class McpServerToolsCollection {
     this.status = status;
   }
 
-  public List<LanguageModelToolInformation> getTools() {
+  public List<McpToolInformation> getTools() {
     return tools;
   }
 
-  public void setTools(List<LanguageModelToolInformation> tools) {
+  public void setTools(List<McpToolInformation> tools) {
     this.tools = tools;
   }
 
