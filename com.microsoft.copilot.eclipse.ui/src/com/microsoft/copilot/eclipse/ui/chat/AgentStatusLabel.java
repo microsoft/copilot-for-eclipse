@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Image;
@@ -8,20 +9,28 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A label with icon that displays the running status of the agent.
  */
 public class AgentStatusLabel extends Composite {
+  private static final int TOTAL_FRAMES = 8; // Adjust based on actual number of spinner images
+  
   private Image runningIcon;
   private Image completedIcon;
+  private Image cancelledIcon;
   private Label iconLabel;
   private ChatMarkupViewer textLabel;
   private int currentFrame = 1;
-  private static final int TOTAL_FRAMES = 8; // Adjust based on actual number of spinner images
   private Runnable animationRunnable;
+  private Status status;
+  private EventHandler cancelStatusHandler;
+  private IEventBroker eventBroker;
 
   /**
    * Create the composite.
@@ -41,9 +50,25 @@ public class AgentStatusLabel extends Composite {
       if (this.completedIcon != null && !this.completedIcon.isDisposed()) {
         this.completedIcon.dispose();
       }
+      if (this.cancelledIcon != null && !this.cancelledIcon.isDisposed()) {
+        this.cancelledIcon.dispose();
+      }
+      if (this.eventBroker != null) {
+        this.eventBroker.unsubscribe(cancelStatusHandler);
+      }
     });
     iconLabel = new Label(this, SWT.LEFT);
     UiUtils.useParentBackground(iconLabel);
+
+    this.status = Status.RUNNING;
+    this.cancelStatusHandler = new EventHandler() {
+      @Override
+      public void handleEvent(org.osgi.service.event.Event event) {
+        setCancelledStatus();
+      }
+    };
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_CANCELLED, cancelStatusHandler);
   }
 
   /**
@@ -60,6 +85,7 @@ public class AgentStatusLabel extends Composite {
     iconLabel.setImage(completedIcon);
 
     setText(statusText);
+    this.status = Status.COMPLETED;
   }
 
   /**
@@ -75,6 +101,20 @@ public class AgentStatusLabel extends Composite {
     startAnimation();
 
     setText(statusText);
+    this.status = Status.RUNNING;
+  }
+
+  private void setCancelledStatus() {
+    if (this.status == Status.RUNNING) {
+      stopAnimation();
+
+      if (this.cancelledIcon == null) {
+        this.cancelledIcon = UiUtils.buildImageFromPngPath("/icons/cancel_status.png");
+      }
+      iconLabel.setImage(cancelledIcon);
+
+      this.status = Status.CANCELLED;
+    }
   }
 
   private void startAnimation() {
@@ -128,5 +168,9 @@ public class AgentStatusLabel extends Composite {
       styledText.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     }
     textLabel.setMarkup(text);
+  }
+
+  private enum Status {
+    RUNNING, COMPLETED, CANCELLED
   }
 }
