@@ -336,7 +336,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
         break;
       case end:
-        if (this.chatContentViewer != null && value.getCancellationReason() == null) {
+        if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
           this.actionBar.resetSendButton();
         }
