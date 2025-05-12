@@ -21,6 +21,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private AgentToolService agentToolService;
   private FileToolService fileToolService;
   private ReferencedFileService referencedFileService;
+  private McpToolService mcpToolService;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -35,6 +36,7 @@ public class ChatServiceManager implements IChatServiceManager {
     agentToolService = new AgentToolService(this.lsConnection);
     fileToolService = new FileToolService();
     referencedFileService = new ReferencedFileService();
+    mcpToolService = new McpToolService();
   }
 
   /**
@@ -97,6 +99,10 @@ public class ChatServiceManager implements IChatServiceManager {
     return fileToolService;
   }
 
+  public McpToolService getMcpToolService() {
+    return mcpToolService;
+  }
+
   @Override
   public ReferencedFileService getReferencedFileService() {
     return referencedFileService;
@@ -112,6 +118,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.authStatusService.dispose();
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
+    this.mcpToolService.dispose();
   }
 
 }

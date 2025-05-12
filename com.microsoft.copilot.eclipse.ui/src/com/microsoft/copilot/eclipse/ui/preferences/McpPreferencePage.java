@@ -1,5 +1,12 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.util.List;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.OperationCanceledException;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.StringFieldEditor;
@@ -14,10 +21,15 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
@@ -28,6 +40,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
   private static final int NOTE_LABEL_MARGIN = 20;
   private ControlListener controlListener;
+  private Group toolsGroup;
 
   /**
    * Constructor.
@@ -39,6 +52,21 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   @Override
   public void init(IWorkbench workbench) {
     setPreferenceStore(CopilotUi.getPlugin().getPreferenceStore());
+    Job job = new Job("Binding to MCP service...") {
+      @Override
+      protected IStatus run(IProgressMonitor monitor) {
+        try {
+          Job.getJobManager().join(CopilotUi.INIT_JOB_FAMILY, null);
+        } catch (OperationCanceledException | InterruptedException e) {
+          CopilotCore.LOGGER.error(e);
+        }
+        CopilotUi.getPlugin().getChatServiceManager().getMcpToolService()
+            .bindWithMcpPreferencePage(McpPreferencePage.this);
+        return Status.OK_STATUS;
+      }
+    };
+    job.setUser(true);
+    job.schedule();
   }
 
   @Override
@@ -92,6 +120,11 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     mcpNoteContentLabel.setLayoutData(gd);
     mcpNoteContentLabel.setText(Messages.preferences_page_mcp_note_content);
 
+    this.toolsGroup = new Group(parent, SWT.WRAP);
+    toolsGroup.setLayout(gl);
+    gdf.applyTo(toolsGroup);
+    toolsGroup.setText("MCP Tools");
+
     this.controlListener = new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
@@ -112,5 +145,46 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     });
 
   }
+  
+  /**
+   * Displays the server names and tool names in the tools group using a tree view.
+   */
+  public void displayServerToolsInfo(List<McpServerToolsCollection> servers) {
+    if (toolsGroup == null || toolsGroup.isDisposed()) {
+      return;
+    }
 
+    // Clear existing children
+    for (var child : toolsGroup.getChildren()) {
+      if (child != null && !child.isDisposed()) {
+        child.dispose();
+      }
+    }
+
+    // Create a new Tree widget with checkboxes
+    Tree toolsTree = new Tree(toolsGroup, SWT.SINGLE | SWT.CHECK | SWT.V_SCROLL | SWT.H_SCROLL);
+    GridData treeGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    treeGridData.heightHint = 300;
+    toolsTree.setLayoutData(treeGridData);
+
+    // Add servers and tools to the tree
+    for (McpServerToolsCollection server : servers) {
+      TreeItem serverNode = new TreeItem(toolsTree, SWT.NONE);
+      serverNode.setText(server.getName());
+
+      if (server.getTools() != null && server.getTools().size() > 0) {
+        for (LanguageModelToolInformation tool : server.getTools()) {
+          if (tool.getName() != null) {
+            TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
+            toolNode.setText(tool.getName());
+          }
+        }
+      }
+
+      // Expand the server node by default
+      serverNode.setExpanded(true);
+    }
+
+    toolsGroup.requestLayout();
+  }
 }

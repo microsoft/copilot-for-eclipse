@@ -10,6 +10,8 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.e4.core.contexts.EclipseContextFactory;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageClientImpl;
 import org.eclipse.lsp4j.ProgressParams;
@@ -18,15 +20,18 @@ import org.eclipse.lsp4j.ShowDocumentResult;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
+import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
+import org.osgi.framework.FrameworkUtil;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
@@ -36,6 +41,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
@@ -47,7 +53,18 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   private WatchedFileManager watchedFileManager;
 
+  private IEventBroker eventBroker;
+
   private static final String SIGNUP_URL = "https://github.com/github-copilot/signup";
+
+  /**
+   * Constructor for CopilotLanguageClient.
+   */
+  public CopilotLanguageClient() {
+    super();
+    this.eventBroker = EclipseContextFactory.getServiceContext(FrameworkUtil.getBundle(getClass()).getBundleContext())
+        .get(IEventBroker.class);
+  }
 
   private static boolean openLink(String link) {
     String encodedUrl = PlatformUtils.escapeSpaceInUrl(link);
@@ -150,6 +167,16 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       watchedFileManager = new WatchedFileManager();
     }
     return CompletableFuture.completedFuture(new GetWatchedFilesResponse(watchedFileManager.getWatchedFiles(params)));
+  }
+
+  /**
+   * Notify when mcp server/tool change.
+   */
+  @JsonNotification("copilot/mcpTools")
+  public void mcpTools(OnChangeMcpServerToolsParams params) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.ON_DID_CHANGE_MCP_TOOLS, params.getServers());
+    }
   }
 
   /**
