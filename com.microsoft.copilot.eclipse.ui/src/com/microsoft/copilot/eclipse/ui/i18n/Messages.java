@@ -63,6 +63,8 @@ public final class Messages extends NLS {
   public static String preferences_page_github_enterprise_tooltip;
   public static String preferences_page_mcp_tooltip;
   public static String preferences_page_mcp_note_content;
+  public static String preferences_page_mcp_tools_settings;
+  public static String preferences_page_mcp_server_init_error;
   public static String preferences_page_note_text;
   public static String preferences_page_note_content;
   public static String chat_topBanner_newConversationButton_Tooltip;

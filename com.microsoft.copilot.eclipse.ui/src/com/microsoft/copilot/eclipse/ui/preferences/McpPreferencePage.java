@@ -36,7 +36,6 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -51,7 +50,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
   private Group toolsGroup;
 
-  private Map<String, Map<String, Boolean>> activeToolStatus = new HashMap<>();
+  private Tree toolsTree;
 
   /**
    * Constructor.
@@ -133,8 +132,9 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
     this.toolsGroup = new Group(parent, SWT.WRAP);
     toolsGroup.setLayout(gl);
-    gdf.applyTo(toolsGroup);
-    toolsGroup.setText("MCP Tools");
+    GridDataFactory toolsGdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, true);
+    toolsGdf.applyTo(toolsGroup);
+    toolsGroup.setText(Messages.preferences_page_mcp_tools_settings);
 
     ControlListener controlListener = new ControlAdapter() {
       @Override
@@ -154,9 +154,20 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       }
       parent.removeControlListener(controlListener);
     });
-
   }
   
+  private String getServerRunningStatusHint(McpServerToolsCollection server) {
+    switch (server.getStatus()) {
+      case running:
+      case stopped:
+        return StringUtils.EMPTY;
+      case error:
+        return " " + Messages.preferences_page_mcp_server_init_error;
+      default:
+        return StringUtils.EMPTY;
+    }
+  }
+
   /**
    * Displays the server names and tool names in the tools group using a tree view.
    */
@@ -173,44 +184,40 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
 
     // Create a new Tree widget with checkboxes
-    Tree toolsTree = new Tree(toolsGroup, SWT.SINGLE | SWT.CHECK | SWT.V_SCROLL | SWT.H_SCROLL);
+    toolsTree = new Tree(toolsGroup, SWT.SINGLE | SWT.CHECK | SWT.V_SCROLL | SWT.H_SCROLL);
     GridData treeGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    treeGridData.heightHint = 300;
     toolsTree.setLayoutData(treeGridData);
     
-    Map<String, Map<String, Boolean>> savedToolStatusMap = loadToolStatusFromPreferences();
+    Map<String, Map<String, Boolean>> savedServerToolStatusMap = loadToolStatusFromPreferences();
     
     // Add servers and tools to the tree
     for (McpServerToolsCollection server : servers) {
-      if (server == null || server.getStatus() != McpServerStatus.running) {
+      if (server == null) {
         continue;
       }
 
       TreeItem serverNode = new TreeItem(toolsTree, SWT.NONE);
-      serverNode.setText(server.getName());
+      serverNode.setText(server.getName() + getServerRunningStatusHint(server));
 
       for (LanguageModelToolInformation tool : server.getTools()) {
         if (tool == null) {
           continue;
         }
 
+        boolean isEnabled = savedServerToolStatusMap.getOrDefault(server.getName(), Map.of())
+            .getOrDefault(tool.getName(),
+            true);
+
         TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
         toolNode.setText(tool.getName());
-
-        boolean isEnabled = savedToolStatusMap.getOrDefault(server.getName(), Map.of()).getOrDefault(tool.getName(),
-            true);
         toolNode.setChecked(isEnabled);
-        updateParentCheckstatus(toolNode);
-
-        // Track status map
-        Map<String, Boolean> serverTools = activeToolStatus.computeIfAbsent(server.getName(), k -> new HashMap<>());
-        serverTools.put(tool.getName(), isEnabled);
       }
 
       serverNode.setExpanded(true);
+      updateServerCheckStatus(serverNode);
     }
     
-    // Add selection listener to save status changes
+    // Add selection listener to update status changes
     toolsTree.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
@@ -219,30 +226,11 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
           TreeItem parent = item.getParentItem();
           
           if (parent == null) {
-            // Handle parent server node check/uncheck
-            boolean checked = item.getChecked();
-            TreeItem[] children = item.getItems();
-            
-            // Apply the checked status to all children
-            for (TreeItem child : children) {
-              child.setChecked(checked);
-              
-              // Update the status map for each child
-              String serverName = item.getText();
-              String toolName = child.getText();
-              
-              Map<String, Boolean> serverTools = activeToolStatus.computeIfAbsent(serverName, k -> new HashMap<>());
-              serverTools.put(toolName, checked);
-            }
+            // Handle server node action
+            updateToolsCheckStatus(item);
           } else {
-            // Handle child tool item check/uncheck
-            String serverName = parent.getText();
-            String toolName = item.getText();
-            updateParentCheckstatus(item);
-            
-            // Track status
-            Map<String, Boolean> serverTools = activeToolStatus.computeIfAbsent(serverName, k -> new HashMap<>());
-            serverTools.put(toolName, item.getChecked());
+            // Handle tool node action
+            updateServerCheckStatus(parent);
           }
         }
       }
@@ -251,34 +239,43 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     toolsGroup.requestLayout();
   }
   
-  private void updateParentCheckstatus(TreeItem item) {
-    TreeItem parent = item.getParentItem();
-    if (parent == null) {
+  private void updateServerCheckStatus(TreeItem serverNode) {
+    if (serverNode == null) {
       return;
     }
 
-    TreeItem[] siblings = parent.getItems();
+    TreeItem[] toolNodes = serverNode.getItems();
     boolean allChecked = true;
     boolean allUnchecked = true;
 
-    for (TreeItem sibling : siblings) {
-      if (sibling.getChecked()) {
-        allUnchecked = false;
-      } else {
-        allChecked = false;
-      }
+    for (TreeItem toolNode : toolNodes) {
+      allChecked &= toolNode.getChecked();
+      allUnchecked &= !toolNode.getChecked();
     }
 
-    // Set the parent status - this won't trigger another event
     if (allChecked) {
-      parent.setChecked(true);
+      serverNode.setGrayed(false);
+      serverNode.setChecked(true);
     } else if (allUnchecked) {
-      parent.setChecked(false);
+      serverNode.setGrayed(false);
+      serverNode.setChecked(false);
     } else {
-      // Some are checked, some are not - use grayed status
-      parent.setGrayed(true);
-      parent.setChecked(true);
+      serverNode.setGrayed(true);
+      serverNode.setChecked(true);
     }
+  }
+
+  private void updateToolsCheckStatus(TreeItem serverNode) {
+    if (serverNode == null) {
+      return;
+    }
+
+    TreeItem[] toolNodes = serverNode.getItems();
+    for (TreeItem toolNode : toolNodes) {
+      toolNode.setChecked(serverNode.getChecked());
+    }
+
+    serverNode.setGrayed(false);
   }
 
   private Map<String, Map<String, Boolean>> loadToolStatusFromPreferences() {
@@ -287,7 +284,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     IPreferenceStore preferenceStore = getPreferenceStore();
     String jsonStatus = preferenceStore.getString(Constants.MCP_TOOLS_STATUS);
     
-    // jsonStatus != null && !jsonStatus.isBlank()
     if (StringUtils.isNotBlank(jsonStatus)) {
       try {
         result = GSON.fromJson(jsonStatus, 
@@ -299,13 +295,26 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     
     return result;
   }
-  
+
+  private void saveToolStatusToPreferences() {
+    Map<String, Map<String, Boolean>> serverToolStatus = new HashMap<>();
+    for (TreeItem serverNode : toolsTree.getItems()) {
+      String serverName = serverNode.getText();
+      Map<String, Boolean> toolStatus = new HashMap<>();
+      for (TreeItem toolNode : serverNode.getItems()) {
+        toolStatus.put(toolNode.getText(), toolNode.getChecked());
+      }
+      serverToolStatus.put(serverName, toolStatus);
+    }
+
+    String jsonResult = GSON.toJson(serverToolStatus);
+    IPreferenceStore preferenceStore = getPreferenceStore();
+    preferenceStore.setValue(Constants.MCP_TOOLS_STATUS, jsonResult);
+  }
+
   @Override
   public boolean performOk() {
-    String jsonStatus = GSON.toJson(activeToolStatus);
-    IPreferenceStore preferenceStore = getPreferenceStore();
-    preferenceStore.setValue(Constants.MCP_TOOLS_STATUS, jsonStatus);
-    
+    saveToolStatusToPreferences();
     return super.performOk();
   }
 }
