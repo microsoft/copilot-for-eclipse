@@ -26,6 +26,11 @@ public class EditorLifecycleListener implements IPartListener2 {
   }
 
   @Override
+  public void partBroughtToTop(IWorkbenchPartReference partRef) {
+    createCompletionHandlerFor(partRef.getPart(false));
+  }
+
+  @Override
   public void partInputChanged(IWorkbenchPartReference partRef) {
     // try to re-create the completion handler for the part to fix the completion manager is not created for the ABAP
     // editor in the beginning
