@@ -419,9 +419,6 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   private void updateSelectedItem(final Combo combo, String itemName, int index) {
-    if (combo.getSelectionIndex() == index) {
-      return;
-    }
     combo.select(index);
     // adjust the width according to the item
     GC gc = new GC(combo);
@@ -431,9 +428,11 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     GridData gridData = (GridData) combo.getLayoutData();
     // Add some padding (dropdown button width + horizontal margins)
     int padding = PlatformUtils.isWindows() ? 0 : EXTRA_PADDING;
-    gridData.widthHint = textExtent.x + padding;
-
-    combo.requestLayout();
+    int widthHint = textExtent.x + padding;
+    if (gridData.widthHint != widthHint) {
+      gridData.widthHint = widthHint;
+      combo.requestLayout();
+    }
   }
 
   /**
