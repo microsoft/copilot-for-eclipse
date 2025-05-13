@@ -57,6 +57,9 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     // menu: viewFeedbackForum
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.viewFeedbackForum",
         Messages.menu_viewFeedbackForum, UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png")));
+
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.showWhatIsNew", Messages.menu_whatIsNew,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
     items.add(new Separator());
 
     AuthStatusManager authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();

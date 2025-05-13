@@ -59,6 +59,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     // Provide feedback section
     menuManager.add(new Separator());
     addLinkToFeedbackForumAction(menuManager);
+    addShowWhatIsNewAction(menuManager);
 
     // Preferences section
     menuManager.add(new Separator());
@@ -176,6 +177,12 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_enableCompletions, placeHolder, handlerService,
           "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
     }
+  }
+
+  private void addShowWhatIsNewAction(MenuManager menuManager) {
+    ImageDescriptor placeHolder = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_whatIsNew, placeHolder, handlerService,
+        "com.microsoft.copilot.eclipse.commands.showWhatIsNew", true);
   }
 
   private String getCopilotStatusBasedOnAuthAndCompletionResult(String copilotStatus) {

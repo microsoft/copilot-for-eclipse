@@ -143,6 +143,11 @@
 			id="com.microsoft.copilot.eclipse.commands.autoShowCompletions"
 			name="%command.autoShowCompletions.name">
 		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.showWhatIsNew"
+			name="%command.showWhatIsNew.name">
+		</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -199,6 +204,10 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.AutoShowCompletionsHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.autoShowCompletions">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.ShowWhatIsNewHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.showWhatIsNew">
 		</handler>
 	</extension>
 

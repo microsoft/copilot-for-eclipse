@@ -33,3 +33,6 @@ replay_pid*
 **/node_modules/
 **/copilot-agent/native/
 **/copilot-agent/dist/
+
+# whatisnew html file in runtime
+**/whatisnew.html
