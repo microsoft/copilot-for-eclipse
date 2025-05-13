@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -200,6 +199,7 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
     if (changedFiles.containsKey(file) && !changedFiles.get(file).isHandled()) {
       undoChangesToFile(file);
     }
+    closeCompareEditor(file);
   }
 
   @Override
