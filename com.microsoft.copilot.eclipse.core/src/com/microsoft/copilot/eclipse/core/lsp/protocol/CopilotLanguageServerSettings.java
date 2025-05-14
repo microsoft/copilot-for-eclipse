@@ -1,9 +1,16 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.Map;
 import java.util.Objects;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 
 /**
  * Settings for the DidChangeConfigurationParams.
@@ -363,8 +370,32 @@ public class CopilotLanguageServerSettings {
   /**
    * set mcp servers.
    */
-  public void setMcpServers(String mcpServers) {
+  public void setMcpServers(String mcpServersPreference) {
+    String mcpServers = parseMcpServers(mcpServersPreference);
     this.getGithubSettings().getCopilotSettings().setMcpServers(mcpServers);
+  }
+
+  private String parseMcpServers(String mcpServersPreference) {
+    mcpServersPreference = mcpServersPreference.trim(); // ls does not accept blank string, empty string is ok
+    if (StringUtils.isEmpty(mcpServersPreference)) {
+      return mcpServersPreference;
+    }
+
+    try {
+      Gson gson = new Gson();
+      Map<String, Object> jsonMap = gson.fromJson(mcpServersPreference, new TypeToken<Map<String, Object>>() {
+      }.getType());
+
+      if (jsonMap != null && jsonMap.containsKey("servers")) {
+        Object serversObj = jsonMap.get("servers");
+        return gson.toJson(serversObj);
+      }
+
+      return mcpServersPreference;
+    } catch (JsonParseException e) {
+      CopilotCore.LOGGER.error("Failed to parse MCP servers JSON", e);
+      return StringUtils.EMPTY;
+    }
   }
 
   @Override

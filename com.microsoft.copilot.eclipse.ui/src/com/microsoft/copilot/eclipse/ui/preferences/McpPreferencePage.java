@@ -97,7 +97,13 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     mcpFieldContainer.setLayout(gl);
     mcpFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     var mcpField = new StringFieldEditor(Constants.MCP, Messages.preferences_page_mcp, StringFieldEditor.UNLIMITED, 20,
-        StringFieldEditor.VALIDATE_ON_KEY_STROKE, mcpFieldContainer);
+        StringFieldEditor.VALIDATE_ON_KEY_STROKE, mcpFieldContainer) {
+      @Override
+      protected boolean doCheckState() {
+        return validateMcpField(this);
+      }
+    };
+
     mcpField.getLabelControl(mcpFieldContainer).setToolTipText(Messages.preferences_page_mcp_tooltip);
     // @formatter:off
     mcpField.getLabelControl(mcpFieldContainer).setLayoutData(new GridData(
@@ -156,6 +162,29 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     });
   }
   
+  private boolean validateMcpField(StringFieldEditor mcpField) {
+    String stringValue = mcpField.getStringValue();
+    try {
+      GSON.fromJson(stringValue, Object.class);
+      return true;
+    } catch (Exception e) {
+      String errorMsg = e.getMessage();
+      if (errorMsg != null) {
+        int exceptionIndex = errorMsg.indexOf("Exception: ");
+        if (exceptionIndex >= 0) {
+          errorMsg = errorMsg.substring(exceptionIndex + "Exception: ".length());
+        }
+
+        int seeHttpsIndex = errorMsg.indexOf("See https:");
+        if (seeHttpsIndex >= 0) {
+          errorMsg = errorMsg.substring(0, seeHttpsIndex).trim();
+        }
+      }
+      mcpField.setErrorMessage("SyntaxError: " + errorMsg);
+      return false;
+    }
+  }
+
   private String getServerRunningStatusHint(McpServerToolsCollection server) {
     switch (server.getStatus()) {
       case running:
@@ -253,6 +282,11 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       allUnchecked &= !toolNode.getChecked();
     }
 
+    // corner case: server fails to init
+    if (toolNodes == null || toolNodes.length == 0) {
+      allChecked = false;
+    }
+
     if (allChecked) {
       serverNode.setGrayed(false);
       serverNode.setChecked(true);
@@ -297,6 +331,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   }
 
   private void saveToolStatusToPreferences() {
+    if (toolsTree == null || toolsTree.isDisposed()) {
+      return;
+    }
+
     Map<String, Map<String, Boolean>> serverToolStatus = new HashMap<>();
     for (TreeItem serverNode : toolsTree.getItems()) {
       String serverName = serverNode.getText();
