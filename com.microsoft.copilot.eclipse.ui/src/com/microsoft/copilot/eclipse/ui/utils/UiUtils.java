@@ -85,7 +85,14 @@ public class UiUtils {
       return null;
     }
 
-    IEditorPart editor = page.getActiveEditor();
+    return getFileFromEditorPart(page.getActiveEditor());
+  }
+
+  /**
+   * Return the IFile from the given editor part.
+   */
+  @Nullable
+  public static IFile getFileFromEditorPart(IEditorPart editor) {
     if (editor == null) {
       return null;
     }
@@ -102,20 +109,6 @@ public class UiUtils {
     } else if (editor instanceof CompareEditor compareEditor) {
       return getFileFromCompareEditor(compareEditor);
     }
-    return null;
-  }
-
-  /**
-   * Gets the URI of the file opened in the given text editor.
-   */
-  @Nullable
-  public static URI getUriFromTextEditor(ITextEditor editor) {
-    IEditorInput input = editor.getEditorInput();
-    if (input instanceof IFileEditorInput fileInput) {
-      IFile file = fileInput.getFile();
-      return file.getLocationURI();
-    }
-
     return null;
   }
 

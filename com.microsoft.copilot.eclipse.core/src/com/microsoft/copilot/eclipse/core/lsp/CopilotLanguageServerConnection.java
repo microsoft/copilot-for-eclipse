@@ -66,8 +66,13 @@ public class CopilotLanguageServerConnection {
    * Connect the document to the language server. The LSP4E will take care of all the document lifecycle events after
    * that.
    */
-  public void connectDocument(IDocument document) throws IOException {
-    this.languageServerWrapper.connectDocument(document);
+  public CompletableFuture<LanguageServerWrapper> connectDocument(IDocument document, IFile file) {
+    try {
+      return languageServerWrapper.connect(document, file);
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error(e);
+      return null;
+    }
   }
 
   /**

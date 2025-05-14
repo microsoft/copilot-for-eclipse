@@ -170,7 +170,9 @@ public class CompletionProvider {
       } catch (ExecutionException e) {
         statusManager.setCopilotStatus(CopilotStatusResult.ERROR);
         CopilotCore.LOGGER.error(e);
-        return new Status(IStatus.ERROR, Constants.PLUGIN_ID, e.getMessage(), e);
+        // TODO: when user is rename a file, some race condition happens here - the document update in completion
+        // manager comes later than the completion. So we return OK to not show error dialog to disturb user
+        return Status.OK_STATUS;
       } catch (TimeoutException e) {
         CopilotCore.LOGGER.info("Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
         return Status.CANCEL_STATUS;

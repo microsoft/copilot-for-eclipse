@@ -4,7 +4,6 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
-import org.eclipse.ui.texteditor.ITextEditor;
 
 /**
  * Listen to the lifecycle event of an editor parts.
@@ -48,23 +47,17 @@ public class EditorLifecycleListener implements IPartListener2 {
   public void createCompletionHandlerFor(IWorkbenchPart part) {
     IEditorPart editorPart = part.getAdapter(IEditorPart.class);
     if (editorPart != null) {
-      ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
-      if (editor != null) {
-        manager.getOrCreateCompletionManagerFor(editor);
-        manager.setActiveEditor(editor);
-      }
+      manager.getOrCreateCompletionManagerFor(editorPart);
+      manager.setActiveEditor(editorPart);
     }
   }
 
   void disposeCompletionHandlerFor(IWorkbenchPart part) {
     IEditorPart editorPart = part.getAdapter(IEditorPart.class);
     if (editorPart != null) {
-      ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
-      if (editor != null) {
-        manager.disposeCompletionManagerFor(editor);
-        if (editor.equals(manager.getActiveEditor())) {
-          manager.setActiveEditor(null);
-        }
+      manager.disposeCompletionManagerFor(editorPart);
+      if (editorPart.equals(manager.getActiveEditor())) {
+        manager.setActiveEditor(null);
       }
     }
   }

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.ui.IEditorPart;
@@ -38,7 +40,7 @@ class EditorManagerIntegrationTests extends CompletionBaseTests {
     super.setUp();
     MockitoAnnotations.openMocks(this);
 
-    doNothing().when(mockServer).connectDocument(any());
+    when(mockServer.connectDocument(any(), any())).thenReturn(new CompletableFuture<>());
     doNothing().when(mockServer).disconnectDocument(any());
 
     CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
@@ -64,7 +66,7 @@ class EditorManagerIntegrationTests extends CompletionBaseTests {
     manager.getOrCreateCompletionManagerFor(textEditor);
     manager.disposeCompletionManagerFor(textEditor);
 
-    verify(mockServer, times(1)).connectDocument(any());
+    verify(mockServer, times(1)).connectDocument(any(), any());
     verify(mockServer, times(1)).disconnectDocument(any());
   }
 }

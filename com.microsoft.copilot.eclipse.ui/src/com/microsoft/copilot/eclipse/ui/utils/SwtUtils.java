@@ -121,7 +121,7 @@ public class SwtUtils {
    * Check if the given text viewer is editable.
    */
   public static boolean isEditable(ITextViewer textViewer) {
-    AtomicReference<Boolean> ref = new AtomicReference<>();
+    AtomicReference<Boolean> ref = new AtomicReference<>(false);
     invokeOnDisplayThread(() -> {
       if (textViewer != null) {
         ref.set(textViewer.isEditable());
