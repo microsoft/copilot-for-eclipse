@@ -18,7 +18,7 @@
 			serverInterface="com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServer"
 			singleton="true"
 			launcherBuilder="com.microsoft.copilot.eclipse.core.lsp.CopilotLauncherBuilder"
-			lastDocumentDisconnectedTimeout="30">
+			lastDocumentDisconnectedTimeout="2147483647"> <!-- TODO: this is defer the ls shutdown, which will lose the chat status -->
 		</server>
 		<contentTypeMapping
 			id="com.microsoft.copilot.eclipse.ls"
