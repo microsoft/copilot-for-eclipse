@@ -66,7 +66,7 @@ public class AddContextButton extends Composite {
       public void mouseDown(MouseEvent e) {
         List<IFile> files = selectFiles();
         ReferencedFileService fileService = CopilotUi.getPlugin().getChatServiceManager().getReferencedFileService();
-        fileService.updateReferencedFiles(files);
+        fileService.addReferencedFiles(files);
       }
     };
     // Add mouse listener to 'this' so that clicking margin spaces will also trigger the action

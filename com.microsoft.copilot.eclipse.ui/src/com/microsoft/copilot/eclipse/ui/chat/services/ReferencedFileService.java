@@ -155,21 +155,39 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   /**
-   * Update the referenced files observable.
+   * Update the referenced files observable with a new set of files.
    */
   public void updateReferencedFiles(List<IFile> files) {
     ensureRealm(() -> {
       Map<String, IFile> fileMap = new LinkedHashMap<>();
-      for (IFile file : files) {
-        if (file != null && !isExcluded(file)) {
-          String uri = FileUtils.getResourceUri(file);
-          if (uri != null) {
-            fileMap.put(uri, file);
-          }
-        }
-      }
+      addFilesToMap(files, fileMap);
       referencedFilesObservable.setValue(fileMap);
     });
+  }
+
+  /**
+   * Add files to the existing referenced files observable.
+   */
+  public void addReferencedFiles(List<IFile> files) {
+    ensureRealm(() -> {
+      Map<String, IFile> fileMap = new LinkedHashMap<>(referencedFilesObservable.getValue());
+      addFilesToMap(files, fileMap);
+      referencedFilesObservable.setValue(fileMap);
+    });
+  }
+
+  /**
+   * Helper method to add valid files to the map.
+   */
+  private void addFilesToMap(List<IFile> files, Map<String, IFile> fileMap) {
+    for (IFile file : files) {
+      if (file != null && !isExcluded(file)) {
+        String uri = FileUtils.getResourceUri(file);
+        if (uri != null) {
+          fileMap.put(uri, file);
+        }
+      }
+    }
   }
 
   /**
