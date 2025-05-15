@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.layout.GridData;
@@ -13,6 +14,7 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -141,6 +143,9 @@ public class InvokeToolConfirmationDialog extends Composite {
       Composite parent = this.getParent();
       SwtUtils.invokeOnDisplayThread(() -> {
         // Render a tool invocation cancel message
+        if (StringUtils.isEmpty(this.cancelMessage)) {
+          this.cancelMessage = Messages.agent_tool_cancelConfirmationDialog_defaultTitle;
+        }
         new AgentToolCancelLabel(this.getParent(), SWT.NONE, this.cancelMessage);
         this.dispose();
         // Check if parent is still valid before using it
