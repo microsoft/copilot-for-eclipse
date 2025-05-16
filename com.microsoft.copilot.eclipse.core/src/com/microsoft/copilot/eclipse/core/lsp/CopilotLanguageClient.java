@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -50,8 +51,6 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
  */
 @SuppressWarnings("restriction")
 public class CopilotLanguageClient extends LanguageClientImpl {
-
-  private WatchedFileManager watchedFileManager;
 
   private IEventBroker eventBroker;
 
@@ -163,10 +162,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    */
   @JsonRequest("copilot/watchedFiles")
   public CompletableFuture<GetWatchedFilesResponse> getWatchedFiles(GetWatchedFilesRequest params) {
-    if (watchedFileManager == null) {
-      watchedFileManager = new WatchedFileManager();
-    }
-    return CompletableFuture.completedFuture(new GetWatchedFilesResponse(watchedFileManager.getWatchedFiles(params)));
+    return CompletableFuture.completedFuture(new GetWatchedFilesResponse(Collections.emptyList()));
   }
 
   /**
