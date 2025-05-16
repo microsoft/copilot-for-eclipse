@@ -20,6 +20,7 @@ import org.eclipse.tm.terminal.view.core.interfaces.ITerminalServiceOutputStream
 import org.eclipse.tm.terminal.view.core.interfaces.constants.ITerminalsConnectorConstants;
 import org.eclipse.tm.terminal.view.ui.activator.UIPlugin;
 import org.eclipse.tm.terminal.view.ui.interfaces.IPreferenceKeys;
+import org.eclipse.tm.terminal.view.ui.interfaces.IUIConstants;
 import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
@@ -173,7 +174,7 @@ public class RunInTerminalTool extends BaseTool {
     final String finalCommand = command + System.lineSeparator();
     synchronized (lock) {
       if (!isBackground && this.persistentTerminalViewControl != null) {
-        bringCopilotTerminalToFront();
+        bringTerminalViewAndCopilotConsoleToFront();
         this.persistentTerminalViewControl.pasteString(finalCommand);
         return;
       }
@@ -198,7 +199,7 @@ public class RunInTerminalTool extends BaseTool {
 
           if (!isBackground) {
             this.persistentTerminalViewControl = terminalViewControl;
-            bringCopilotTerminalToFront();
+            bringTerminalViewAndCopilotConsoleToFront();
           }
           terminalViewControl.pasteString(finalCommand);
         } else {
@@ -268,7 +269,7 @@ public class RunInTerminalTool extends BaseTool {
       try {
         IWorkbenchPage page = UiUtils.getActivePage();
         if (page != null) {
-          IViewPart view = page.showView("org.eclipse.tm.terminal.view.ui.TerminalsView");
+          IViewPart view = page.showView(IUIConstants.ID);
           if (view != null) {
             tabFolder = view.getAdapter(CTabFolder.class);
             if (tabFolder != null) {
@@ -372,9 +373,20 @@ public class RunInTerminalTool extends BaseTool {
     };
   }
 
-  private void bringCopilotTerminalToFront() {
+  private void bringTerminalViewAndCopilotConsoleToFront() {
     if (tabFolder != null && copilotTabItem != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
+        IWorkbenchPage page = UiUtils.getActivePage();
+        try {
+          if (page != null) {
+            IViewPart view = page.showView(IUIConstants.ID);
+            if (tabFolder.isDisposed() && view != null) {
+              tabFolder = view.getAdapter(CTabFolder.class);
+            }
+          }
+        } catch (PartInitException e) {
+          // Skip exception
+        }
         tabFolder.setSelection(copilotTabItem);
       }, tabFolder);
     }
