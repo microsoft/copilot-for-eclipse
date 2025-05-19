@@ -48,7 +48,6 @@ public final class Messages extends NLS {
   public static String signOutHandler_msgDialog_signOutSuccess;
   public static String signOutHandler_msgDialog_signOutFailed;
   public static String signOutHandler_msgDialog_signOutFailedFailure;
-  public static String preferencesPage_description;
   public static String preferencesPage_autoShowCompletion;
   public static String preferences_page_enable_strict_ssl;
   public static String preferences_page_proxy_kerberos_sp;
@@ -121,7 +120,7 @@ public final class Messages extends NLS {
   public static String chat_turnWidget_user;
   public static String chat_model_unsupported_message;
   public static String agent_tool_terminal_copilotTerminalTitle;
-  public static String agent_tool_compareEditor_TitlePrefix;
+  public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;
   public static String agent_tool_cancelConfirmationDialog_defaultTitle;
 

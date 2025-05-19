@@ -207,7 +207,7 @@ public abstract class FileToolBase extends BaseTool {
       @Override
       protected Object prepareInput(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
         monitor.beginTask("Calculating differences", 10);
-        setTitle(Messages.agent_tool_compareEditor_TitlePrefix + file.getName());
+        setTitle(Messages.agent_tool_compareEditor_titlePrefix + file.getName());
         // Keep proposedChanges virtual file's name and type same as the originalFile original file's name and type
         EditableStringCompareInput proposedChanges = new EditableStringCompareInput(comparedContent, file.getName(),
             file.getFileExtension());
