@@ -70,9 +70,10 @@ public class FileToolService extends ChatBaseService {
           disposeFileChangeSummaryBar();
         } else {
           if (this.fileChangeSummaryBar == null) {
-            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getMainSection(), SWT.NONE);
+            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getChatViewParent(), SWT.NONE);
           }
           this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+          this.fileChangeSummaryBar.moveAbove(chatView.getActionBar());
         }
       });
       ISideEffect.create(() -> buttonEnableObservable.getValue(), (Boolean status) -> {

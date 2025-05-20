@@ -65,7 +65,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   @Override
   public void createPartControl(Composite parent) {
     this.parent = parent;
-    parent.setLayout(new GridLayout(1, true));
+    GridLayout layout = new GridLayout(1, true);
+    layout.verticalSpacing = 0;
+    parent.setLayout(layout);
     parent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
     this.chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
@@ -450,10 +452,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
-   * Get the current main setion.
+   * Get the parent composite of the chat view.
    */
-  public Composite getMainSection() {
-    return this.mainSection;
+  public Composite getChatViewParent() {
+    return this.parent;
+  }
+
+  public Composite getActionBar() {
+    return this.actionBar;
   }
 
   /**
