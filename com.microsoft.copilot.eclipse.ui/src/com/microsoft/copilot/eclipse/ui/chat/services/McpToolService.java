@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
@@ -32,19 +33,23 @@ public class McpToolService extends ChatBaseService {
    */
   public McpToolService() {
     super(null, null);
-    eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    
+    ensureRealm(() -> {
+      // User may open the mcp preference page before the event comes.
+      // Initialization is needed, or "bind" will fail by null pointer.
+      mcpToolsObservableValue = new WritableValue<>(new ArrayList<>(), List.class);
+    });
+    
     mcpToolNotifiedEventHandler = event -> {
       Object params = event.getProperty(IEventBroker.DATA);
       if (params instanceof List mcpServerTools) {
         ensureRealm(() -> {
-          if (mcpToolsObservableValue == null) {
-            mcpToolsObservableValue = new WritableValue<>(mcpServerTools, List.class);
-          } else {
-            mcpToolsObservableValue.setValue(mcpServerTools);
-          }
+          mcpToolsObservableValue.setValue(mcpServerTools);
         });
       }
     };
+
+    eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (eventBroker != null) {
       eventBroker.subscribe(CopilotEventConstants.ON_DID_CHANGE_MCP_TOOLS, mcpToolNotifiedEventHandler);
     } else {
