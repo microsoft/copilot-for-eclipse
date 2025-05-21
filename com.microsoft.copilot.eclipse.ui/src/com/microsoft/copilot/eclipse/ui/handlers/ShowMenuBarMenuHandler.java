@@ -14,6 +14,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -37,12 +38,14 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     items.add(new Separator());
 
     // menu:(label options) enableCompletions or disableCompletions
-    String label = CopilotUi.getPlugin().getLanguageServerSettingManager().isAutoShowCompletionEnabled()
-        ? Messages.menu_disableCompletions
-        : Messages.menu_enableCompletions;
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.autoShowCompletions", label,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
-    items.add(new Separator());
+    LanguageServerSettingManager languageServerSettingManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
+    if (languageServerSettingManager != null) {
+      String label = languageServerSettingManager.isAutoShowCompletionEnabled() ? Messages.menu_disableCompletions
+          : Messages.menu_enableCompletions;
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.autoShowCompletions", label,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+      items.add(new Separator());
+    }
 
     // menu: editPreferences
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openPreferences", Messages.menu_editPreferences,
