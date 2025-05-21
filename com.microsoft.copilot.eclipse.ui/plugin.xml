@@ -132,6 +132,16 @@
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.openPreferences"
 			name="%command.openPreferencesPage.name">
+				<commandParameter 
+					id="com.microsoft.copilot.eclipse.commands.openPreferences.activePageId"
+					name="%command.openPreferencesPage.parameter.name"
+					values="">
+				</commandParameter>
+				<commandParameter 
+					id="com.microsoft.copilot.eclipse.commands.openPreferences.pageIds"
+					name="%command.openPreferencesPage.parameter.name"
+					values="">
+				</commandParameter>
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"

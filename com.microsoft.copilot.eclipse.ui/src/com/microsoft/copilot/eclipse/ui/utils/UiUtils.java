@@ -3,12 +3,19 @@ package com.microsoft.copilot.eclipse.ui.utils;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.internal.CompareEditor;
 import org.eclipse.compare.structuremergeviewer.ICompareInput;
+import org.eclipse.core.commands.Command;
+import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.commands.NotEnabledException;
+import org.eclipse.core.commands.NotHandledException;
+import org.eclipse.core.commands.ParameterizedCommand;
+import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -41,6 +48,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.commands.ICommandService;
+import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -441,5 +449,24 @@ public class UiUtils {
       parent = parent.getParent();
     }
     return control.getBackground();
+  }
+
+  /**
+   * Executes a command with the given parameters.
+   *
+   * @param commandId the command ID
+   * @param parameters the parameters to pass to the command
+   */
+  public static void executeCommandWithParameters(String commandId, Map<String, Object> parameters) {
+    ICommandService commandService = PlatformUI.getWorkbench().getService(ICommandService.class);
+    Command command = commandService.getCommand(commandId);
+    ParameterizedCommand paramCommand = ParameterizedCommand.generateCommand(command, parameters);
+    IHandlerService handlerService = PlatformUI.getWorkbench().getService(IHandlerService.class);
+
+    try {
+      handlerService.executeCommand(paramCommand, null);
+    } catch (ExecutionException | NotDefinedException | NotEnabledException | NotHandledException e) {
+      CopilotCore.LOGGER.error(e);
+    }
   }
 }

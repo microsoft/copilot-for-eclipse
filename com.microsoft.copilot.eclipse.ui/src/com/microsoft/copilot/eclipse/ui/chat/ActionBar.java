@@ -49,6 +49,7 @@ import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
+import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -69,6 +70,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image attachImage;
   private boolean isSendButton = true;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
+  private Button mcpToolButton;
+  private Image mcpToolImage;
 
   private ChatServiceManager chatServiceManager;
 
@@ -202,14 +205,53 @@ public class ActionBar extends Composite implements NewConversationListener {
     UiUtils.useParentBackground(cmpControlBar);
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
+    
+    // Create a composite for the bottom-right side buttons
+    GridLayout buttonsLayout = new GridLayout(2, false);
+    buttonsLayout.marginWidth = 0;
+    buttonsLayout.marginHeight = 0;
+    Composite bottomRightButtonsComposite = new Composite(this.cmpActionArea, SWT.NONE);
+    bottomRightButtonsComposite.setLayout(buttonsLayout);
+    bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
+    UiUtils.useParentBackground(bottomRightButtonsComposite);
+    
+    // Add a button that will open McpPreferencePage.
+    mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+    this.addDisposeListener(e -> {
+      if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
+        mcpToolImage.dispose();
+      }
+    });
+
+    this.mcpToolButton = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
+    this.mcpToolButton.setImage(mcpToolImage);
+    this.mcpToolButton.setToolTipText(Messages.preferences_page_mcp_tools_settings);
+    GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+    mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
+    mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
+    this.mcpToolButton.setLayoutData(mcpToolGd);
+    this.mcpToolButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        Map<String, Object> parameters = new HashMap<>();
+
+        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
+            OpenPreferencesHandler.mcpPreferencePage);
+
+        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
+            String.join(",", OpenPreferencesHandler.copilotPreferencesPage, OpenPreferencesHandler.mcpPreferencePage));
+
+        UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
+      }
+    });
 
     sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
     cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
-    this.btnMsgToggle = UiUtils.createIconButton(cmpActionArea, SWT.PUSH | SWT.FLAT);
+    this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
     this.btnMsgToggle.setEnabled(false);
     this.btnMsgToggle.setImage(sendImage);
     this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
-    GridData sendGd = new GridData(SWT.RIGHT, SWT.BOTTOM, false, false);
+    GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
     sendGd.widthHint = sendImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
     sendGd.heightHint = sendImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
     this.btnMsgToggle.setLayoutData(sendGd);
