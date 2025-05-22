@@ -100,39 +100,6 @@ extends:
                   rm -rf ./artifacts
                 displayName: Prepare plugin zip
 
-              # - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@5
-              #   displayName: Sign jars
-              #   inputs:
-              #     ConnectedServiceName: $(ConnectedServiceName)
-              #     AppRegistrationClientId: $(AppRegistrationClientId)
-              #     AppRegistrationTenantId: $(AppRegistrationTenantId)
-              #     AuthAKVName: $(AuthAKVName)
-              #     AuthCertName: $(AuthCertName)
-              #     AuthSignCertName: $(AuthSignCertName)
-              #     FolderPath: artifacts/eclipse/folder
-              #     Pattern: '*.jar'
-              #     signConfigType: inlineSignParams
-              #     inlineOperation: |-
-              #       [
-              #         {
-              #           "KeyCode" : "CP-447347-Java",
-              #           "OperationCode" : "JavaSign",
-              #           "Parameters" : {
-              #               "SigAlg" : "SHA256withRSA",
-              #               "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
-              #           },
-              #           "ToolName" : "sign",
-              #           "ToolVersion" : "1.0"
-              #         },
-              #         {
-              #           "KeyCode" : "CP-447347-Java",
-              #           "OperationCode" : "JavaVerify",
-              #           "Parameters" : {},
-              #           "ToolName" : "sign",
-              #           "ToolVersion" : "1.0"
-              #         }
-              #       ]
-
               - task: CmdLine@2
                 displayName: Sign jars
                 inputs:
