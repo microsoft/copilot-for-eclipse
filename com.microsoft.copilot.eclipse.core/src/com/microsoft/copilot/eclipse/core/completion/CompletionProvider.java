@@ -9,10 +9,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
@@ -77,6 +79,7 @@ public class CompletionProvider {
     CompletionParams params = new CompletionParams(completionDoc);
 
     this.completionJob.setCompletionParams(params);
+    this.completionJob.setFile(file);
     this.completionJob.schedule();
   }
 
@@ -118,6 +121,7 @@ public class CompletionProvider {
 
     private CopilotLanguageServerConnection lsConnection;
     private CompletionParams params;
+    private IResource file;
     private List<CompletionItem> completions;
 
     /**
@@ -132,6 +136,10 @@ public class CompletionProvider {
 
     public void setCompletionParams(CompletionParams params) {
       this.params = params;
+    }
+
+    public void setFile(IResource file) {
+      this.file = file;
     }
 
     @Override
@@ -157,6 +165,14 @@ public class CompletionProvider {
       if (monitor.isCanceled()) {
         return Status.CANCEL_STATUS;
       }
+      // the resource may be moved or renamed (closed at CLS side), so do more check before sending the request.
+      if (this.file == null) {
+        this.file = LSPEclipseUtils.findResourceFor(this.params.getDoc().getUri());
+      }
+      if (this.file == null || !this.file.exists()) {
+        return Status.CANCEL_STATUS;
+      }
+
       try {
         CompletionResult result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS,
             TimeUnit.MILLISECONDS);
@@ -170,8 +186,6 @@ public class CompletionProvider {
       } catch (ExecutionException e) {
         statusManager.setCopilotStatus(CopilotStatusResult.ERROR);
         CopilotCore.LOGGER.error(e);
-        // TODO: when user is rename a file, some race condition happens here - the document update in completion
-        // manager comes later than the completion. So we return OK to not show error dialog to disturb user
         return Status.OK_STATUS;
       } catch (TimeoutException e) {
         CopilotCore.LOGGER.info("Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");

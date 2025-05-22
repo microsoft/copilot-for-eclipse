@@ -55,6 +55,7 @@ class CompletionProviderTests {
     IFile mockFile = mock(IFile.class);
     when(mockFile.getLocation()).thenReturn(null);
     when(mockFile.getLocationURI()).thenReturn(new URI("file://test.java"));
+    when(mockFile.exists()).thenReturn(true);
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     completionProvider.addCompletionListener(mockListener);
     Position position = new Position(0, 0);
@@ -73,7 +74,8 @@ class CompletionProviderTests {
         .thenReturn(CompletableFuture.completedFuture(new CompletionResult(List.of(mock(CompletionItem.class)))));
 
     IFile mockFile = mock(IFile.class);
-    when(mockFile.getLocation()).thenReturn(new Path("file://test,java"));
+    when(mockFile.getLocation()).thenReturn(new Path("file://test.java"));
+    when(mockFile.exists()).thenReturn(true);
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     completionProvider.addCompletionListener(mockListener);
     Position position = new Position(0, 0);
@@ -106,6 +108,7 @@ class CompletionProviderTests {
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     IFile mockFile = mock(IFile.class);
     Path mockPath = mock(Path.class);
+    when(mockFile.exists()).thenReturn(true);
     when(mockFile.getLocation()).thenReturn(mockPath);
     File mockIoFile = mock(File.class);
     when(mockPath.toFile()).thenReturn(mockIoFile);
