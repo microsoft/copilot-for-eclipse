@@ -114,6 +114,9 @@ public final class Messages extends NLS {
   public static String chat_noQuotaView_updatePlanButton;
   public static String chat_noQuotaView_updatePlanButton_Tooltip;
   public static String chat_noQuotaView_updatePlanLink;
+  public static String chat_noQuotaView_enablePremiumRequestsButton;
+  public static String chat_noQuotaView_enablePremiumRequestsButton_tooltip;
+  public static String chat_noQuotaView_enablePremiumRequestsLink;
   public static String chat_currentReferencedFile_description;
   public static String chat_chatContentView_errorTemplate;
   public static String chat_turnWidget_copilot;
