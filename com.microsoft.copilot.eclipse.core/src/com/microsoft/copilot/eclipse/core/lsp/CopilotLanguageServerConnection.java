@@ -40,6 +40,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
@@ -98,6 +99,15 @@ public class CopilotLanguageServerConnection {
       param.setLocalChecksOnly(localCheckOnly);
       return ((CopilotLanguageServer) server).checkStatus(param);
     };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Check the user's quota status.
+   */
+  public CompletableFuture<CheckQuotaResult> checkQuota() {
+    Function<LanguageServer, CompletableFuture<CheckQuotaResult>> fn = server -> ((CopilotLanguageServer) server)
+        .checkQuota(new NullParams());
     return this.languageServerWrapper.execute(fn);
   }
 

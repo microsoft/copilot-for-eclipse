@@ -88,6 +88,7 @@ public class CopilotCore extends Plugin {
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
       this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.authStatusManager.checkStatus();
+      this.authStatusManager.checkQuota();
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {

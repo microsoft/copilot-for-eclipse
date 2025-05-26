@@ -15,6 +15,7 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 
 /**
  * Manager for the authentication status.
@@ -26,6 +27,7 @@ public class AuthStatusManager {
   private CopilotLanguageServerConnection connection;
   private ConcurrentLinkedQueue<CopilotAuthStatusListener> copilotAuthStatusListeners;
   private CopilotStatusResult copilotStatusResult;
+  private CheckQuotaResult checkQuotaResult;
   private IEventBroker eventBroker;
 
   /**
@@ -118,6 +120,20 @@ public class AuthStatusManager {
   }
 
   /**
+   * Check the user's quota usage.
+   */
+  public void checkQuota() {
+    this.connection.checkQuota().handle((result, ex) -> {
+      if (ex != null) {
+        CopilotCore.LOGGER.error(ex);
+      } else {
+        setQuotaStatus(result);
+      }
+      return null;
+    });
+  }
+
+  /**
    * Set the user for Copilot.
    */
   public void setCopilotUser(String user) {
@@ -145,6 +161,23 @@ public class AuthStatusManager {
       return "";
     }
     return this.copilotStatusResult.getUser();
+  }
+
+  /**
+   * Set the CheckQuotaResult.
+   */
+  public void setQuotaStatus(CheckQuotaResult checkQuotaResult) {
+    this.checkQuotaResult = checkQuotaResult;
+  }
+
+  /**
+   * Get the current CopilotStatusResult.
+   */
+  public CheckQuotaResult getQuotaStatus() {
+    if (this.checkQuotaResult == null) {
+      this.checkQuotaResult = new CheckQuotaResult();
+    }
+    return this.checkQuotaResult;
   }
 
   /**

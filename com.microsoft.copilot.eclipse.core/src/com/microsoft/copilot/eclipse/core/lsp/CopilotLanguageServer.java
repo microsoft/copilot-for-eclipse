@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 
 /**
  * Interface for Copilot Language Server.
@@ -39,6 +40,12 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest
   CompletableFuture<CopilotStatusResult> checkStatus(CheckStatusParams param);
+
+  /**
+   * Check the uesr's quota status.
+   */
+  @JsonRequest
+  CompletableFuture<CheckQuotaResult> checkQuota(NullParams param);
 
   /**
    * Get single completion for the given parameters.
