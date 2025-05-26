@@ -21,7 +21,6 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Combo;
-import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
@@ -41,6 +40,7 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  * Manager for chat services.
  */
 public class UserPreferenceService extends ChatBaseService implements CopilotAuthStatusListener {
+  private static final int MAX_SPACE_TO_ADD = 500;
   /**
    * The extra padding that used for the combo on non-Windows platforms.
    */
@@ -442,7 +442,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       List<String> premiumModels = new ArrayList<>();
 
       for (CopilotModel model : modelMap.values()) {
-        String formattedModel = formatModelWithAlignment(model, formattedModelWidths, maxWidth, spaceWidth);
+        String formattedModel = formatModelWithAlignment(gc, model, formattedModelWidths, maxWidth, spaceWidth);
 
         if (model.getBilling().isPremium()) {
           premiumModels.add(formattedModel);
@@ -471,26 +471,32 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   /**
    * Formats a model name with its multiplier, adding spacing for alignment.
    */
-  private String formatModelWithAlignment(CopilotModel model, Map<String, Integer> modelWidths, int maxWidth,
+  private String formatModelWithAlignment(GC gc, CopilotModel model, Map<String, Integer> modelWidths, int maxWidth,
       int spaceWidth) {
     String modelName = model.getModelName();
     int currentWidth = modelWidths.get(modelName);
     int spacesToAdd = (int) Math.round((maxWidth - currentWidth) / (double) spaceWidth) + 1;
 
-    StringBuilder result = new StringBuilder(modelName);
-
-    // Add alignment spaces
-    result.append(HAIR_SPACE.repeat(spacesToAdd));
-
-    // Format and append multiplier
+    String suffix = "";
     BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
     if (multiplier.toPlainString().equals("0")) {
-      result.append(DEFAULT_MODEL_MULTIPLIER);
+      suffix = DEFAULT_MODEL_MULTIPLIER;
     } else {
-      result.append(multiplier.toPlainString()).append(MODEL_MULTIPLIER_SUFFIX);
+      suffix = multiplier.toPlainString() + MODEL_MULTIPLIER_SUFFIX;
     }
 
-    return result.toString();
+    String result = "";
+    // Due to the fact that on some platform, the textExtent of "foo" and "foofoo", is not simply linear.
+    // Usually "foofoo" is shorter than "foo" x 2. So we need to start from spacesToAdd and increase it progressively
+    // until we find a width that is not less than maxWidth.
+    for (int i = spacesToAdd; i < spacesToAdd + MAX_SPACE_TO_ADD; i++) {
+      result = modelName + HAIR_SPACE.repeat(i) + suffix;
+      if (gc.textExtent(result).x >= maxWidth) {
+        break;
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -524,7 +530,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     }
 
     // Calculate total width
-    return gc.textExtent(model.getModelName() + multiplierText).x;
+    return gc.textExtent(model.getModelName() + multiplierText).x + MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER;
   }
 
   /**
