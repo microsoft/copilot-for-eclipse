@@ -122,6 +122,8 @@ public final class Messages extends NLS {
   public static String chat_turnWidget_copilot;
   public static String chat_turnWidget_user;
   public static String chat_model_unsupported_message;
+  public static String chat_standardModels;
+  public static String chat_premiumModels;
   public static String agent_tool_terminal_copilotTerminalTitle;
   public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;

@@ -293,16 +293,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
     UserPreferenceService copilotModelService = chatServiceManager.getUserPreferenceService();
     copilotModelService.bindModelPicker(cmbModelPicker);
-    this.cmbModelPicker.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        String[] models = cmbModelPicker.getItems();
-        int index = cmbModelPicker.getSelectionIndex();
-        if (index >= 0 && index < models.length) {
-          copilotModelService.setActiveModel(models[index]);
-        }
-      }
-    });
   }
 
   private void setUpChatModePicker(Composite parent) {

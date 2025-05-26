@@ -305,8 +305,7 @@ public class CopilotLanguageServerConnection {
    * Update the status of the mcp server and tools.
    */
   @JsonRequest("mcp/updateToolsStatus")
-  public CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(
-      UpdateMcpToolsStatusParams params) {
+  public CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams params) {
     // @formatter:off
     Function<LanguageServer, CompletableFuture<List<McpServerToolsCollection>>> fn = 
         server -> ((CopilotLanguageServer) server).updateMcpToolsStatus(params);

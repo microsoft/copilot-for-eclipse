@@ -1,7 +1,10 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -12,10 +15,13 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
@@ -28,6 +34,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -38,6 +45,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * The extra padding that used for the combo on non-Windows platforms.
    */
   private static final int EXTRA_PADDING = 40;
+  private static final String HAIR_SPACE = "\u200A";
+  private static final String MODEL_MULTIPLIER_SUFFIX = "x";
+  private static final String DEFAULT_MODEL_MULTIPLIER = "Included";
+  private static final int MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER = 6;
 
   // data
   private IObservableValue<ChatMode> activeChatModeObservable;
@@ -340,12 +351,40 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   public void bindModelPicker(final Combo combo) {
     // First unbind if previously bound to prevent leaks
     unbindModelPicker(combo);
+
+    // Add the selection listener ONCE here
+    combo.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        int index = combo.getSelectionIndex();
+        if (index >= 0 && index < combo.getItemCount()) {
+          String modelNameWithMultiplier = combo.getItem(index);
+          if (modelNameWithMultiplier.replace("-", "").equals(Messages.chat_standardModels)
+              || modelNameWithMultiplier.replace("-", "").equals(Messages.chat_premiumModels)) {
+            // Prevent selection of header items
+            e.doit = false;
+            updateSelectionForActiveModel(combo);
+          } else {
+            setActiveModel(getModelNameFromModelWithMultiplier(modelNameWithMultiplier));
+          }
+        }
+      }
+    });
+
     ensureRealm(() -> {
       ISideEffect modelNamesSideEffect = ISideEffect.create(() -> {
         Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
-        String[] names = modelMap.values().stream().map(CopilotModel::getModelName).toArray(String[]::new);
-        Arrays.sort(names, String.CASE_INSENSITIVE_ORDER);
-        return names;
+        if (combo.isDisposed() || modelMap.isEmpty()) {
+          return new String[0];
+        }
+        if (modelMap.values().stream().anyMatch(m -> m.getBilling() == null)) {
+          // TODO: this case can be removed when all models from CLS have billing info
+          String[] names = modelMap.values().stream().map(CopilotModel::getModelName).toArray(String[]::new);
+          Arrays.sort(names, String.CASE_INSENSITIVE_ORDER);
+          return names;
+        } else {
+          return composeModelList(combo, modelMap);
+        }
       }, (String[] modelNames) -> {
         if (!combo.isDisposed()) {
           combo.setItems(modelNames);
@@ -366,7 +405,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         if (modelName == null || combo.isDisposed()) {
           return;
         }
-        int index = Arrays.asList(combo.getItems()).indexOf(modelName);
+        int index = getModelIndexFromComboByModelName(combo, modelName);
         if (index >= 0) {
           updateSelectedItem(combo, modelName, index);
         }
@@ -378,6 +417,114 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       // Add a dispose listener to auto-unbind when the combo is disposed
       combo.addDisposeListener(e -> unbindModelPicker(combo));
     });
+  }
+
+  private String[] composeModelList(Combo combo, Map<String, CopilotModel> modelMap) {
+    // Get font metrics for proper alignment
+    GC gc = new GC(combo);
+
+    try {
+      // Calculate the width of each model name
+      Map<String, Integer> formattedModelWidths = new HashMap<>();
+      int maxWidth = 0;
+
+      for (CopilotModel model : modelMap.values()) {
+        int width = calculateModelDisplayWidth(gc, model);
+        formattedModelWidths.put(model.getModelName(), width);
+        maxWidth = Math.max(maxWidth, width);
+      }
+
+      // Calculate width of a hair space character
+      int spaceWidth = gc.textExtent(HAIR_SPACE).x;
+
+      // Create properly aligned model names
+      List<String> standardModels = new ArrayList<>();
+      List<String> premiumModels = new ArrayList<>();
+
+      for (CopilotModel model : modelMap.values()) {
+        String formattedModel = formatModelWithAlignment(model, formattedModelWidths, maxWidth, spaceWidth);
+
+        if (model.getBilling().isPremium()) {
+          premiumModels.add(formattedModel);
+        } else {
+          standardModels.add(formattedModel);
+        }
+      }
+
+      if (!standardModels.isEmpty()) {
+        standardModels.sort(String.CASE_INSENSITIVE_ORDER);
+        standardModels.add(0, addDashesAroundModelHeader(Messages.chat_standardModels, maxWidth, gc));
+      }
+      if (!premiumModels.isEmpty()) {
+        premiumModels.sort(String.CASE_INSENSITIVE_ORDER);
+        premiumModels.add(0, addDashesAroundModelHeader(Messages.chat_premiumModels, maxWidth, gc));
+      }
+
+      List<String> allModels = new ArrayList<>(standardModels);
+      allModels.addAll(premiumModels);
+      return allModels.toArray(new String[0]);
+    } finally {
+      gc.dispose();
+    }
+  }
+
+  /**
+   * Formats a model name with its multiplier, adding spacing for alignment.
+   */
+  private String formatModelWithAlignment(CopilotModel model, Map<String, Integer> modelWidths, int maxWidth,
+      int spaceWidth) {
+    String modelName = model.getModelName();
+    int currentWidth = modelWidths.get(modelName);
+    int spacesToAdd = (int) Math.round((maxWidth - currentWidth) / (double) spaceWidth) + 1;
+
+    StringBuilder result = new StringBuilder(modelName);
+
+    // Add alignment spaces
+    result.append(HAIR_SPACE.repeat(spacesToAdd));
+
+    // Format and append multiplier
+    BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
+    if (multiplier.toPlainString().equals("0")) {
+      result.append(DEFAULT_MODEL_MULTIPLIER);
+    } else {
+      result.append(multiplier.toPlainString()).append(MODEL_MULTIPLIER_SUFFIX);
+    }
+
+    return result.toString();
+  }
+
+  /**
+   * Surrounds the model header text with dashes to create a visual separator. The total width will be approximately the
+   * same as maxWidth.
+   */
+  private String addDashesAroundModelHeader(String modelHeader, int maxWidth, GC gc) {
+    int headerWidth = gc.textExtent(modelHeader).x;
+    int dashWidth = gc.textExtent("-").x;
+
+    // Calculate how many dashes to add on each side to make total width similar to maxWidth
+    // We divide by 2 to distribute dashes evenly on both sides
+    int dashesToAdd = (int) (Math.round((maxWidth - headerWidth) / (double) dashWidth) + 1) / 2;
+
+    // Build the string with dashes on both sides
+    return "-".repeat(dashesToAdd) + modelHeader + "-".repeat(dashesToAdd);
+  }
+
+  /**
+   * Calculates the display width of a model item including its name and multiplier text.
+   */
+  private int calculateModelDisplayWidth(GC gc, CopilotModel model) {
+    // Format the multiplier text once
+    String multiplierText;
+    BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
+
+    if (multiplier.toPlainString().equals("0")) {
+      multiplierText = DEFAULT_MODEL_MULTIPLIER;
+    } else {
+      multiplierText = multiplier.toPlainString() + MODEL_MULTIPLIER_SUFFIX;
+    }
+
+    // Calculate total width
+    return gc.textExtent(model.getModelName() + multiplierText).x;
   }
 
   /**
@@ -395,11 +542,21 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     }
 
     if (modelName != null && combo.getItemCount() > 0) {
-      int index = Arrays.asList(combo.getItems()).indexOf(modelName);
+      int index = getModelIndexFromComboByModelName(combo, modelName);
       if (index >= 0) {
         updateSelectedItem(combo, modelName, index);
       }
     }
+  }
+
+  private int getModelIndexFromComboByModelName(Combo combo, String modelName) {
+    return Arrays.stream(combo.getItems())
+        .map(modelNameWithMultiplier -> getModelNameFromModelWithMultiplier(modelNameWithMultiplier)).toList()
+        .indexOf(modelName);
+  }
+
+  private String getModelNameFromModelWithMultiplier(String modelNameWithMultiplier) {
+    return modelNameWithMultiplier.split(HAIR_SPACE)[0].trim();
   }
 
   /**
