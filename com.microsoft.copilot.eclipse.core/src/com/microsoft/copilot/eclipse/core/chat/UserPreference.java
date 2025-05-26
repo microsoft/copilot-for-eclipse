@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.core.chat;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
@@ -13,6 +14,7 @@ public class UserPreference {
 
   private String chatModel;
   private String chatModeName;
+  private List<String> userInputs;
 
   /**
    * Gets the id of the Chat model.
@@ -51,9 +53,17 @@ public class UserPreference {
     this.chatModeName = chatModeName;
   }
 
+  public synchronized List<String> getUserInputs() {
+    return userInputs;
+  }
+
+  public synchronized void setUserInputs(List<String> userInputs) {
+    this.userInputs = userInputs;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(chatModeName, chatModel);
+    return Objects.hash(chatModeName, chatModel, userInputs);
   }
 
   @Override
@@ -68,7 +78,8 @@ public class UserPreference {
       return false;
     }
     UserPreference other = (UserPreference) obj;
-    return Objects.equals(chatModeName, other.chatModeName) && Objects.equals(chatModel, other.chatModel);
+    return Objects.equals(chatModeName, other.chatModeName) && Objects.equals(chatModel, other.chatModel)
+        && Objects.equals(userInputs, other.userInputs);
   }
 
   @Override
@@ -76,6 +87,7 @@ public class UserPreference {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.add("chatModel", chatModel);
     builder.add("chatModeName", chatModeName);
+    builder.add("userInputs", userInputs);
     return builder.toString();
   }
 }

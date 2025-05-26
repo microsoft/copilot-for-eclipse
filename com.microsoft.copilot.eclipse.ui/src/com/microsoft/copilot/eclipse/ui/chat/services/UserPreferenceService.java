@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -25,6 +26,7 @@ import org.eclipse.swt.widgets.Combo;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -56,6 +58,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   private IObservableValue<CopilotModel> activeModelObservable;
   private Map<String, CopilotModel> models = new HashMap<>();
   private CopilotModel defaultModel;
+  private InputNavigation inputNavigation = new InputNavigation();
 
   // Track side effects for each combo
   private final Map<Combo, ISideEffect[]> modelComboSideEffects = new HashMap<>();
@@ -145,6 +148,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     }
     final CopilotModel finalModel = model;
     ensureRealm(() -> activeModelObservable.setValue(finalModel));
+
+    // restore the input history
+    inputNavigation = new InputNavigation(getUserPreference().getUserInputs());
   }
 
   private String restoreModelId() {
@@ -599,9 +605,44 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
+   * Add input to the input history.
+   */
+  public void addInputToHistory(String input) {
+    inputNavigation.add(input);
+    UserPreference preference = getUserPreference();
+    preference.setUserInputs(inputNavigation.getInputHistoryList());
+  }
+
+  /**
+   * Get the previous input from the input history.
+   *
+   * @param currentInput the current input to check if it should be added to history.
+   * @return the previous input or an empty string if at the top of the history.
+   */
+  public String getPreviousInput(String currentInput) {
+    if (inputNavigation.atBottom() && StringUtils.isNotEmpty(currentInput)) {
+      inputNavigation.add(currentInput);
+      inputNavigation.updateCursorPosition(inputNavigation.size() - 1);
+    }
+    return inputNavigation.navigateUp();
+  }
+
+  public String getNextInput() {
+    return inputNavigation.navigateDown();
+  }
+
+  /**
+   * Reset the input history cursor to the latest input.
+   */
+  public void resetInputHistoryCursor() {
+    inputNavigation.updateCursorPosition(inputNavigation.size());
+  }
+
+  /**
    * Dispose the service.
    */
   public void dispose() {
+    persistUserPreference();
     // Ideally we should dispose all side effects and observable here. But since the service is
     // singleton and will only be disposed when the bundle is stopped. So right now they are not
     // explicitly disposed here.

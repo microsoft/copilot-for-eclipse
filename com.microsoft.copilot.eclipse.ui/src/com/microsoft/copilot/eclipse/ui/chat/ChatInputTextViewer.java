@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Composite;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.SlashCommandService;
+import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -34,7 +35,11 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
 
   private Composite parent;
   private Consumer<String> sendMessageHandler;
-  private ChatServiceManager chatServiceManager;
+  private SlashCommandService slashCommandService;
+  private UserPreferenceService userPreferenceService;
+
+  private boolean caretLineOffsetChanged = false;
+  private int lastCursorLineOffset = 0;
 
   /**
    * Whether the color resource should be disposed. When the color is fetched from the jface registry, it should not be
@@ -46,7 +51,8 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   public ChatInputTextViewer(Composite parent, ChatServiceManager chatServiceManager) {
     super(parent, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
     this.parent = parent;
-    this.chatServiceManager = chatServiceManager;
+    this.userPreferenceService = chatServiceManager.getUserPreferenceService();
+    this.slashCommandService = chatServiceManager.getSlashCommandService();
     this.init();
   }
 
@@ -146,6 +152,13 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
 
   private void onKeyPressed(KeyEvent e) {
     String text = this.getContent();
+    // check the caret status so that we know if this is moving caret through multiple lines, or it's a switching
+    this.updateCaretLineOffsetStatus();
+    if (handleArrowKeyEvent(e, text)) {
+      // caret status need update since arrow key event may change the position via switching input history
+      this.updateCaretLineOffsetStatus();
+      return;
+    }
     // If current char is not line break, it means assistant pop up is visible and assistant listener handle it
     // In this case, users just want to select a command, so we should not handle it here
     if ((e.keyCode == SWT.CR || e.keyCode == SWT.KEYPAD_CR) && isLineBreakInCaret()) {
@@ -159,6 +172,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
       } else {
         // Users press Enter to send message, so we should remove the line break
         removeLineBreak();
+        userPreferenceService.addInputToHistory(this.getContent());
         handleSendMessage();
       }
       return;
@@ -172,7 +186,6 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     }
     clearFormat(0, text.length());
     String firstWord = text.substring(begin, end);
-    SlashCommandService slashCommandService = chatServiceManager.getSlashCommandService();
     if (e.keyCode == SWT.BS
         && slashCommandService.isBrokenCommand(firstWord, this.getTextWidget().getCaretOffset() - begin)) {
       try {
@@ -189,6 +202,35 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
           UiUtils.SLASH_COMMAND_BACKGROUND_COLOR, SWT.BOLD));
       return;
     }
+  }
+
+  /**
+   * Return true if the event is handled, false otherwise.
+   */
+  private boolean handleArrowKeyEvent(KeyEvent e, String text) {
+    if (ChatInputTextViewer.this.caretLineOffsetChanged) {
+      return false;
+    }
+    if (e.keyCode == SWT.ARROW_UP) {
+      String lastInput = userPreferenceService.getPreviousInput(text);
+      if (StringUtils.isNotBlank(lastInput)) {
+        this.setContent(lastInput);
+        this.getTextWidget().setSelection(lastInput.length());
+      }
+      return true;
+    } else if (e.keyCode == SWT.ARROW_DOWN) {
+      String nextInput = userPreferenceService.getNextInput();
+      if (StringUtils.isNotBlank(nextInput)) {
+        this.setContent(nextInput);
+        this.getTextWidget().setSelection(nextInput.length());
+        return true;
+      }
+    } else {
+      // if it's not about navigating input history, reset the cursor, so that next time
+      // when user press up arrow, it will get the latest input from history.
+      userPreferenceService.resetInputHistoryCursor();
+    }
+    return false;
   }
 
   private boolean isLineBreakInCaret() {
@@ -228,17 +270,35 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   }
 
   private void handleSendMessage() {
+    resetCaretLineOffsetStatus();
     Optional.ofNullable(this.sendMessageHandler).ifPresent(handler -> handler.accept(this.getContent()));
   }
 
   private String getPlaceholderText() {
-    switch (chatServiceManager.getUserPreferenceService().getActiveChatMode()) {
+    switch (userPreferenceService.getActiveChatMode()) {
       case Agent:
         return Messages.chat_actionBar_initialContentForAgent;
       case Ask:
       default:
         return Messages.chat_actionBar_initialContent;
     }
+  }
+
+  private void updateCaretLineOffsetStatus() {
+    StyledText textWidget = this.getTextWidget();
+    int caretOffset = textWidget.getCaretOffset();
+    int offset = textWidget.getLineAtOffset(caretOffset);
+    if (lastCursorLineOffset != offset) {
+      lastCursorLineOffset = offset;
+      caretLineOffsetChanged = true;
+    } else {
+      caretLineOffsetChanged = false;
+    }
+  }
+
+  private void resetCaretLineOffsetStatus() {
+    lastCursorLineOffset = 0;
+    caretLineOffsetChanged = false;
   }
 
   public void dispose() {
