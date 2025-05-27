@@ -74,7 +74,7 @@ public class CopilotUi extends AbstractUIPlugin {
           CopilotUi.this.settingMgr = mgr;
           CopilotUi.this.editorsManager = new EditorsManager(connection,
               CopilotCore.getPlugin().getCompletionProvider(), mgr);
-          CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(editorsManager);
+          CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(connection, editorsManager);
           CopilotUi.this.chatServiceManager = new ChatServiceManager();
           // inject the chat service manager into the core plugin, so that it can be used to handle
           // some server to client request that needs to be handled with UI logics.
@@ -162,7 +162,7 @@ public class CopilotUi extends AbstractUIPlugin {
   private void initCompletionHandlerForActiveEditor() {
     IEditorPart editorPart = SwtUtils.getActiveEditorPart();
     if (editorPart != null) {
-      this.editorLifecycleListener.createCompletionHandlerFor(editorPart);
+      this.editorLifecycleListener.partActivated(editorPart);
     }
   }
 
