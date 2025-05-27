@@ -47,6 +47,6 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.6.0",
  org.eclipse.tm.terminal.view.ui;bundle-version="4.5.0",
  org.eclipse.tm.terminal.connector.local;bundle-version="4.8.100",
  org.eclipse.tm.terminal.control;bundle-version="5.5.301",
- org.eclipse.compare;bundle-version="3.11.200",
+ org.eclipse.compare;bundle-version="3.11.100",
  org.osgi.service.event;bundle-version="1.4.1",
  org.eclipse.e4.core.services;bundle-version="2.4.4"
