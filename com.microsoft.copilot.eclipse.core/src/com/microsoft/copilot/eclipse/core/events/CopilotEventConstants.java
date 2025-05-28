@@ -39,4 +39,9 @@ public class CopilotEventConstants {
    * Event when MCP tools changed.
    */
   public static final String ON_DID_CHANGE_MCP_TOOLS = TOPIC_CHAT + "ON_DID_CHANGE_MCP_TOOLS";
+
+  /**
+   * Event when the chat message to Copilot should be sent.
+   */
+  public static final String TOPIC_CHAT_ON_SEND = TOPIC_CHAT + "ON_SEND";
 }

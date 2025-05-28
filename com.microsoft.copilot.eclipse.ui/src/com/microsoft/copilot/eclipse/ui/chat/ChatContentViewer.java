@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -16,10 +17,13 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.ScrollBar;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -35,11 +39,11 @@ public class ChatContentViewer extends ScrolledComposite {
   private Composite cmpContent;
 
   private Map<String, BaseTurnWidget> turns;
-  private Composite warnWidget;
   private Composite errorWidget;
 
   private BaseTurnWidget latestUserTurn;
   private BaseTurnWidget latestCopilotTurn;
+  private BaseTurnWidget latestTurnWidget;
 
   /**
    * Create the composite.
@@ -79,7 +83,7 @@ public class ChatContentViewer extends ScrolledComposite {
    * Should be called when user sends a message.
    */
   public void startNewTurn(String workDoneToken, String message) {
-    BaseTurnWidget turnWidget = createNewTurn(workDoneToken, false);
+    BaseTurnWidget turnWidget = getLatestOrCreateNewTurnWidget(workDoneToken, false, true);
     turnWidget.appendMessage(message);
     turnWidget.notifyTurnEnd();
 
@@ -90,20 +94,32 @@ public class ChatContentViewer extends ScrolledComposite {
   /**
    * Create a new turn.
    */
-  public BaseTurnWidget createNewTurn(String workDoneToken, boolean isCopilot) {
+  public BaseTurnWidget getLatestOrCreateNewTurnWidget(String workDoneToken, boolean isCopilot,
+      boolean forceCreateNewTurn) {
     AtomicReference<BaseTurnWidget> ref = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
       BaseTurnWidget turnWidget;
-      if (isCopilot) {
-        turnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken);
-        this.latestCopilotTurn = turnWidget;
+      boolean reuseLatestTurn = !forceCreateNewTurn && latestTurnWidget != null
+          && latestTurnWidget.isCopilot == isCopilot;
+
+      if (reuseLatestTurn) {
+        // Reuse existing turn widget if the sender type matches
+        turnWidget = latestTurnWidget;
+      } else if (isCopilot) {
+        // Create new Copilot turn widget
+        turnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, serviceManager, workDoneToken);
+        latestCopilotTurn = turnWidget;
+        latestTurnWidget = turnWidget;
       } else {
-        turnWidget = new UserTurnWidget(cmpContent, SWT.NONE, this.serviceManager, workDoneToken);
-        this.latestUserTurn = turnWidget;
-        this.latestCopilotTurn = null;
+        // Create new User turn widget
+        turnWidget = new UserTurnWidget(cmpContent, SWT.NONE, serviceManager, workDoneToken);
+        latestUserTurn = turnWidget;
+        latestCopilotTurn = null;
+        latestTurnWidget = turnWidget;
       }
-      ref.set(turnWidget);
+
       turns.put(workDoneToken, turnWidget);
+      ref.set(turnWidget);
     }, this);
 
     return ref.get();
@@ -121,8 +137,7 @@ public class ChatContentViewer extends ScrolledComposite {
       }
       BaseTurnWidget turnWidget = turns.get(value.getTurnId());
       if (turnWidget == null) {
-        CopilotCore.LOGGER.error(new IllegalStateException("TurnWidget is null when event comes."));
-        return;
+        appendMessageToTheLatestTurn(value.getReply());
       }
 
       if (value.getKind() == WorkDoneProgressKind.report) {
@@ -148,16 +163,38 @@ public class ChatContentViewer extends ScrolledComposite {
         turnWidget.notifyTurnEnd();
       }
       refreshScrollerLayout();
-      String message = value.getErrorMessage();
+      String errMsg = value.getErrorMessage();
       String reason = value.getErrorReason();
       if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
         // TODO: add enable button for better UX.
-        message = Messages.chat_model_unsupported_message;
+        errMsg = Messages.chat_model_unsupported_message;
       }
-      if (StringUtils.isNotEmpty(message)) {
-        renderWarnMessageWithUpgradePlanButton(message, value.getCode());
+      if (StringUtils.isNotEmpty(errMsg)) {
+        renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode());
+        if (value.getCode() == 402
+            && this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan() != CopilotPlan.free) {
+          this.serviceManager.getUserPreferenceService().setFallBackModelAsActiveModel();
+
+          // Although free plan users have fallback model, they cannot use it.
+          this.serviceManager.getAuthStatusManager().checkQuota();
+          String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
+          if (StringUtils.isNotEmpty(previousInput)) {
+            IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+            Map<String, Object> properties = Map.of("previousInput", previousInput, "needCreateUserTurn", false);
+            eventBroker.post(CopilotEventConstants.TOPIC_CHAT_ON_SEND, properties);
+          }
+        }
       }
     }, this);
+  }
+
+  /**
+   * Append message to the latest turn.
+   */
+  public void appendMessageToTheLatestTurn(String message) {
+    if (this.latestTurnWidget != null) {
+      this.latestTurnWidget.appendMessage(message);
+    }
   }
 
   /**
@@ -168,10 +205,7 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code) {
-    if (this.warnWidget != null) {
-      this.warnWidget.dispose();
-    }
-    this.warnWidget = new WarnWidget(cmpContent, SWT.BOTTOM, errorMessage, code);
+    latestTurnWidget.createWarnDialog(errorMessage, code);
     refreshScrollerLayout();
     scrollToLatestUserTurn();
   }
@@ -257,9 +291,6 @@ public class ChatContentViewer extends ScrolledComposite {
       turn.dispose();
     }
     turns.clear();
-    if (this.warnWidget != null) {
-      this.warnWidget.dispose();
-    }
     if (this.errorWidget != null) {
       this.errorWidget.dispose();
     }

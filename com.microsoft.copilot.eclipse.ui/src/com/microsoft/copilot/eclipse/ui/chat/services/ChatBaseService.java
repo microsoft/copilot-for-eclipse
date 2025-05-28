@@ -55,11 +55,12 @@ public abstract class ChatBaseService {
         String jsonContent = PlatformUtils.readFileContent(path);
         if (!jsonContent.isEmpty()) {
           userPreference = gson.fromJson(jsonContent, UserPreference.class);
-          return userPreference;
+          if (userPreference != null) {
+            return userPreference;
+          }
         }
       } catch (JsonSyntaxException e) {
-        CopilotCore.LOGGER.error("Failed to get user preference", e);
-        return null;
+        CopilotCore.LOGGER.error("Failed to get user preference, will generate a new one.", e);
       }
     }
 

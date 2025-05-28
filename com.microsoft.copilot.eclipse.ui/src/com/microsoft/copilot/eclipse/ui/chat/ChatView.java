@@ -2,7 +2,9 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
@@ -10,16 +12,19 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -61,6 +66,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private boolean hasHistory = false;
   private String conversationId = "";
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
+  private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
 
   @Override
   public void createPartControl(Composite parent) {
@@ -100,6 +106,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.chatServiceManager.getAgentToolService().bindChatView(this);
       this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
     }
+
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, event -> {
+      Object params = event.getProperty(IEventBroker.DATA);
+      if (params != null && params instanceof Map properties) {
+        String workDoneToken = UUID.randomUUID().toString();
+        String previousInput = (String) properties.get("previousInput");
+        boolean needCreateUserTurn = (boolean) properties.get("needCreateUserTurn");
+        onSend(workDoneToken, previousInput, needCreateUserTurn);
+      }
+    });
   }
 
   /**
@@ -311,7 +327,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     switch (value.getKind()) {
       case begin:
         if (this.chatContentViewer != null) {
-          this.chatContentViewer.createNewTurn(value.getTurnId(), true);
+          this.chatContentViewer.getLatestOrCreateNewTurnWidget(value.getTurnId(), true, false);
         }
         // new a turn widget
         this.conversationId = value.getConversationId();
@@ -357,10 +373,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   @Override
-  public void onSend(String workDoneToken, String message) {
+  public void onSend(String workDoneToken, String message, boolean createNewTurn) {
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
-    String modelName = activeModel == null ? null : activeModel.getModelFamily();
+    String modelName = activeModel == null ? null
+        : activeModel.isChatFallback() ? activeModel.getId() : activeModel.getModelFamily();
     String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
     if (!(this.hasHistory)) {
       this.hasHistory = true;
@@ -400,8 +417,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       });
     }
 
-    // TODO: what turn ID to use when we don't have the response yet?
-    this.chatContentViewer.startNewTurn(workDoneToken, message);
+    if (createNewTurn) {
+      this.chatContentViewer.startNewTurn(workDoneToken, message);
+    }
   }
 
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {

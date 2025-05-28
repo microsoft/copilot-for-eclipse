@@ -42,6 +42,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -74,6 +75,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image mcpToolImage;
 
   private ChatServiceManager chatServiceManager;
+  IEventBroker eventBroker;
+  EventHandler updateSendButtonToCancelButtonHandler;
 
   private static enum SendOrCancelButtonStates {
     SEND_ENABLED, SEND_DISABLED, CANCEL_ENABLED;
@@ -85,6 +88,12 @@ public class ActionBar extends Composite implements NewConversationListener {
   public ActionBar(Composite parent, int style, ChatServiceManager chatServiceManager) {
     super(parent, style | SWT.BORDER);
     this.chatServiceManager = chatServiceManager;
+    this.updateSendButtonToCancelButtonHandler = event -> {
+      updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
+    };
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND,
+        updateSendButtonToCancelButtonHandler);
     this.setBackground(UiUtils.getThemeColor(UiConstants.EDITOR_BACKGROUND));
     GridLayout gl = new GridLayout(1, false);
     gl.marginHeight = 5;
@@ -291,8 +300,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpModelPicker(Composite parent) {
     this.cmbModelPicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    UserPreferenceService copilotModelService = chatServiceManager.getUserPreferenceService();
-    copilotModelService.bindModelPicker(cmbModelPicker);
+    UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
+    userPreferenceService.bindModelPicker(cmbModelPicker);
   }
 
   private void setUpChatModePicker(Composite parent) {
@@ -400,7 +409,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    */
   public void notifySend(String workDoneToken, String message) {
     for (MessageListener listener : this.messageListeners) {
-      listener.onSend(workDoneToken, message);
+      listener.onSend(workDoneToken, message, true);
     }
   }
 
@@ -468,6 +477,10 @@ public class ActionBar extends Composite implements NewConversationListener {
     }
     if (inputTextViewer != null) {
       inputTextViewer.dispose();
+    }
+    if (eventBroker != null && updateSendButtonToCancelButtonHandler != null) {
+      eventBroker.unsubscribe(updateSendButtonToCancelButtonHandler);
+      updateSendButtonToCancelButtonHandler = null;
     }
   }
 }

@@ -58,6 +58,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   private IObservableValue<CopilotModel> activeModelObservable;
   private Map<String, CopilotModel> models = new HashMap<>();
   private CopilotModel defaultModel;
+  private CopilotModel fallbackModel;
   private InputNavigation inputNavigation = new InputNavigation();
 
   // Track side effects for each combo
@@ -110,6 +111,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
               if (defaultModel == null && model.isChatDefault()) {
                 defaultModel = model;
               }
+              if (fallbackModel == null && model.isChatFallback()) {
+                fallbackModel = model;
+              }
             }
 
             restoreFromUserPreference();
@@ -150,7 +154,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     ensureRealm(() -> activeModelObservable.setValue(finalModel));
 
     // restore the input history
-    inputNavigation = new InputNavigation(getUserPreference().getUserInputs());
+    inputNavigation = new InputNavigation(restoreUserInputs());
   }
 
   private String restoreModelId() {
@@ -171,6 +175,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     }
 
     return ChatMode.Ask.toString();
+  }
+
+  private List<String> restoreUserInputs() {
+    UserPreference preference = getUserPreference();
+    if (preference != null && preference.getUserInputs() != null) {
+      return preference.getUserInputs(); // Return the most recent input
+    }
+    return new ArrayList<>();
   }
 
   private boolean ensureModelCanBeEnabled(CopilotModel model, ChatMode chatMode) {
@@ -235,6 +247,15 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   public ChatMode getActiveChatMode() {
     ChatMode activeChatMode = activeChatModeObservable.getValue();
     return activeChatMode == null ? ChatMode.Ask : activeChatMode;
+  }
+
+  /**
+   * Set the fallback model as the active model.
+   */
+  public void setFallBackModelAsActiveModel() {
+    if (fallbackModel != null) {
+      setActiveModel(fallbackModel.getModelName());
+    }
   }
 
   /**

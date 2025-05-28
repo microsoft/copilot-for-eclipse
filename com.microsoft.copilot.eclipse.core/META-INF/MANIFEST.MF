@@ -12,6 +12,7 @@ Export-Package: com.microsoft.copilot.eclipse.core,
  com.microsoft.copilot.eclipse.core.logger,
  com.microsoft.copilot.eclipse.core.lsp,
  com.microsoft.copilot.eclipse.core.lsp.protocol,
+ com.microsoft.copilot.eclipse.core.lsp.protocol.quota,
  com.microsoft.copilot.eclipse.core.utils
 Bundle-Activator: com.microsoft.copilot.eclipse.core.CopilotCore
 Bundle-RequiredExecutionEnvironment: JavaSE-17

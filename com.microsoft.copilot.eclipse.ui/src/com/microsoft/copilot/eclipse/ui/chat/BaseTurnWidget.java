@@ -279,6 +279,14 @@ public abstract class BaseTurnWidget extends Composite {
   protected abstract void createTextBlock();
 
   /**
+   * Create a warning dialog to the turn widget.
+   */
+  protected void createWarnDialog(String message, int code) {
+    new WarnWidget(this, SWT.BOTTOM, message, code);
+    requestLayout();
+  }
+
+  /**
    * Prompts the user to confirm or deny a tool execution.
    *
    * @param title The title of the confirmation dialog.
