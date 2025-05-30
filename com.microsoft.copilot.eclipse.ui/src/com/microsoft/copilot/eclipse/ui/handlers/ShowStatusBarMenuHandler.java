@@ -157,8 +157,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   private void addCopilotUsageAction(MenuManager menuManager) {
     CheckQuotaResult quotaStatus = CopilotCore.getPlugin().getAuthStatusManager().getQuotaStatus();
-    if (quotaStatus.getCompletionsQuota() == null || quotaStatus.getChatQuota() == null) {
+    if (quotaStatus.getCompletionsQuota() == null || quotaStatus.getChatQuota() == null
+        || StringUtils.isEmpty(quotaStatus.getResetDate())) {
       // skip quota status menu if quotas are not available
+      // TODO: remove reset date null check when the CLS is ready for all IDEs.
       return;
     }
 

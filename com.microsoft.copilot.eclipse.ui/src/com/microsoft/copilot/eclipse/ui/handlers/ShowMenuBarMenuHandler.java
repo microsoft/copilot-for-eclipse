@@ -92,8 +92,10 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     items.add(new Separator());
 
     // menu: Copilot useage
-    if (!authStatusManager.isNotSignedInOrNotAuthorized()) {
-      CheckQuotaResult quotaStatus = authStatusManager.getQuotaStatus();
+    CheckQuotaResult quotaStatus = authStatusManager.getQuotaStatus();
+    if (!authStatusManager.isNotSignedInOrNotAuthorized() && quotaStatus.getCompletionsQuota() != null
+        || quotaStatus.getChatQuota() != null && StringUtils.isEmpty(quotaStatus.getResetDate())) {
+      // TODO: remove reset date null check when the CLS is ready for all IDEs.
 
       // Calculate percentRemaining based on plan
       double percentRemaining;
