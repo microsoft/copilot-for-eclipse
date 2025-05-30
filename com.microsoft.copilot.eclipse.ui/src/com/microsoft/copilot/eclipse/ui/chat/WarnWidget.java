@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
@@ -11,7 +12,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -20,7 +20,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class WarnWidget extends Composite {
   private Image warnImage;
   private int buttonLeftMargin;
-  private static final int MESSAGE_LEFT_MARGIN = 5;
 
   /**
    * Create the composite.
@@ -40,27 +39,11 @@ public class WarnWidget extends Composite {
     if (code == 402) {
       // TODO: This is just a temporary solution. We need compose a dialog to support any warn message once issue
       // https://github.com/microsoft/copilot-client/issues/405 is resolved.
-      boolean enableUpdatePlanButton = message.toLowerCase().contains("upgrade to copilot pro");
-      boolean enablePremiumRequestsButton = message.toLowerCase().toLowerCase()
-          .contains("enable additional paid premium requests");
-      buildActionButtons(enableUpdatePlanButton, enablePremiumRequestsButton);
+      if (message.toLowerCase().contains("upgrade to copilot pro (30-day free trial)")) {
+        buildUpdatePlanButton();
+      }
     }
     parent.layout();
-  }
-
-  private void buildActionButtons(boolean enableUpdatePlanButton, boolean enablePremiumRequestsButton) {
-    Composite composite = new Composite(this, SWT.NONE);
-    RowLayout layout = new RowLayout(SWT.HORIZONTAL);
-    layout.marginLeft = this.buttonLeftMargin; // Add margin to the left of the buttons to align with the message
-    layout.spacing = 10;
-    composite.setLayout(layout);
-
-    if (enableUpdatePlanButton) {
-      buildUpdatePlanButton(composite);
-    }
-    if (enablePremiumRequestsButton) {
-      buildEnablePremiumRequestsButton(composite);
-    }
   }
 
   private void buildWarnLabelWithIcon(String message) {
@@ -74,36 +57,32 @@ public class WarnWidget extends Composite {
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;
     icon.setLayoutData(iconGd);
+    buttonLeftMargin = warnImage.getBounds().width + iconGd.verticalIndent;
 
-    WrapLabel label = new WrapLabel(composite, SWT.LEFT);
-    label.setText(message);
-    label.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-    label.setHorizontalIndent(MESSAGE_LEFT_MARGIN); // Indent the text to the right of the icon
+    ChatMarkupViewer textLabel = new ChatMarkupViewer(composite, SWT.LEFT | SWT.WRAP);
+    StyledText styledText = textLabel.getTextWidget();
+    styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
+    styledText.setEditable(false);
+    UiUtils.useParentBackground(styledText);
+    textLabel.setMarkup(message);
 
-    composite.layout();
-    buttonLeftMargin += label.getLocation().x - icon.getLocation().x;
+    requestLayout();
   }
 
-  private void buildUpdatePlanButton(Composite parent) {
-    Button updatePlanButton = new Button(parent, SWT.PUSH);
+  private void buildUpdatePlanButton() {
+    Composite composite = new Composite(this, SWT.NONE);
+    RowLayout layout = new RowLayout(SWT.HORIZONTAL);
+    layout.marginLeft = this.buttonLeftMargin; // Add margin to the left of the buttons to align with the message
+    layout.spacing = 10;
+    composite.setLayout(layout);
+
+    Button updatePlanButton = new Button(composite, SWT.PUSH);
     updatePlanButton.setText(Messages.chat_noQuotaView_updatePlanButton);
     updatePlanButton.setToolTipText(Messages.chat_noQuotaView_updatePlanButton_Tooltip);
     updatePlanButton.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(org.eclipse.swt.events.SelectionEvent event) {
         UiUtils.openLink(Messages.chat_noQuotaView_updatePlanLink);
-      }
-    });
-  }
-
-  private void buildEnablePremiumRequestsButton(Composite parent) {
-    Button updatePlanButton = new Button(parent, SWT.PUSH);
-    updatePlanButton.setText(Messages.chat_noQuotaView_enablePremiumRequestsButton);
-    updatePlanButton.setToolTipText(Messages.chat_noQuotaView_enablePremiumRequestsButton_tooltip);
-    updatePlanButton.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(org.eclipse.swt.events.SelectionEvent event) {
-        UiUtils.openLink(Messages.chat_noQuotaView_enablePremiumRequestsLink);
       }
     });
   }

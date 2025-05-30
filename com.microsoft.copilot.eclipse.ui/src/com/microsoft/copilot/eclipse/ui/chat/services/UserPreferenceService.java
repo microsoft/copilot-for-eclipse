@@ -289,6 +289,15 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
+   * Get the fallback model.
+   *
+   * @return the fallback model
+   */
+  public CopilotModel getFallbackModel() {
+    return fallbackModel;
+  }
+
+  /**
    * Bind a chat mode picker combo to this service.
    *
    * @param combo the combo to bind
@@ -387,7 +396,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         if (index >= 0 && index < combo.getItemCount()) {
           String modelNameWithMultiplier = combo.getItem(index);
           if (modelNameWithMultiplier.replace("-", "").equals(Messages.chat_standardModels)
-              || modelNameWithMultiplier.replace("-", "").equals(Messages.chat_premiumModels)) {
+              || modelNameWithMultiplier.replace("-", "").equals(Messages.chat_premiumModels)
+              || modelNameWithMultiplier.replace("-", "").equals(Messages.chat_copilotModels)) {
             // Prevent selection of header items
             e.doit = false;
             updateSelectionForActiveModel(combo);
@@ -484,7 +494,11 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       }
       if (!premiumModels.isEmpty()) {
         premiumModels.sort(String.CASE_INSENSITIVE_ORDER);
-        premiumModels.add(0, addDashesAroundModelHeader(Messages.chat_premiumModels, maxWidth, gc));
+        if (standardModels.isEmpty()) {
+          premiumModels.add(0, addDashesAroundModelHeader(Messages.chat_copilotModels, maxWidth, gc));
+        } else {
+          premiumModels.add(0, addDashesAroundModelHeader(Messages.chat_premiumModels, maxWidth, gc));
+        }
       }
 
       List<String> allModels = new ArrayList<>(standardModels);

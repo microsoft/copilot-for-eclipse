@@ -157,6 +157,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   private void addCopilotUsageAction(MenuManager menuManager) {
     CheckQuotaResult quotaStatus = CopilotCore.getPlugin().getAuthStatusManager().getQuotaStatus();
+    if (quotaStatus.getCompletionsQuota() == null || quotaStatus.getChatQuota() == null) {
+      // skip quota status menu if quotas are not available
+      return;
+    }
 
     // Calculate percentRemaining based on plan
     double percentRemaining;

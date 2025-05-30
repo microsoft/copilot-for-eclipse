@@ -23,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -170,13 +171,29 @@ public class ChatContentViewer extends ScrolledComposite {
         errMsg = Messages.chat_model_unsupported_message;
       }
       if (StringUtils.isNotEmpty(errMsg)) {
+        // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.
+        if (value.getCode() == 402) {
+          CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan();
+          CopilotModel fallbackModel = this.serviceManager.getUserPreferenceService().getFallbackModel();
+          String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
+              : Messages.chat_noQuotaView_fallbackModel;
+
+          if (userPlan == CopilotPlan.individual || userPlan == CopilotPlan.individual_pro) {
+            // Pro and Pro+ message
+            errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
+          } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
+            // CE and CB message
+            errMsg = String.format(Messages.chat_noQuotaView_cbCeWarnMsg, fallbackModelName);
+          }
+        }
+
         renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode());
+
         if (value.getCode() == 402
             && this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan() != CopilotPlan.free) {
           this.serviceManager.getUserPreferenceService().setFallBackModelAsActiveModel();
-
-          // Although free plan users have fallback model, they cannot use it.
           this.serviceManager.getAuthStatusManager().checkQuota();
+
           String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
           if (StringUtils.isNotEmpty(previousInput)) {
             IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
