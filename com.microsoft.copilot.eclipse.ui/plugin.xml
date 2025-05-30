@@ -158,6 +158,31 @@
 			id="com.microsoft.copilot.eclipse.commands.showWhatIsNew"
 			name="%command.showWhatIsNew.name">
 		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan"
+			name="%command.upgradeCopilotPlan.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.manageCopilot"
+			name="%command.manageCopilot.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.manageCopilotOverage"
+			name="%command.manageCopilotOverage.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.enabledDoNothing"
+			name="%command.enabledDoNothing.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.disabledDoNothing"
+			name="%command.disabledDoNothing.name">
+		</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -218,6 +243,26 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.ShowWhatIsNewHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.showWhatIsNew">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.CopilotUpgradePlanHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.ManageCopilotHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.manageCopilot">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.ManageCopilotOverageHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.manageCopilotOverage">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.EnabledDoNothingHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.enabledDoNothing">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.DisabledDoNothingHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.disabledDoNothing">
 		</handler>
 	</extension>
 

@@ -8,33 +8,33 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
  * Result of the checkQuota request.
  */
 public class CheckQuotaResult {
-  private ChatQuota chat;
-  private CompletionsQuota completions;
-  private PremiumInteractionsQuota premiumInteractions;
+  private Quota chat;
+  private Quota completions;
+  private Quota premiumInteractions;
   private String resetDate;
   private CopilotPlan copilotPlan;
 
-  public ChatQuota getChatQuota() {
+  public Quota getChatQuota() {
     return chat;
   }
 
-  public void setChatQuota(ChatQuota chat) {
+  public void setChatQuota(Quota chat) {
     this.chat = chat;
   }
 
-  public CompletionsQuota getCompletionsQuota() {
+  public Quota getCompletionsQuota() {
     return completions;
   }
 
-  public void setCompletionsQuota(CompletionsQuota completions) {
+  public void setCompletionsQuota(Quota completions) {
     this.completions = completions;
   }
 
-  public PremiumInteractionsQuota getPremiumInteractionsQuota() {
+  public Quota getPremiumInteractionsQuota() {
     return premiumInteractions;
   }
 
-  public void setPremiumInteractionsQuota(PremiumInteractionsQuota premiumInteractions) {
+  public void setPremiumInteractionsQuota(Quota premiumInteractions) {
     this.premiumInteractions = premiumInteractions;
   }
 

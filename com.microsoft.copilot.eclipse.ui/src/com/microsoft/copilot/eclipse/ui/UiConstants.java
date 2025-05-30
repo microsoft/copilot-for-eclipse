@@ -24,4 +24,7 @@ public class UiConstants {
    * The URL constants for the Copilot menu.
    */
   public static final String COPILOT_FEEDBACK_FORUM_URL = "https://github.com/orgs/community/discussions/categories/copilot";
+  public static final String COPILOT_UPGRADE_PLAN_URL = "https://aka.ms/github-copilot-upgrade-plan";
+  public static final String MANAGE_COPILOT_URL = "https://aka.ms/github-copilot-settings";
+  public static final String MANAGE_COPILOT_OVERAGE_URL = "https://aka.ms/github-copilot-manage-overage";
 }

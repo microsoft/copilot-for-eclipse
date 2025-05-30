@@ -7,7 +7,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 /**
  * Completions quota information.
  */
-public class CompletionsQuota {
+public class Quota {
   private double percentRemaining;
   private boolean unlimited;
   private boolean overagePermitted;
@@ -15,7 +15,7 @@ public class CompletionsQuota {
   /**
    * Creates a new CompletionsQuota quota information with default values.
    */
-  public CompletionsQuota() {
+  public Quota() {
     this.percentRemaining = 0.0;
     this.unlimited = false;
     this.overagePermitted = false;
@@ -61,7 +61,7 @@ public class CompletionsQuota {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    CompletionsQuota other = (CompletionsQuota) obj;
+    Quota other = (Quota) obj;
     return overagePermitted == other.overagePermitted
         && Double.doubleToLongBits(percentRemaining) == Double.doubleToLongBits(other.percentRemaining)
         && unlimited == other.unlimited;

@@ -25,6 +25,18 @@ public final class Messages extends NLS {
   public static String menu_enableCompletions;
   public static String menu_disableCompletions;
   public static String menu_openChatView;
+  public static String menu_quota_copilotUsage;
+  public static String menu_quota_codeCompletions;
+  public static String menu_quota_chatMessages;
+  public static String menu_quota_premiumRequests;
+  public static String menu_quota_additionalPremiumRequests;
+  public static String menu_quota_enabled;
+  public static String menu_quota_disabled;
+  public static String menu_quota_allowanceReset;
+  public static String menu_quota_manageCopilotTooltip;
+  public static String menu_quota_updateCopilotToPro;
+  public static String menu_quota_updateCopilotToProPlus;
+  public static String menu_quota_managePaidPremiumRequests;
   public static String signInDialog_title;
   public static String signInDialog_button_cancel;
   public static String signInDialog_button_copyOpen;

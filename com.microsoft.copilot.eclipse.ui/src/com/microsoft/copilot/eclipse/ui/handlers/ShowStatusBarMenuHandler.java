@@ -1,8 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.handlers;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -24,6 +27,9 @@ import org.eclipse.ui.menus.UIElement;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
 import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -49,6 +55,12 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     MenuManager menuManager = new MenuManager();
     // Sign in status section
     addStatusAction(menuManager);
+
+    // Copilot usage section
+    if (!authStatusManager.isNotSignedInOrNotAuthorized()) {
+      menuManager.add(new Separator("copilotUsageGroup"));
+      addCopilotUsageAction(menuManager);
+    }
 
     // Sign in & sign out section
     menuManager.add(new Separator());
@@ -143,6 +155,95 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     MenuActionFactory.createMenuAction(menuManager, copilotStatusTitle, handlerService, copilotStatus, false);
   }
 
+  private void addCopilotUsageAction(MenuManager menuManager) {
+    CheckQuotaResult quotaStatus = CopilotCore.getPlugin().getAuthStatusManager().getQuotaStatus();
+
+    // Calculate percentRemaining based on plan
+    double percentRemaining;
+    if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
+      // For free plan, consider completions and chat quotas
+      percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
+          quotaStatus.getChatQuota().getPercentRemaining());
+    } else {
+      // For paid plans, also consider premium interactions quota
+      percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
+          Math.min(quotaStatus.getChatQuota().getPercentRemaining(),
+              quotaStatus.getPremiumInteractionsQuota().getPercentRemaining()));
+    }
+
+    ImageDescriptor icon;
+    // Set icon based on percentRemaining
+    if (percentRemaining >= 90) {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
+    } else if (percentRemaining >= 75) {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_yellow.png");
+    } else {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_red.png");
+    }
+
+    MenuActionFactory.createMenuActionWithTooltipText(menuManager, Messages.menu_quota_copilotUsage,
+        Messages.menu_quota_manageCopilotTooltip, icon, handlerService,
+        "com.microsoft.copilot.eclipse.commands.manageCopilot", true);
+
+    // Premium requests usage when rest plans are unlimited
+    if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
+        && quotaStatus.getChatQuota().isUnlimited()) {
+      String premiumRequestsText = Messages.menu_quota_premiumRequests
+          + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
+      MenuActionFactory.createMenuAction(menuManager, premiumRequestsText, handlerService,
+          "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+    }
+
+    // Code completions usage
+    String codeCompletionsText = Messages.menu_quota_codeCompletions
+        + getPercentRemaining(quotaStatus.getCompletionsQuota());
+    MenuActionFactory.createMenuAction(menuManager, codeCompletionsText, handlerService,
+        "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+
+    // Chat messages usage
+    String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
+    MenuActionFactory.createMenuAction(menuManager, chatMessagesText, handlerService,
+        "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+
+    // Premium requests usage
+    if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
+      // Premium requests usage when either of the rest plans is not unlimited
+      if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
+        String premiumRequestsText = Messages.menu_quota_premiumRequests
+            + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
+        MenuActionFactory.createMenuAction(menuManager, premiumRequestsText, handlerService,
+            "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+      }
+
+      MenuActionFactory.createMenuAction(menuManager,
+          Messages.menu_quota_additionalPremiumRequests
+              + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
+                  : Messages.menu_quota_disabled),
+          handlerService, "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+    }
+
+    // Allowance reset date
+    if (!StringUtils.isEmpty(quotaStatus.getResetDate())) {
+      LocalDate resetDate = LocalDate.parse(quotaStatus.getResetDate());
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM dd, yyyy");
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_allowanceReset + resetDate.format(formatter),
+          handlerService, "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+    }
+
+    // Upsell actions based on the user's plan
+    ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
+    if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
+      // If the user is on a free plan, show a link to upgrade.
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_updateCopilotToPro, upgradeIcon,
+          handlerService, "com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan", true);
+    } else if (quotaStatus.getCopilotPlan() != CopilotPlan.business
+        && quotaStatus.getCopilotPlan() != CopilotPlan.enterprise) {
+      // If the user is not on a free plan / business plan / enterprise plan, show a link to manage subscription.
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_managePaidPremiumRequests, upgradeIcon,
+          handlerService, "com.microsoft.copilot.eclipse.commands.manageCopilotOverage", true);
+    }
+  }
+
   private void addOpenChatViewAction(MenuManager menuManager) {
     ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/github_copilot_chat.png");
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_openChatView, icon, handlerService,
@@ -234,6 +335,17 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     }
   }
 
+  private String getPercentRemaining(Quota quota) {
+    if (quota.isUnlimited()) {
+      return "Included";
+    }
+    double percent = Math.max(0, 100 - quota.getPercentRemaining());
+    if (percent == 0.0) {
+      return "0%";
+    }
+    return String.format("%.1f", percent) + "%";
+  }
+
   private static class MenuActionFactory {
     public static void createMenuAction(MenuManager menuManager, String actionName, ImageDescriptor icon,
         IHandlerService handlerService, String commandId, boolean enabled) {
@@ -254,6 +366,23 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     public static void createMenuAction(MenuManager menuManager, String text, IHandlerService handlerService,
         String commandId, boolean enabled) {
       createMenuAction(menuManager, text, null, handlerService, commandId, enabled);
+    }
+
+    public static void createMenuActionWithTooltipText(MenuManager menuManager, String text, String tooltipText,
+        ImageDescriptor icon, IHandlerService handlerService, String commandId, boolean enabled) {
+      Action action = new Action(text, icon) {
+        @Override
+        public void run() {
+          try {
+            handlerService.executeCommand(commandId, null);
+          } catch (Exception e) {
+            CopilotCore.LOGGER.error(e);
+          }
+        }
+      };
+      action.setEnabled(enabled);
+      action.setToolTipText(tooltipText);
+      menuManager.add(action);
     }
   }
 
