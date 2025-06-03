@@ -70,6 +70,9 @@ public class EditorLifecycleListener implements IPartListener2 {
     if (connectDocumentIfNecessary(editorPart, textEditor)) {
       createCompletionHandlerFor(textEditor);
     }
+    if (textEditor != null) {
+      manager.setActiveEditor(textEditor);
+    }
   }
 
   @Override
