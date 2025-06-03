@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 
 @ExtendWith(MockitoExtension.class)
 class AuthStatusManagerTests {
@@ -28,19 +29,20 @@ class AuthStatusManagerTests {
 
   @BeforeEach
   void setUp() {
+    when(mockConnection.checkQuota()).thenReturn(CompletableFuture.completedFuture(new CheckQuotaResult()));
     authStatusManager = new AuthStatusManager(mockConnection);
   }
-  
+
   @Test
   void testSignInInitiate() throws InterruptedException, ExecutionException {
-	SignInInitiateResult mockResult = mock(SignInInitiateResult.class);
-	when(mockResult.isAlreadySignedIn()).thenReturn(true);
-	when(mockConnection.signInInitiate()).thenReturn(CompletableFuture.completedFuture(mockResult));
+    SignInInitiateResult mockResult = mock(SignInInitiateResult.class);
+    when(mockResult.isAlreadySignedIn()).thenReturn(true);
+    when(mockConnection.signInInitiate()).thenReturn(CompletableFuture.completedFuture(mockResult));
 
-	SignInInitiateResult result = authStatusManager.signInInitiate();
+    SignInInitiateResult result = authStatusManager.signInInitiate();
 
-	assertEquals(CopilotStatusResult.OK, authStatusManager.getCopilotStatus());
-	assertEquals(mockResult, result);
+    assertEquals(CopilotStatusResult.OK, authStatusManager.getCopilotStatus());
+    assertEquals(mockResult, result);
   }
 
   @Test
