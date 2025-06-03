@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -196,19 +197,22 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         && quotaStatus.getChatQuota().isUnlimited()) {
       String premiumRequestsText = Messages.menu_quota_premiumRequests
           + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-      MenuActionFactory.createMenuAction(menuManager, premiumRequestsText, handlerService,
+      MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
           "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
     }
 
     // Code completions usage
     String codeCompletionsText = Messages.menu_quota_codeCompletions
         + getPercentRemaining(quotaStatus.getCompletionsQuota());
-    MenuActionFactory.createMenuAction(menuManager, codeCompletionsText, handlerService,
+    MenuActionFactory.createMenuAction(menuManager, codeCompletionsText,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
         "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
 
     // Chat messages usage
     String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
-    MenuActionFactory.createMenuAction(menuManager, chatMessagesText, handlerService,
+    MenuActionFactory.createMenuAction(menuManager, chatMessagesText,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
         "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
 
     // Premium requests usage
@@ -217,7 +221,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
         String premiumRequestsText = Messages.menu_quota_premiumRequests
             + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-        MenuActionFactory.createMenuAction(menuManager, premiumRequestsText, handlerService,
+        MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
+            UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
             "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
       }
 
@@ -366,6 +371,9 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         }
       };
       action.setEnabled(enabled);
+      if (icon == null) {
+        setDefaultBlankIcon(action);
+      }
       menuManager.add(action);
     }
 
@@ -388,7 +396,17 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       };
       action.setEnabled(enabled);
       action.setToolTipText(tooltipText);
+      if (icon == null) {
+        setDefaultBlankIcon(action);
+      }
       menuManager.add(action);
+    }
+  }
+
+  private static void setDefaultBlankIcon(Action action) {
+    ImageDescriptor blankIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+    if (PlatformUtils.isMac()) {
+      action.setImageDescriptor(blankIcon);
     }
   }
 

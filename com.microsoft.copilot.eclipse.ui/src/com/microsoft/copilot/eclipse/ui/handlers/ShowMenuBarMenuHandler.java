@@ -2,6 +2,8 @@ package com.microsoft.copilot.eclipse.ui.handlers;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.action.IContributionItem;
@@ -19,6 +21,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
@@ -37,7 +40,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
 
   @Override
   protected IContributionItem[] getContributionItems() {
-    java.util.List<IContributionItem> items = new java.util.ArrayList<>();
+    List<IContributionItem> items = new ArrayList<>();
 
     // menu: openChatView
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openChatView", Messages.menu_openChatView,
@@ -89,106 +92,109 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signOut", Messages.menu_signOutFromGitHub,
           UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png")));
     }
-    items.add(new Separator());
+    addCopilotUsageAction(authStatusManager, items);
+    return items.toArray(new IContributionItem[0]);
+  }
 
+  private void addCopilotUsageAction(AuthStatusManager authStatusManager, List<IContributionItem> items) {
     // menu: Copilot useage
     CheckQuotaResult quotaStatus = authStatusManager.getQuotaStatus();
-    if (!authStatusManager.isNotSignedInOrNotAuthorized() && quotaStatus.getCompletionsQuota() != null
-        || quotaStatus.getChatQuota() != null && StringUtils.isEmpty(quotaStatus.getResetDate())) {
-      // TODO: remove reset date null check when the CLS is ready for all IDEs.
-
-      // Calculate percentRemaining based on plan
-      double percentRemaining;
-      if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
-        // For free plan, consider completions and chat quotas
+    if (authStatusManager.isNotSignedInOrNotAuthorized() || quotaStatus.getCompletionsQuota() == null
+        || quotaStatus.getChatQuota() == null || StringUtils.isEmpty(quotaStatus.getResetDate())) {
+      return;
+    }
+    // TODO: remove reset date null check when the CLS is ready for all IDEs.
+    items.add(new Separator());
+    // Calculate percentRemaining based on plan
+    double percentRemaining;
+    if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
+      // For free plan, consider completions and chat quotas
+      percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
+          quotaStatus.getChatQuota().getPercentRemaining());
+    } else {
+      // For paid plans, also consider premium interactions quota
+      if (quotaStatus.getCompletionsQuota() == null) {
+        // If completions quota is not available, set percentRemaining to 0
+        percentRemaining = 0;
+      } else {
         percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
-            quotaStatus.getChatQuota().getPercentRemaining());
-      } else {
-        // For paid plans, also consider premium interactions quota
-        if (quotaStatus.getCompletionsQuota() == null) {
-          // If completions quota is not available, set percentRemaining to 0
-          percentRemaining = 0;
-        } else {
-          percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
-              Math.min(quotaStatus.getChatQuota().getPercentRemaining(),
-                  quotaStatus.getPremiumInteractionsQuota().getPercentRemaining()));
-        }
-      }
-
-      ImageDescriptor icon;
-      // Set icon based on percentRemaining
-      if (percentRemaining >= 90) {
-        icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
-      } else if (percentRemaining >= 75) {
-        icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_yellow.png");
-      } else {
-        icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_red.png");
-      }
-
-      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.manageCopilot",
-          Messages.menu_quota_copilotUsage, Messages.menu_quota_manageCopilotTooltip, icon));
-
-      // Premium requests usage when rest plans are unlimited
-      if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
-          && quotaStatus.getChatQuota().isUnlimited()) {
-        String premiumRequestsText = Messages.menu_quota_premiumRequests
-            + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-        items.add(
-            createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", premiumRequestsText, null));
-      }
-
-      // Code completions useage
-      String codeCompletionsText = Messages.menu_quota_codeCompletions
-          + getPercentRemaining(quotaStatus.getCompletionsQuota());
-      items
-          .add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", codeCompletionsText, null));
-
-      // Chat messages usage
-      String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
-      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", chatMessagesText, null));
-
-      // Premium requests usage
-      if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
-        // Premium requests usage when either of the rest plans is not unlimited
-        if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
-          String premiumRequestsText = Messages.menu_quota_premiumRequests
-              + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-          items.add(
-              createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", premiumRequestsText, null));
-        }
-
-        CommandContributionItem additionalPremiumRequestsDesc = createCommandItem(
-            "com.microsoft.copilot.eclipse.commands.disabledDoNothing",
-            Messages.menu_quota_additionalPremiumRequests
-                + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
-                    : Messages.menu_quota_disabled),
-            null);
-        items.add(additionalPremiumRequestsDesc);
-      }
-
-      // Allowance reset date
-      if (!StringUtils.isEmpty(quotaStatus.getResetDate())) {
-        LocalDate resetDate = LocalDate.parse(quotaStatus.getResetDate());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM dd, yyyy");
-        items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.disabledDoNothing",
-            Messages.menu_quota_allowanceReset + resetDate.format(formatter), null));
-      }
-
-      // Upsell actions based on the user's plan
-      ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
-      if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
-        // If the user is on a free plan, show a link to upgrade.
-        items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
-            Messages.menu_quota_updateCopilotToPro, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
-      } else if (quotaStatus.getCopilotPlan() != CopilotPlan.business
-          && quotaStatus.getCopilotPlan() != CopilotPlan.enterprise) {
-        // If the user is not on a free plan / business plan / enterprise plan, show a link to manage subscription.
-        items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
-            Messages.menu_quota_updateCopilotToProPlus, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
+            Math.min(quotaStatus.getChatQuota().getPercentRemaining(),
+                quotaStatus.getPremiumInteractionsQuota().getPercentRemaining()));
       }
     }
 
-    return items.toArray(new IContributionItem[0]);
+    ImageDescriptor icon;
+    // Set icon based on percentRemaining
+    if (percentRemaining >= 90) {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
+    } else if (percentRemaining >= 75) {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_yellow.png");
+    } else {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_red.png");
+    }
+
+    items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.manageCopilot",
+        Messages.menu_quota_copilotUsage, Messages.menu_quota_manageCopilotTooltip, icon));
+
+    // Premium requests usage when rest plans are unlimited
+    if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
+        && quotaStatus.getChatQuota().isUnlimited()) {
+      String premiumRequestsText = Messages.menu_quota_premiumRequests
+          + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", premiumRequestsText,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+    }
+
+    // Code completions useage
+    String codeCompletionsText = Messages.menu_quota_codeCompletions
+        + getPercentRemaining(quotaStatus.getCompletionsQuota());
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", codeCompletionsText,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+
+    // Chat messages usage
+    String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", chatMessagesText,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+
+    // Premium requests usage
+    if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
+      // Premium requests usage when either of the rest plans is not unlimited
+      if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
+        String premiumRequestsText = Messages.menu_quota_premiumRequests
+            + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
+        items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", premiumRequestsText,
+            UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+      }
+
+      CommandContributionItem additionalPremiumRequestsDesc = createCommandItem(
+          "com.microsoft.copilot.eclipse.commands.disabledDoNothing",
+          Messages.menu_quota_additionalPremiumRequests
+              + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
+                  : Messages.menu_quota_disabled),
+          null);
+      items.add(additionalPremiumRequestsDesc);
+    }
+
+    // Allowance reset date
+    if (!StringUtils.isEmpty(quotaStatus.getResetDate())) {
+      LocalDate resetDate = LocalDate.parse(quotaStatus.getResetDate());
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM dd, yyyy");
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.disabledDoNothing",
+          Messages.menu_quota_allowanceReset + resetDate.format(formatter), null));
+    }
+
+    // Upsell actions based on the user's plan
+    ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
+    if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
+      // If the user is on a free plan, show a link to upgrade.
+      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
+          Messages.menu_quota_updateCopilotToPro, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
+    } else if (quotaStatus.getCopilotPlan() != CopilotPlan.business
+        && quotaStatus.getCopilotPlan() != CopilotPlan.enterprise) {
+      // If the user is not on a free plan / business plan / enterprise plan, show a link to manage subscription.
+      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
+          Messages.menu_quota_updateCopilotToProPlus, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
+    }
   }
 
   private String getPercentRemaining(Quota quota) {
@@ -207,6 +213,8 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
         CommandContributionItem.STYLE_PUSH);
     if (icon != null) {
       parameter.icon = icon;
+    } else {
+      setDefaultBlankIcon(parameter);
     }
 
     if (label != null) {
@@ -222,6 +230,8 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
         CommandContributionItem.STYLE_PUSH);
     if (icon != null) {
       parameter.icon = icon;
+    } else {
+      setDefaultBlankIcon(parameter);
     }
 
     if (label != null) {
@@ -233,5 +243,12 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     }
 
     return new CommandContributionItem(parameter);
+  }
+
+  private void setDefaultBlankIcon(CommandContributionItemParameter parameter) {
+    ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+    if (PlatformUtils.isMac()) {
+      parameter.icon = icon;
+    }
   }
 }
