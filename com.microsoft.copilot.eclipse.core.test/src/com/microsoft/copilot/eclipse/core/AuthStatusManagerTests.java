@@ -29,7 +29,6 @@ class AuthStatusManagerTests {
 
   @BeforeEach
   void setUp() {
-    when(mockConnection.checkQuota()).thenReturn(CompletableFuture.completedFuture(new CheckQuotaResult()));
     authStatusManager = new AuthStatusManager(mockConnection);
   }
 
@@ -53,6 +52,7 @@ class AuthStatusManagerTests {
     when(mockResult.getUser()).thenReturn(mockedUser);
     when(mockResult.getStatus()).thenReturn(CopilotStatusResult.OK);
     when(mockConnection.signInConfirm(userCode)).thenReturn(CompletableFuture.completedFuture(mockResult));
+    when(mockConnection.checkQuota()).thenReturn(CompletableFuture.completedFuture(new CheckQuotaResult()));
 
     CopilotStatusResult result = authStatusManager.signInConfirm(userCode);
 

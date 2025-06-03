@@ -215,7 +215,9 @@ public class AuthStatusManager {
   }
 
   private void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
-    this.checkQuota();
+    if (copilotStatusResult.isSignedIn()) {
+      this.checkQuota();
+    }
     if (!this.copilotAuthStatusListeners.isEmpty()) {
       for (CopilotAuthStatusListener listener : this.copilotAuthStatusListeners) {
         listener.onDidCopilotStatusChange(copilotStatusResult);
