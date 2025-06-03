@@ -526,14 +526,25 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       suffix = multiplier.toPlainString() + MODEL_MULTIPLIER_SUFFIX;
     }
 
-    String result = "";
-    // Due to the fact that on some platform, the textExtent of "foo" and "foofoo", is not simply linear.
-    // Usually "foofoo" is shorter than "foo" x 2. So we need to start from spacesToAdd and increase it progressively
-    // until we find a width that is not less than maxWidth.
-    for (int i = spacesToAdd; i < spacesToAdd + MAX_SPACE_TO_ADD; i++) {
-      result = modelName + HAIR_SPACE.repeat(i) + suffix;
-      if (gc.textExtent(result).x >= maxWidth) {
-        break;
+    String result = modelName + HAIR_SPACE.repeat(spacesToAdd) + suffix;
+    // On some platforms, the textExtent of "foo" and "foofoo" does not scale linearly.
+    // Typically, "foofoo" is shorter than the width of "foo x 2" but the exact behavior varies across different
+    // operating systems. Therefore, we start with spacesToAdd and adjust it incrementally or decreasingly until we find
+    // a width that is at least maxWidth.
+    int initialWidth = gc.textExtent(result).x;
+    if (initialWidth > maxWidth) {
+      for (int i = spacesToAdd - 1; i > 0; i--) {
+        result = modelName + HAIR_SPACE.repeat(i) + suffix;
+        if (gc.textExtent(result).x <= maxWidth) {
+          break;
+        }
+      }
+    } else if (initialWidth < maxWidth) {
+      for (int i = spacesToAdd + 1; i < spacesToAdd + MAX_SPACE_TO_ADD; i++) {
+        result = modelName + HAIR_SPACE.repeat(i) + suffix;
+        if (gc.textExtent(result).x >= maxWidth) {
+          break;
+        }
       }
     }
 
