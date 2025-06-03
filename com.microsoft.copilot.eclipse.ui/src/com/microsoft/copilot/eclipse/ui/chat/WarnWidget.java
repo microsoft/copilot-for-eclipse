@@ -50,6 +50,7 @@ public class WarnWidget extends Composite {
     Composite composite = new Composite(this, SWT.NONE);
     composite.setLayout(new GridLayout(2, false));
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
+    UiUtils.useParentBackground(composite);
 
     Label icon = new Label(composite, SWT.TOP);
     warnImage = UiUtils.buildImageFromPngPath("/icons/message_warning.png");
@@ -58,6 +59,7 @@ public class WarnWidget extends Composite {
     iconGd.verticalIndent = 4;
     icon.setLayoutData(iconGd);
     buttonLeftMargin = warnImage.getBounds().width + iconGd.verticalIndent;
+    UiUtils.useParentBackground(icon);
 
     ChatMarkupViewer textLabel = new ChatMarkupViewer(composite, SWT.LEFT | SWT.WRAP);
     StyledText styledText = textLabel.getTextWidget();
