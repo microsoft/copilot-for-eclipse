@@ -21,7 +21,15 @@ public class Quota {
     this.overagePermitted = false;
   }
 
+  /**
+   * Gets the percentage of the quota remaining within the range of 0.0 to 100.0.
+   */
   public double getPercentRemaining() {
+    if (percentRemaining < 0.0) {
+      return 0.0;
+    } else if (percentRemaining > 100.0) {
+      return 100.0;
+    }
     return percentRemaining;
   }
 
