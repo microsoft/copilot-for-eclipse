@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.0
+### Added
+- New billing support and user interface update.
+- Input history navigation. [PR##785](https://github.com/microsoft/copilot-eclipse/pull/785)
+- A button shortcut to open the MCP configuration page. [PR#766](https://github.com/microsoft/copilot-eclipse/pull/766)
+
+### Changed
+- Update CLS to 1.327.0. [PR#808](https://github.com/microsoft/copilot-eclipse/pull/808)
+- Update Copilot status icon. [PR#792](https://github.com/microsoft/copilot-eclipse/pull/792)
+
+### Fixed
+- Fix the memory leak issue that the document is not disconnected. [PR#777](https://github.com/microsoft/copilot-eclipse/pull/777)
+- Document for URI could not be found. [#274](https://github.com/microsoft/copilot-eclipse/issues/274)
+- No tools is displayed in MCP configuration page. [#756](https://github.com/microsoft/copilot-eclipse/issues/756)
+- NPE when resolve menu bar handler. [#655](https://github.com/microsoft/copilot-eclipse/issues/655)
+- Compare editor title cannot be rendered correctly. [#763](https://github.com/microsoft/copilot-eclipse/issues/763)
+
 ## 0.6.1
 ### Fixed
 - Correct the bundle version requirement to align with Eclipse 2024-09.

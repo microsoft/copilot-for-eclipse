@@ -3,10 +3,10 @@
 ## Feature Highlights
 This release introduces a **new billing model** with support for premium requests in GitHub Copilot for Eclipse, enhanced chat usability with **Chat input history navigation**, **quick access to Agent Mode tool configuration**, and a range of **bug fixes and performance improvements**.
 
-### 💵 New Billing model
+### 💵 Billing for GitHub Copilot Update
 Starting **June 4, 2025**, a new billing model and updated user interface will be introduced in GitHub Copilot for Eclipse for all plans.
 
-Your Copilot plan now includes [Premium requets](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests#premium-features), which provide access to more advanced models and features. These requests count against your monthly premium request allowance, calculated based on the [Model mutipliers](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests#model-multipliers).
+Your Copilot plan now includes [Premium requests](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests#premium-features), which provide access to more advanced models and features. These requests count against your monthly premium request allowance, calculated based on the [Model multipliers](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests#model-multipliers).
 
 Read more on [About premium requests](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests) and [About billing for GitHub Copilot](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-copilot/about-billing-for-github-copilot).
 
