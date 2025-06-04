@@ -214,31 +214,38 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
    * @param quotaResult The latest quota information.
    */
   private void updateQuotaItems(CheckQuotaResult quotaResult) {
-    if (quotaResult != null) {
-      if (this.chatUsageItem != null && quotaResult.getChatQuota() != null) {
-        String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaResult.getChatQuota());
-        updateCommandItemLabel(this.chatUsageItem, chatMessagesText);
-      }
+    if (quotaResult == null) {
+      return;
+    }
+    if (this.chatUsageItem != null && quotaResult.getChatQuota() != null) {
+      String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaResult.getChatQuota());
+      updateCommandItemLabel(this.chatUsageItem, chatMessagesText);
+    }
 
-      if (this.completionsUsageItem != null && quotaResult.getCompletionsQuota() != null) {
-        String codeCompletionsText = Messages.menu_quota_codeCompletions
-            + getPercentRemaining(quotaResult.getCompletionsQuota());
-        updateCommandItemLabel(this.completionsUsageItem, codeCompletionsText);
-      }
+    if (this.completionsUsageItem != null && quotaResult.getCompletionsQuota() != null) {
+      String codeCompletionsText = Messages.menu_quota_codeCompletions
+          + getPercentRemaining(quotaResult.getCompletionsQuota());
+      updateCommandItemLabel(this.completionsUsageItem, codeCompletionsText);
+    }
 
-      if (this.premiumRequestsUsageItem != null && quotaResult.getPremiumInteractionsQuota() != null) {
-        String premiumRequestsText = Messages.menu_quota_premiumRequests
-            + getPercentRemaining(quotaResult.getPremiumInteractionsQuota());
-        updateCommandItemLabel(this.premiumRequestsUsageItem, premiumRequestsText);
-      }
+    if (this.premiumRequestsUsageItem != null && quotaResult.getPremiumInteractionsQuota() != null) {
+      String premiumRequestsText = Messages.menu_quota_premiumRequests
+          + getPercentRemaining(quotaResult.getPremiumInteractionsQuota());
+      updateCommandItemLabel(this.premiumRequestsUsageItem, premiumRequestsText);
+    }
 
-      if (this.chatUsageItem != null || this.completionsUsageItem != null || this.premiumRequestsUsageItem != null) {
-        SwtUtils.invokeOnDisplayThread(() -> {
-          chatUsageItem.update();
-          completionsUsageItem.update();
-          premiumRequestsUsageItem.update();
-        });
-      }
+    if (this.chatUsageItem != null || this.completionsUsageItem != null || this.premiumRequestsUsageItem != null) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        if (this.chatUsageItem != null) {
+          this.chatUsageItem.update();
+        }
+        if (this.completionsUsageItem != null) {
+          this.completionsUsageItem.update();
+        }
+        if (this.premiumRequestsUsageItem != null) {
+          this.premiumRequestsUsageItem.update();
+        }
+      });
     }
   }
 
