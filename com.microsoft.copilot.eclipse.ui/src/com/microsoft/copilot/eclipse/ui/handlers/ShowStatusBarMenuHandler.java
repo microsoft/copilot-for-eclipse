@@ -211,13 +211,13 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     }
 
     ImageDescriptor icon;
-    // Set icon based on percentRemaining
-    if (percentRemaining >= 90) {
-      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
-    } else if (percentRemaining >= 75) {
+    // Set icon based on the lowest percentRemaining
+    if (percentRemaining <= 10) {
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_red.png");
+    } else if (percentRemaining > 10 && percentRemaining <= 25) {
       icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_yellow.png");
     } else {
-      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_red.png");
+      icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
     }
 
     MenuActionFactory.createMenuActionWithTooltipText(menuManager, Messages.menu_quota_copilotUsage,
