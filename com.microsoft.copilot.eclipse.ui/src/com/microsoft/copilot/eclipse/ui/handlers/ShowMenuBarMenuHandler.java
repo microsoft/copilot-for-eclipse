@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.handlers;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -32,6 +34,9 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ShowMenuBarMenuHandler extends CompoundContributionItem implements IWorkbenchContribution {
   private IServiceLocator serviceLocator;
+  private CommandContributionItem chatUsageItem;
+  private CommandContributionItem completionsUsageItem;
+  private CommandContributionItem premiumRequestsUsageItem;
 
   @Override
   public void initialize(IServiceLocator serviceLocator) {
@@ -92,11 +97,11 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signOut", Messages.menu_signOutFromGitHub,
           UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png")));
     }
-    addCopilotUsageAction(authStatusManager, items);
+    addCopilotUsageItems(authStatusManager, items);
     return items.toArray(new IContributionItem[0]);
   }
 
-  private void addCopilotUsageAction(AuthStatusManager authStatusManager, List<IContributionItem> items) {
+  private void addCopilotUsageItems(AuthStatusManager authStatusManager, List<IContributionItem> items) {
     // menu: Copilot useage
     CheckQuotaResult quotaStatus = authStatusManager.getQuotaStatus();
     if (authStatusManager.isNotSignedInOrNotAuthorized() || quotaStatus.getCompletionsQuota() == null
@@ -141,20 +146,23 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
         && quotaStatus.getChatQuota().isUnlimited()) {
       String premiumRequestsText = Messages.menu_quota_premiumRequests
           + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", premiumRequestsText,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+      this.premiumRequestsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
+          premiumRequestsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+      items.add(this.premiumRequestsUsageItem);
     }
 
     // Code completions useage
     String codeCompletionsText = Messages.menu_quota_codeCompletions
         + getPercentRemaining(quotaStatus.getCompletionsQuota());
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", codeCompletionsText,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+    this.completionsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
+        codeCompletionsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+    items.add(this.completionsUsageItem);
 
     // Chat messages usage
     String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", chatMessagesText,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+    this.chatUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", chatMessagesText,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+    items.add(this.chatUsageItem);
 
     // Premium requests usage
     if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
@@ -162,8 +170,9 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
         String premiumRequestsText = Messages.menu_quota_premiumRequests
             + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-        items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", premiumRequestsText,
-            UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+        this.premiumRequestsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
+            premiumRequestsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+        items.add(this.premiumRequestsUsageItem);
       }
 
       CommandContributionItem additionalPremiumRequestsDesc = createCommandItem(
@@ -194,6 +203,58 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       // If the user is not on a free plan / business plan / enterprise plan, show a link to manage subscription.
       items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
           Messages.menu_quota_updateCopilotToProPlus, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
+    }
+    // Create a CompletableFuture to update quota information
+    CopilotCore.getPlugin().getAuthStatusManager().checkQuota().thenAccept(this::updateQuotaItems);
+  }
+
+  /**
+   * Updates the quota items with the latest quota information.
+   *
+   * @param quotaResult The latest quota information.
+   */
+  private void updateQuotaItems(CheckQuotaResult quotaResult) {
+    if (quotaResult != null) {
+      if (this.chatUsageItem != null && quotaResult.getChatQuota() != null) {
+        String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaResult.getChatQuota());
+        updateCommandItemLabel(this.chatUsageItem, chatMessagesText);
+      }
+
+      if (this.completionsUsageItem != null && quotaResult.getCompletionsQuota() != null) {
+        String codeCompletionsText = Messages.menu_quota_codeCompletions
+            + getPercentRemaining(quotaResult.getCompletionsQuota());
+        updateCommandItemLabel(this.completionsUsageItem, codeCompletionsText);
+      }
+
+      if (this.premiumRequestsUsageItem != null && quotaResult.getPremiumInteractionsQuota() != null) {
+        String premiumRequestsText = Messages.menu_quota_premiumRequests
+            + getPercentRemaining(quotaResult.getPremiumInteractionsQuota());
+        updateCommandItemLabel(this.premiumRequestsUsageItem, premiumRequestsText);
+      }
+
+      if (this.chatUsageItem != null || this.completionsUsageItem != null || this.premiumRequestsUsageItem != null) {
+        SwtUtils.invokeOnDisplayThread(() -> {
+          chatUsageItem.update();
+          completionsUsageItem.update();
+          premiumRequestsUsageItem.update();
+        });
+      }
+    }
+  }
+
+  /**
+   * Updates the label of a CommandContributionItem.
+   *
+   * @param item The CommandContributionItem to update
+   * @param newLabel The new label to set
+   */
+  private void updateCommandItemLabel(CommandContributionItem item, String newLabel) {
+    try {
+      Field labelField = CommandContributionItem.class.getDeclaredField("label");
+      labelField.setAccessible(true);
+      labelField.set(item, newLabel);
+    } catch (Exception e) {
+      // Skip updating the label if reflection fails
     }
   }
 

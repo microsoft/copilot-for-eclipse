@@ -21,7 +21,6 @@ import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.utils.RepeatingJob;
 
 /**
  * The plug-in runtime class for the Copilot plug-in containing the core (UI-free) support, like the completion,
@@ -89,19 +88,6 @@ public class CopilotCore extends Plugin {
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
       this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.authStatusManager.checkStatus();
-
-      RepeatingJob quotaJob = new RepeatingJob("Chekcing Quota", 60 * 1000) {
-
-        @Override
-        protected IStatus runTask(IProgressMonitor monitor) {
-          if (CopilotCore.this.authStatusManager.isSignedIn()) {
-            CopilotCore.this.authStatusManager.checkQuota();
-          }
-          return Status.OK_STATUS;
-        }
-
-      };
-      quotaJob.schedule();
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {

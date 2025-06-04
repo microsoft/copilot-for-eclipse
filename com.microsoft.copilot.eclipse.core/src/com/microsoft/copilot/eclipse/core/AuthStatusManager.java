@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -121,14 +122,15 @@ public class AuthStatusManager {
 
   /**
    * Check the user's quota usage.
+   *
+   * @return CompletableFuture containing the check quota result
    */
-  public void checkQuota() {
-    this.connection.checkQuota().handle((result, ex) -> {
-      if (ex != null) {
-        CopilotCore.LOGGER.error(ex);
-      } else {
-        setQuotaStatus(result);
-      }
+  public CompletableFuture<CheckQuotaResult> checkQuota() {
+    return this.connection.checkQuota().thenApply(result -> {
+      setQuotaStatus(result);
+      return result;
+    }).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
       return null;
     });
   }

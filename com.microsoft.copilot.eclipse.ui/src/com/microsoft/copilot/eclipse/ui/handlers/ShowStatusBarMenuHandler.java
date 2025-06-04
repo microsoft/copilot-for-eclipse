@@ -46,6 +46,9 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   private AuthStatusManager authStatusManager;
   private LanguageServerSettingManager languageServerSettingManager;
   private SpinnerJob spinnerJob;
+  private Action completionRemainingAction;
+  private Action chatRemainingAction;
+  private Action premiumRequestsAction;
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -61,6 +64,9 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     if (!authStatusManager.isNotSignedInOrNotAuthorized()) {
       menuManager.add(new Separator("copilotUsageGroup"));
       addCopilotUsageAction(menuManager);
+
+      // Create a CompletableFuture to update quota information
+      CopilotCore.getPlugin().getAuthStatusManager().checkQuota().thenAccept(this::updateQuotaActions);
     }
 
     // Sign in & sign out section
@@ -91,6 +97,32 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     Menu menu = menuManager.createContextMenu(shell);
     menu.setVisible(true);
     return null;
+  }
+
+  /**
+   * Updates the quota actions with the latest quota information.
+   *
+   * @param quotaResult The latest quota information.
+   */
+  private void updateQuotaActions(CheckQuotaResult quotaResult) {
+    if (quotaResult != null) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        if (completionRemainingAction != null) {
+          completionRemainingAction
+              .setText(Messages.menu_quota_codeCompletions + getPercentRemaining(quotaResult.getCompletionsQuota()));
+        }
+
+        if (chatRemainingAction != null) {
+          chatRemainingAction
+              .setText(Messages.menu_quota_chatMessages + getPercentRemaining(quotaResult.getChatQuota()));
+        }
+
+        if (premiumRequestsAction != null && quotaResult.getCopilotPlan() != CopilotPlan.free) {
+          premiumRequestsAction.setText(
+              Messages.menu_quota_premiumRequests + getPercentRemaining(quotaResult.getPremiumInteractionsQuota()));
+        }
+      });
+    }
   }
 
   @Override
@@ -197,7 +229,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         && quotaStatus.getChatQuota().isUnlimited()) {
       String premiumRequestsText = Messages.menu_quota_premiumRequests
           + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-      MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
+      premiumRequestsAction = MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
           UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
           "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
     }
@@ -205,13 +237,13 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     // Code completions usage
     String codeCompletionsText = Messages.menu_quota_codeCompletions
         + getPercentRemaining(quotaStatus.getCompletionsQuota());
-    MenuActionFactory.createMenuAction(menuManager, codeCompletionsText,
+    completionRemainingAction = MenuActionFactory.createMenuAction(menuManager, codeCompletionsText,
         UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
         "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
 
     // Chat messages usage
     String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
-    MenuActionFactory.createMenuAction(menuManager, chatMessagesText,
+    chatRemainingAction = MenuActionFactory.createMenuAction(menuManager, chatMessagesText,
         UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
         "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
 
@@ -221,7 +253,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
         String premiumRequestsText = Messages.menu_quota_premiumRequests
             + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-        MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
+        premiumRequestsAction = MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
             UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
             "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
       }
@@ -358,49 +390,54 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private static class MenuActionFactory {
-    public static void createMenuAction(MenuManager menuManager, String actionName, ImageDescriptor icon,
+    public static Action createMenuAction(MenuManager menuManager, String actionName, ImageDescriptor icon,
         IHandlerService handlerService, String commandId, boolean enabled) {
-      Action action = new Action(actionName, icon) {
-        @Override
-        public void run() {
-          try {
-            handlerService.executeCommand(commandId, null);
-          } catch (Exception e) {
-            CopilotCore.LOGGER.error(e);
-          }
-        }
-      };
-      action.setEnabled(enabled);
-      if (icon == null) {
-        setDefaultBlankIcon(action);
-      }
+      Action action = createActionInternal(actionName, icon, handlerService, commandId, enabled);
       menuManager.add(action);
+      return action;
     }
 
-    public static void createMenuAction(MenuManager menuManager, String text, IHandlerService handlerService,
+    /**
+     * Creates a menu action with the specified text and command ID.
+     *
+     * @param menuManager The MenuManager to add the action to.
+     * @param text The text for the action.
+     * @param handlerService The IHandlerService to execute the command.
+     * @param commandId The command ID to execute when the action is triggered.
+     * @param enabled Whether the action should be enabled or not.
+     * @return The created Action.
+     */
+    public static Action createMenuAction(MenuManager menuManager, String text, IHandlerService handlerService,
         String commandId, boolean enabled) {
-      createMenuAction(menuManager, text, null, handlerService, commandId, enabled);
+      return createMenuAction(menuManager, text, null, handlerService, commandId, enabled);
     }
 
-    public static void createMenuActionWithTooltipText(MenuManager menuManager, String text, String tooltipText,
+    public static Action createMenuActionWithTooltipText(MenuManager menuManager, String text, String tooltipText,
         ImageDescriptor icon, IHandlerService handlerService, String commandId, boolean enabled) {
-      Action action = new Action(text, icon) {
-        @Override
-        public void run() {
-          try {
-            handlerService.executeCommand(commandId, null);
-          } catch (Exception e) {
-            CopilotCore.LOGGER.error(e);
-          }
-        }
-      };
-      action.setEnabled(enabled);
+      Action action = createActionInternal(text, icon, handlerService, commandId, enabled);
       action.setToolTipText(tooltipText);
-      if (icon == null) {
-        setDefaultBlankIcon(action);
-      }
       menuManager.add(action);
+      return action;
     }
+  }
+
+  private static Action createActionInternal(String actionName, ImageDescriptor icon, IHandlerService handlerService,
+      String commandId, boolean enabled) {
+    Action action = new Action(actionName, icon) {
+      @Override
+      public void run() {
+        try {
+          handlerService.executeCommand(commandId, null);
+        } catch (Exception e) {
+          CopilotCore.LOGGER.error(e);
+        }
+      }
+    };
+    action.setEnabled(enabled);
+    if (icon == null) {
+      setDefaultBlankIcon(action);
+    }
+    return action;
   }
 
   private static void setDefaultBlankIcon(Action action) {
