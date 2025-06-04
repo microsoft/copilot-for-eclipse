@@ -102,11 +102,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
           try {
             // fetch the models
             CopilotModel[] modelArray = lsConnection.listModels().get();
+            Map<String, CopilotModel> newModels = new HashMap<>();
             for (CopilotModel model : modelArray) {
               boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
               boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
               if (supportsChat || supportsAgent) {
-                models.put(model.getId(), model);
+                newModels.put(model.getId(), model);
               }
               if (defaultModel == null && model.isChatDefault()) {
                 defaultModel = model;
@@ -115,6 +116,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
                 fallbackModel = model;
               }
             }
+            models = newModels;
 
             restoreFromUserPreference();
           } catch (InterruptedException | ExecutionException e) {
