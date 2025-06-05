@@ -55,6 +55,58 @@ extends:
                   rm -f $(Build.SourcesDirectory)/publish/GithubCopilotForEclipse.zip
 
               - task: AzureCLI@2
+                displayName: 'Remove old artifacts.jar'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot-eclipse-nightly \
+                      --pattern "artifacts.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Remove old content.jar'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot-eclipse-nightly \
+                      --pattern "content.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Remove old features folder'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot-eclipse-nightly \
+                      --pattern "features/*.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Remove old plugins folder'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot-eclipse-nightly \
+                      --pattern "plugins/*.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
                 displayName: 'Upload files to blob storage'
                 inputs:
                   azureSubscription: 'copilot-eclipse'
