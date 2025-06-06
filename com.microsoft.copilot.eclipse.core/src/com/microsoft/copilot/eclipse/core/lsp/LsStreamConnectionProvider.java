@@ -15,6 +15,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Platform;
@@ -227,46 +233,71 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
    */
   private Map<String, String> getLoginShellEnvironment() {
     Map<String, String> env = new HashMap<>();
+    if (!PlatformUtils.isMac()) {
+      return env;
+    }
 
-    // Only proceed on macOS
-    if (PlatformUtils.isMac()) {
-      Process process = null;
-      try {
-        // Execute login shell and get environment variables
-        ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-l", "-c", "env");
-        process = pb.start();
+    Process process = null;
+    try {
+      // Execute login shell and get environment variables
+      ProcessBuilder pb = new ProcessBuilder("/bin/zsh", "-i", "-l", "-c", "env");
+      process = pb.start();
 
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-          String line;
-          while ((line = reader.readLine()) != null) {
-            int separator = line.indexOf('=');
-            if (separator > 0) {
-              String key = line.substring(0, separator);
-              String value = line.substring(separator + 1);
-              env.put(key, value);
-            }
-          }
-        }
+      env = getEnvironmentVariables(process);
 
-        int exitCode = process.waitFor();
+      // Check if process completed successfully
+      if (process.waitFor(1, TimeUnit.SECONDS)) {
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
           CopilotCore.LOGGER.error(
               new IllegalStateException("Failed to get login shell environment variables. Exit code: " + exitCode));
         }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        CopilotCore.LOGGER.error("Interrupted while getting login shell environment variables", e);
-      } catch (IOException e) {
-        CopilotCore.LOGGER.error("IOException while getting login shell environment variables", e);
-      } finally {
-        if (process != null && process.isAlive()) {
-          process.destroy();
-        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      CopilotCore.LOGGER.error("Interrupted while getting login shell environment variables", e);
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error("IOException while getting login shell environment variables", e);
+    } finally {
+      if (process != null && process.isAlive()) {
+        process.destroy();
       }
     }
 
     return env;
+  }
+
+  private Map<String, String> getEnvironmentVariables(Process process) throws InterruptedException {
+    // Create a separate thread to read the process output with a timeout, this avoids blocking the original thread
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Future<Map<String, String>> future = executor.submit(() -> {
+      Map<String, String> result = new HashMap<>();
+      try (BufferedReader reader = new BufferedReader(
+          new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          int separator = line.indexOf('=');
+          if (separator > 0) {
+            String key = line.substring(0, separator);
+            String value = line.substring(separator + 1);
+            result.put(key, value);
+          }
+        }
+      }
+      return result;
+    });
+
+    try {
+      return future.get(5, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      CopilotCore.LOGGER.error("Timed out waiting for login shell environment variables", e);
+      future.cancel(true);
+    } catch (ExecutionException e) {
+      CopilotCore.LOGGER.error("Error reading login shell environment variables", e);
+    } finally {
+      executor.shutdownNow();
+    }
+    return new HashMap<>();
   }
 
 }
