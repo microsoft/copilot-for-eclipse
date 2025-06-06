@@ -108,6 +108,9 @@ public abstract class ChatBaseService {
    * Get the path for the persistent file.
    */
   private @Nullable Path getPersistentFilePath() {
+    if (this.authStatusManager.isNotSignedIn()) {
+      return null;
+    }
     if (this.persistentPath == null) {
       try {
         ChatPersistence chatPersistence = this.lsConnection.persistence().get();
