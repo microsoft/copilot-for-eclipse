@@ -383,10 +383,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       return "Included";
     }
     double percent = Math.max(0, 100 - quota.getPercentRemaining());
-    if (percent == 0.0) {
+    if (percent < 0.1) {
       return "0%";
     }
-    return String.format("%.1f", percent) + "%";
+    return String.format("%.1f", Math.round(percent * 10) / 10.0) + "%";
   }
 
   private static class MenuActionFactory {
