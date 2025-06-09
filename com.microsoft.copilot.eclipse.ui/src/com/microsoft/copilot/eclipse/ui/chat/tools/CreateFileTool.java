@@ -193,7 +193,13 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
 
   @Override
   public void onViewDiff(IFile file) {
-    compareStringWithFile(StringUtils.EMPTY, file);
+    // Check if the file is already open in a compare editor and bring it to the top if is exists
+    if (compareEditorInputMap.containsKey(file) && bringCompareEditorToTop(compareEditorInputMap.get(file))) {
+      return;
+    }
+    // If the compare editor is created but closed, remove it from the map and create a new one
+    compareEditorInputMap.remove(file);
+    compareStringWithFile(fileContentCache.get(file), file);
   }
 
   @Override
