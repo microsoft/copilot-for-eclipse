@@ -113,10 +113,14 @@ public abstract class FileToolBase extends BaseTool {
     CompareEditorInput input = compareEditorInputMap.get(file);
     if (input != null) {
       if (fileContent.equals(fileContentCache.get(file))) {
-        CompareUI.reuseCompareEditor(input, (IReusableEditor) getCompareEditor(input));  
+        SwtUtils.invokeOnDisplayThread(() -> {
+          CompareUI.reuseCompareEditor(input, (IReusableEditor) getCompareEditor(input));
+        });
       } else {
         CompareEditorInput newInput = createCompareEditorInput(fileContent, file);
-        CompareUI.reuseCompareEditor(newInput, (IReusableEditor) getCompareEditor(input));
+        SwtUtils.invokeOnDisplayThread(() -> {
+          CompareUI.reuseCompareEditor(newInput, (IReusableEditor) getCompareEditor(input));
+        });
         compareEditorInputMap.put(file, newInput);
       }
       bringCompareEditorToTop(input);
