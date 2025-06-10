@@ -36,7 +36,7 @@ public class AgentModeViewer extends BaseViewer {
   }
 
   private void buildMainIconAndLabel() {
-    Composite iconLabelComposite = new Composite(this, SWT.CENTER);
+    Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
@@ -93,7 +93,7 @@ public class AgentModeViewer extends BaseViewer {
   }
 
   private void buildSubComposite() {
-    Composite subComposite = new Composite(this, SWT.CENTER);
+    Composite subComposite = new Composite(this, SWT.NONE);
     GridLayout subCompositelayout = new GridLayout(1, true);
     subComposite.setLayout(subCompositelayout);
     GridData gridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);

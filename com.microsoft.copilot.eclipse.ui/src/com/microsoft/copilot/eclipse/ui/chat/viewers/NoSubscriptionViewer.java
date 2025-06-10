@@ -37,7 +37,7 @@ public class NoSubscriptionViewer extends BaseViewer {
   }
 
   private void buildMainIconAndLabel() {
-    Composite iconLabelComposite = new Composite(this, SWT.CENTER);
+    Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
@@ -65,7 +65,7 @@ public class NoSubscriptionViewer extends BaseViewer {
   }
 
   private void buildcheckSubButton() {
-    Composite checkSubComposite = buildCompositeWithMarginTop(this, 10, SWT.CENTER);
+    Composite checkSubComposite = buildCompositeWithMarginTop(this, 10, SWT.NONE);
 
     Button checkSubButton = new Button(checkSubComposite, SWT.PUSH | SWT.WRAP);
     checkSubButton.setText(Messages.chat_noAuthView_checkSubButton);

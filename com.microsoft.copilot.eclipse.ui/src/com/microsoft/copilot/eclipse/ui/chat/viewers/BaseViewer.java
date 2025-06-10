@@ -29,7 +29,7 @@ public abstract class BaseViewer extends Composite {
    * @param text the text for the label
    */
   protected void buildLabelWithIcon(Composite parent, Image labelIcon, String text) {
-    Composite composite = new Composite(parent, SWT.CENTER);
+    Composite composite = new Composite(parent, SWT.NONE);
     composite.setLayout(new GridLayout(2, false));
     composite.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
     Label icon = new Label(composite, SWT.RIGHT);

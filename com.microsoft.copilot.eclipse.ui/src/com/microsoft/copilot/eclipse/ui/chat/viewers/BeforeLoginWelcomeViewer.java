@@ -52,7 +52,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildMainIconAndLabel() {
-    Composite iconLabelComposite = new Composite(this, SWT.CENTER);
+    Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
@@ -80,7 +80,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildSubComposite() {
-    Composite composite = new Composite(this, SWT.CENTER | SWT.BORDER);
+    Composite composite = new Composite(this, SWT.BORDER);
     GridData gridData = new GridData(SWT.CENTER, SWT.FILL, true, true);
     gridData.widthHint = ALIGNED_WIDTH;
     composite.setLayoutData(gridData);
@@ -111,7 +111,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildRawLayoutLabelWithIcon(Composite parent, String text, Image labelIcon) {
-    Composite composite = new Composite(parent, SWT.CENTER);
+    Composite composite = new Composite(parent, SWT.NONE);
     RowLayout rowLayout = new RowLayout();
     rowLayout.center = true;
     rowLayout.pack = true;
@@ -147,7 +147,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildCopilotForFreeLink() {
-    Composite copilotFreeComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.CENTER);
+    Composite copilotFreeComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.NONE);
     StringBuilder linkText = new StringBuilder();
     linkText.append(Messages.chat_welcomeView_freeCopilotIntroPrefix).append(Messages.chat_welcomeView_freeCopilotLink)
         .append(Messages.chat_welcomeView_freeCopilotIntroSuffix);
@@ -157,7 +157,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildSignInButton() {
-    Composite signInComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.CENTER);
+    Composite signInComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.NONE);
     Button signInButton = new Button(signInComposite, SWT.PUSH | SWT.WRAP);
     signInButton.setText(Messages.chat_welcomeView_signInButton);
     signInButton.setToolTipText(Messages.chat_welcomeView_signInButton_Tooltip);
@@ -178,7 +178,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildTermsAndPrivacyLink() {
-    Composite termsAndPrivacyComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.CENTER);
+    Composite termsAndPrivacyComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.NONE);
     StringBuilder linkText = new StringBuilder();
     linkText.append(Messages.chat_welcomeView_termsPrefix).append(Messages.chat_welcomeView_termsLink)
         .append(Messages.chat_welcomeView_termsSuffix).append(Messages.chat_welcomeView_privacyPolicyPrefix)
@@ -193,7 +193,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   }
 
   private void buildPublicCodeAndSettingsLink() {
-    Composite publicCodeAndSettingsComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.CENTER);
+    Composite publicCodeAndSettingsComposite = buildCompositeWithMarginTop(this, ALIGNED_MARGIN_TOP, SWT.NONE);
     StringBuilder linkText = new StringBuilder();
     linkText.append(Messages.chat_welcomeView_footerPublicCodePrefix)
         .append(Messages.chat_welcomeView_footerPublicCodeLink).append(Messages.chat_welcomeView_footerPublicCodeSuffix)

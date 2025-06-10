@@ -34,7 +34,7 @@ public class LoadingViewer extends BaseViewer {
   }
 
   private void buildMainIconAndLabel() {
-    Composite iconLabelComposite = new Composite(this, SWT.CENTER);
+    Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
