@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -8,6 +10,7 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextViewer;
+import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
@@ -37,6 +40,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   private Consumer<String> sendMessageHandler;
   private SlashCommandService slashCommandService;
   private UserPreferenceService userPreferenceService;
+  private ContentAssistant contentAssistant;
 
   private boolean caretLineOffsetChanged = false;
   private int lastCursorLineOffset = 0;
@@ -208,7 +212,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
    * Return true if the event is handled, false otherwise.
    */
   private boolean handleArrowKeyEvent(KeyEvent e, String text) {
-    if (ChatInputTextViewer.this.caretLineOffsetChanged) {
+    if (this.caretLineOffsetChanged || this.isProposalPopupActive()) {
       return false;
     }
     if (e.keyCode == SWT.ARROW_UP) {
@@ -304,6 +308,26 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   public void dispose() {
     if (needDisposeColorResource && placeholderColor != null && !placeholderColor.isDisposed()) {
       placeholderColor.dispose();
+    }
+  }
+
+  public void setContentAssistProcessor(ContentAssistant ca) {
+    contentAssistant = ca;
+  }
+
+  /**
+   * Checks if the proposal popup is currently active. We use reflection instead of extends ContentAssistant to expose
+   * the method. Because using the latter
+   */
+  private boolean isProposalPopupActive() {
+    try {
+      // Use reflection to call the isProposalPopupActive method from ContentAssistant
+      Method method = ContentAssistant.class.getDeclaredMethod("isProposalPopupActive");
+      method.setAccessible(true);
+      return (boolean) method.invoke(contentAssistant);
+    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+      CopilotCore.LOGGER.error("Failed to call isProposalPopupActive via reflection", e);
+      return false; // Default to false if reflection fails
     }
   }
 }

@@ -92,8 +92,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     };
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND,
-        updateSendButtonToCancelButtonHandler);
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, updateSendButtonToCancelButtonHandler);
     this.setBackground(UiUtils.getThemeColor(UiConstants.EDITOR_BACKGROUND));
     GridLayout gl = new GridLayout(1, false);
     gl.marginHeight = 5;
@@ -191,6 +190,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     });
     ca.install(tv);
+    tv.setContentAssistProcessor(ca);
 
     GridLayout glActionArea = new GridLayout(2, false);
     // Same as RowLayout above, need to set marginWidth/Height and marginLeft/Right/Top/Bottom separately in GridLayout
@@ -214,7 +214,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     UiUtils.useParentBackground(cmpControlBar);
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
-    
+
     // Create a composite for the bottom-right side buttons
     GridLayout buttonsLayout = new GridLayout(2, false);
     buttonsLayout.marginWidth = 0;
@@ -223,7 +223,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     bottomRightButtonsComposite.setLayout(buttonsLayout);
     bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
     UiUtils.useParentBackground(bottomRightButtonsComposite);
-    
+
     // Add a button that will open McpPreferencePage.
     mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
     this.addDisposeListener(e -> {
