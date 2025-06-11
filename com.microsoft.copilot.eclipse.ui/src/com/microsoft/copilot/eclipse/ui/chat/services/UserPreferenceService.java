@@ -33,10 +33,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Manager for chat services.
@@ -397,12 +399,15 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         int index = combo.getSelectionIndex();
         if (index >= 0 && index < combo.getItemCount()) {
           String modelNameWithMultiplier = combo.getItem(index);
-          if (modelNameWithMultiplier.replace("-", "").equals(Messages.chat_standardModels)
-              || modelNameWithMultiplier.replace("-", "").equals(Messages.chat_premiumModels)
-              || modelNameWithMultiplier.replace("-", "").equals(Messages.chat_copilotModels)) {
-            // Prevent selection of header items
-            e.doit = false;
-            updateSelectionForActiveModel(combo);
+          String trimmedModelNameWithMultiplier = modelNameWithMultiplier.replace("-", "");
+          if (trimmedModelNameWithMultiplier.equals(Messages.chat_standardModels)
+              || trimmedModelNameWithMultiplier.equals(Messages.chat_premiumModels)
+              || trimmedModelNameWithMultiplier.equals(Messages.chat_copilotModels)
+              || StringUtils.isBlank(trimmedModelNameWithMultiplier)) {
+            dismissComboSelection(e, combo);
+          } else if (trimmedModelNameWithMultiplier.equals(Messages.chat_addPremiumModels)) {
+            dismissComboSelection(e, combo);
+            UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan", null);
           } else {
             setActiveModel(getModelNameFromModelWithMultiplier(modelNameWithMultiplier));
           }
@@ -505,6 +510,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
       List<String> allModels = new ArrayList<>(standardModels);
       allModels.addAll(premiumModels);
+      if (this.authStatusManager.getQuotaStatus().getCopilotPlan() == CopilotPlan.free) {
+        allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
+        allModels.add(Messages.chat_addPremiumModels);
+      }
       return allModels.toArray(new String[0]);
     } finally {
       gc.dispose();
@@ -607,6 +616,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         updateSelectedItem(combo, modelName, index);
       }
     }
+  }
+
+  private void dismissComboSelection(SelectionEvent e, Combo combo) {
+    // Prevent selection of header items
+    e.doit = false;
+    updateSelectionForActiveModel(combo);
   }
 
   private int getModelIndexFromComboByModelName(Combo combo, String modelName) {
