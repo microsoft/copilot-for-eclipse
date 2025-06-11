@@ -175,7 +175,14 @@ public abstract class BaseTurnWidget extends Composite {
       case "completed":
         statusLabel.setCompletedStatus(toolCall.getProgressMessage());
         break;
+      case "cancelled":
+        statusLabel.setCancelledStatus();
+        break;
+      case "error":
+        statusLabel.setErrorStatus();
+        break;
       default:
+        statusLabel.setErrorStatus();
         CopilotCore.LOGGER.error(new IllegalStateException("Unknown status: " + status));
     }
   }

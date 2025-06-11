@@ -24,6 +24,7 @@ public class AgentStatusLabel extends Composite {
   private Image runningIcon;
   private Image completedIcon;
   private Image cancelledIcon;
+  private Image errorIcon;
   private Label iconLabel;
   private ChatMarkupViewer textLabel;
   private int currentFrame = 1;
@@ -52,6 +53,9 @@ public class AgentStatusLabel extends Composite {
       }
       if (this.cancelledIcon != null && !this.cancelledIcon.isDisposed()) {
         this.cancelledIcon.dispose();
+      }
+      if (this.errorIcon != null && !this.errorIcon.isDisposed()) {
+        this.errorIcon.dispose();
       }
       if (this.eventBroker != null) {
         this.eventBroker.unsubscribe(cancelStatusHandler);
@@ -104,7 +108,24 @@ public class AgentStatusLabel extends Composite {
     this.status = Status.RUNNING;
   }
 
-  private void setCancelledStatus() {
+  /**
+   * Set the error status for the agent with a status message.
+   */
+  public void setErrorStatus() {
+    if (this.status == Status.RUNNING) {
+      stopAnimation();
+    }
+    if (this.errorIcon == null) {
+      this.errorIcon = UiUtils.buildImageFromPngPath("/icons/message_error.png");
+    }
+    iconLabel.setImage(errorIcon);
+    this.status = Status.ERROR;
+  }
+
+  /**
+   * Cancel the current running status of the agent status label.
+   */
+  public void setCancelledStatus() {
     if (this.status == Status.RUNNING) {
       stopAnimation();
 
@@ -171,6 +192,6 @@ public class AgentStatusLabel extends Composite {
   }
 
   private enum Status {
-    RUNNING, COMPLETED, CANCELLED
+    RUNNING, COMPLETED, ERROR, CANCELLED
   }
 }
