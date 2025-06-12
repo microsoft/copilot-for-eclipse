@@ -1,10 +1,17 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
+import com.google.gson.Strictness;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -165,8 +172,14 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private boolean validateMcpField(StringFieldEditor mcpField) {
     String stringValue = mcpField.getStringValue();
     try {
+      // First check for basic JSON syntax using GSON parser
       GSON.fromJson(stringValue, Object.class);
-      return true;
+
+      // Second check for duplicate keys in the JSON
+      try (JsonReader reader = new JsonReader(new StringReader(stringValue))) {
+        reader.setStrictness(Strictness.LENIENT);
+        return validateDuplicateKeys(mcpField, reader);
+      }
     } catch (Exception e) {
       String errorMsg = e.getMessage();
       if (errorMsg != null) {
@@ -183,6 +196,67 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       mcpField.setErrorMessage("SyntaxError: " + errorMsg);
       return false;
     }
+  }
+
+  /**
+   * Recursively checks for duplicate keys in a JSON structure.
+   */
+  private boolean validateDuplicateKeys(StringFieldEditor mcpField, JsonReader reader) throws IOException {
+    JsonToken token = reader.peek();
+    
+    switch (token) {
+      case BEGIN_OBJECT:
+        reader.beginObject();
+        Set<String> objectKeys = new HashSet<>();
+        
+        while (reader.hasNext()) {
+          String key = reader.nextName();
+          if (!objectKeys.add(key)) {
+            mcpField.setErrorMessage("Error: Duplicate key '" + key + "' found in JSON object");
+            return false;
+          }
+          
+          if (!validateDuplicateKeys(mcpField, reader)) {
+            return false;
+          }
+        }
+        
+        reader.endObject();
+        break;
+        
+      case BEGIN_ARRAY:
+        reader.beginArray();
+        
+        while (reader.hasNext()) {
+          if (!validateDuplicateKeys(mcpField, reader)) {
+            return false;
+          }
+        }
+        
+        reader.endArray();
+        break;
+        
+      case STRING:
+        reader.nextString();
+        break;
+        
+      case NUMBER:
+        reader.nextDouble();
+        break;
+        
+      case BOOLEAN:
+        reader.nextBoolean();
+        break;
+        
+      case NULL:
+        reader.nextNull();
+        break;
+        
+      default:
+        reader.skipValue();
+    }
+
+    return true;
   }
 
   private String getServerRunningStatusHint(McpServerToolsCollection server) {
