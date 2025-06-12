@@ -172,7 +172,6 @@ public class ActionBar extends Composite implements NewConversationListener {
         Object popupTable = PlatformUtils.getPropertyWithReflection(proposalPopup, "fProposalTable");
         // get ca.fProposalPopup.fProposalTable using reflection
         if (popupTable != null && popupTable instanceof Table table && table.getLayoutData() instanceof GridData gd) {
-          gd.horizontalIndent = 3;
           updateTableLayout(table);
           // when selection changed, table did not fill data in mac, which will make the size incorrect
           // use listener to track the set data event, and update layout when data is filled
@@ -185,7 +184,14 @@ public class ActionBar extends Composite implements NewConversationListener {
         Point size = table.computeSize(SWT.DEFAULT, SWT.DEFAULT);
         int heightHint = Math.min(size.y, table.getItemHeight() * MAX_VISIBLE_ITEMS);
         int widthHint = Math.min(size.x, tv.getControl().getSize().x);
-        table.getShell().setSize(widthHint + 3, heightHint);
+        
+        // If horizontal scrollbar is needed, add its height to the table height
+        // Otherwise, the last raw may not be fully visible
+        if (size.x > widthHint) {
+          heightHint += table.getHorizontalBar().getSize().y;
+        }
+        
+        table.getShell().setSize(widthHint, heightHint);
       }
 
     });
