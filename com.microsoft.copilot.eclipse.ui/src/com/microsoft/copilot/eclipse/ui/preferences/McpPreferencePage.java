@@ -94,7 +94,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     gl.marginTop = 2;
     gl.marginLeft = 2;
 
-    GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
+    GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, true);
     Group mcpGroup = new Group(parent, SWT.NONE);
     mcpGroup.setLayout(gl);
     gdf.applyTo(mcpGroup);
@@ -102,12 +102,18 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // add mcp field
     var mcpFieldContainer = new Composite(mcpGroup, SWT.NONE);
     mcpFieldContainer.setLayout(gl);
-    mcpFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    mcpFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     var mcpField = new StringFieldEditor(Constants.MCP, Messages.preferences_page_mcp, StringFieldEditor.UNLIMITED, 20,
         StringFieldEditor.VALIDATE_ON_KEY_STROKE, mcpFieldContainer) {
       @Override
       protected boolean doCheckState() {
         return validateMcpField(this);
+      }
+
+      @Override
+      protected void doFillIntoGrid(Composite parent, int numColumns) {
+        super.doFillIntoGrid(parent, numColumns);
+        getTextControl().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
       }
     };
 
@@ -143,7 +149,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     mcpNoteContentLabel.setLayoutData(gd);
     mcpNoteContentLabel.setText(Messages.preferences_page_mcp_note_content);
 
-    this.toolsGroup = new Group(parent, SWT.WRAP);
+    toolsGroup = new Group(parent, SWT.WRAP);
     toolsGroup.setLayout(gl);
     GridDataFactory toolsGdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, true);
     toolsGdf.applyTo(toolsGroup);
