@@ -312,4 +312,18 @@
 			id="com.microsoft.copilot.eclipse.ui.ghostTextProvider">
 		</codeMiningProvider>
 	</extension>
+	<!-- Position Chat View on the right side -->
+	<extension
+		point="org.eclipse.ui.perspectiveExtensions">
+		<perspectiveExtension
+			targetID="*">
+			<view
+				id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+				minimized="false"
+				relationship="right"
+				relative="org.eclipse.ui.editorss"
+				ratio="0.75">
+			</view>
+		</perspectiveExtension>
+	</extension>
 </plugin>
