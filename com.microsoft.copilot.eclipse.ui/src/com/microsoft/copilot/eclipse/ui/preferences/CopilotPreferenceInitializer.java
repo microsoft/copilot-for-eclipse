@@ -18,7 +18,28 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.ENABLE_STRICT_SSL, true);
     pref.setDefault(Constants.PROXY_KERBEROS_SP, "");
     pref.setDefault(Constants.GITHUB_ENTERPRISE, "");
-    pref.setDefault(Constants.MCP, "");
+    pref.setDefault(Constants.MCP, """
+        {
+          "servers": {
+            // example 1: local mcp server
+            // "local-mcp-server": {
+            //   "type": "stdio",
+            //   "command": "my-command",
+            //   "args": [],
+            //   "env": { "<KEY>": "<VALUE>" }
+            // }
+            // example 2: remote mcp server
+            // "remote-mcp-server": {
+            //   "url": "<URL>",
+            //   "requestInit": {
+            //     "headers": {
+            //       "Authorization": "Bearer <TOKEN>"
+            //     }
+            //   }
+            // }
+          }
+        }
+         """);
     pref.setDefault(Constants.MCP_TOOLS_STATUS, "");
   }
 }

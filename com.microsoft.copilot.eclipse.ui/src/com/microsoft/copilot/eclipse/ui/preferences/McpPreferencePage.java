@@ -130,7 +130,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     addField(mcpField);
     // add note to mcp field
     var mcpNoteComposite = new Composite(mcpGroup, SWT.NONE);
-    GridLayout gridLayout = new GridLayout(1, false);
+    GridLayout gridLayout = new GridLayout(2, false);
     gridLayout.marginLeft = -3;
     gridLayout.marginBottom = 1;
     mcpNoteComposite.setLayout(gridLayout);
@@ -177,6 +177,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   
   private boolean validateMcpField(StringFieldEditor mcpField) {
     String stringValue = mcpField.getStringValue();
+    if (StringUtils.isBlank(stringValue)) {
+      return true;
+    }
+
     try {
       // First check for basic JSON syntax using GSON parser
       GSON.fromJson(stringValue, Object.class);
