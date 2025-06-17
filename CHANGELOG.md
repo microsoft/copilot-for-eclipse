@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.0
+### Added
+- Enable remote MCP server.
+- Add up-sell link to the model picker for free plan accounts. [PR#840](https://github.com/microsoft/copilot-eclipse/pull/840)
+
+### Changed
+- Make the chat view appear as a side bar by default. [#336](https://github.com/microsoft/copilot-eclipse/issues/336)
+
+### Fixed
+- MCP tools are not visible. [#772](https://github.com/microsoft/copilot-eclipse/pull/772)
+- Validate duplicate keys in MCP preference page. [#830](https://github.com/microsoft/copilot-eclipse/issues/830)
+- Last line of the completion dialog in chat view is not visible. [#800](https://github.com/microsoft/copilot-eclipse/issues/800)
+- Support error status for tool invocation result. [#842](https://github.com/microsoft/copilot-eclipse/issues/842)
+- Fix rendering issue on Linux GTK. [#515](https://github.com/microsoft/copilot-eclipse/issues/515)
+- Cannot use arrow up key in the completion dialog in chat view. [#838](https://github.com/microsoft/copilot-eclipse/issues/838)
+- Decimal display incorrectly in usage quota. [#820](https://github.com/microsoft/copilot-eclipse/issues/820)
+- Invalid thread access when reuse compare editor. [#844](https://github.com/microsoft/copilot-eclipse/issues/844)
+- Reuse existing compare editor for create_file tool. [#841](https://github.com/microsoft/copilot-eclipse/issues/841)
+- Add timeout when fetching env during activation on MacOS. [PR#839](https://github.com/microsoft/copilot-eclipse/pull/839)
+- Check signin before get persisted path. [PR#837](https://github.com/microsoft/copilot-eclipse/pull/837)
+
 ## 0.7.0
 ### Added
 - New billing support and user interface update.
