@@ -1,3 +1,28 @@
+# GitHub Copilot 0.8.0 Release Notes
+
+### 🛠️ Remote MCP Server support
+Now user can configure remote MCP server in the MCP preference page, below is an example of remote GitHub MCP Server with PAT:
+
+```javascript
+{
+  "servers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "requestInit": {
+        "headers": {
+          "Authorization": "Bearer <yourToken>"
+        }
+      }
+    }
+  }
+}
+```
+
+_Note: OAuth authorization is not supported right now._
+
+### 🐞 Bug Fixes & Improvements
+This release also includes bug fixes and enhancements to improve overall stability and user experience.
+
 # GitHub Copilot 0.7.0 Release Notes
 
 ## Feature Highlights
