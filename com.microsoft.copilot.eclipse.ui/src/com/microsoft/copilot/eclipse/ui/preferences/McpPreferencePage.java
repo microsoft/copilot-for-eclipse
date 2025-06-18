@@ -52,6 +52,7 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
  */
 public class McpPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
+  private static final int GROUP_HEIGHT_HINT = 300;
   private static final int NOTE_LABEL_MARGIN = 20;
   private static final Gson GSON = new Gson();
 
@@ -154,6 +155,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     GridDataFactory toolsGdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, true);
     toolsGdf.applyTo(toolsGroup);
     toolsGroup.setText(Messages.preferences_page_mcp_tools_settings);
+
+    // Set equal height constraint for both groups
+    ((GridData) mcpGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
+    ((GridData) toolsGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
 
     ControlListener controlListener = new ControlAdapter() {
       @Override
