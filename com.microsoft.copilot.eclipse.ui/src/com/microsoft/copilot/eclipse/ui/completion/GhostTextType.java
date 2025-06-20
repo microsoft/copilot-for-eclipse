@@ -15,7 +15,7 @@ public enum GhostTextType {
   END_OF_LINE,
 
   /**
-   * Block of ghost text with multiple lines placed below the last line of the document.
+   * Block of ghost text with multiple lines placed below the first line of the ghost text.
    */
-  BELOW_LAST_LINE
+  BLOCK_LINE
 }

@@ -170,7 +170,7 @@ public class EditorLifecycleListener implements IPartListener2 {
   }
 
   /**
-   * Creates the {@link CompletionManager} for the ITextEditor of the IWorkbenchPart.
+   * Creates the {@link BaseCompletionManager} for the ITextEditor of the IWorkbenchPart.
    */
   public void createCompletionHandlerFor(ITextEditor textEditor) {
     if (textEditor != null) {

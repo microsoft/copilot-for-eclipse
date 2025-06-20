@@ -35,6 +35,7 @@ public class CopilotCore extends Plugin {
   private GithubPanicErrorReport githubPanicErrorReport;
   private ChatEventsManager chatEventsManager;
   private IChatServiceManager chatServiceManager;
+  private IdeCapabilities ideCapabilities;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -87,6 +88,7 @@ public class CopilotCore extends Plugin {
       this.authStatusManager = new AuthStatusManager(this.copilotLanguageServer);
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
       this.githubPanicErrorReport = new GithubPanicErrorReport();
+      this.ideCapabilities = new IdeCapabilities();
       this.authStatusManager.checkStatus();
     };
 
@@ -146,6 +148,10 @@ public class CopilotCore extends Plugin {
 
   public GithubPanicErrorReport getGithubPanicErrorReport() {
     return githubPanicErrorReport;
+  }
+  
+  public IdeCapabilities getIdeCapabilities() {
+    return ideCapabilities;
   }
 
   /**

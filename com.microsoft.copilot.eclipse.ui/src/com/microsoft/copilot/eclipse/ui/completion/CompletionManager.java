@@ -1,81 +1,30 @@
 package com.microsoft.copilot.eclipse.ui.completion;
 
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.BadPositionCategoryException;
-import org.eclipse.jface.text.DefaultPositionUpdater;
-import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.ITextInputListener;
-import org.eclipse.jface.text.ITextListener;
-import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.TextEvent;
-import org.eclipse.jface.text.TextSelection;
+import org.eclipse.jface.text.Position;
+import org.eclipse.jface.text.codemining.AbstractCodeMining;
 import org.eclipse.jface.text.codemining.ICodeMining;
 import org.eclipse.jface.text.source.ISourceViewerExtension5;
-import org.eclipse.jface.util.IPropertyChangeListener;
-import org.eclipse.jface.util.PropertyChangeEvent;
-import org.eclipse.lsp4e.LSPEclipseUtils;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyledText;
-import org.eclipse.swt.events.KeyEvent;
-import org.eclipse.swt.events.KeyListener;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseListener;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.contexts.IContextActivation;
-import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.completion.AcceptSuggestionType;
-import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
-import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.completion.codemining.BlockGhostText;
+import com.microsoft.copilot.eclipse.ui.completion.codemining.LineContentGhostText;
+import com.microsoft.copilot.eclipse.ui.completion.codemining.LineEndGhostText;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
-import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
-import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A class to listen events which are completion related and notify the completion manager to render the ghost text or
  * apply the suggestion to document.
  */
-public class CompletionManager implements KeyListener, MouseListener, ITextListener, CompletionListener,
-    IPropertyChangeListener, ITextInputListener {
-
-  private static final String COMPLETION_CONTEXT = "com.microsoft.copilot.eclipse.completionAvailableContext";
-  private static IContextActivation completionContextActivation;
-
-  private CopilotLanguageServerConnection lsConnection;
-  private CompletionProvider provider;
-  private SuggestionUpdateManager suggestionUpdateManager;
-  private ITextViewer textViewer;
-  private StyledText styledText;
-  private String editorTitle;
-  private IDocument document;
-  private URI documentUri;
-  private int documentVersion;
-  private org.eclipse.jface.text.Position triggerPosition;
-  private List<ICodeMining> codeMinings;
-  private int cachedModelOffset;
-
-  private DefaultPositionUpdater positionUpdater;
-  private RenderingManager renderingManager;
-  private boolean autoShowCompletion;
-  private LanguageServerSettingManager settingsManager;
+public class CompletionManager extends BaseCompletionManager {
 
   /**
    * Creates a new completion manager. The manager is responsible for trigger the completion, apply suggestions to the
@@ -83,243 +32,36 @@ public class CompletionManager implements KeyListener, MouseListener, ITextListe
    */
   public CompletionManager(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
       ITextEditor editor, LanguageServerSettingManager settingsManager) {
-    this.codeMinings = new ArrayList<>();
-    this.textViewer = (ITextViewer) editor.getAdapter(ITextViewer.class);
-    this.editorTitle = editor.getTitle();
-    // if the text viewer is null, we will not register listeners.
-    // the side effect is that the completion will not be triggered for this editor.
-    if (textViewer == null) {
-      CopilotCore.LOGGER.info("Text viewer is null for editor: " + this.editorTitle);
-      return;
-    }
-    this.styledText = this.textViewer.getTextWidget();
-    if (this.styledText == null) {
-      CopilotCore.LOGGER.info("Styled text is null for editor: " + this.editorTitle);
-      return;
-    }
-    this.lsConnection = lsConnection;
-    this.document = LSPEclipseUtils.getDocument(editor);
-
-    // position updater is used to update the position when the document is changed.
-    // this is needed because the completion ghost text is rendered based on the
-    // position in the document. If the document is changed, the position will be
-    // invalidated.
-    this.positionUpdater = new DefaultPositionUpdater(this.getCategory());
-    if (!initializeDocument()) {
-      return;
-    }
-    this.renderingManager = new RenderingManager(this.textViewer);
-    this.settingsManager = settingsManager;
-    this.provider = provider;
-    this.provider.addCompletionListener(this);
-    this.documentVersion = -1;
-    this.triggerPosition = new org.eclipse.jface.text.Position(0);
-
-    // initialize the auto show completion preference and add listener to update it.
-    this.autoShowCompletion = settingsManager.getSettings().isEnableAutoCompletions();
-
-    // Cache the model offset to clear line vertical offset when the line is out of the visible range.
-    // We cache the model offset here because the caret offset won't update when code blocks are collapsed.
-    SwtUtils.invokeOnDisplayThread(() -> {
-      this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, this.styledText.getCaretOffset());
-    }, this.styledText);
-
-    registerListeners();
-  }
-
-  private boolean initializeDocument() {
-    if (this.document == null) {
-      CopilotCore.LOGGER.info("Document is null for editor: " + this.editorTitle);
-      return false;
-    }
-    this.document.addPositionCategory(this.getCategory());
-    this.document.addPositionUpdater(this.positionUpdater);
-    IFile file = LSPEclipseUtils.getFile(document);
-    if (file == null || !file.exists()) {
-      CopilotCore.LOGGER.info("File is null or removed for editor: " + this.editorTitle);
-      return false;
-    }
-    this.documentUri = LSPEclipseUtils.toUri(document);
-    if (this.documentUri == null) {
-      CopilotCore.LOGGER.info("Document URI is null for editor: " + this.editorTitle);
-      return false;
-    }
-    this.suggestionUpdateManager = new SuggestionUpdateManager(this.document);
-    return true;
-  }
-
-  private void registerListeners() {
-    SwtUtils.invokeOnDisplayThread(() -> {
-      this.styledText.addKeyListener(this);
-      this.styledText.addMouseListener(this);
-      this.textViewer.addTextListener(this);
-      this.textViewer.addTextInputListener(this);
-    }, this.styledText);
-
-    this.settingsManager.registerPropertyChangeListener(this);
+    super(lsConnection, provider, editor, settingsManager);
   }
 
   /**
-   * {@inheritDoc} Listen to the text change event and update the ghost text if the change is still among the part of
-   * the completion.
+   * Update the ghost texts for rendering.
    */
   @Override
-  public void textChanged(TextEvent event) {
-    DocumentEvent documentEvent = event.getDocumentEvent();
-    if (documentEvent == null) {
-      return;
-    }
-
-    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
-    // initialize the document version and return. This avoids the ghost text
-    // being rendered when user opens the editor and just clicks in it.
-    if (this.documentVersion < 0) {
-      this.documentVersion = currentVersion;
-      return;
-    }
-    this.documentVersion = currentVersion;
-
-    this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());
-    if (isReplacement(event)) {
-      this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset + event.getText().length());
-      clearCompletionRendering();
-    } else if (isDeletion(event)) {
-      this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset);
-      if (this.suggestionUpdateManager.getSize() > 0
-          && this.suggestionUpdateManager.delete(event.getReplacedText().length())) {
-        this.updateGhostTexts();
-      } else {
-        clearCompletionRendering();
-      }
-    } else if (isInsertion(event)) {
-      this.triggerPosition = new org.eclipse.jface.text.Position(this.cachedModelOffset + event.getText().length());
-      if (this.suggestionUpdateManager.getSize() > 0 && this.suggestionUpdateManager.insert(event.getText())) {
-        this.updateGhostTexts();
-      } else {
-        clearCompletionRendering();
-      }
-    }
-    if (this.autoShowCompletion) {
-      // Though the suggestionUpdateManager will update the items according to the text change, but that is not always
-      // correct. Thus we will always trigger another completion, whenever cursor position changed, to get the correct
-      // items. This will not affect the ghost text rendering because the CLS also has cache so it will not return items
-      // that are different from the last time as long as the text change is the same as the original completion item.
-      triggerCompletion();
-    }
-  }
-
-  /**
-   * Return if the event contains deletion action. Please note that both pure deletion and replacement contain deletion
-   * action.
-   */
-  private boolean isDeletion(TextEvent event) {
-    return StringUtils.isNotEmpty(event.getReplacedText()) && StringUtils.isEmpty(event.getText());
-  }
-
-  private boolean isReplacement(TextEvent event) {
-    return StringUtils.isNotEmpty(event.getReplacedText()) && StringUtils.isNotEmpty(event.getText());
-  }
-
-  private boolean isInsertion(TextEvent event) {
-    return StringUtils.isEmpty(event.getReplacedText()) && StringUtils.isNotEmpty(event.getText());
-  }
-
-  @Override
-  public void onCompletionResolved(String uriString, List<CompletionItem> completions) {
-    if (!Objects.equals(uriString, this.documentUri.toASCIIString())) {
-      return;
-    }
-
-    if (completions.isEmpty()) {
-      return;
-    }
-
-    if (completions.get(0).getDocVersion() != this.lsConnection.getDocumentVersion(this.documentUri)) {
-      return;
-    }
-
-    this.suggestionUpdateManager.setCompletionItems(completions);
-    enableContext();
-    this.updateGhostTexts();
-    this.notifyShown();
-  }
-
-  @Override
-  public void inputDocumentAboutToBeChanged(IDocument oldInput, IDocument newInput) {
-    // do nothing
-  }
-
-  @Override
-  public void inputDocumentChanged(IDocument oldInput, IDocument newInput) {
-    this.document = newInput;
-    initializeDocument();
-    CopilotCore.LOGGER.info("Completion handler is refreshed for the document: " + this.documentUri);
-  }
-
-  private void updateGhostTexts() {
-    // render the first line by ourself to make sure cursor position not change.
-    List<GhostText> ghostTexts = resolveGhostTexts();
-    this.renderingManager.setGhostTexts(ghostTexts);
-    this.renderingManager.redraw();
-
-    // render the remaining lines by code mining api.
+  protected void updateGhostTexts() {
     resolveCodeMiningGhostTexts();
     this.updateCodeMinings();
   }
 
-  private List<GhostText> resolveGhostTexts() {
-    if (this.suggestionUpdateManager.getSize() == 0) {
-      return Collections.emptyList();
-    }
+  /**
+   * Clear the completion ghost text.
+   */
+  @Override
+  public void clearGhostTexts() {
+    disableContext();
+    this.suggestionUpdateManager.reset();
+    this.codeMinings.clear();
+    this.updateCodeMinings();
 
-    List<GhostText> ghostTexts = new ArrayList<>();
-
-    String firstLine = this.suggestionUpdateManager.getFirstLine();
-    if (StringUtils.isNotEmpty(firstLine)) {
-      String documentContent = this.document.get();
-      int triggerOffset = triggerPosition.getOffset();
-      String documentLine = "";
-      try {
-        int lineOffset = document.getLineOfOffset(triggerOffset);
-        if (lineOffset == document.getNumberOfLines() - 1) {
-          // this is the last line
-          documentLine = documentContent.substring(triggerOffset);
-        } else {
-          for (int i = triggerOffset; i < this.document.getLength(); i++) {
-            if (isNewLineCharacter(documentContent, i)) {
-              documentLine = documentContent.substring(triggerOffset, i);
-              break;
-            }
-          }
-        }
-      } catch (BadLocationException e) {
-        CopilotCore.LOGGER.error(e);
-      }
-      ghostTexts.addAll(CompletionUtils.getGhostTexts(documentLine, firstLine, triggerOffset));
-    }
-
-    try {
-      int lineOffset = document.getLineOfOffset(triggerPosition.offset);
-      String remainingLines = this.suggestionUpdateManager.getRemainingLines();
-      if (lineOffset == document.getNumberOfLines() - 1 && StringUtils.isNotEmpty(remainingLines)) {
-        // this is the last line
-        ghostTexts.add(new BlockBottomGhostText(remainingLines, triggerPosition.offset, this.document));
-        return ghostTexts;
-      }
-    } catch (BadLocationException e) {
-      CopilotCore.LOGGER.error(e);
-    }
-
-    return ghostTexts;
+    // Clear legacy vertical indentation for the block ghost text line when the line is out of the visible range.
+    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
+    redrawBlockLineAtModelOffset(this.cachedModelOffset);
   }
 
-  private boolean isNewLineCharacter(String documentContent, int index) {
-    char currentChar = documentContent.charAt(index);
-    boolean isLineFeed = currentChar == '\n';
-    if (isLineFeed) {
-      return true;
-    } else {
-      return currentChar == '\r' && index + 1 < this.document.getLength() && documentContent.charAt(index + 1) == '\n';
+  private void updateCodeMinings() {
+    if (textViewer instanceof ISourceViewerExtension5 sve) {
+      sve.updateCodeMinings();
     }
   }
 
@@ -329,6 +71,16 @@ public class CompletionManager implements KeyListener, MouseListener, ITextListe
       return;
     }
     List<ICodeMining> cm = new ArrayList<>();
+    String firstLine = this.suggestionUpdateManager.getFirstLine();
+
+    if (StringUtils.isNotEmpty(firstLine)) {
+      try {
+        cm.addAll(getCodeMiningGhostTexts(triggerPosition, this.document, getCurrentLine(), firstLine));
+      } catch (BadLocationException e) {
+        CopilotCore.LOGGER.error(e);
+      }
+    }
+
     String remainingLines = this.suggestionUpdateManager.getRemainingLines();
     if (StringUtils.isNotEmpty(remainingLines)) {
       try {
@@ -344,274 +96,70 @@ public class CompletionManager implements KeyListener, MouseListener, ITextListe
     this.codeMinings = cm;
   }
 
-  private void updateCodeMinings() {
-    if (textViewer instanceof ISourceViewerExtension5 sve) {
-      sve.updateCodeMinings();
-    }
-  }
+  private List<AbstractCodeMining> getCodeMiningGhostTexts(Position position, IDocument document, String documentLine,
+      String completionLine) throws BadLocationException {
 
-  @Override
-  public void propertyChange(PropertyChangeEvent event) {
-    if (event.getProperty().equals(Constants.AUTO_SHOW_COMPLETION)) {
-      this.autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
-    }
-  }
-
-  /**
-   * Trigger the inline completion.
-   */
-  public void triggerCompletion() {
-    try {
-      IFile file = LSPEclipseUtils.getFile(document);
-      this.provider.triggerCompletion(file, LSPEclipseUtils.toPosition(this.triggerPosition.getOffset(), this.document),
-          documentVersion);
-    } catch (BadLocationException e) {
-      CopilotCore.LOGGER.error(e);
-    }
-  }
-
-  /**
-   * Clear the completion ghost text.
-   */
-  public void clearCompletionRendering() {
-    disableContext();
-    this.suggestionUpdateManager.reset();
-    this.codeMinings.clear();
-    this.updateCodeMinings();
-
-    this.renderingManager.clearGhostText();
-
-    // Clear legacy vertical indentation for the block ghost text line when the line is out of the visible range.
-    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
-    redrawBlockLineAtModelOffset(UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset()));
-  }
-
-  /**
-   * Accept completion suggestion.
-   */
-  public void acceptSuggestion(AcceptSuggestionType type) {
-    try {
-      this.document.addPosition(this.triggerPosition);
-      switch (type) {
-        case FULL:
-          this.acceptEntireSuggestion();
-          break;
-        case NEXT_WORD:
-          this.acceptNextWord();
-          break;
-        default:
-          break;
-      }
-      this.document.removePosition(this.triggerPosition);
-    } catch (BadLocationException e) {
-      CopilotCore.LOGGER.error(e);
-      return;
-    }
-    SwtUtils.invokeOnDisplayThread(() -> {
-      this.textViewer.getSelectionProvider().setSelection(new TextSelection(this.triggerPosition.offset, 0));
-      // Since we removed caret listener, we need to manually clear the ghost text when the caret position is changed by
-      // the entire suggestion acceptance to fix the line indentation not cleared issue.
-      if (type == AcceptSuggestionType.FULL) {
-        this.clearCompletionRendering();
-      }
-    }, this.textViewer.getTextWidget());
-  }
-
-  /**
-   * Apply the entire completion suggestion to document.
-   *
-   * @throws BadLocationException if the offset is invalid.
-   */
-  private void acceptEntireSuggestion() throws BadLocationException {
-    CompletionItem item = this.suggestionUpdateManager.getCurrentItem();
-    if (item == null) {
-      return;
-    }
-    int startOffset = LSPEclipseUtils.toOffset(item.getPosition(), this.document);
-    String text = this.suggestionUpdateManager.getText();
-    if (StringUtils.isEmpty(text)) {
-      return;
-    }
-    int endOffset = LSPEclipseUtils.toOffset(item.getRange().getEnd(), this.document);
-    this.document.replace(startOffset, endOffset - startOffset, text);
-  }
-
-  /**
-   * Apply the next word of the completion suggestion to document.
-   */
-  private void acceptNextWord() throws BadLocationException {
-    CompletionItem item = this.suggestionUpdateManager.getCurrentItem();
-    if (item == null) {
-      return;
-    }
-    String nextWord = this.suggestionUpdateManager.getNextWord();
-    if (StringUtils.isEmpty(nextWord)) {
-      return;
-    }
-    int startOffset = LSPEclipseUtils.toOffset(item.getPosition(), this.document);
-    int length = 0;
-    while (length < nextWord.length() && startOffset + length < this.document.getLength()) {
-      char c = this.document.getChar(startOffset + length);
-      if (c != nextWord.charAt(length)) {
-        break;
-      }
-      length++;
-    }
-    this.document.replace(startOffset, length, nextWord);
-  }
-
-  /**
-   * Get category for the position updater of this document.
-   */
-  private String getCategory() {
-    return this.toString();
-  }
-
-  /**
-   * Disposes the resources of this completion handler.
-   */
-  public void dispose() {
-    if (this.provider != null) {
-      this.provider.removeCompletionListener(this);
-    }
-    if (this.renderingManager != null) {
-      this.renderingManager.dispose();
-      this.renderingManager = null;
+    // LineContentCodeMining for eclipse 2024-12 requires position length > 0, this is a work around.
+    Position lineContentPostion = new Position(position.getOffset(), position.getLength());
+    if (lineContentPostion.getLength() == 0 && position.getOffset() + 1 <= document.getLength()) {
+      lineContentPostion.setLength(1);
     }
 
-    if (this.settingsManager != null) {
-      this.settingsManager.unregisterPropertyChangeListener(this);
+    List<AbstractCodeMining> ghostTexts = new ArrayList<>();
+    if (documentLine.isEmpty()) {
+      ghostTexts
+          .add(new LineEndGhostText(document, document.getLineOfOffset(position.getOffset()), null, completionLine));
+      return ghostTexts;
+    }
+    if (documentLine.isBlank()) {
+      ghostTexts.add(new LineContentGhostText(position, true, null, completionLine));
+      return ghostTexts;
     }
 
-    if (this.document != null && this.documentUri != null) {
-      try {
-        this.document.removePositionCategory(this.getCategory());
-      } catch (BadPositionCategoryException e) {
-        CopilotCore.LOGGER.error(e);
-      }
-      this.document.removePositionUpdater(this.positionUpdater);
-    }
+    // strip trailing whitespaces, tabs, etc., across all platforms. These characters are not visually considered the
+    // end of document line, so we should ignore them when calculating the starting point offset for ghost text
+    // rendering.
+    int i = Math.max(0, StringUtils.stripEnd(documentLine, null).length() - 1);
+    int j = completionLine.length() - 1;
+    StringBuilder sb = new StringBuilder();
 
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (this.textViewer != null) {
-        this.textViewer.removeTextInputListener(this);
-      }
-
-      if (this.styledText != null && !this.styledText.isDisposed()) {
-        this.styledText.removeKeyListener(this);
-        this.styledText.removeMouseListener(this);
-      }
-    });
-  }
-
-  public SuggestionUpdateManager getSuggestionUpdateManager() {
-    return suggestionUpdateManager;
-  }
-
-  private void notifyShown() {
-    if (this.suggestionUpdateManager.getSize() == 0) {
-      return;
-    }
-
-    CompletionItem item = this.suggestionUpdateManager.getCurrentItem();
-    if (item == null) {
-      return;
-    }
-
-    NotifyShownParams params = new NotifyShownParams(item.getUuid());
-    this.lsConnection.notifyShown(params);
-  }
-
-  public List<ICodeMining> getCodeMinings() {
-    return codeMinings;
-  }
-
-  private static void enableContext() {
-    if (completionContextActivation == null) {
-      IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
-      if (contextService != null) {
-        SwtUtils.invokeOnDisplayThread(() -> {
-          completionContextActivation = contextService.activateContext(COMPLETION_CONTEXT);
-        });
+    while (i >= 0 && j >= 0) {
+      if (documentLine.charAt(i) == completionLine.charAt(j)) {
+        if (sb.length() > 0) {
+          // passing i + 1 here because the current char indexed with i are the same, the ghost
+          // text should display the content which is different from the document.
+          // while calculating 'i' here, we use the original document line without stripping trailing whitespaces since
+          // if there are trailing whitespaces, the ghost text should always be the inline ghost text instead of the eol
+          // ghost text.
+          ghostTexts.add(0, createCodeMiningGhostText(document, position.getOffset(), i + 1, sb.toString(),
+              i == documentLine.length() - 1));
+          sb.setLength(0);
+          continue;
+        }
+        i--;
+        j--;
+      } else {
+        sb.insert(0, completionLine.charAt(j--));
       }
     }
-  }
 
-  private static void disableContext() {
-    if (completionContextActivation != null) {
-      IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
-      if (contextService != null) {
-        SwtUtils.invokeOnDisplayThread(() -> {
-          contextService.deactivateContext(completionContextActivation);
-        });
-        completionContextActivation = null;
-      }
+    String remaining = sb.toString();
+    if (j >= 0) {
+      remaining = completionLine.substring(0, j + 1) + remaining;
     }
-  }
-
-  @Override
-  public void mouseDoubleClick(MouseEvent e) {
-    // Do nothing
-  }
-
-  @Override
-  public void mouseDown(MouseEvent e) {
-    handleCaretPositionChange();
-  }
-
-  @Override
-  public void mouseUp(MouseEvent e) {
-    // Do nothing
-  }
-
-  @Override
-  public void keyPressed(KeyEvent e) {
-    // Do nothing
-  }
-
-  @Override
-  public void keyReleased(KeyEvent e) {
-    // Skip completion triggering when the key is ESC
-    if (e.character != SWT.ESC) {
-      handleCaretPositionChange();
+    if (StringUtils.isNotEmpty(remaining)) {
+      ghostTexts.add(0,
+          createCodeMiningGhostText(document, position.getOffset(), i, remaining, i == documentLine.length() - 1));
     }
+
+    return ghostTexts;
   }
 
-  /**
-   * Handle caret move, clear and update the ghost text accordingly.
-   *
-   * @param triggerCompletionIfChanged Whether to trigger a new completion if document version changed.
-   */
-  private void handleCaretPositionChange() {
-    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset());
-    if (this.triggerPosition.offset == modelOffset) {
-      return;
-    }
-    this.triggerPosition = new org.eclipse.jface.text.Position(modelOffset);
-
-    // it's guaranteed that the document change event comes earlier than keyReleased
-    // To verify this behavior, set breakpoints in org.eclipse.lsp4e.DocumentContentSynchronizer
-    // at the line: changeParamsToSend.getTextDocument().setVersion(++version); and this class's keyReleased method.
-    // Then trigger completion to verify the event.
-    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
-    if (currentVersion == this.documentVersion) {
-      // if the caret position is changed without document version change, we should remove the ghost text.
-      clearCompletionRendering();
-    }
-    redrawBlockLineAtModelOffset(modelOffset);
-  }
-
-  private void redrawBlockLineAtModelOffset(int modelOffset) {
-    // Redraw the block ghost text line at both old and new offsets to fix legacy vertical indentation issues when text
-    // is outside the visible range or code blocks are collapsed.
-    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/105
-    // Fix issue: https://github.com/microsoft/copilot-eclipse/issues/137
-    if (modelOffset != this.cachedModelOffset) {
-      // The collapsed code block will cause the model offset to flicker, so we need to redraw the block ghost text line
-      // at both old and new offsets.
-      SwtUtils.redrawBlockLineAtModelOffset(textViewer, this.cachedModelOffset, false);
-      SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset, false);
-      this.cachedModelOffset = modelOffset;
-    }
+  private AbstractCodeMining createCodeMiningGhostText(IDocument document, int base, int offset, String text,
+      boolean isEol) throws BadLocationException {
+    // use Math.max to avoid negative offset (i may == -1 after the while loop))
+    int position = isEol ? base + offset : Math.max(base + offset, base);
+    return isEol ? new LineEndGhostText(document, document.getLineOfOffset(position), null, text)
+        : new LineContentGhostText(new Position(position, 1), true, null, text);
   }
 }

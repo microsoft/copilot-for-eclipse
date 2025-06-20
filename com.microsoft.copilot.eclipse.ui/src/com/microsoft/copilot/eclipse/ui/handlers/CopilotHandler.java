@@ -7,7 +7,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
+import com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 
 /**
@@ -15,10 +15,10 @@ import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
  */
 public abstract class CopilotHandler extends AbstractHandler {
   /**
-   * Gets the active {@link CompletionManager} for the current editor.
+   * Gets the active {@link BaseCompletionManager} for the current editor.
    */
   @Nullable
-  public CompletionManager getActiveCompletionManager() {
+  public BaseCompletionManager getActiveCompletionManager() {
     CopilotUi copilotUi = CopilotUi.getPlugin();
     if (copilotUi == null) {
       return null;

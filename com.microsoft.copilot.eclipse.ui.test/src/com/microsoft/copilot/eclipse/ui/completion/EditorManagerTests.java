@@ -44,7 +44,7 @@ class EditorManagerTests {
     when(mockEditor.getAdapter(any())).thenReturn(mockViewer);
     when(mockViewer.isEditable()).thenReturn(true);
     EditorsManager manager = new EditorsManager(mockServer, mockProvider, mockSettingManager);
-    CompletionManager completionManager = manager.getOrCreateCompletionManagerFor(mockEditor);
+    BaseCompletionManager completionManager = manager.getOrCreateCompletionManagerFor(mockEditor);
 
     assertNotNull(completionManager);
   }

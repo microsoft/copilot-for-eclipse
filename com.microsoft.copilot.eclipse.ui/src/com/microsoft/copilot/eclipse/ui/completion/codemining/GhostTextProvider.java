@@ -8,6 +8,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.jface.text.codemining.AbstractCodeMining;
 import org.eclipse.jface.text.codemining.AbstractCodeMiningProvider;
 import org.eclipse.jface.text.codemining.ICodeMining;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -15,7 +16,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
+import com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -54,7 +55,7 @@ public class GhostTextProvider extends AbstractCodeMiningProvider {
     if (editorsManager == null) {
       return Collections.emptyList();
     }
-    CompletionManager manager = editorsManager.getCompletionManagerFor(belongingEditor);
+    BaseCompletionManager manager = editorsManager.getCompletionManagerFor(belongingEditor);
     if (manager == null) {
       return Collections.emptyList();
     }
@@ -75,13 +76,13 @@ public class GhostTextProvider extends AbstractCodeMiningProvider {
 
     int tabSize = formatOptionProvider.getTabSize(file);
     for (ICodeMining codeMining : codeMinings) {
-      if (codeMining instanceof BlockGhostText blockGhostText) {
-        // replace the beginning tabs with spaces, this is because the code mining API does not support tabs
-        // rendering, so we need to replace the tabs with spaces to correctly render the indentation. See:
-        // LineHeaderCodeMining.draw() method.
-        String text = blockGhostText.getLabel();
+      // replace the beginning tabs with spaces, this is because the code mining API does not support tabs
+      // rendering, so we need to replace the tabs with spaces to correctly render the indentation. See:
+      // AbstractCodeMining.draw() method.
+      if (codeMining instanceof AbstractCodeMining cm) {
+        String text = cm.getLabel();
         String replacedText = CompletionUtils.replaceTabsWithSpaces(text, tabSize);
-        blockGhostText.setLabel(replacedText);
+        cm.setLabel(replacedText);
       }
     }
     return codeMinings;

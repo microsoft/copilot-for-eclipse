@@ -36,7 +36,7 @@ class DiscardSuggestionHandlerTests {
     SuggestionUpdateManager updateManager = mock(SuggestionUpdateManager.class);
     when(updateManager.getUuids()).thenReturn(List.of("uuid"));
     CompletionManager mockedCompletionManager = mock(CompletionManager.class);
-    doNothing().when(mockedCompletionManager).clearCompletionRendering();
+    doNothing().when(mockedCompletionManager).clearGhostTexts();
     when(mockedCompletionManager.getSuggestionUpdateManager()).thenReturn(updateManager);
     EditorsManager mockedManager = mock(EditorsManager.class);
     when(mockedManager.getActiveCompletionManager()).thenReturn(mockedCompletionManager);

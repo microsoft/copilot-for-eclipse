@@ -12,6 +12,7 @@ import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -80,6 +81,16 @@ public class RenderingManager implements PaintListener {
     }
 
     GC gc = e.gc;
+    // Set line indentation for the remaining ghost texts if any.
+    int firstBlockLineGhostTextIndex = ghostTexts.stream()
+        .filter(ghostText -> ghostText.type == GhostTextType.BLOCK_LINE).findFirst().map(ghostTexts::indexOf)
+        .orElse(-1);
+    if (firstBlockLineGhostTextIndex > 0) {
+      Point ghostTextExtent = gc.textExtent(ghostTexts.get(firstBlockLineGhostTextIndex).text);
+      int height = ghostTextExtent.y;
+      setLineVerticalIndentation(styledText, gc,
+          UiUtils.modelOffset2WidgetOffset(textViewer, ghostTexts.get(0).modelOffset), height);
+    }
 
     for (GhostText ghostText : this.ghostTexts) {
       int widgetOffset = UiUtils.modelOffset2WidgetOffset(textViewer, ghostText.modelOffset);
@@ -89,8 +100,29 @@ public class RenderingManager implements PaintListener {
       // reset the color to default because the inline ghost text may change the color to the same
       // as the content text color.
       gc.setForeground(this.ghostTextColor);
+
       ghostText.draw(styledText, widgetOffset, gc);
     }
+  }
+
+  private void setLineVerticalIndentation(StyledText styledText, GC gc, int widgetOffset, int height) {
+    if (styledText == null || widgetOffset < 0) {
+      return;
+    }
+
+    int lineIndex = styledText.getLineAtOffset(widgetOffset) + 1;
+    lineIndex = Math.min(lineIndex, styledText.getLineCount() - 1);
+    styledText.setLineVerticalIndent(lineIndex, height);
+  }
+
+  /**
+   * Reset the line vertical indentation at the given widget offset.
+   *
+   * @param widgetOffset the widget offset to reset the line vertical indentation.
+   */
+  public void resetLineVerticalIndentationAtWidgetOffset(int widgetOffset) {
+    StyledText styledText = textViewer.getTextWidget();
+    setLineVerticalIndentation(styledText, null, widgetOffset, 0);
   }
 
   /**
@@ -110,6 +142,10 @@ public class RenderingManager implements PaintListener {
             style.metrics = null;
             styledText.setStyleRange(style);
           }
+        } else {
+          // Clear vertical indentation for the position where the completion is triggered.
+          resetLineVerticalIndentationAtWidgetOffset(
+              UiUtils.modelOffset2WidgetOffset(textViewer, ghostText.modelOffset));
         }
       }
       this.ghostTexts.clear();

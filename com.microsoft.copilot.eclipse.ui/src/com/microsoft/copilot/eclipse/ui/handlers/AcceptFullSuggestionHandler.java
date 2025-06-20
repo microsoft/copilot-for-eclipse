@@ -7,7 +7,7 @@ import com.microsoft.copilot.eclipse.core.completion.AcceptSuggestionType;
 import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
-import com.microsoft.copilot.eclipse.ui.completion.CompletionManager;
+import com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager;
 
 /**
  * Handler for accepting the full suggestion.
@@ -16,7 +16,7 @@ public class AcceptFullSuggestionHandler extends CopilotHandler {
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
-    CompletionManager handler = getActiveCompletionManager();
+    BaseCompletionManager handler = getActiveCompletionManager();
     if (handler != null) {
       notifyAccepted(handler.getSuggestionUpdateManager());
       handler.acceptSuggestion(AcceptSuggestionType.FULL);
@@ -26,7 +26,7 @@ public class AcceptFullSuggestionHandler extends CopilotHandler {
 
   @Override
   public boolean isEnabled() {
-    CompletionManager manager = getActiveCompletionManager();
+    BaseCompletionManager manager = getActiveCompletionManager();
     if (manager == null) {
       return false;
     }

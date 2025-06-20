@@ -16,13 +16,13 @@ import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
  * A ghost text placed below the last line of the document. For normal block ghost text, we use code mining API to
  * display the ghost text.
  */
-public class BlockBottomGhostText extends GhostText {
+public class BlockGhostText extends GhostText {
 
   /**
    * Creates a new EolGhostText.
    */
-  public BlockBottomGhostText(String text, int modelOffset, IDocument document) {
-    super(text, modelOffset, GhostTextType.BELOW_LAST_LINE);
+  public BlockGhostText(String text, int modelOffset, IDocument document) {
+    super(text, modelOffset, GhostTextType.BLOCK_LINE);
     IFile file = LSPEclipseUtils.getFile(document);
     if (file == null) {
       return;
