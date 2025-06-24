@@ -73,6 +73,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.parent = parent;
     GridLayout layout = new GridLayout(1, true);
     layout.verticalSpacing = 0;
+    layout.marginWidth = 10;
+    layout.marginHeight = 10;
     parent.setLayout(layout);
     parent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
@@ -237,7 +239,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void createMainSection(GridData gridData) {
     this.mainSection = new Composite(parent, SWT.NONE);
-    this.mainSection.setLayout(new GridLayout(1, true));
+    GridLayout gl = new GridLayout(1, true);
+    gl.marginLeft = 0;
+    gl.marginRight = 0;
+    gl.marginWidth = 0;
+    this.mainSection.setLayout(gl);
     this.mainSection.setLayoutData(gridData);
   }
 

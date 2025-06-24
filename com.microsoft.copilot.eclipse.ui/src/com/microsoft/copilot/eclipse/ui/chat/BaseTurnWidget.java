@@ -76,7 +76,7 @@ public abstract class BaseTurnWidget extends Composite {
     // editor group
     // align all children vertically
     GridLayout gl = new GridLayout(1, true);
-    gl.marginRight = 20;
+    gl.marginRight = 5;
     gl.marginLeft = 5;
     setLayout(gl);
     setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
@@ -95,7 +95,7 @@ public abstract class BaseTurnWidget extends Composite {
   private void createContent() {
     Composite cmpTitle = new Composite(this, SWT.NONE);
     GridLayout titleLayout = new GridLayout(2, false);
-    titleLayout.marginLeft = -2;
+    titleLayout.marginLeft = -5;
     cmpTitle.setLayout(titleLayout);
     cmpTitle.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
     cmpTitle.setBackground(this.getBackground());
@@ -113,6 +113,9 @@ public abstract class BaseTurnWidget extends Composite {
     if (this.boldFont == null) {
       this.boldFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
     }
+    GridData roleNameGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    roleNameGridData.horizontalIndent = 0;
+    lblRoleName.setLayoutData(roleNameGridData);
     lblRoleName.setFont(this.boldFont);
     lblRoleName.addDisposeListener(e -> {
       this.boldFont.dispose();

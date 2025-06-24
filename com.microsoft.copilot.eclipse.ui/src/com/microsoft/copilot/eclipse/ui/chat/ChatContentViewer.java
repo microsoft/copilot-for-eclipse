@@ -60,6 +60,7 @@ public class ChatContentViewer extends ScrolledComposite {
     GridLayout gl = new GridLayout(1, true);
     gl.marginHeight = 0;
     gl.marginWidth = 0;
+    gl.marginLeft = -10;
     this.cmpContent.setLayout(gl);
     this.cmpContent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     this.setContent(this.cmpContent);

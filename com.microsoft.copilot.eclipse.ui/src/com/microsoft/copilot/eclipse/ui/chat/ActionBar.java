@@ -61,6 +61,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class ActionBar extends Composite implements NewConversationListener {
   private Button btnMsgToggle;
   private Combo cmbModelPicker;
+  private Combo cmbChatModePicker;
   private ChatInputTextViewer inputTextViewer;
   private Composite cmpFileRef;
   private Composite cmpActionArea;
@@ -205,7 +206,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     glActionArea.marginRight = 0;
     glActionArea.marginLeft = 0;
     glActionArea.marginTop = 5;
-    glActionArea.marginBottom = 0;
+    glActionArea.marginBottom = -5;
     this.cmpActionArea = new Composite(this, SWT.NONE);
     this.cmpActionArea.setLayout(glActionArea);
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
@@ -227,7 +228,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     buttonsLayout.marginHeight = 0;
     Composite bottomRightButtonsComposite = new Composite(this.cmpActionArea, SWT.NONE);
     bottomRightButtonsComposite.setLayout(buttonsLayout);
-    bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
+    bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
     UiUtils.useParentBackground(bottomRightButtonsComposite);
 
     // Add a button that will open McpPreferencePage.
@@ -311,11 +312,11 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void setUpChatModePicker(Composite parent) {
-    Combo cmbChatModePicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
-    cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    this.cmbChatModePicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
+    this.cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
     UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
-    userPreferenceService.bindChatModePicker(cmbChatModePicker);
-    cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
+    userPreferenceService.bindChatModePicker(this.cmbChatModePicker);
+    this.cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
         int index = cmbChatModePicker.getSelectionIndex();
