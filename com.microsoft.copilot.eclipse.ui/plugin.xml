@@ -338,6 +338,9 @@
 				relative="org.eclipse.ui.editorss"
 				ratio="0.75">
 			</view>
+   <editorOnboardingCommand
+         id="com.microsoft.copilot.eclipse.commands.openChatView">
+   </editorOnboardingCommand>
 		</perspectiveExtension>
 	</extension>
 </plugin>
