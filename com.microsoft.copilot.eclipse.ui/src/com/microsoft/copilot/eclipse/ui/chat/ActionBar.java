@@ -185,13 +185,13 @@ public class ActionBar extends Composite implements NewConversationListener {
         Point size = table.computeSize(SWT.DEFAULT, SWT.DEFAULT);
         int heightHint = Math.min(size.y, table.getItemHeight() * MAX_VISIBLE_ITEMS);
         int widthHint = Math.min(size.x, tv.getControl().getSize().x);
-        
+
         // If horizontal scrollbar is needed, add its height to the table height
         // Otherwise, the last raw may not be fully visible
         if (size.x > widthHint) {
           heightHint += table.getHorizontalBar().getSize().y;
         }
-        
+
         table.getShell().setSize(widthHint, heightHint);
       }
 
@@ -340,6 +340,18 @@ public class ActionBar extends Composite implements NewConversationListener {
       updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
     }
     this.chatServiceManager.getFileToolService().setFileChangeSummaryBarButtonStatus(true);
+  }
+
+  /**
+   * Sets the focus to the chat input text viewer.
+   *
+   * @return true if the focus was set, false otherwise
+   */
+  public boolean setFocusToInputTextViewer() {
+    if (inputTextViewer != null && !inputTextViewer.getTextWidget().isDisposed()) {
+      return inputTextViewer.getTextWidget().setFocus();
+    }
+    return false;
   }
 
   private void handleSendMessage() {

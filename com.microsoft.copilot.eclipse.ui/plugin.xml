@@ -303,6 +303,20 @@
 			contextId="org.eclipse.ui.textEditorScope"
 			sequence="ESC">
 		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.openChatView"
+			contextId="org.eclipse.ui.contexts.window"
+			platform="cocoa"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="CTRL+COMMAND+I">
+		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.openChatView"
+			contextId="org.eclipse.ui.contexts.window"
+			platform="win32"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="CTRL+ALT+I">
+		</key>
 	</extension>
 	<!-- Code mining registration, for block ghost text rendering -->
 	<extension

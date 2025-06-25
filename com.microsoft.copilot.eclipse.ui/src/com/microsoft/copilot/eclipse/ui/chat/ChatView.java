@@ -376,6 +376,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (p != null && p.chatProgressListeners.size() == 0) {
       p.addChatProgressListener(this);
     }
+    if (actionBar != null) {
+      actionBar.setFocusToInputTextViewer();
+    }
   }
 
   @Override
