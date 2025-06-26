@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
@@ -10,8 +12,6 @@ import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -20,9 +20,12 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PreferencesUtil;
+import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
@@ -31,10 +34,8 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
  */
 public class CopilotPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
-  private Label lblProxyNoteContent;
   private Composite parent;
   private ControlListener controlListener;
-  private Font boldFont;
   private ProxyConfigLinkListener proxyConfigLinkListener;
   private Link link;
 
@@ -95,20 +96,11 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     var ctnNote = new Composite(grpProxy, SWT.NONE);
     ctnNote.setLayout(glTextIndent);
     ctnNote.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
-    var lblProxyNote = new Label(ctnNote, SWT.NONE);
-    lblProxyNote.setText(Messages.preferences_page_note_text);
-    FontData[] fontData = lblProxyNote.getFont().getFontData();
-    for (FontData fd : fontData) {
-      fd.setStyle(SWT.BOLD);
-    }
-    this.boldFont = new Font(parent.getDisplay(), fontData);
-    lblProxyNote.setFont(boldFont);
-
-    this.lblProxyNoteContent = new Label(ctnNote, SWT.WRAP);
-    this.lblProxyNoteContent.setText(Messages.preferences_page_note_content);
+    Label lblProxyNoteContent = new Label(ctnNote, SWT.WRAP);
+    lblProxyNoteContent.setText(Messages.preferences_page_note_content);
     GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
     gd.widthHint = 400;
-    this.lblProxyNoteContent.setLayoutData(gd);
+    lblProxyNoteContent.setLayoutData(gd);
     // add kerberos sp field
     // addField(
     // new StringFieldEditor(Constants.PROXY_KERBEROS_SP, Messages.preferences_page_proxy_kerberos_sp, grpProxy));
@@ -127,6 +119,30 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
     addField(sftGhe);
 
+    // chat group
+    Group chatGroup = new Group(parent, SWT.NONE);
+    chatGroup.setLayout(gl);
+    gdf.applyTo(chatGroup);
+    chatGroup.setText(Messages.preferences_page_chat_settings);
+    Composite chatComposite = new Composite(chatGroup, SWT.NONE);
+    chatComposite.setLayout(gl);
+    chatComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    BooleanFieldEditor workspaceContextField = new BooleanFieldEditor(Constants.WORKSPACE_CONTEXT_ENABLED,
+        Messages.preferences_page_watched_files, SWT.WRAP, chatComposite);
+    GridData workspaceContextFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    workspaceContextFieldGridData.widthHint = 400;
+    workspaceContextField.getDescriptionControl(chatComposite).setLayoutData(workspaceContextFieldGridData);
+
+    addField(workspaceContextField);
+    Composite chatNoteComposite = new Composite(chatGroup, SWT.NONE);
+    chatNoteComposite.setLayout(glTextIndent);
+    chatNoteComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
+    Label chatNoteContentLabel = new Label(chatNoteComposite, SWT.WRAP);
+    GridData chatNoteContentLabelGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    chatNoteContentLabelGridData.widthHint = 400;
+    chatNoteContentLabel.setLayoutData(chatNoteContentLabelGridData);
+    chatNoteContentLabel.setText(Messages.preferences_page_watched_files_note_content);
+
     this.controlListener = new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
@@ -134,9 +150,9 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
         var pg = CopilotPreferencesPage.this;
         int width = pg.getFieldEditorParent().getSize().x - 20;
 
-        GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
-        gd.widthHint = width;
-        pg.lblProxyNoteContent.setLayoutData(gd);
+        ((GridData) lblProxyNoteContent.getLayoutData()).widthHint = width;
+        ((GridData) chatNoteContentLabel.getLayoutData()).widthHint = width;
+        ((GridData) workspaceContextField.getDescriptionControl(chatComposite).getLayoutData()).widthHint = width;
 
         pg.getFieldEditorParent().layout();
       }
@@ -160,17 +176,36 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
   }
 
   @Override
-  public void dispose() {
-    if (this.boldFont != null) {
-      this.boldFont.dispose();
+  public boolean performOk() {
+    boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
+    boolean result = super.performOk();
+    boolean newWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
+    
+    if (oldWorkspaceContextValue ^ newWorkspaceContextValue) {
+      boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
+          Messages.preferences_page_watched_files_restart_question);
+      
+      if (restart) {
+        try {
+          // Explicitly save the preferences to disk to ensure they persist across the restart
+          // CopilotUi.getPlugin().savePluginPreferences() is deprecated, flush is recommended
+          InstanceScope.INSTANCE.getNode("com.microsoft.copilot.eclipse.ui").flush();
+        } catch (BackingStoreException e) {
+          CopilotCore.LOGGER.error("Failed to save preference 'Enable workspace context'", e);
+        }
+
+        PlatformUI.getWorkbench().restart();
+      }
     }
+    
+    return result;
+  }
+
+  @Override
+  public void dispose() {
     parent.removeControlListener(controlListener);
     link.removeSelectionListener(proxyConfigLinkListener);
-    if (this.lblProxyNoteContent != null) {
-      this.lblProxyNoteContent.dispose();
-    }
     parent.dispose();
     super.dispose();
   }
-
 }

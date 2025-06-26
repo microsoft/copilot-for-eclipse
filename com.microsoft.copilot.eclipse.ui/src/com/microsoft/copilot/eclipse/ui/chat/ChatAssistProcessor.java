@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.jface.text.BadLocationException;
@@ -20,25 +22,28 @@ import org.eclipse.swt.graphics.Point;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.chat.services.SlashCommandService;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
-class SlashCommandAssistProcessor implements IContentAssistProcessor {
+class ChatAssistProcessor implements IContentAssistProcessor {
   private TextViewer input;
   private ChatServiceManager chatServiceManager;
 
-  public SlashCommandAssistProcessor(TextViewer input, ChatServiceManager chatServiceManager) {
+  public ChatAssistProcessor(TextViewer input, ChatServiceManager chatServiceManager) {
     this.input = input;
     this.chatServiceManager = chatServiceManager;
   }
 
-  class SlashCommandProposal implements ICompletionProposal, ICompletionProposalExtension6 {
+  class ChatCompletionProposal implements ICompletionProposal, ICompletionProposalExtension6 {
+    private String triggerCharacter;
     private String name;
     private String description;
 
-    public SlashCommandProposal(String name, String description) {
+    public ChatCompletionProposal(String mark, String name, String description) {
+      this.triggerCharacter = mark;
       this.name = name;
       this.description = description;
     }
@@ -49,7 +54,7 @@ class SlashCommandAssistProcessor implements IContentAssistProcessor {
       // Implement apply method
       int offset = styledText.getCaretOffset();
       int start = UiUtils.getFirstWordIndex(document.get()).x;
-      String newText = "/" + name;
+      String newText = triggerCharacter + name;
       try {
         document.replace(start, offset - start, newText);
       } catch (BadLocationException e) {
@@ -72,7 +77,7 @@ class SlashCommandAssistProcessor implements IContentAssistProcessor {
 
     @Override
     public String getDisplayString() {
-      return "/" + name;
+      return triggerCharacter + name;
     }
 
     @Override
@@ -88,31 +93,47 @@ class SlashCommandAssistProcessor implements IContentAssistProcessor {
     @Override
     public StyledString getStyledDisplayString() {
       StyledString styledString = new StyledString();
-      styledString.append("/" + name);
+      styledString.append(triggerCharacter + name);
       styledString.append(" - " + description, StyledString.QUALIFIER_STYLER);
       return styledString;
     }
   }
 
-  public ICompletionProposal createCompletionProposal(ConversationTemplate template) {
-    ICompletionProposal proposal = new SlashCommandProposal(template.getId(), template.getDescription());
-    return proposal;
-  }
-
-  public ICompletionProposal[] createCopilotCompletionProposals(String prefix) {
-    java.util.List<ICompletionProposal> proposals = new java.util.ArrayList<>();
-    SlashCommandService slashCommandService = chatServiceManager.getSlashCommandService();
-    if (!slashCommandService.isTempaltesReady()) {
+  public ICompletionProposal[] createCopilotCompletionTemplateProposals(String prefix) {
+    List<ICompletionProposal> proposals = new ArrayList<>();
+    ChatCompletionService commandService = chatServiceManager.getChatCompletionService();
+    if (!commandService.isTempaltesReady()) {
       return new ICompletionProposal[0];
     }
     // So far no template supports agent mode.
     if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
       return new ICompletionProposal[0];
     }
-    ConversationTemplate[] templates = slashCommandService.getTemplates();
+    ConversationTemplate[] templates = commandService.getTemplates();
     for (ConversationTemplate template : templates) {
       if (prefix.isEmpty() || template.getId().startsWith(prefix)) {
-        proposals.add(createCompletionProposal(template));
+        proposals.add(new ChatCompletionProposal(ChatCompletionService.TEMPLATE_MARK, template.getId(),
+            template.getDescription()));
+      }
+    }
+    return proposals.toArray(new ICompletionProposal[proposals.size()]);
+  }
+
+  public ICompletionProposal[] createCopilotCompletionAgentProposals(String prefix) {
+    List<ICompletionProposal> proposals = new ArrayList<>();
+    ChatCompletionService commandService = chatServiceManager.getChatCompletionService();
+    if (!commandService.isAgentsReady()) {
+      return new ICompletionProposal[0];
+    }
+    // So far no template supports agent mode.
+    if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
+      return new ICompletionProposal[0];
+    }
+    ConversationAgent[] agents = commandService.getAgents();
+    for (ConversationAgent agent : agents) {
+      if (prefix.isEmpty() || agent.getSlug().startsWith(prefix)) {
+        proposals
+            .add(new ChatCompletionProposal(ChatCompletionService.AGENT_MARK, agent.getSlug(), agent.getDescription()));
       }
     }
     return proposals.toArray(new ICompletionProposal[proposals.size()]);
@@ -127,9 +148,14 @@ class SlashCommandAssistProcessor implements IContentAssistProcessor {
       int lineStartOffset = document.getLineOffset(line);
       String lineText = document.get(lineStartOffset, offset - lineStartOffset).trim();
 
-      // Check if the "/" is at the beginning of the line
-      if (lineText.startsWith("/")) {
-        return createCopilotCompletionProposals(lineText.substring(1));
+      // Check if the "/" are at the beginning of the line
+      if (lineText.startsWith(ChatCompletionService.TEMPLATE_MARK)) {
+        return createCopilotCompletionTemplateProposals(lineText.substring(1));
+      }
+
+      // Check if the "@" are at the beginning of the line
+      if (lineText.startsWith(ChatCompletionService.AGENT_MARK)) {
+        return createCopilotCompletionAgentProposals(lineText.substring(1));
       }
     } catch (BadLocationException e) {
       CopilotCore.LOGGER.error(e);
@@ -144,12 +170,12 @@ class SlashCommandAssistProcessor implements IContentAssistProcessor {
 
   @Override
   public char[] getCompletionProposalAutoActivationCharacters() {
-    return new char[] { '/' };
+    return new char[] { '/', '@' };
   }
 
   @Override
   public char[] getContextInformationAutoActivationCharacters() {
-    return new char[] { '/' };
+    return new char[] { '/', '@' };
   }
 
   @Override

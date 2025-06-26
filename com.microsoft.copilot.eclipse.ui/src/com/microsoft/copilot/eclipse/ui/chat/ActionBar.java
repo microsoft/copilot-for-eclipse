@@ -150,7 +150,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     ca.enableAutoActivateCompletionOnType(true);
     ca.enableCompletionProposalTriggerChars(true);
     ca.enableAutoActivation(true);
-    ca.setContentAssistProcessor(new SlashCommandAssistProcessor(tv, chatServiceManager),
+    ca.setContentAssistProcessor(new ChatAssistProcessor(tv, chatServiceManager),
         IDocument.DEFAULT_CONTENT_TYPE);
     ca.setProposalPopupOrientation(IContentAssistant.PROPOSAL_STACKED);
     ca.enableColoredLabels(true);
@@ -194,7 +194,6 @@ public class ActionBar extends Composite implements NewConversationListener {
 
         table.getShell().setSize(widthHint, heightHint);
       }
-
     });
     ca.install(tv);
     tv.setContentAssistProcessor(ca);

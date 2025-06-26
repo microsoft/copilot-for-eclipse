@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
@@ -36,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AfterLoginWelcomeViewer;
@@ -383,6 +385,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onSend(String workDoneToken, String message, boolean createNewTurn) {
+    String processedMessage = replaceWorkspaceCommand(message);
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
     String modelName = activeModel == null ? null
@@ -398,8 +401,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     List<IFile> references = fileService.getReferencedFiles();
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation
-      CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken, message,
-          references, currentFile, modelName, chatModeName);
+      CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken,
+          processedMessage, references, currentFile, modelName, chatModeName);
       conversationFutures.add(createConversationFuture);
 
       createConversationFuture.exceptionally(ex -> {
@@ -413,7 +416,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       // send message to existing conversation
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          message, references, currentFile, modelName, chatModeName);
+          processedMessage, references, currentFile, modelName, chatModeName);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.exceptionally(ex -> {
@@ -429,6 +432,24 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (createNewTurn) {
       this.chatContentViewer.startNewTurn(workDoneToken, message);
     }
+  }
+
+  /**
+   * Align with @Workspace of vscode, because we are actually indexing the whole workspace, not a single project.
+   * (@Project is only for IntelliJ.)
+   *
+   * @param message the original message
+   * @return the processed message
+   */
+  private String replaceWorkspaceCommand(String message) {
+    if (!StringUtils.isBlank(message)
+        && chatServiceManager.getUserPreferenceService().getActiveChatMode() == ChatMode.Ask
+        && message.trim().startsWith(ChatCompletionService.AGENT_MARK + "workspace")) {
+      return message.replaceFirst(ChatCompletionService.AGENT_MARK + "workspace",
+          ChatCompletionService.AGENT_MARK + "project");
+    }
+
+    return message;
   }
 
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {

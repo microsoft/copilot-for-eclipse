@@ -16,6 +16,7 @@ public class Constants {
   public static final String ENABLE_STRICT_SSL = "enableStrictSsl";
   public static final String PROXY_KERBEROS_SP = "proxyKerberosSp";
   public static final String GITHUB_ENTERPRISE = "githubEnterprise";
+  public static final String WORKSPACE_CONTEXT_ENABLED = "workspaceContextEnabled";
   public static final String MCP = "mcp";
   public static final String MCP_TOOLS_STATUS = "mcpToolsStatus";
   public static final String GITHUB_COPILOT_URL = "http://github.com";

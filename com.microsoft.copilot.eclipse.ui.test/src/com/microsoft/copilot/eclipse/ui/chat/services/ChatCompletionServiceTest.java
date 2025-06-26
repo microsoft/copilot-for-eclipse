@@ -21,7 +21,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 
-class SlashCommandServiceTest {
+class ChatCompletionServiceTest {
 
   @Mock
   private static CopilotLanguageServerConnection mockLsConnection;
@@ -32,7 +32,7 @@ class SlashCommandServiceTest {
   @Mock
   private static AuthStatusManager mockAuthStatusManager;
 
-  private static SlashCommandService slashCommandService;
+  private static ChatCompletionService chatCompletionService;
 
   @BeforeAll
   static void setUp() {
@@ -45,8 +45,8 @@ class SlashCommandServiceTest {
     when(mockTemplate.getScopes()).thenReturn(List.of(CopilotScope.CHAT_PANEL));
     when(mockTemplate.getId()).thenReturn("test");
     when(mockAuthStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.OK);
-    slashCommandService = new SlashCommandService(mockLsConnection, mockAuthStatusManager);
-    Job[] jobs = Job.getJobManager().find(SlashCommandService.INIT_JOB_FAMILY);
+    chatCompletionService = new ChatCompletionService(mockLsConnection, mockAuthStatusManager);
+    Job[] jobs = Job.getJobManager().find(ChatCompletionService.INIT_JOB_FAMILY);
     for (Job job : jobs) {
       try {
         job.join();
@@ -58,29 +58,29 @@ class SlashCommandServiceTest {
 
   @Test
   void testConstructor() {
-    boolean result = slashCommandService.isTempaltesReady();
+    boolean result = chatCompletionService.isTempaltesReady();
     assertTrue(result);
   }
 
   @Test
   void testInitConversationTemplates() throws Exception {
-    assertEquals(1, slashCommandService.getTemplates().length);
+    assertEquals(1, chatCompletionService.getTemplates().length);
   }
 
   @Test
   void testIsBrokenCommand() {
-    assertTrue(slashCommandService.isBrokenCommand("/tes", 4));
-    assertFalse(slashCommandService.isBrokenCommand("/tes", 3));
+    assertTrue(chatCompletionService.isBrokenCommand("/tes", 4));
+    assertFalse(chatCompletionService.isBrokenCommand("/tes", 3));
   }
 
   @Test
   void testIsCommand() {
-    assertTrue(slashCommandService.isCommand("/test"));
-    assertFalse(slashCommandService.isCommand("/invalid"));
+    assertTrue(chatCompletionService.isCommand("/test"));
+    assertFalse(chatCompletionService.isCommand("/invalid"));
   }
 
   @Test
   void testGetTemplates() {
-    assertNotNull(slashCommandService.getTemplates());
+    assertNotNull(chatCompletionService.getTemplates());
   }
 }

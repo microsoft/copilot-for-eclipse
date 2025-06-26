@@ -12,6 +12,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
@@ -142,4 +143,10 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("mcp/updateToolsStatus")
   CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams param);
+
+  /**
+   * Get the conversation agents.
+   */
+  @JsonRequest("conversation/agents")
+  public CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
 }

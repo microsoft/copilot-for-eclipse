@@ -28,8 +28,6 @@ import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -136,14 +134,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     gridLayout.marginBottom = 1;
     mcpNoteComposite.setLayout(gridLayout);
     mcpNoteComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
-    var mcpNoteLabel = new Label(mcpNoteComposite, SWT.NONE);
-    mcpNoteLabel.setText(Messages.preferences_page_note_text);
-    FontData[] fontData = mcpNoteLabel.getFont().getFontData();
-    for (FontData fd : fontData) {
-      fd.setStyle(SWT.BOLD);
-    }
-    Font boldFont = new Font(parent.getDisplay(), fontData);
-    mcpNoteLabel.setFont(boldFont);
     Label mcpNoteContentLabel = new Label(mcpNoteComposite, SWT.WRAP);
     GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
     gd.widthHint = 400;
@@ -173,9 +163,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     };
     parent.addControlListener(controlListener);
     parent.addDisposeListener(e -> {
-      if (boldFont != null && !boldFont.isDisposed()) {
-        boldFont.dispose();
-      }
       parent.removeControlListener(controlListener);
     });
   }

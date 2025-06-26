@@ -3,13 +3,12 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -17,12 +16,15 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.IResourceProxy;
+import org.eclipse.core.resources.IResourceProxyVisitor;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jgit.ignore.FastIgnoreRule;
 import org.eclipse.jgit.ignore.IgnoreNode;
+import org.eclipse.jgit.util.StringUtils;
 import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.lsp4j.FileEvent;
 
@@ -50,7 +52,7 @@ class WatchedFileManager {
   /**
    * the map of all the .gitignore, key is the folder path containing the .gitignore.
    */
-  private Map<String, IgnoreNode> ignoreNodeMap;
+  private Map<IPath, IgnoreNode> gitignoreNodeMap;
 
   /**
    * For some unknown reason, 'copilot/watchedFiles' will be called multiple times. So we cached the file list to save
@@ -62,7 +64,7 @@ class WatchedFileManager {
    * Constructor.
    */
   public WatchedFileManager() {
-    ignoreNodeMap = new HashMap<>();
+    gitignoreNodeMap = new LinkedHashMap<>();
     addWatchedFileChangeListener();
   }
 
@@ -74,14 +76,30 @@ class WatchedFileManager {
       return new ArrayList<>(files);
     }
     files = new LinkedHashSet<>();
+
     IProject[] projects = ResourcesPlugin.getPlugin().getWorkspace().getRoot().getProjects();
+
+    // Load ignore nodes
     if (params.isExcludeGitignoredFiles()) {
+      List<IFile> gitignoreFiles = new ArrayList<>();
       for (IProject project : projects) {
-        addGitIgnorePatterns(project);
+        gitignoreFiles.addAll(findGitignoreFiles(project));
       }
+
+      // Sort gitignore files by their path to ensure the closest .gitignore is used first.
+      gitignoreFiles.sort((f1, f2) -> {
+        return f2.getLocation().segmentCount() - f1.getLocation().segmentCount();
+      });
+
+      loadGitignoreNodeMap(gitignoreFiles);
     }
 
+    // collect watched files
     for (IProject project : projects) {
+      if (!project.isOpen()) {
+        continue;
+      }
+
       try {
         collectFiles(project);
       } catch (CoreException e) {
@@ -93,25 +111,51 @@ class WatchedFileManager {
     return new ArrayList<>(files);
   }
 
-  private void addGitIgnorePatterns(IContainer container) {
-    if (isInvalidToScan(container)) {
-      return;
-    }
+  private List<IFile> findGitignoreFiles(IProject project) {
+    final List<IFile> gitignoreFiles = new ArrayList<>();
 
     try {
-      for (IResource member : container.members()) {
-        if (!member.exists()) {
-          continue;
+      project.accept(new IResourceProxyVisitor() {
+        @Override
+        public boolean visit(IResourceProxy proxy) throws CoreException {
+          if (proxy.getType() == IResource.FILE && proxy.getName().equals(GITIGNORE)) {
+            gitignoreFiles.add((IFile) proxy.requestResource());
+          }
+          return true; // Continue visiting children
         }
+      }, IResource.NONE);
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Error when finding gitignore files.", e);
+    }
 
-        if (GITIGNORE.equals(member.getName()) && member instanceof IFile ignoreFile) {
-          IgnoreNode ignoreNode = new IgnoreNode();
-          ignoreNode.parse(ignoreFile.getContents());
-          ignoreNodeMap.put(FileUtils.getResourceUri(container), ignoreNode);
+    return gitignoreFiles;
+  }
+
+  private void loadGitignoreNodeMap(List<IFile> gitignoreFiles) {
+    for (IFile gitignoreFile : gitignoreFiles) {
+      try {
+        IgnoreNode ignoreNode = new IgnoreNode() {
+          // This is to fix the issue that when a directory is ignored, the files under that directory are not ignored.
+          @Override
+          public @Nullable Boolean checkIgnored(String entryPath, boolean isDirectory) {
+            for (int i = this.getRules().size() - 1; i > -1; i--) {
+              FastIgnoreRule rule = this.getRules().get(i);
+              // Enable relative path match when pathMatch is false.
+              if (rule.isMatch(entryPath, isDirectory, false)) {
+                return Boolean.valueOf(rule.getResult());
+              }
+            }
+            return null;
+          }
+        };
+
+        if (gitignoreFile.getParent() != null && gitignoreFile.getParent().getLocation() != null) {
+          ignoreNode.parse(gitignoreFile.getContents());
+          gitignoreNodeMap.put(gitignoreFile.getParent().getLocation(), ignoreNode);
         }
+      } catch (IOException | CoreException e) {
+        CopilotCore.LOGGER.error("Error when parse git ignore file: ", e);
       }
-    } catch (CoreException | IOException e) {
-      CopilotCore.LOGGER.error("Error when add git ignore patterns", e);
     }
   }
 
@@ -126,22 +170,17 @@ class WatchedFileManager {
 
     // Process all resources in the container
     for (IResource member : container.members()) {
-      // skip IProject member to avoid duplication, (nested project will be scanned in the outer loop)
-      if (!member.exists() || isProject(member)) {
-        continue;
-      }
-
       String uri = FileUtils.getResourceUri(member);
       if (uri == null) {
         continue;
       }
       boolean isDirectory = member instanceof IContainer;
-      if (shouldCollect(uri, isDirectory)) {
-        if (isDirectory) {
-          // Recursively process subdirectory
-          collectFiles((IContainer) member);
-        } else {
-          // Add file to the list
+      if (isDirectory) {
+        // Recursively process subdirectory
+        collectFiles((IContainer) member);
+      } else {
+        // Add file to the list
+        if (shouldCollect(member, false)) {
           files.add(uri);
         }
       }
@@ -149,7 +188,7 @@ class WatchedFileManager {
   }
 
   private boolean isInvalidToScan(IContainer container) {
-    if (container == null || !container.exists() || (container instanceof IProject project && !project.isOpen())) {
+    if (container == null || !container.exists()) {
       return true;
     }
 
@@ -161,66 +200,43 @@ class WatchedFileManager {
     return false;
   }
 
-  private boolean isProject(IResource resource) {
-    if (!(resource instanceof IContainer)) {
-      return false;
-    }
-    for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
-      IPath projectPath = project.getLocation();
-      IPath resourcePath = resource.getLocation();
-      if (projectPath != null && projectPath.equals(resourcePath)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Helper method to find the IgnoreNode entry that controls a given path
-  private Map.Entry<String, IgnoreNode> findControllingIgnoreEntry(@NonNull String uri) {
-    Map.Entry<String, IgnoreNode> result = null;
-    for (Map.Entry<String, IgnoreNode> entry : ignoreNodeMap.entrySet()) {
-      if (uri.startsWith(entry.getKey())) {
-        // If this is the first match OR if we found a path closer in the hierarchy (longer path)
-        return entry;
-      }
-    }
-
-    return result;
-  }
-
   private void addWatchedFileChangeListener() {
     WatchedFilesListener watchedFilesListener = new WatchedFilesListener();
     ResourcesPlugin.getWorkspace().addResourceChangeListener(watchedFilesListener,
         IResourceChangeEvent.POST_CHANGE | IResourceChangeEvent.PRE_DELETE);
   }
 
-  private boolean shouldCollect(String uri, boolean isDirecotry) {
-    if (StringUtils.isEmpty(uri)) {
-      return false;
-    }
-    String extension = uri.substring(uri.lastIndexOf(".") + 1);
-    // ignore binary files
-    if (Constants.EXCLUDED_FILE_TYPE.contains(extension)) {
+  private boolean shouldCollect(IResource resource, boolean isDirectory) {
+    if (resource == null || !resource.exists()) {
       return false;
     }
 
-    Map.Entry<String, IgnoreNode> controllingEntry = findControllingIgnoreEntry(uri);
-    if (controllingEntry == null) {
-      return true;
-    } else {
-      // We found a controlling IgnoreNode
-      String rootUri = controllingEntry.getKey();
-      IgnoreNode controllingNode = controllingEntry.getValue();
+    String extension = resource.getFileExtension();
+    if (!StringUtils.isEmptyOrNull(extension) && Constants.EXCLUDED_FILE_TYPE.contains(extension)) {
+      return false;
+    }
 
-      // Calculate relative path from the IgnoreNode's root directory
-      String relativePath = uri.substring(rootUri.length());
-      if (relativePath.startsWith("/")) {
-        relativePath = relativePath.substring(1);
+    for (Map.Entry<IPath, IgnoreNode> entry : gitignoreNodeMap.entrySet()) {
+      IPath directoryPath = entry.getKey();
+      if (!directoryPath.isPrefixOf(resource.getLocation())) {
+        continue;
       }
 
-      // Check if the file should be ignored
-      return controllingNode.isIgnored(relativePath, isDirecotry) != IgnoreNode.MatchResult.IGNORED;
+      IgnoreNode ignoreNode = entry.getValue();
+      IPath relativePath = resource.getLocation().makeRelativeTo(directoryPath);
+      IgnoreNode.MatchResult matchResult = ignoreNode.isIgnored(relativePath.toString(), isDirectory);
+
+      switch (matchResult) {
+        case IGNORED:
+          return false;
+        case NOT_IGNORED:
+          return true;
+        case CHECK_PARENT:
+        default:
+      }
     }
+
+    return true;
   }
 
   private final class WatchedFilesListener implements IResourceChangeListener {
@@ -271,7 +287,7 @@ class WatchedFileManager {
       // For files, add the change if it's not ignored
       if (resource.getType() == IResource.FILE) {
         String uri = FileUtils.getResourceUri(resource);
-        if (shouldCollect(uri, false)) {
+        if (shouldCollect(resource, false)) {
           if (isAddEvent(delta)) {
             changes.add(createFileEvent(uri, FileChangeType.Created));
           } else if (isRemoveEvent(delta)) {
@@ -292,7 +308,7 @@ class WatchedFileManager {
       // If it's a file, add it directly
       if (resource.getType() == IResource.FILE) {
         String uri = FileUtils.getResourceUri(resource);
-        if (shouldCollect(uri, false)) {
+        if (shouldCollect(resource, false)) {
           changes.add(createFileEvent(uri, FileChangeType.Deleted));
         }
         return;

@@ -15,7 +15,9 @@ import org.eclipse.core.runtime.jobs.Job;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -23,8 +25,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 /**
  * Service for handling slash commands.
  */
-public class SlashCommandService implements CopilotAuthStatusListener {
+public class ChatCompletionService implements CopilotAuthStatusListener {
+  public static final String AGENT_MARK = "@";
+  public static final String TEMPLATE_MARK = "/";
+
   private List<ConversationTemplate> templates = new ArrayList<>();
+  private List<ConversationAgent> agents = new ArrayList<>();
   private HashSet<String> allCommands = new HashSet<>();
   // Exclude intelliJ sepcific slash commands
   private static final Set<String> EXCLUDED_COMMANDS = Set.of("help", "feedback");
@@ -36,7 +42,7 @@ public class SlashCommandService implements CopilotAuthStatusListener {
   /**
    * Constructor for the SlashCommandService.
    */
-  public SlashCommandService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
+  public ChatCompletionService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
     this.authStatusManager = authStatusManager;
     this.lsConnection = lsConnection;
     this.authStatusManager.addCopilotAuthStatusListener(this);
@@ -64,24 +70,43 @@ public class SlashCommandService implements CopilotAuthStatusListener {
     initJob.schedule();
   }
 
-  private boolean initConversationTemplates() {
-    if (isTempaltesReady()) {
-      return true;
+  private void initConversationTemplates() {
+    if (isTempaltesReady() && isAgentsReady()) {
+      return;
     }
 
+    // Command: /***
     try {
       ConversationTemplate[] rawTemplates = this.lsConnection.listConversationTemplates().get();
       for (ConversationTemplate template : rawTemplates) {
         if (template.getScopes().contains(CopilotScope.CHAT_PANEL) && !EXCLUDED_COMMANDS.contains(template.getId())) {
           templates.add(template);
-          allCommands.add("/" + template.getId());
+          allCommands.add(TEMPLATE_MARK + template.getId());
         }
       }
     } catch (InterruptedException | ExecutionException e) {
       CopilotCore.LOGGER.error(e);
-      return false;
     }
-    return true;
+
+    // Command: @***
+    try {
+      ConversationAgent[] rawAgents = this.lsConnection.listConversationAgents().get();
+      for (ConversationAgent agent : rawAgents) {
+        String agentSlug = agent.getSlug();
+        // @see ui.chat.ChatView#replaceWorkspaceCommand(String)
+        if (agentSlug.equals("project")) {
+          if (!IdeCapabilities.isWorkspaceContextEnabled()) {
+            continue;
+          }
+
+          agent.setSlug("workspace");
+        }
+        agents.add(agent);
+        allCommands.add(AGENT_MARK + agent.getSlug());
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      CopilotCore.LOGGER.error(e);
+    }
   }
 
   /**
@@ -137,8 +162,16 @@ public class SlashCommandService implements CopilotAuthStatusListener {
     return templates != null && templates.size() > 0;
   }
 
+  public boolean isAgentsReady() {
+    return agents != null && agents.size() > 0;
+  }
+
   public ConversationTemplate[] getTemplates() {
     return templates.toArray(new ConversationTemplate[0]);
+  }
+
+  public ConversationAgent[] getAgents() {
+    return agents.toArray(new ConversationAgent[0]);
   }
 
   @Override
@@ -155,6 +188,7 @@ public class SlashCommandService implements CopilotAuthStatusListener {
       default:
         allCommands.clear();
         templates.clear();
+        agents.clear();
         break;
     }
   }

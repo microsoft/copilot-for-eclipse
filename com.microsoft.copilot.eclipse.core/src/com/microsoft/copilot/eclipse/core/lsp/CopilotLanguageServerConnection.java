@@ -23,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
@@ -261,6 +262,16 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ConversationTemplate[]> listConversationTemplates() {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
       return ((CopilotLanguageServer) server).listTemplates(new NullParams());
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List the conversation agents.
+   */
+  public CompletableFuture<ConversationAgent[]> listConversationAgents() {
+    Function<LanguageServer, CompletableFuture<ConversationAgent[]>> fn = server -> {
+      return ((CopilotLanguageServer) server).listAgents(new NullParams());
     };
     return this.languageServerWrapper.execute(fn);
   }

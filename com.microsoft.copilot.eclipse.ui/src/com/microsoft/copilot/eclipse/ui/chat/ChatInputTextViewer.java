@@ -26,8 +26,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.chat.services.SlashCommandService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -38,7 +38,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
 
   private Composite parent;
   private Consumer<String> sendMessageHandler;
-  private SlashCommandService slashCommandService;
+  private ChatCompletionService chatCompletionService;
   private UserPreferenceService userPreferenceService;
   private ContentAssistant contentAssistant;
 
@@ -56,7 +56,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     super(parent, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
     this.parent = parent;
     this.userPreferenceService = chatServiceManager.getUserPreferenceService();
-    this.slashCommandService = chatServiceManager.getSlashCommandService();
+    this.chatCompletionService = chatServiceManager.getChatCompletionService();
     this.init();
   }
 
@@ -191,7 +191,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     clearFormat(0, text.length());
     String firstWord = text.substring(begin, end);
     if (e.keyCode == SWT.BS
-        && slashCommandService.isBrokenCommand(firstWord, this.getTextWidget().getCaretOffset() - begin)) {
+        && chatCompletionService.isBrokenCommand(firstWord, this.getTextWidget().getCaretOffset() - begin)) {
       try {
         getDocument().replace(begin, end - begin, StringUtils.EMPTY);
       } catch (BadLocationException ex) {
@@ -201,7 +201,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     }
     // we may need to highlight the command if user removed leading character before a command
     // user is typing
-    if (slashCommandService.isCommand(firstWord)) {
+    if (chatCompletionService.isCommand(firstWord)) {
       this.getTextWidget().setStyleRange(new StyleRange(begin, end - begin, UiUtils.SLASH_COMMAND_FORGROUND_COLOR,
           UiUtils.SLASH_COMMAND_BACKGROUND_COLOR, SWT.BOLD));
       return;

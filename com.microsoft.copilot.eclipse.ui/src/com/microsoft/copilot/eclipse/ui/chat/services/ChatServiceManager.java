@@ -14,7 +14,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private CopilotLanguageServerConnection lsConnection;
   private AuthStatusManager authStatusManager;
 
-  private SlashCommandService slashCommandService;
+  private ChatCompletionService chatCompletionService;
   private UserPreferenceService userPreferenceService;
   private AvatarService avatarService;
   private AuthStatusService authStatusService;
@@ -29,7 +29,7 @@ public class ChatServiceManager implements IChatServiceManager {
   public ChatServiceManager() {
     this.lsConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
-    slashCommandService = new SlashCommandService(this.lsConnection, this.authStatusManager);
+    chatCompletionService = new ChatCompletionService(this.lsConnection, this.authStatusManager);
     userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager);
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
@@ -47,12 +47,12 @@ public class ChatServiceManager implements IChatServiceManager {
   }
 
   /**
-   * Get the slash command service.
+   * Get the chat command service of Ask Mode.
    *
-   * @return the slash command service
+   * @return the chat command service of Ask Mode
    */
-  public SlashCommandService getSlashCommandService() {
-    return slashCommandService;
+  public ChatCompletionService getChatCompletionService() {
+    return chatCompletionService;
   }
 
   public CopilotLanguageServerConnection getLanguageServerConnection() {
@@ -113,7 +113,7 @@ public class ChatServiceManager implements IChatServiceManager {
    */
   public void dispose() {
     this.avatarService.dispose();
-    this.slashCommandService.dispose();
+    this.chatCompletionService.dispose();
     this.userPreferenceService.dispose();
     this.authStatusService.dispose();
     this.agentToolService.dispose();
