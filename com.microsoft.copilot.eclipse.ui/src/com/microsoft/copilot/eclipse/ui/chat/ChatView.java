@@ -156,7 +156,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
     this.onCancel();
-    if (!hasHistory) {
+
+    // Skip building the view when the user is not signed in or authenticated to avoid mode page overrides
+    // @link BeforeLoginWelcomeViewer. See: https://github.com/microsoft/copilot-eclipse/issues/851
+    if (!this.chatServiceManager.getAuthStatusManager().isNotSignedInOrNotAuthorized() && !hasHistory) {
       disposeChildren(parent);
       showChatPage(chatMode);
       this.parent.layout();
