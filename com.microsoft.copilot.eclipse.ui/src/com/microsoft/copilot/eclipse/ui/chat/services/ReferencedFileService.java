@@ -238,8 +238,12 @@ public class ReferencedFileService extends ChatBaseService implements IReference
    * Returns true if the file needs to be excluded from 'Current file' reference in chat.
    */
   private boolean isExcluded(@Nullable IFile file) {
-    if (file == null || file.getFileExtension() == null) {
+    if (file == null) {
       return true;
+    }
+
+    if (file.getFileExtension() == null) {
+      return false; // If the file has no extension, we do not exclude it.
     }
     return Constants.EXCLUDED_FILE_TYPE.contains(file.getFileExtension());
   }

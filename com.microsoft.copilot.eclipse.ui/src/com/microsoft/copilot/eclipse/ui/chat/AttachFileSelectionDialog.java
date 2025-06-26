@@ -40,6 +40,9 @@ class AttachFileSelectionDialog extends FilteredResourcesSelectionDialog {
       final String pattern = this.patternMatcher.getPattern();
       if (item instanceof IFile file) {
         final String extension = file.getFileExtension();
+        if (extension == null) {
+          return true;
+        }
         if (StringUtils.equals(pattern, OPENED_FILES)) {
           return AttachFileSelectionDialog.this.openedFiles.contains(item) && Objects.nonNull(extension)
               && !Constants.EXCLUDED_FILE_TYPE.contains(extension);
