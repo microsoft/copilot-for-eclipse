@@ -8,6 +8,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -17,7 +18,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
  */
 public class CopilotLanguageServerSettings {
   private boolean showEditorCompletions;
-  private boolean enableAutoCompletions;
+  private Boolean enableAutoCompletions;
 
   /**
    * Http settings.
@@ -285,6 +286,18 @@ public class CopilotLanguageServerSettings {
     this.http = new Http();
     this.githubEnterprise = new GithubEnterprise();
     this.githubSettings = new GitHubSettings();
+  }
+
+  /**
+   * Constructor with parameters.
+   */
+  public CopilotLanguageServerSettings(@Nullable Boolean enableAutoCompletions, @Nullable Http http,
+      @Nullable GithubEnterprise githubEnterprise, @Nullable GitHubSettings githubSettings) {
+    this.showEditorCompletions = true;
+    this.enableAutoCompletions = enableAutoCompletions;
+    this.http = http;
+    this.githubEnterprise = githubEnterprise;
+    this.githubSettings = githubSettings;
   }
 
   /**

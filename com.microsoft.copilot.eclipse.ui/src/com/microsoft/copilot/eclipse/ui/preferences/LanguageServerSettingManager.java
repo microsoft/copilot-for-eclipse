@@ -71,7 +71,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   @Override
   public void proxyInfoChanged(IProxyChangeEvent event) {
     updateProxySettings();
-    syncConfiguration();
+    updateGithubPanicErrorReport();
+    syncSingleConfiguration(new CopilotLanguageServerSettings(null, settings.getHttp(), null, null));
   }
 
   /**
@@ -79,33 +80,39 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   @Override
   public void propertyChange(PropertyChangeEvent event) {
+    CopilotLanguageServerSettings singleSetting;
+    Object newValue = event.getNewValue();
+
     switch (event.getProperty()) {
+      case Constants.AUTO_SHOW_COMPLETION:
+        settings.setEnableAutoCompletions((Boolean) newValue);
+        singleSetting = new CopilotLanguageServerSettings(settings.isEnableAutoCompletions(), null, null, null);
+        break;
       case Constants.ENABLE_STRICT_SSL:
-        var newVal = Boolean.parseBoolean(event.getNewValue().toString());
-        this.settings.getHttp().setProxyStrictSsl(newVal);
+        settings.getHttp().setProxyStrictSsl((Boolean) newValue);
+        singleSetting = new CopilotLanguageServerSettings(null, settings.getHttp(), null, null);
+        updateGithubPanicErrorReport();
         break;
       case Constants.PROXY_KERBEROS_SP:
-        this.settings.getHttp().setProxyKerberosServicePrincipal((String) event.getNewValue());
+        settings.getHttp().setProxyKerberosServicePrincipal((String) newValue);
+        singleSetting = new CopilotLanguageServerSettings(null, settings.getHttp(), null, null);
         break;
       case Constants.GITHUB_ENTERPRISE:
-        this.settings.getGithubEnterprise().setUri((String) event.getNewValue());
-        break;
-      case Constants.AUTO_SHOW_COMPLETION:
-        Boolean autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
-        this.settings.setEnableAutoCompletions(autoShowCompletion);
+        settings.getGithubEnterprise().setUri((String) newValue);
+        singleSetting = new CopilotLanguageServerSettings(null, null, settings.getGithubEnterprise(), null);
         break;
       case Constants.MCP:
-        this.settings.setMcpServers((String) event.getNewValue());
+        settings.setMcpServers((String) newValue);
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       case Constants.MCP_TOOLS_STATUS:
-        // Event value JSON format: {"server1":{"tool1":true,"tool2":false},"server2":{"tool1":true}}
-        String mcpToolsStatus = event.getNewValue().toString();
-        updateMcpToolsStatus(mcpToolsStatus);
+        updateMcpToolsStatus((String) newValue);
         return;
       default:
         return;
     }
-    syncConfiguration();
+
+    syncSingleConfiguration(singleSetting);
   }
 
   /**
@@ -114,14 +121,33 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   public void syncConfiguration() {
     DidChangeConfigurationParams params = new DidChangeConfigurationParams();
     params.setSettings(settings);
+    updateGithubPanicErrorReport();
+    this.copilotLanguageServerConnection.updateConfig(params);
+  }
+
+  /**
+   * Synchronizes the configuration with the language server.
+   */
+  public void syncSingleConfiguration(CopilotLanguageServerSettings singleSetting) {
+    DidChangeConfigurationParams params = new DidChangeConfigurationParams();
+    params.setSettings(singleSetting);
+    this.copilotLanguageServerConnection.updateConfig(params);
+  }
+
+  private void updateGithubPanicErrorReport() {
     CopilotCore copilotCore = CopilotCore.getPlugin();
     if (copilotCore != null && copilotCore.getGithubPanicErrorReport() != null) {
       copilotCore.getGithubPanicErrorReport().setProxyStrictSsl(settings.getHttp().isProxyStrictSsl());
       copilotCore.getGithubPanicErrorReport().setProxyData(proxyData);
     }
-    this.copilotLanguageServerConnection.updateConfig(params);
   }
 
+  /**
+   * Updates the MCP tools status.
+   *
+   * @param mcpToolsStatus the MCP tools status in JSON format. e.g.
+   *     {"server1":{"tool1":true,"tool2":false},"server2":{"tool1":true}}
+   */
   private void updateMcpToolsStatus(String mcpToolsStatus) {
     try {
       Gson gson = new Gson();
