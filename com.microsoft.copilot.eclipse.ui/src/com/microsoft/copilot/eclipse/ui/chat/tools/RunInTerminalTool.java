@@ -275,7 +275,7 @@ public class RunInTerminalTool extends BaseTool {
             if (tabFolder != null) {
               for (CTabItem item : tabFolder.getItems()) {
                 if (terminalTitle.equals(item.getText())) {
-                  terminalIcon = UiUtils.buildImageFromPngPath("/icons/github_copilot_signed_in.png");
+                  terminalIcon = UiUtils.buildImageFromPngPath("/icons/github_copilot.png");
                   item.setImage(terminalIcon);
                   item.addDisposeListener(
                       buildDisposeListener(terminalTitle.replace(BACKGROUND_TERMINAL_PREFIX, ""), isBackground));
