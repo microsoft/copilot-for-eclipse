@@ -347,7 +347,8 @@ public class ActionBar extends Composite implements NewConversationListener {
    * @return true if the focus was set, false otherwise
    */
   public boolean setFocusToInputTextViewer() {
-    if (inputTextViewer != null && !inputTextViewer.getTextWidget().isDisposed()) {
+    if (inputTextViewer != null && inputTextViewer.getTextWidget() != null
+        && !inputTextViewer.getTextWidget().isDisposed()) {
       return inputTextViewer.getTextWidget().setFocus();
     }
     return false;
