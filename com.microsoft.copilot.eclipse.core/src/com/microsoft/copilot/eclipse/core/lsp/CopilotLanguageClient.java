@@ -41,6 +41,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpRuntimeLog;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -176,6 +177,16 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public void mcpTools(OnChangeMcpServerToolsParams params) {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.ON_DID_CHANGE_MCP_TOOLS, params.getServers());
+    }
+  }
+
+  /**
+   * Notify when mcp runtime logs are available.
+   */
+  @JsonNotification("copilot/mcpRuntimeLogs")
+  public void mcpRuntimeLogs(McpRuntimeLog mcpRuntimeLog) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MCP_RUNTIME_LOG, mcpRuntimeLog);
     }
   }
 

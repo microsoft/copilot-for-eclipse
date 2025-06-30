@@ -22,6 +22,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private FileToolService fileToolService;
   private ReferencedFileService referencedFileService;
   private McpToolService mcpToolService;
+  private McpRuntimeLogger mcpRuntimeLogger;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -37,6 +38,7 @@ public class ChatServiceManager implements IChatServiceManager {
     fileToolService = new FileToolService();
     referencedFileService = new ReferencedFileService();
     mcpToolService = new McpToolService();
+    mcpRuntimeLogger = new McpRuntimeLogger();
   }
 
   /**

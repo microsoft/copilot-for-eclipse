@@ -44,4 +44,9 @@ public class CopilotEventConstants {
    * Event when the chat message to Copilot should be sent.
    */
   public static final String TOPIC_CHAT_ON_SEND = TOPIC_CHAT + "ON_SEND";
+
+  /**
+   * Event when MCP runtime log is received.
+   */
+  public static final String TOPIC_CHAT_MCP_RUNTIME_LOG = TOPIC_CHAT + "MCP_RUNTIME_LOG";
 }
