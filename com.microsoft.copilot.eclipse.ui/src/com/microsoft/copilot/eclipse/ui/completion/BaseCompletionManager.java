@@ -165,43 +165,24 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       return;
     }
 
-    int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
-    // initialize the document version and return. This avoids the ghost text
-    // being rendered when user opens the editor and just clicks in it.
-    if (this.documentVersion < 0) {
-      this.documentVersion = currentVersion;
-      return;
-    }
-    this.documentVersion = currentVersion;
-
     this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, event.getOffset());
     if (isReplacement(event)) {
-      this.triggerPosition = new Position(this.cachedModelOffset + event.getText().length());
       clearGhostTexts();
     } else if (isDeletion(event)) {
-      this.triggerPosition = new Position(this.cachedModelOffset);
       if (this.suggestionUpdateManager.getSize() > 0
           && this.suggestionUpdateManager.delete(event.getReplacedText().length())) {
-        this.updateGhostTexts();
+        this.updateGhostTexts(new Position(this.cachedModelOffset));
       } else {
         clearGhostTexts();
       }
     } else if (isInsertion(event)) {
-      this.triggerPosition = new Position(this.cachedModelOffset + event.getText().length());
       if (this.suggestionUpdateManager.getSize() > 0 && this.suggestionUpdateManager.insert(event.getText())) {
-        this.updateGhostTexts();
+        this.updateGhostTexts(new Position(this.cachedModelOffset + event.getText().length()));
       } else {
         clearGhostTexts();
       }
     }
 
-    if (this.autoShowCompletion) {
-      // Though the suggestionUpdateManager will update the items according to the text change, but that is not always
-      // correct. Thus we will always trigger another completion, whenever cursor position changed, to get the correct
-      // items. This will not affect the ghost text rendering because the CLS also has cache so it will not return items
-      // that are different from the last time as long as the text change is the same as the original completion item.
-      triggerCompletion();
-    }
   }
 
   /**
@@ -241,7 +222,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
     this.suggestionUpdateManager.setCompletionItems(completions);
     enableContext();
-    this.updateGhostTexts();
+    this.updateGhostTexts(this.triggerPosition);
     this.notifyShown();
   }
 
@@ -261,7 +242,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
    * Abstract method to update ghost texts. Subclasses must implement this method to provide specific ghost text
    * rendering behavior.
    */
-  protected abstract void updateGhostTexts();
+  protected abstract void updateGhostTexts(Position inferredPosition);
 
   /**
    * Abstract method to clear completion rendering. Subclasses must implement this method to provide specific behavior
@@ -276,9 +257,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
    * @return the current document line as a string.
    * @throws BadLocationException if the trigger position is invalid.
    */
-  protected String getCurrentLine() throws BadLocationException {
+  protected String getCurrentLine(Position position) throws BadLocationException {
     String documentContent = this.document.get();
-    int triggerOffset = this.triggerPosition.getOffset();
+    int triggerOffset = position.getOffset();
     String documentLine = "";
     int lineOffset = this.document.getLineOfOffset(triggerOffset);
     if (lineOffset == this.document.getNumberOfLines() - 1) {
@@ -537,20 +518,29 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
    * Handle caret move, clear and update the ghost text accordingly.
    */
   protected void handleCaretPositionChange() {
-    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset());
-    if (this.triggerPosition.offset == modelOffset) {
-      return;
-    }
-    this.triggerPosition = new Position(modelOffset);
-
     // it's guaranteed that the document change event comes earlier than keyReleased
     // To verify this behavior, set breakpoints in org.eclipse.lsp4e.DocumentContentSynchronizer
     // at the line: changeParamsToSend.getTextDocument().setVersion(++version); and this class's keyReleased method.
     // Then trigger completion to verify the event.
     int currentVersion = this.lsConnection.getDocumentVersion(this.documentUri);
+    if (this.documentVersion < 0) {
+      // initialize the document version and return. This avoids the ghost text
+      // being rendered when user opens the editor and just clicks in it.
+      this.documentVersion = currentVersion;
+      return;
+    }
+
+    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset());
+    if (this.triggerPosition.offset == modelOffset) {
+      return;
+    }
+    this.triggerPosition = new Position(modelOffset);
     if (currentVersion == this.documentVersion) {
       // if the caret position is changed without document version change, we should remove the ghost text.
       clearGhostTexts();
+    } else if (this.autoShowCompletion) {
+      this.documentVersion = currentVersion;
+      triggerCompletion();
     }
     redrawBlockLineAtModelOffset(modelOffset);
   }

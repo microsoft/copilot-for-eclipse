@@ -39,8 +39,8 @@ public class CompletionManager extends BaseCompletionManager {
    * Update the ghost texts for rendering.
    */
   @Override
-  protected void updateGhostTexts() {
-    resolveCodeMiningGhostTexts();
+  protected void updateGhostTexts(Position position) {
+    resolveCodeMiningGhostTexts(position);
     this.updateCodeMinings();
   }
 
@@ -65,7 +65,7 @@ public class CompletionManager extends BaseCompletionManager {
     }
   }
 
-  private void resolveCodeMiningGhostTexts() {
+  private void resolveCodeMiningGhostTexts(Position position) {
     if (this.suggestionUpdateManager.getSize() == 0) {
       this.codeMinings.clear();
       return;
@@ -75,7 +75,7 @@ public class CompletionManager extends BaseCompletionManager {
 
     if (StringUtils.isNotEmpty(firstLine)) {
       try {
-        cm.addAll(getCodeMiningGhostTexts(triggerPosition, this.document, getCurrentLine(), firstLine));
+        cm.addAll(getCodeMiningGhostTexts(position, this.document, getCurrentLine(position), firstLine));
       } catch (BadLocationException e) {
         CopilotCore.LOGGER.error(e);
       }
@@ -84,13 +84,28 @@ public class CompletionManager extends BaseCompletionManager {
     String remainingLines = this.suggestionUpdateManager.getRemainingLines();
     if (StringUtils.isNotEmpty(remainingLines)) {
       try {
-        int lineOffset = document.getLineOfOffset(triggerPosition.offset) + 1;
+        int lineOffset = document.getLineOfOffset(position.offset) + 1;
         if (lineOffset >= document.getNumberOfLines()) {
           return;
         }
         cm.add(new BlockGhostText(lineOffset, document, null, remainingLines));
       } catch (BadLocationException e) {
         CopilotCore.LOGGER.error(e);
+      }
+    }
+
+    if (cm.size() != this.codeMinings.size()) {
+      this.updateCodeMinings();
+    } else {
+      for (int i = 0; i < cm.size(); i++) {
+        AbstractCodeMining newMining = (AbstractCodeMining) cm.get(i);
+        AbstractCodeMining oldMining = (AbstractCodeMining) this.codeMinings.get(i);
+        if (newMining.getPosition().getOffset() != oldMining.getPosition().getOffset()
+            || newMining.getPosition().getLength() != oldMining.getPosition().getLength()
+            || !newMining.getLabel().equals(oldMining.getLabel())) {
+          this.updateCodeMinings();
+          break;
+        }
       }
     }
     this.codeMinings = cm;

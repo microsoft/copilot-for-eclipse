@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.Position;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -34,8 +35,8 @@ public class CompletionManagerLegacy extends BaseCompletionManager {
    * Update the ghost texts for rendering using the basic rendering approach.
    */
   @Override
-  protected void updateGhostTexts() {
-    List<GhostText> ghostTexts = resolveGhostTexts();
+  protected void updateGhostTexts(Position position) {
+    List<GhostText> ghostTexts = resolveGhostTexts(position);
     this.renderingManager.setGhostTexts(ghostTexts);
     this.renderingManager.redraw();
   }
@@ -45,7 +46,7 @@ public class CompletionManagerLegacy extends BaseCompletionManager {
    *
    * @return a list of ghost texts to be rendered.
    */
-  private List<GhostText> resolveGhostTexts() {
+  private List<GhostText> resolveGhostTexts(Position position) {
     if (this.suggestionUpdateManager.getSize() == 0) {
       return Collections.emptyList();
     }
@@ -55,7 +56,7 @@ public class CompletionManagerLegacy extends BaseCompletionManager {
     String firstLine = this.suggestionUpdateManager.getFirstLine();
     if (StringUtils.isNotEmpty(firstLine)) {
       String documentContent = this.document.get();
-      int triggerOffset = triggerPosition.getOffset();
+      int triggerOffset = position.getOffset();
       String documentLine = "";
       try {
         int lineOffset = document.getLineOfOffset(triggerOffset);
@@ -78,7 +79,7 @@ public class CompletionManagerLegacy extends BaseCompletionManager {
 
     String remainingLines = this.suggestionUpdateManager.getRemainingLines();
     if (StringUtils.isNotEmpty(remainingLines)) {
-      ghostTexts.add(new BlockGhostText(remainingLines, triggerPosition.offset, this.document));
+      ghostTexts.add(new BlockGhostText(remainingLines, position.offset, this.document));
     }
 
     return ghostTexts;
