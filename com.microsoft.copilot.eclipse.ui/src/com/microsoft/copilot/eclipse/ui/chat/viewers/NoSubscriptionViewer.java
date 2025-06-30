@@ -32,6 +32,9 @@ public class NoSubscriptionViewer extends BaseViewer {
   public NoSubscriptionViewer(Composite parent, int style) {
     super(parent, style);
 
+    GridLayout layout = new GridLayout(1, true);
+    layout.verticalSpacing = ALIGNED_MARGIN_TOP * 2;
+    setLayout(layout);
     buildMainIconAndLabel();
     buildcheckSubButton();
   }
@@ -39,6 +42,7 @@ public class NoSubscriptionViewer extends BaseViewer {
   private void buildMainIconAndLabel() {
     Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
+    iconLabelGridlayout.verticalSpacing = ALIGNED_MARGIN_TOP;
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
@@ -47,11 +51,11 @@ public class NoSubscriptionViewer extends BaseViewer {
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
-    WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_noAuthView_title);
     label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
-    fontData.setHeight(16);
+    fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
     if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
       this.mainLabelFont.dispose();
@@ -59,7 +63,7 @@ public class NoSubscriptionViewer extends BaseViewer {
     this.mainLabelFont = new Font(Display.getCurrent(), fontData);
     label.setFont(mainLabelFont);
 
-    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_noAuthView_description);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
@@ -67,7 +71,7 @@ public class NoSubscriptionViewer extends BaseViewer {
   private void buildcheckSubButton() {
     Composite checkSubComposite = buildCompositeWithMarginTop(this, 10, SWT.NONE);
 
-    Button checkSubButton = new Button(checkSubComposite, SWT.PUSH | SWT.WRAP);
+    Button checkSubButton = new Button(checkSubComposite, SWT.PUSH);
     checkSubButton.setText(Messages.chat_noAuthView_checkSubButton);
     checkSubButton.setToolTipText(Messages.chat_noAuthView_checkSubButton_Tooltip);
     GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, false);

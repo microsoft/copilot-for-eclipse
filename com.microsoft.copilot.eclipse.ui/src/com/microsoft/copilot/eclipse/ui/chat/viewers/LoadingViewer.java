@@ -30,25 +30,29 @@ public class LoadingViewer extends BaseViewer {
   public LoadingViewer(Composite parent, int style) {
     super(parent, style);
 
+    GridLayout layout = new GridLayout(1, true);
+    layout.verticalSpacing = ALIGNED_MARGIN_TOP * 2;
+    setLayout(layout);
     buildMainIconAndLabel();
   }
 
   private void buildMainIconAndLabel() {
     Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
+    iconLabelGridlayout.verticalSpacing = ALIGNED_MARGIN_TOP;
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_loading.png");
-    Label icon = new Label(iconLabelComposite, SWT.NONE);
+    Label icon = new Label(iconLabelComposite, SWT.CENTER);
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
-    WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_loadingView_title);
     label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
-    fontData.setHeight(16);
+    fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
     if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
       this.mainLabelFont.dispose();
@@ -56,7 +60,7 @@ public class LoadingViewer extends BaseViewer {
     this.mainLabelFont = new Font(Display.getCurrent(), fontData);
     label.setFont(mainLabelFont);
 
-    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_loadingView_description);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }

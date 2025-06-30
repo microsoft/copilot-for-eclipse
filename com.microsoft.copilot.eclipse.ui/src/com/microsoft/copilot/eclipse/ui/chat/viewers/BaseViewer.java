@@ -4,21 +4,29 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowData;
+import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Listener;
+
+import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
 
 /**
  * A chat viewer that displays information about the chat.
  */
 public abstract class BaseViewer extends Composite {
-  public static final int ALIGNED_WIDTH = 300;
-  public static final int ALIGNED_LABEL_WIDTH = 480;
-  public static int ALIGNED_MARGIN_TOP = 10;
+  public static final int ALIGNED_WIDTH = 200;
+  public static final int ALIGNED_TITLE_HEIGHT = 14;
+  public static final int ALIGNED_LABEL_WIDTH = 370;
+  public static final int ALIGNED_SPACE_BETWEEN_ICON_AND_LABEL = 10;
+  public static final int ALIGNED_MARGIN_TOP = 12;
 
   BaseViewer(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(1, true));
-    setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
   }
 
   /**
@@ -29,14 +37,16 @@ public abstract class BaseViewer extends Composite {
    * @param text the text for the label
    */
   protected void buildLabelWithIcon(Composite parent, Image labelIcon, String text) {
-    Composite composite = new Composite(parent, SWT.NONE);
-    composite.setLayout(new GridLayout(2, false));
+    Composite composite = new Composite(parent, SWT.CENTER);
+    GridLayout gl = new GridLayout(2, false);
+    gl.horizontalSpacing = ALIGNED_SPACE_BETWEEN_ICON_AND_LABEL;
+    composite.setLayout(gl);
     composite.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
     Label icon = new Label(composite, SWT.RIGHT);
     icon.setImage(labelIcon);
 
-    Label label = new Label(composite, SWT.CENTER);
-    label.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
+    Label label = new Label(composite, SWT.LEFT);
+    label.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
     label.setText(text);
     label.setForeground((parent.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY)));
   }
@@ -56,5 +66,20 @@ public abstract class BaseViewer extends Composite {
     composite.setLayout(compositelayout);
     composite.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false));
     return composite;
+  }
+
+  /**
+   * Build a text link with a listener.
+   *
+   * @param parent the parent composite
+   * @param text the text for the link
+   * @param listener the listener to be added to the link
+   */
+  protected void buildTextWithLinkAndListener(Composite parent, String text, GridData gridData, Listener listener) {
+    Link link = new Link(parent, SWT.CENTER);
+    link.setText(text);
+    link.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+    link.setLayoutData(gridData != null ? gridData : new GridData(SWT.CENTER, SWT.CENTER, true, false));
+    link.addListener(SWT.Selection, listener);
   }
 }

@@ -278,7 +278,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void createBeforeLoginWelcomePage() {
     clearChatView();
-    this.beforeLoginWelcomeViewer = new BeforeLoginWelcomeViewer(this.mainSection, SWT.NONE);
+    this.beforeLoginWelcomeViewer = new BeforeLoginWelcomeViewer(parent, SWT.NONE);
     this.mainSection.layout();
   }
 

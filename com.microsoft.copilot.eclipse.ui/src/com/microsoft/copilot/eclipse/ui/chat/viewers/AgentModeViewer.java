@@ -21,6 +21,7 @@ public class AgentModeViewer extends BaseViewer {
   private Image mainIcon;
   private Font mainLabelFont;
   private Image attachContextIcon;
+  private Image configureMcpIcon;
 
   /**
    * Create the composite.
@@ -31,6 +32,9 @@ public class AgentModeViewer extends BaseViewer {
   public AgentModeViewer(Composite parent, int style) {
     super(parent, style);
 
+    GridLayout layout = new GridLayout(1, true);
+    layout.verticalSpacing = ALIGNED_MARGIN_TOP * 2;
+    setLayout(layout);
     buildMainIconAndLabel();
     buildSubComposite();
   }
@@ -38,11 +42,12 @@ public class AgentModeViewer extends BaseViewer {
   private void buildMainIconAndLabel() {
     Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
+    iconLabelGridlayout.verticalSpacing = ALIGNED_MARGIN_TOP;
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
-    Label icon = new Label(iconLabelComposite, SWT.NONE);
+    Label icon = new Label(iconLabelComposite, SWT.CENTER);
     icon.addDisposeListener(e -> {
       if (this.mainIcon != null && !this.mainIcon.isDisposed()) {
         this.mainIcon.dispose();
@@ -51,19 +56,11 @@ public class AgentModeViewer extends BaseViewer {
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
-    WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_agentModeView_title);
     label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-    GridData labelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-    labelGridData.widthHint = ALIGNED_LABEL_WIDTH;
-    label.setLayoutData(labelGridData);
-
-    WrapLabel subtitle = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
-    subtitle.setText(Messages.chat_agentModeView_subtitle);
-    subtitle.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-
     FontData fontData = new FontData();
-    fontData.setHeight(16);
+    fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
     if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
       this.mainLabelFont.dispose();
@@ -76,13 +73,19 @@ public class AgentModeViewer extends BaseViewer {
       }
     });
 
-    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
-    subLabel.setText(Messages.chat_agentModeView_description);
-    subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-    GridData subLabelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-    subLabelGridData.widthHint = ALIGNED_LABEL_WIDTH;
-    subLabelGridData.verticalIndent = 10;
-    subLabel.setLayoutData(subLabelGridData);
+    Composite lineAndIntroComposite = new Composite(iconLabelComposite, SWT.NONE);
+    GridLayout lineAndIntroLayout = new GridLayout(1, true);
+    lineAndIntroLayout.verticalSpacing = 0;
+    lineAndIntroComposite.setLayout(lineAndIntroLayout);
+    GridData lineAndIntroGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    lineAndIntroComposite.setLayoutData(lineAndIntroGridData);
+
+    WrapLabel introLabel = new WrapLabel(lineAndIntroComposite, SWT.CENTER);
+    introLabel.setText(Messages.chat_agentModeView_agentModeIntro);
+    introLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+    GridData introGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    introGridData.widthHint = ALIGNED_LABEL_WIDTH;
+    introLabel.setLayoutData(introGridData);
 
     WrapLabel warnLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     warnLabel.setText(Messages.chat_aiWarn_description);
@@ -100,6 +103,16 @@ public class AgentModeViewer extends BaseViewer {
     gridData.widthHint = ALIGNED_WIDTH;
     subComposite.setLayoutData(gridData);
 
+    // configure MCP icon with label
+    this.configureMcpIcon = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+    subComposite.addDisposeListener(e -> {
+      if (this.configureMcpIcon != null && !this.configureMcpIcon.isDisposed()) {
+        this.configureMcpIcon.dispose();
+      }
+    });
+    buildLabelWithIcon(subComposite, this.configureMcpIcon, Messages.chat_agentModeView_configureMcpSuffix);
+
+    // attach context icon with label
     this.attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
     subComposite.addDisposeListener(e -> {
       if (this.attachContextIcon != null && !this.attachContextIcon.isDisposed()) {

@@ -9,6 +9,7 @@ import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
@@ -68,9 +69,16 @@ public class WrapLabel {
   }
 
   /**
-   * Set the layout data of the label.
+   * Set the grid layout data of the label.
    */
   public void setLayoutData(GridData layoutData) {
+    label.setLayoutData(layoutData);
+  }
+
+  /**
+   * Set the row layout data of the label using RowData.
+   */
+  public void setLayoutData(RowData layoutData) {
     label.setLayoutData(layoutData);
   }
 

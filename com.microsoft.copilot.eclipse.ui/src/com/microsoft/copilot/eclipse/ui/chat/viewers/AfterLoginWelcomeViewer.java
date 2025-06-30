@@ -31,6 +31,9 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
   public AfterLoginWelcomeViewer(Composite parent, int style) {
     super(parent, style);
 
+    GridLayout layout = new GridLayout(1, true);
+    layout.verticalSpacing = ALIGNED_MARGIN_TOP * 2;
+    setLayout(layout);
     buildMainIconAndLabel();
     buildSubComposite();
   }
@@ -38,11 +41,17 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
   private void buildMainIconAndLabel() {
     Composite iconLabelComposite = new Composite(this, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
+    iconLabelGridlayout.verticalSpacing = ALIGNED_MARGIN_TOP;
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
     Label icon = new Label(iconLabelComposite, SWT.NONE);
+    icon.addDisposeListener(e -> {
+      if (this.mainIcon != null && !this.mainIcon.isDisposed()) {
+        this.mainIcon.dispose();
+      }
+    });
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
@@ -50,51 +59,50 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     label.setText(Messages.chat_initialChatView_title);
     label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
-    fontData.setHeight(16);
+    fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
     if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
       this.mainLabelFont.dispose();
     }
     this.mainLabelFont = new Font(Display.getCurrent(), fontData);
     label.setFont(mainLabelFont);
+    label.addDisposeListener(e -> {
+      if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
+        this.mainLabelFont.dispose();
+      }
+    });
 
-    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
+    // Set a width hint for the label to enable proper wrapping
+    GridData labelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
+    labelGridData.widthHint = ALIGNED_LABEL_WIDTH;
+    label.setLayoutData(labelGridData);
+
+    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_aiWarn_description);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     GridData subLabelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     subLabelGridData.widthHint = ALIGNED_LABEL_WIDTH;
-    subLabelGridData.verticalIndent = 10;
     subLabel.setLayoutData(subLabelGridData);
 
   }
 
   private void buildSubComposite() {
     Composite subComposite = new Composite(this, SWT.NONE);
-    GridLayout subCompositelayout = new GridLayout(1, true);
-    subComposite.setLayout(subCompositelayout);
+    subComposite.setLayout(new GridLayout(1, true));
     GridData gridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-    gridData.widthHint = ALIGNED_WIDTH;
+    gridData.widthHint = 175; // min width to avoid wrapping
     subComposite.setLayoutData(gridData);
 
     this.attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_initialChatView_attactContextSuffix);
+    subComposite.addDisposeListener(e -> {
+      if (this.attachContextIcon != null && !this.attachContextIcon.isDisposed()) {
+        this.attachContextIcon.dispose();
+      }
+    });
+    buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_initialChatView_attachContextSuffix);
 
     WrapLabel subLabel = new WrapLabel(subComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_initialChatView_useCommandsIntro);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-  }
-
-  @Override
-  public void dispose() {
-    if (this.attachContextIcon != null) {
-      this.attachContextIcon.dispose();
-    }
-    if (this.mainIcon != null) {
-      this.mainIcon.dispose();
-    }
-    if (this.mainLabelFont != null) {
-      this.mainLabelFont.dispose();
-    }
-    super.dispose();
   }
 }

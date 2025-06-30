@@ -92,6 +92,8 @@ public final class Messages extends NLS {
   public static String chat_actionBar_cancelButton_Tooltip;
   public static String chat_welcomeView_title;
   public static String chat_welcomeView_description;
+  public static String chat_welcomeView_agentSuffix;
+  public static String chat_welcomeView_mcpSuffix;
   public static String chat_welcomeView_completionSuffix;
   public static String chat_welcomeView_chatSuffix;
   public static String chat_welcomeView_freeCopilotLink;
@@ -113,11 +115,11 @@ public final class Messages extends NLS {
   public static String chat_welcomeView_footerSettingsSuffix;
   public static String chat_aiWarn_description;
   public static String chat_initialChatView_title;
-  public static String chat_initialChatView_attactContextSuffix;
+  public static String chat_initialChatView_attachContextSuffix;
   public static String chat_initialChatView_useCommandsIntro;
   public static String chat_agentModeView_title;
-  public static String chat_agentModeView_subtitle;
-  public static String chat_agentModeView_description;
+  public static String chat_agentModeView_agentModeIntro;
+  public static String chat_agentModeView_configureMcpSuffix;
   public static String chat_agentModeView_attachContextSuffix;
   public static String chat_loadingView_title;
   public static String chat_loadingView_description;
