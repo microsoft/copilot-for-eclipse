@@ -1,17 +1,15 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.gson.Gson;
-import com.google.gson.Strictness;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -166,7 +164,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       parent.removeControlListener(controlListener);
     });
   }
-  
+
   private boolean validateMcpField(StringFieldEditor mcpField) {
     String stringValue = mcpField.getStringValue();
     if (StringUtils.isBlank(stringValue)) {
@@ -174,91 +172,18 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
 
     try {
-      // First check for basic JSON syntax using GSON parser
-      GSON.fromJson(stringValue, Object.class);
+      JsonFactory f = JsonFactory.builder().enable(JsonReadFeature.ALLOW_JAVA_COMMENTS).build();
+      ObjectMapper mapper = JsonMapper.builder(f).build();
+      mapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
 
-      // Second check for duplicate keys in the JSON
-      try (JsonReader reader = new JsonReader(new StringReader(stringValue))) {
-        reader.setStrictness(Strictness.LENIENT);
-        return validateDuplicateKeys(mcpField, reader);
-      }
+      mapper.readTree(stringValue);
+      return true;
     } catch (Exception e) {
-      String errorMsg = e.getMessage();
-      if (errorMsg != null) {
-        int exceptionIndex = errorMsg.indexOf("Exception: ");
-        if (exceptionIndex >= 0) {
-          errorMsg = errorMsg.substring(exceptionIndex + "Exception: ".length());
-        }
-
-        int seeHttpsIndex = errorMsg.indexOf("See https:");
-        if (seeHttpsIndex >= 0) {
-          errorMsg = errorMsg.substring(0, seeHttpsIndex).trim();
-        }
-      }
-      mcpField.setErrorMessage("SyntaxError: " + errorMsg);
+      String errorMessage = e.getMessage();
+      errorMessage = errorMessage.replaceAll("\\r?\\n", " ");
+      mcpField.setErrorMessage("SyntaxError: " + errorMessage);
       return false;
     }
-  }
-
-  /**
-   * Recursively checks for duplicate keys in a JSON structure.
-   */
-  private boolean validateDuplicateKeys(StringFieldEditor mcpField, JsonReader reader) throws IOException {
-    JsonToken token = reader.peek();
-    
-    switch (token) {
-      case BEGIN_OBJECT:
-        reader.beginObject();
-        Set<String> objectKeys = new HashSet<>();
-        
-        while (reader.hasNext()) {
-          String key = reader.nextName();
-          if (!objectKeys.add(key)) {
-            mcpField.setErrorMessage("Error: Duplicate key '" + key + "' found in JSON object");
-            return false;
-          }
-          
-          if (!validateDuplicateKeys(mcpField, reader)) {
-            return false;
-          }
-        }
-        
-        reader.endObject();
-        break;
-        
-      case BEGIN_ARRAY:
-        reader.beginArray();
-        
-        while (reader.hasNext()) {
-          if (!validateDuplicateKeys(mcpField, reader)) {
-            return false;
-          }
-        }
-        
-        reader.endArray();
-        break;
-        
-      case STRING:
-        reader.nextString();
-        break;
-        
-      case NUMBER:
-        reader.nextDouble();
-        break;
-        
-      case BOOLEAN:
-        reader.nextBoolean();
-        break;
-        
-      case NULL:
-        reader.nextNull();
-        break;
-        
-      default:
-        reader.skipValue();
-    }
-
-    return true;
   }
 
   private String getServerRunningStatusHint(McpServerToolsCollection server) {
@@ -292,9 +217,9 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     toolsTree = new Tree(toolsGroup, SWT.SINGLE | SWT.CHECK | SWT.V_SCROLL | SWT.H_SCROLL);
     GridData treeGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     toolsTree.setLayoutData(treeGridData);
-    
+
     Map<String, Map<String, Boolean>> savedServerToolStatusMap = loadToolStatusFromPreferences();
-    
+
     // Add servers and tools to the tree
     for (McpServerToolsCollection server : servers) {
       if (server == null) {
@@ -310,8 +235,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         }
 
         boolean isEnabled = savedServerToolStatusMap.getOrDefault(server.getName(), Map.of())
-            .getOrDefault(tool.getName(),
-            true);
+            .getOrDefault(tool.getName(), true);
 
         TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
         toolNode.setText(tool.getName());
@@ -321,7 +245,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       serverNode.setExpanded(true);
       updateServerCheckStatus(serverNode);
     }
-    
+
     // Add selection listener to update status changes
     toolsTree.addSelectionListener(new SelectionAdapter() {
       @Override
@@ -329,7 +253,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         if (e.detail == SWT.CHECK) {
           TreeItem item = (TreeItem) e.item;
           TreeItem parent = item.getParentItem();
-          
+
           if (parent == null) {
             // Handle server node action
             updateToolsCheckStatus(item);
@@ -343,7 +267,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
     toolsGroup.requestLayout();
   }
-  
+
   private void updateServerCheckStatus(TreeItem serverNode) {
     if (serverNode == null) {
       return;
@@ -390,19 +314,19 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
   private Map<String, Map<String, Boolean>> loadToolStatusFromPreferences() {
     Map<String, Map<String, Boolean>> result = new HashMap<>();
-    
+
     IPreferenceStore preferenceStore = getPreferenceStore();
     String jsonStatus = preferenceStore.getString(Constants.MCP_TOOLS_STATUS);
-    
+
     if (StringUtils.isNotBlank(jsonStatus)) {
       try {
-        result = GSON.fromJson(jsonStatus, 
-            new com.google.gson.reflect.TypeToken<Map<String, Map<String, Boolean>>>(){}.getType());
+        result = GSON.fromJson(jsonStatus, new com.google.gson.reflect.TypeToken<Map<String, Map<String, Boolean>>>() {
+        }.getType());
       } catch (Exception e) {
         CopilotCore.LOGGER.error("Failed to parse MCP tools status JSON", e);
       }
     }
-    
+
     return result;
   }
 
