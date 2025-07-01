@@ -1,15 +1,18 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -172,18 +175,92 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
 
     try {
-      JsonFactory f = JsonFactory.builder().enable(JsonReadFeature.ALLOW_JAVA_COMMENTS).build();
-      ObjectMapper mapper = JsonMapper.builder(f).build();
-      mapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+      // First check for basic JSON syntax using GSON parser
+      GSON.fromJson(stringValue, Object.class);
 
-      mapper.readTree(stringValue);
-      return true;
+      // Second check for duplicate keys in the JSON
+      try (JsonReader reader = new JsonReader(new StringReader(stringValue))) {
+        // Configure the reader to be lenient using version-appropriate method
+        configureLenientJsonReader(reader);
+        return validateDuplicateKeys(mcpField, reader);
+      }
     } catch (Exception e) {
-      String errorMessage = e.getMessage();
-      errorMessage = errorMessage.replaceAll("\\r?\\n", " ");
-      mcpField.setErrorMessage("SyntaxError: " + errorMessage);
+      String errorMsg = e.getMessage();
+      if (errorMsg != null) {
+        int exceptionIndex = errorMsg.indexOf("Exception: ");
+        if (exceptionIndex >= 0) {
+          errorMsg = errorMsg.substring(exceptionIndex + "Exception: ".length());
+        }
+
+        int seeHttpsIndex = errorMsg.indexOf("See https:");
+        if (seeHttpsIndex >= 0) {
+          errorMsg = errorMsg.substring(0, seeHttpsIndex).trim();
+        }
+      }
+      mcpField.setErrorMessage("SyntaxError: " + errorMsg);
       return false;
     }
+  }
+
+  /**
+   * Recursively checks for duplicate keys in a JSON structure.
+   */
+  private boolean validateDuplicateKeys(StringFieldEditor mcpField, JsonReader reader) throws IOException {
+    JsonToken token = reader.peek();
+
+    switch (token) {
+      case BEGIN_OBJECT:
+        reader.beginObject();
+        Set<String> objectKeys = new HashSet<>();
+
+        while (reader.hasNext()) {
+          String key = reader.nextName();
+          if (!objectKeys.add(key)) {
+            mcpField.setErrorMessage("Error: Duplicate key '" + key + "' found in JSON object");
+            return false;
+          }
+
+          if (!validateDuplicateKeys(mcpField, reader)) {
+            return false;
+          }
+        }
+
+        reader.endObject();
+        break;
+
+      case BEGIN_ARRAY:
+        reader.beginArray();
+
+        while (reader.hasNext()) {
+          if (!validateDuplicateKeys(mcpField, reader)) {
+            return false;
+          }
+        }
+
+        reader.endArray();
+        break;
+
+      case STRING:
+        reader.nextString();
+        break;
+
+      case NUMBER:
+        reader.nextDouble();
+        break;
+
+      case BOOLEAN:
+        reader.nextBoolean();
+        break;
+
+      case NULL:
+        reader.nextNull();
+        break;
+
+      default:
+        reader.skipValue();
+    }
+
+    return true;
   }
 
   private String getServerRunningStatusHint(McpServerToolsCollection server) {
@@ -354,5 +431,34 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   public boolean performOk() {
     saveToolStatusToPreferences();
     return super.performOk();
+  }
+
+  /**
+   * Configures a JsonReader to be lenient using reflection to handle different Gson versions. Tries to use
+   * setStrictness(Strictness.LENIENT) for newer Gson versions, falls back to setLenient(true) for older versions.
+   */
+  private void configureLenientJsonReader(JsonReader reader) {
+    try {
+      // Load Strictness enum class dynamically
+      Class<?> strictnessClass = Class.forName("com.google.gson.Strictness");
+      Object lenientValue = null;
+
+      // Get the LENIENT enum value
+      for (Object enumConstant : strictnessClass.getEnumConstants()) {
+        if ("LENIENT".equals(enumConstant.toString())) {
+          lenientValue = enumConstant;
+          break;
+        }
+      }
+
+      // Get setStrictness method and invoke it
+      if (lenientValue != null) {
+        Method setStrictnessMethod = JsonReader.class.getMethod("setStrictness", strictnessClass);
+        setStrictnessMethod.invoke(reader, lenientValue);
+      }
+    } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | IllegalArgumentException
+        | InvocationTargetException e) {
+      reader.setLenient(true); // Fallback to older API
+    }
   }
 }

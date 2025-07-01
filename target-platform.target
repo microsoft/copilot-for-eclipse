@@ -10,8 +10,6 @@
 			<unit id="org.eclipse.lsp4e" version="0.0.0"/>
 			<unit id="org.eclipse.pde.junit.runtime" version="0.0.0"/>
 			<unit id="org.apache.commons.lang3" version="0.0.0"/>
-			<unit id="com.fasterxml.jackson.core.jackson-core" version="0.0.0"/>
-			<unit id="com.fasterxml.jackson.core.jackson-databind" version="0.0.0"/>
 			<unit id="org.eclipse.tm4e.feature.feature.group" version="0.0.0"/>
 			<unit id="org.eclipse.tm4e.language_pack.feature.feature.group" version="0.0.0"/>
 			<unit id="org.eclipse.tm.terminal.feature.feature.group" version="0.0.0"/>

@@ -46,6 +46,4 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.8.0",
  org.eclipse.compare;bundle-version="3.10.0",
  org.osgi.service.event;bundle-version="1.4.1",
  org.eclipse.e4.core.services;bundle-version="2.4.300",
- org.eclipse.ui.console;bundle-version="3.14.0",
- com.fasterxml.jackson.core.jackson-core;bundle-version="2.16.1",
- com.fasterxml.jackson.core.jackson-databind;bundle-version="2.16.1"
+ org.eclipse.ui.console;bundle-version="3.14.0"
