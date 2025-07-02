@@ -25,6 +25,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
+import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
@@ -62,6 +63,9 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolBase.EditableFileComp
  * Utilities for Eclipse UI.
  */
 public class UiUtils {
+
+  public static final String HAIR_SPACE = "\u200A";
+  private static final int MAX_SPACE_TO_ADD = 500;
 
   private UiUtils() {
     // prevent instantiation
@@ -468,5 +472,41 @@ public class UiUtils {
     } catch (ExecutionException | NotDefinedException | NotEnabledException | NotHandledException e) {
       CopilotCore.LOGGER.error(e);
     }
+  }
+
+  /**
+   * Return the text aligned to the maxWidth with the given fineTuneCharacter and suffix.
+   *
+   * @param gc the graphics context used to measure text width
+   * @param originalText the original text to align
+   * @param fineTuneCharacter the character to use for fine-tuning the alignment
+   * @param suffix the suffix to append to each line
+   * @param initialSpaceNumber the number of initial spaces to add
+   * @param maxWidth the maximum width of the aligned text
+   */
+  public static String getAlignedText(GC gc, String originalText, String fineTuneCharacter, String suffix,
+      int initialSpaceNumber, int maxWidth) {
+    String result = originalText + fineTuneCharacter.repeat(initialSpaceNumber) + suffix;
+    // On some platforms, the textExtent of "foo" and "foofoo" does not scale linearly.
+    // Typically, "foofoo" is shorter than the width of "foo x 2" but the exact behavior varies across different
+    // operating systems. Therefore, we start with spacesToAdd and adjust it incrementally or decreasingly until we find
+    // a width that is at least maxWidth.
+    int initialWidth = gc.textExtent(result).x;
+    if (initialWidth > maxWidth) {
+      for (int i = initialSpaceNumber - 1; i > 0; i--) {
+        result = originalText + fineTuneCharacter.repeat(i) + suffix;
+        if (gc.textExtent(result).x <= maxWidth) {
+          break;
+        }
+      }
+    } else if (initialWidth < maxWidth) {
+      for (int i = initialSpaceNumber + 1; i < initialSpaceNumber + MAX_SPACE_TO_ADD; i++) {
+        result = originalText + fineTuneCharacter.repeat(i) + suffix;
+        if (gc.textExtent(result).x >= maxWidth) {
+          break;
+        }
+      }
+    }
+    return result;
   }
 }

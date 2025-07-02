@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.actions.CompoundContributionItem;
 import org.eclipse.ui.menus.CommandContributionItem;
 import org.eclipse.ui.menus.CommandContributionItemParameter;
@@ -21,7 +23,6 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -141,47 +142,50 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.manageCopilot",
         Messages.menu_quota_copilotUsage, Messages.menu_quota_manageCopilotTooltip, icon));
 
-    // Premium requests usage when rest plans are unlimited
-    if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
-        && quotaStatus.getChatQuota().isUnlimited()) {
-      String premiumRequestsText = Messages.menu_quota_premiumRequests
-          + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-      this.premiumRequestsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
-          premiumRequestsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
-      items.add(this.premiumRequestsUsageItem);
-    }
-
-    // Code completions useage
-    String codeCompletionsText = Messages.menu_quota_codeCompletions
-        + getPercentRemaining(quotaStatus.getCompletionsQuota());
-    this.completionsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
-        codeCompletionsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
-    items.add(this.completionsUsageItem);
-
-    // Chat messages usage
-    String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
-    this.chatUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing", chatMessagesText,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
-    items.add(this.chatUsageItem);
-
-    // Premium requests usage
-    if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
-      // Premium requests usage when either of the rest plans is not unlimited
-      if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
-        String premiumRequestsText = Messages.menu_quota_premiumRequests
-            + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
+    GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
+    QuotaTextCalculator calculator = new QuotaTextCalculator(gc, quotaStatus);
+    try {
+      // Premium requests usage when rest plans are unlimited
+      if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
+          && quotaStatus.getChatQuota().isUnlimited()) {
+        String premiumRequestsText = calculator.getPremiumText();
         this.premiumRequestsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
             premiumRequestsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
         items.add(this.premiumRequestsUsageItem);
       }
 
-      CommandContributionItem additionalPremiumRequestsDesc = createCommandItem(
-          "com.microsoft.copilot.eclipse.commands.disabledDoNothing",
-          Messages.menu_quota_additionalPremiumRequests
-              + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
-                  : Messages.menu_quota_disabled),
-          null);
-      items.add(additionalPremiumRequestsDesc);
+      // Code completions useage
+      String codeCompletionsText = calculator.getCompletionText();
+      this.completionsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
+          codeCompletionsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+      items.add(this.completionsUsageItem);
+
+      // Chat messages usage
+      String chatMessagesText = calculator.getChatText();
+      this.chatUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
+          chatMessagesText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+      items.add(this.chatUsageItem);
+
+      // Premium requests usage
+      if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
+        // Premium requests usage when either of the rest plans is not unlimited
+        if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
+          String premiumRequestsText = calculator.getPremiumText();
+          this.premiumRequestsUsageItem = createCommandItem("com.microsoft.copilot.eclipse.commands.enabledDoNothing",
+              premiumRequestsText, UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"));
+          items.add(this.premiumRequestsUsageItem);
+        }
+
+        CommandContributionItem additionalPremiumRequestsDesc = createCommandItem(
+            "com.microsoft.copilot.eclipse.commands.disabledDoNothing",
+            Messages.menu_quota_additionalPremiumRequests
+                + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
+                    : Messages.menu_quota_disabled),
+            null);
+        items.add(additionalPremiumRequestsDesc);
+      }
+    } finally {
+      gc.dispose();
     }
 
     // Allowance reset date
@@ -217,35 +221,43 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     if (quotaResult == null) {
       return;
     }
+
+    SwtUtils.invokeOnDisplayThread(() -> {
+      GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
+      try {
+        updateQuotaActionTexts(quotaResult, gc);
+      } finally {
+        gc.dispose();
+      }
+    });
+  }
+
+  private void updateQuotaActionTexts(CheckQuotaResult quotaResult, GC gc) {
+    QuotaTextCalculator calculator = new QuotaTextCalculator(gc, quotaResult);
+
     if (this.chatUsageItem != null && quotaResult.getChatQuota() != null) {
-      String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaResult.getChatQuota());
+      String chatMessagesText = calculator.getChatText();
       updateCommandItemLabel(this.chatUsageItem, chatMessagesText);
     }
 
     if (this.completionsUsageItem != null && quotaResult.getCompletionsQuota() != null) {
-      String codeCompletionsText = Messages.menu_quota_codeCompletions
-          + getPercentRemaining(quotaResult.getCompletionsQuota());
+      String codeCompletionsText = calculator.getCompletionText();
       updateCommandItemLabel(this.completionsUsageItem, codeCompletionsText);
     }
 
     if (this.premiumRequestsUsageItem != null && quotaResult.getPremiumInteractionsQuota() != null) {
-      String premiumRequestsText = Messages.menu_quota_premiumRequests
-          + getPercentRemaining(quotaResult.getPremiumInteractionsQuota());
+      String premiumRequestsText = calculator.getPremiumText();
       updateCommandItemLabel(this.premiumRequestsUsageItem, premiumRequestsText);
     }
 
-    if (this.chatUsageItem != null || this.completionsUsageItem != null || this.premiumRequestsUsageItem != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        if (this.chatUsageItem != null) {
-          this.chatUsageItem.update();
-        }
-        if (this.completionsUsageItem != null) {
-          this.completionsUsageItem.update();
-        }
-        if (this.premiumRequestsUsageItem != null) {
-          this.premiumRequestsUsageItem.update();
-        }
-      });
+    if (this.chatUsageItem != null) {
+      this.chatUsageItem.update();
+    }
+    if (this.completionsUsageItem != null) {
+      this.completionsUsageItem.update();
+    }
+    if (this.premiumRequestsUsageItem != null) {
+      this.premiumRequestsUsageItem.update();
     }
   }
 
@@ -263,17 +275,6 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     } catch (Exception e) {
       // Skip updating the label if reflection fails
     }
-  }
-
-  private String getPercentRemaining(Quota quota) {
-    if (quota.isUnlimited()) {
-      return "Included";
-    }
-    double percent = Math.max(0, 100 - quota.getPercentRemaining());
-    if (percent < 0.1) {
-      return "0%";
-    }
-    return String.format("%.1f", Math.round(percent * 10) / 10.0) + "%";
   }
 
   private CommandContributionItem createCommandItem(String commandId, String label, ImageDescriptor icon) {

@@ -44,12 +44,10 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Manager for chat services.
  */
 public class UserPreferenceService extends ChatBaseService implements CopilotAuthStatusListener {
-  private static final int MAX_SPACE_TO_ADD = 500;
   /**
    * The extra padding that used for the combo on non-Windows platforms.
    */
   private static final int EXTRA_PADDING = 40;
-  private static final String HAIR_SPACE = "\u200A";
   private static final String MODEL_MULTIPLIER_SUFFIX = "x";
   private static final String DEFAULT_MODEL_MULTIPLIER = "Included";
   private static final int MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER = 6;
@@ -479,7 +477,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       }
 
       // Calculate width of a hair space character
-      int spaceWidth = gc.textExtent(HAIR_SPACE).x;
+      int spaceWidth = gc.textExtent(UiUtils.HAIR_SPACE).x;
 
       // Create properly aligned model names
       List<String> standardModels = new ArrayList<>();
@@ -537,29 +535,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       suffix = multiplier.toPlainString() + MODEL_MULTIPLIER_SUFFIX;
     }
 
-    String result = modelName + HAIR_SPACE.repeat(spacesToAdd) + suffix;
-    // On some platforms, the textExtent of "foo" and "foofoo" does not scale linearly.
-    // Typically, "foofoo" is shorter than the width of "foo x 2" but the exact behavior varies across different
-    // operating systems. Therefore, we start with spacesToAdd and adjust it incrementally or decreasingly until we find
-    // a width that is at least maxWidth.
-    int initialWidth = gc.textExtent(result).x;
-    if (initialWidth > maxWidth) {
-      for (int i = spacesToAdd - 1; i > 0; i--) {
-        result = modelName + HAIR_SPACE.repeat(i) + suffix;
-        if (gc.textExtent(result).x <= maxWidth) {
-          break;
-        }
-      }
-    } else if (initialWidth < maxWidth) {
-      for (int i = spacesToAdd + 1; i < spacesToAdd + MAX_SPACE_TO_ADD; i++) {
-        result = modelName + HAIR_SPACE.repeat(i) + suffix;
-        if (gc.textExtent(result).x >= maxWidth) {
-          break;
-        }
-      }
-    }
-
-    return result;
+    return UiUtils.getAlignedText(gc, modelName, UiUtils.HAIR_SPACE, suffix, spacesToAdd, maxWidth);
   }
 
   /**
@@ -631,7 +607,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   private String getModelNameFromModelWithMultiplier(String modelNameWithMultiplier) {
-    return modelNameWithMultiplier.split(HAIR_SPACE)[0].trim();
+    return modelNameWithMultiplier.split(UiUtils.HAIR_SPACE)[0].trim();
   }
 
   /**

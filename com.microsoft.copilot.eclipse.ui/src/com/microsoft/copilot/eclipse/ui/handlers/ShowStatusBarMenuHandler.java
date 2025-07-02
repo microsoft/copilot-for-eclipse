@@ -16,6 +16,7 @@ import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
@@ -29,7 +30,6 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -105,23 +105,31 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
    * @param quotaResult The latest quota information.
    */
   private void updateQuotaActions(CheckQuotaResult quotaResult) {
-    if (quotaResult != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        if (completionRemainingAction != null) {
-          completionRemainingAction
-              .setText(Messages.menu_quota_codeCompletions + getPercentRemaining(quotaResult.getCompletionsQuota()));
-        }
+    if (quotaResult == null) {
+      return;
+    }
 
-        if (chatRemainingAction != null) {
-          chatRemainingAction
-              .setText(Messages.menu_quota_chatMessages + getPercentRemaining(quotaResult.getChatQuota()));
-        }
+    SwtUtils.invokeOnDisplayThread(() -> {
+      GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
+      try {
+        updateQuotaActionTexts(quotaResult, gc);
+      } finally {
+        gc.dispose();
+      }
+    });
+  }
 
-        if (premiumRequestsAction != null && quotaResult.getCopilotPlan() != CopilotPlan.free) {
-          premiumRequestsAction.setText(
-              Messages.menu_quota_premiumRequests + getPercentRemaining(quotaResult.getPremiumInteractionsQuota()));
-        }
-      });
+  private void updateQuotaActionTexts(CheckQuotaResult quotaResult, GC gc) {
+    QuotaTextCalculator calculator = new QuotaTextCalculator(gc, quotaResult);
+
+    if (completionRemainingAction != null) {
+      completionRemainingAction.setText(calculator.getCompletionText());
+    }
+    if (chatRemainingAction != null) {
+      chatRemainingAction.setText(calculator.getChatText());
+    }
+    if (premiumRequestsAction != null && quotaResult.getCopilotPlan() != CopilotPlan.free) {
+      premiumRequestsAction.setText(calculator.getPremiumText());
     }
   }
 
@@ -224,45 +232,48 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         Messages.menu_quota_manageCopilotTooltip, icon, handlerService,
         "com.microsoft.copilot.eclipse.commands.manageCopilot", true);
 
-    // Premium requests usage when rest plans are unlimited
-    if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
-        && quotaStatus.getChatQuota().isUnlimited()) {
-      String premiumRequestsText = Messages.menu_quota_premiumRequests
-          + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
-      premiumRequestsAction = MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
-          "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
-    }
-
-    // Code completions usage
-    String codeCompletionsText = Messages.menu_quota_codeCompletions
-        + getPercentRemaining(quotaStatus.getCompletionsQuota());
-    completionRemainingAction = MenuActionFactory.createMenuAction(menuManager, codeCompletionsText,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
-        "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
-
-    // Chat messages usage
-    String chatMessagesText = Messages.menu_quota_chatMessages + getPercentRemaining(quotaStatus.getChatQuota());
-    chatRemainingAction = MenuActionFactory.createMenuAction(menuManager, chatMessagesText,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
-        "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
-
-    // Premium requests usage
-    if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
-      // Premium requests usage when either of the rest plans is not unlimited
-      if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
-        String premiumRequestsText = Messages.menu_quota_premiumRequests
-            + getPercentRemaining(quotaStatus.getPremiumInteractionsQuota());
+    GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
+    QuotaTextCalculator calculator = new QuotaTextCalculator(gc, quotaStatus);
+    try {
+      // Premium requests usage when rest plans are unlimited
+      if (quotaStatus.getCopilotPlan() != CopilotPlan.free && quotaStatus.getCompletionsQuota().isUnlimited()
+          && quotaStatus.getChatQuota().isUnlimited()) {
+        String premiumRequestsText = calculator.getPremiumText();
         premiumRequestsAction = MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
             UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
             "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
       }
 
-      MenuActionFactory.createMenuAction(menuManager,
-          Messages.menu_quota_additionalPremiumRequests
-              + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
-                  : Messages.menu_quota_disabled),
-          handlerService, "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+      // Code completions usage
+      String codeCompletionsText = calculator.getCompletionText();
+      completionRemainingAction = MenuActionFactory.createMenuAction(menuManager, codeCompletionsText,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
+          "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+
+      // Chat messages usage
+      String chatMessagesText = calculator.getChatText();
+      chatRemainingAction = MenuActionFactory.createMenuAction(menuManager, chatMessagesText,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
+          "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+
+      // Premium requests usage
+      if (quotaStatus.getCopilotPlan() != CopilotPlan.free) {
+        // Premium requests usage when either of the rest plans is not unlimited
+        if (!quotaStatus.getCompletionsQuota().isUnlimited() || !quotaStatus.getChatQuota().isUnlimited()) {
+          String premiumRequestsText = calculator.getPremiumText();
+          premiumRequestsAction = MenuActionFactory.createMenuAction(menuManager, premiumRequestsText,
+              UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png"), handlerService,
+              "com.microsoft.copilot.eclipse.commands.enabledDoNothing", true);
+        }
+
+        MenuActionFactory.createMenuAction(menuManager,
+            Messages.menu_quota_additionalPremiumRequests
+                + (quotaStatus.getPremiumInteractionsQuota().isOveragePermitted() ? Messages.menu_quota_enabled
+                    : Messages.menu_quota_disabled),
+            handlerService, "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+      }
+    } finally {
+      gc.dispose();
     }
 
     // Allowance reset date
@@ -376,17 +387,6 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signOutIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.signOut", true);
     }
-  }
-
-  private String getPercentRemaining(Quota quota) {
-    if (quota.isUnlimited()) {
-      return "Included";
-    }
-    double percent = Math.max(0, 100 - quota.getPercentRemaining());
-    if (percent < 0.1) {
-      return "0%";
-    }
-    return String.format("%.1f", Math.round(percent * 10) / 10.0) + "%";
   }
 
   private static class MenuActionFactory {
