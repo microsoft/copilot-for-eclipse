@@ -271,7 +271,15 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ConversationAgent[]> listConversationAgents() {
     Function<LanguageServer, CompletableFuture<ConversationAgent[]>> fn = server -> {
-      return ((CopilotLanguageServer) server).listAgents(new NullParams());
+      // return ((CopilotLanguageServer) server).listAgents(new NullParams());
+      // Hard code the only supported @project agent. Should revert this when @github agent is supported.
+      ConversationAgent project = new ConversationAgent();
+      project.setSlug("project");
+      project.setName("Project");
+      project.setDescription("Ask about your project");
+      project.setAvatarUrl(null);
+      
+      return CompletableFuture.completedFuture(new ConversationAgent[] { project });
     };
     return this.languageServerWrapper.execute(fn);
   }
