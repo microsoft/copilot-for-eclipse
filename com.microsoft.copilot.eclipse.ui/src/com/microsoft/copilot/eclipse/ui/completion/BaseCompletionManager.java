@@ -7,6 +7,9 @@ import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
@@ -31,6 +34,7 @@ import org.eclipse.swt.events.MouseListener;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextActivation;
 import org.eclipse.ui.contexts.IContextService;
+import org.eclipse.ui.progress.WorkbenchJob;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -417,16 +421,24 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       this.document.removePositionUpdater(this.positionUpdater);
     }
 
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (this.textViewer != null) {
-        this.textViewer.removeTextInputListener(this);
-      }
+    // put the below dispose logic to a workbench job to avoid blocking shutdown.
+    WorkbenchJob job = new WorkbenchJob("Dispose Completion Manager") {
+      @Override
+      public IStatus runInUIThread(IProgressMonitor monitor) {
+        BaseCompletionManager cm = BaseCompletionManager.this;
+        if (cm.textViewer != null) {
+          cm.textViewer.removeTextInputListener(cm);
+        }
 
-      if (this.styledText != null && !this.styledText.isDisposed()) {
-        this.styledText.removeKeyListener(this);
-        this.styledText.removeMouseListener(this);
+        if (cm.styledText != null && !cm.styledText.isDisposed()) {
+          cm.styledText.removeKeyListener(cm);
+          cm.styledText.removeMouseListener(cm);
+        }
+        return Status.OK_STATUS;
       }
-    });
+    };
+    job.setSystem(true);
+    job.schedule();
   }
 
   public SuggestionUpdateManager getSuggestionUpdateManager() {
