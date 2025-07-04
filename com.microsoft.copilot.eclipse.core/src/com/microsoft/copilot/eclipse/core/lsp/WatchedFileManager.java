@@ -83,6 +83,9 @@ class WatchedFileManager {
     if (params.isExcludeGitignoredFiles()) {
       List<IFile> gitignoreFiles = new ArrayList<>();
       for (IProject project : projects) {
+        if (!project.isAccessible()) {
+          continue;
+        }
         gitignoreFiles.addAll(findGitignoreFiles(project));
       }
 
@@ -96,7 +99,7 @@ class WatchedFileManager {
 
     // collect watched files
     for (IProject project : projects) {
-      if (!project.isOpen()) {
+      if (!project.isAccessible()) {
         continue;
       }
 

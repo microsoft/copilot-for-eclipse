@@ -81,7 +81,7 @@ class WatchedFileManagerTests {
       when(mockRoot.getProjects()).thenReturn(projects);
 
       when(mockProject.exists()).thenReturn(true);
-      when(mockProject.isOpen()).thenReturn(true);
+      when(mockProject.isAccessible()).thenReturn(true);
       when(mockProject.members()).thenReturn(resources);
 
       when(mockFile.exists()).thenReturn(true);
