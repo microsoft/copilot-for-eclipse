@@ -1,0 +1,143 @@
+package com.microsoft.copilot.eclipse.ui.handlers;
+
+import org.eclipse.core.commands.AbstractHandler;
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.handlers.HandlerUtil;
+import org.eclipse.ui.handlers.IHandlerService;
+import org.eclipse.ui.intro.IIntroPart;
+
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.quickstart.FeaturePage;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+
+/**
+ * Handler for opening the quick start page.
+ */
+public class OpenQuickStartHandler extends AbstractHandler {
+
+  @Override
+  public Object execute(ExecutionEvent event) throws ExecutionException {
+    Shell parentShell = HandlerUtil.getActiveShell(event);
+
+    QuickStartDialog dialog = new QuickStartDialog(parentShell);
+    dialog.open();
+
+    return null;
+  }
+
+  /**
+   * Custom dialog for the Quick Start window.
+   */
+  private class QuickStartDialog extends Dialog {
+    private Color normalBackgroundColor;
+
+    public QuickStartDialog(Shell parentShell) {
+      super(parentShell);
+      setShellStyle(SWT.RESIZE | SWT.APPLICATION_MODAL | SWT.NO_TRIM);
+    }
+
+    @Override
+    protected Control createDialogArea(Composite parent) {
+      if (UiUtils.isDarkTheme()) {
+        // Dark theme colors
+        this.normalBackgroundColor = new Color(Display.getCurrent(), 47, 48, 48); // #2F3030
+      } else {
+        // Light theme colors
+        this.normalBackgroundColor = new Color(Display.getCurrent(), 255, 255, 255); // #FFFFFF
+      }
+
+      // Create a composite to add a border around the dialog area, dialog without header doesn't have a border
+      Composite mainComposite = new Composite(parent, SWT.BORDER);
+      mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+      mainComposite.setBackground(this.normalBackgroundColor);
+      GridLayout parentLayout = new GridLayout(1, false);
+      parentLayout.marginWidth = 0;
+      parentLayout.marginHeight = 24;
+      parentLayout.verticalSpacing = 24;
+      mainComposite.setLayout(parentLayout);
+      mainComposite.addDisposeListener(e -> {
+        if (normalBackgroundColor != null && !normalBackgroundColor.isDisposed()) {
+          normalBackgroundColor.dispose();
+        }
+      });
+
+      new FeaturePage(mainComposite);
+      this.createButtonArea(mainComposite);
+      return mainComposite;
+    }
+
+    @Override
+    protected Point getInitialSize() {
+      return new Point(863, 564);
+    }
+
+    @Override
+    protected Control createButtonBar(Composite parent) {
+      // Return null to prevent the default button bar from being created
+      return null;
+    }
+
+    private void createButtonArea(Composite parent) {
+      Composite buttonComposite = new Composite(parent, SWT.NONE);
+      GridLayout buttonLayout = new GridLayout(1, false);
+      buttonLayout.marginWidth = 0;
+      buttonLayout.marginHeight = 0;
+      buttonComposite.setLayout(buttonLayout);
+      buttonComposite.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
+      buttonComposite.setBackground(this.normalBackgroundColor);
+
+      Button continueButton = new Button(buttonComposite, SWT.PUSH);
+      continueButton.setText(Messages.quickStart_continueButton);
+      GridData buttonData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
+      buttonData.widthHint = 200;
+      buttonData.heightHint = 28;
+      continueButton.setLayoutData(buttonData);
+
+      Color buttonColor = new Color(Display.getCurrent(), 0, 120, 212); // #0078D4
+      continueButton.setBackground(buttonColor);
+      continueButton.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+      continueButton.addDisposeListener(e -> {
+        if (buttonColor != null && !buttonColor.isDisposed()) {
+          buttonColor.dispose();
+        }
+      });
+
+      continueButton.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mouseDown(MouseEvent e) {
+          close();
+
+          // Close the Eclipse welcome view if it's open
+          IIntroPart introPart = PlatformUI.getWorkbench().getIntroManager().getIntro();
+          if (introPart != null) {
+            PlatformUI.getWorkbench().getIntroManager().closeIntro(introPart);
+          }
+
+          IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()
+              .getService(IHandlerService.class);
+          try {
+            handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.openChatView", null);
+          } catch (Exception ex) {
+            CopilotCore.LOGGER.error("Failed to open chat view", ex);
+          }
+        }
+      });
+    }
+  }
+}

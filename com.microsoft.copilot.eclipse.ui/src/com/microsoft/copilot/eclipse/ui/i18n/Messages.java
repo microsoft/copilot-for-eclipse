@@ -152,6 +152,15 @@ public final class Messages extends NLS {
   public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;
   public static String agent_tool_cancelConfirmationDialog_defaultTitle;
+  public static String quickStart_title;
+  public static String quickStart_description;
+  public static String quickStart_continueButton;
+  public static String quickStart_agent_title;
+  public static String quickStart_agent_description;
+  public static String quickStart_ask_title;
+  public static String quickStart_ask_description;
+  public static String quickStart_completion_title;
+  public static String quickStart_completion_description;
 
   static {
     // initialize resource bundle

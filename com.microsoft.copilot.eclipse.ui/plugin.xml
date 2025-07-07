@@ -183,6 +183,11 @@
 			id="com.microsoft.copilot.eclipse.commands.disabledDoNothing"
 			name="%command.disabledDoNothing.name">
 		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.openQuickStart"
+			name="%command.openQuickStart.name">
+		</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -264,6 +269,10 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.DisabledDoNothingHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.disabledDoNothing">
 		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.OpenQuickStartHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.openQuickStart">
+		</handler>
 	</extension>
 
 	<extension
@@ -343,4 +352,14 @@
    </editorOnboardingCommand>
 		</perspectiveExtension>
 	</extension>
+ <extension
+			 point="org.eclipse.ui.intro.quicklinks">
+			 <command
+					description="%intro.quickStart.description"
+					importance="high"
+					icon="icons/github_copilot_intro.png"
+					id="com.microsoft.copilot.eclipse.commands.openQuickStart"
+					label="%intro.quickStart.label">
+		</command>
+ </extension>
 </plugin>

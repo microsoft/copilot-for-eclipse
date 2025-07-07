@@ -17,6 +17,7 @@ import org.eclipse.core.commands.NotHandledException;
 import org.eclipse.core.commands.ParameterizedCommand;
 import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
@@ -53,6 +54,7 @@ import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.texteditor.ITextEditor;
+import org.osgi.service.prefs.Preferences;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -319,6 +321,20 @@ public class UiUtils {
    */
   public static Color getThemeColor(String colorId) {
     return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry().get(colorId);
+  }
+
+  /**
+   * Returns true if Eclipse is currently using a dark theme.
+   *
+   * @return true if dark theme is active, false otherwise
+   */
+  public static boolean isDarkTheme() {
+    Preferences preferences = InstanceScope.INSTANCE.getNode("org.eclipse.e4.ui.css.swt.theme");
+    String themeCssUri = preferences.get("themeid", "");
+    if (themeCssUri.toLowerCase().contains("dark")) {
+      return true;
+    }
+    return false;
   }
 
   /**
