@@ -45,6 +45,7 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -231,34 +232,36 @@ public class ActionBar extends Composite implements NewConversationListener {
     UiUtils.useParentBackground(bottomRightButtonsComposite);
 
     // Add a button that will open McpPreferencePage.
-    mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
-    this.addDisposeListener(e -> {
-      if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
-        mcpToolImage.dispose();
-      }
-    });
+    if (chatServiceManager.getUserPreferenceService().getActiveChatMode().equals(ChatMode.Agent)) {
+      mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+      this.addDisposeListener(e -> {
+        if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
+          mcpToolImage.dispose();
+        }
+      });
 
-    this.mcpToolButton = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-    this.mcpToolButton.setImage(mcpToolImage);
-    this.mcpToolButton.setToolTipText(Messages.preferences_page_mcp_tools_settings);
-    GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-    mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
-    mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
-    this.mcpToolButton.setLayoutData(mcpToolGd);
-    this.mcpToolButton.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        Map<String, Object> parameters = new HashMap<>();
+      this.mcpToolButton = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
+      this.mcpToolButton.setImage(mcpToolImage);
+      this.mcpToolButton.setToolTipText(Messages.preferences_page_mcp_tools_settings);
+      GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+      mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
+      mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
+      this.mcpToolButton.setLayoutData(mcpToolGd);
+      this.mcpToolButton.addSelectionListener(new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          Map<String, Object> parameters = new HashMap<>();
 
-        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
-            OpenPreferencesHandler.mcpPreferencePage);
+          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
+              OpenPreferencesHandler.mcpPreferencePage);
 
-        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-            String.join(",", OpenPreferencesHandler.copilotPreferencesPage, OpenPreferencesHandler.mcpPreferencePage));
+          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds", String.join(",",
+              OpenPreferencesHandler.copilotPreferencesPage, OpenPreferencesHandler.mcpPreferencePage));
 
-        UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
-      }
-    });
+          UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
+        }
+      });
+    }
 
     sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
     cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
