@@ -161,6 +161,12 @@ public final class Messages extends NLS {
   public static String quickStart_ask_description;
   public static String quickStart_completion_title;
   public static String quickStart_completion_description;
+  public static String generateCommitMessage_requiredBundlesMissing_title;
+  public static String generateCommitMessage_requiredBundlesMissing_message;
+  public static String generateCommitMessage_noRepo_title;
+  public static String generateCommitMessage_noRepo_message;
+  public static String generateCommitMessage_noStagedFiles_title;
+  public static String generateCommitMessage_noStagedFiles_message;
 
   static {
     // initialize resource bundle

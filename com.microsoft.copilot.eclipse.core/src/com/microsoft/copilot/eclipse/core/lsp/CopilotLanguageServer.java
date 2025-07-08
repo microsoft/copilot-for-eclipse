@@ -29,6 +29,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 
 /**
@@ -148,5 +150,11 @@ public interface CopilotLanguageServer extends LanguageServer {
    * Get the conversation agents.
    */
   @JsonRequest("conversation/agents")
-  public CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
+  CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
+
+  /**
+   * Generate commit messages.
+   */
+  @JsonRequest("git/commitGenerate")
+  CompletableFuture<GenerateCommitMessageResult> generateCommitMessage(GenerateCommitMessageParams params);
 }

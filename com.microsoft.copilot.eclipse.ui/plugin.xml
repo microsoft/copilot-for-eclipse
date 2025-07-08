@@ -22,8 +22,6 @@
 				</command>
 			</toolbar>
 		</menuContribution>
-	</extension>
-	<extension point="org.eclipse.ui.menus">
 		<menuContribution
 			locationURI="menu:org.eclipse.ui.main.menu?endof=additions">
 			<menu
@@ -36,6 +34,15 @@
 				</dynamic>
 			</menu>
 		</menuContribution>
+		<menuContribution locationURI="toolbar:org.eclipse.egit.ui.StagingView">
+		<command
+			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage"
+			icon="icons/generate_commit_message.png"
+			id="com.microsoft.copilot.egit.generateCommitMessage"
+			label="%command.generateCommitMessage.name"
+			style="push">
+		</command>
+	</menuContribution>
 	</extension>
 	<extension
 		point="org.eclipse.ui.preferencePages">
@@ -175,6 +182,11 @@
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.generateCommitMessage"
+			name="%command.generateCommitMessage.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.enabledDoNothing"
 			name="%command.enabledDoNothing.name">
 		</command>
@@ -260,6 +272,10 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.ManageCopilotOverageHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.manageCopilotOverage">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.GenerateCommitMessageHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage">
 		</handler>
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.EnabledDoNothingHandler"

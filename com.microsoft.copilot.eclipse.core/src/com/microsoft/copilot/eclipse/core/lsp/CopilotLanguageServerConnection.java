@@ -12,7 +12,6 @@ import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
@@ -41,6 +40,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -278,7 +279,7 @@ public class CopilotLanguageServerConnection {
       project.setName("Project");
       project.setDescription("Ask about your project");
       project.setAvatarUrl(null);
-      
+
       return CompletableFuture.completedFuture(new ConversationAgent[] { project });
     };
     return this.languageServerWrapper.execute(fn);
@@ -333,7 +334,6 @@ public class CopilotLanguageServerConnection {
   /**
    * Update the status of the mcp server and tools.
    */
-  @JsonRequest("mcp/updateToolsStatus")
   public CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams params) {
     // @formatter:off
     Function<LanguageServer, CompletableFuture<List<McpServerToolsCollection>>> fn = 
@@ -350,6 +350,20 @@ public class CopilotLanguageServerConnection {
    */
   public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
     this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
+  }
+
+  /**
+   * Generate a commit message based on the provided parameters.
+   */
+  public CompletableFuture<GenerateCommitMessageResult> generateCommitMessage(GenerateCommitMessageParams params) {
+    // @formatter:off
+    Function<LanguageServer, CompletableFuture<GenerateCommitMessageResult>> fn =
+        server -> ((CopilotLanguageServer) server).generateCommitMessage(params);
+    // @formatter:on
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
   }
 
   /**

@@ -47,4 +47,7 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.8.0",
  org.osgi.service.event;bundle-version="1.4.1",
  org.eclipse.e4.core.services;bundle-version="2.4.300",
  org.eclipse.ui.intro.quicklinks,
- org.eclipse.ui.console;bundle-version="3.14.0"
+ org.eclipse.ui.console;bundle-version="3.14.0",
+ org.eclipse.egit.core;bundle-version="6.9.0";resolution:=optional,
+ org.eclipse.egit.ui;bundle-version="6.9.0";resolution:=optional,
+ org.eclipse.jgit;bundle-version="6.9.0";resolution:=optional
