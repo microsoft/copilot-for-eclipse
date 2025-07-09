@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -17,6 +18,8 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.FileChangeSummaryBar;
@@ -33,12 +36,13 @@ public class FileToolService extends ChatBaseService {
   private FileChangeSummaryBar fileChangeSummaryBar;
   private CreateFileTool createFileTool;
   private EditFileTool editFileTool;
+  private ChatView boundChatView;
 
   /**
    * Constructor for FileToolService.
    */
-  public FileToolService() {
-    super(null, null);
+  public FileToolService(CopilotLanguageServerConnection lsConnection) {
+    super(lsConnection, null);
 
     ensureRealm(() -> {
       filesObservable = new WritableValue<>(new LinkedHashMap<>(), Map.class);
@@ -47,6 +51,8 @@ public class FileToolService extends ChatBaseService {
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, event -> {
+      // TODO: notifyCodeAcceptance(); The current behavior of New Chat button is accepting all changes. Pending
+      // discussion of this behavior in https://github.com/microsoft/copilot-eclipse/issues/911.
       onResolveAllChanges();
     });
   }
@@ -63,6 +69,8 @@ public class FileToolService extends ChatBaseService {
       this.editFileTool = (EditFileTool) CopilotUi.getPlugin().getChatServiceManager().getAgentToolService()
           .getTool(EditFileTool.TOOL_NAME);
     }
+
+    this.boundChatView = chatView;
 
     ensureRealm(() -> {
       ISideEffect.create(() -> filesObservable.getValue(), (Map<IFile, FileChangeProperty> filesMap) -> {
@@ -116,7 +124,7 @@ public class FileToolService extends ChatBaseService {
   public void addChangedFile(IFile file, FileChangeType fileChangeType) {
     ensureRealm(() -> {
       Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
-      filesMap.put(file, new FileChangeProperty(fileChangeType, false));
+      filesMap.put(file, new FileChangeProperty(fileChangeType, FileChangeAction.NONE, false));
       filesObservable.setValue(filesMap);
       buttonEnableObservable.setValue(false);
     });
@@ -125,10 +133,10 @@ public class FileToolService extends ChatBaseService {
   /**
    * Complete a changed file from the file change summary bar.
    */
-  public void completeFile(IFile file) {
+  public void completeFile(IFile file, FileChangeAction action) {
     ensureRealm(() -> {
       Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
-      filesMap.put(file, new FileChangeProperty(filesMap.get(file).getChangeType(), true));
+      filesMap.put(file, new FileChangeProperty(filesMap.get(file).getChangeType(), action, false));
       filesObservable.setValue(filesMap);
     });
   }
@@ -139,7 +147,12 @@ public class FileToolService extends ChatBaseService {
   public void removeFile(IFile file) {
     ensureRealm(() -> {
       Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
-      filesMap.remove(file);
+      FileChangeAction action = filesMap.get(file).getAction();
+      if (action == FileChangeAction.NONE) {
+        action = FileChangeAction.REJECTED; // Default to rejected if no action is set
+      }
+      filesMap.put(file,
+          new FileChangeProperty(filesMap.get(file).getChangeType(), action, true));
       filesObservable.setValue(filesMap);
     });
   }
@@ -170,7 +183,7 @@ public class FileToolService extends ChatBaseService {
     } else if (getFileChangeTypeOf(file) == FileChangeType.Changed) {
       this.editFileTool.onKeepChange(file);
     }
-    this.completeFile(file);
+    this.completeFile(file, FileChangeAction.ACCEPTED);
   }
 
   /**
@@ -182,10 +195,65 @@ public class FileToolService extends ChatBaseService {
     ensureRealm(() -> {
       Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>();
       for (Map.Entry<IFile, FileChangeProperty> entry : filesObservable.getValue().entrySet()) {
-        filesMap.put(entry.getKey(), new FileChangeProperty(entry.getValue().getChangeType(), true));
+        FileChangeProperty property = entry.getValue();
+        FileChangeAction action = property.getAction();
+        if (action == FileChangeAction.NONE) {
+          action = FileChangeAction.ACCEPTED;
+        }
+        filesMap.put(entry.getKey(), new FileChangeProperty(property.getChangeType(), action, property.isRemoved()));
       }
       filesObservable.setValue(filesMap);
     });
+
+    notifyCodeAcceptance();
+  }
+
+  /**
+   * Notifies the language server about code acceptance.
+   */
+  public void notifyCodeAcceptance() {
+    Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>();
+    Realm.runWithDefault(filesObservable.getRealm(), () -> {
+      filesMap.putAll(filesObservable.getValue());
+    });
+    
+    if (filesMap.size() == 0) {
+      return; // No files changed, nothing to notify
+    }
+
+    int acceptedFileCount = 0;
+    int totalFileCount = 0;
+    for (Map.Entry<IFile, FileChangeProperty> entry : filesMap.entrySet()) {
+      FileChangeProperty property = entry.getValue();
+      if (property.isNotified()) {
+        continue; // Skip already notified files for multi-turn conversations
+      }
+
+      totalFileCount++;
+
+      if (property.isHandled()) {
+        if (property.isAccepted()) {
+          acceptedFileCount++;
+        }
+
+        // Mark as notified to avoid double counting in multi-turn conversations
+        filesMap.put(entry.getKey(),
+            new FileChangeProperty(property.getChangeType(), FileChangeAction.NOTIFIED, property.isRemoved()));
+      }
+    }
+
+    if (totalFileCount == 0) {
+      return; // No files to notify
+    }
+
+    Realm.runWithDefault(filesObservable.getRealm(), () -> {
+      filesObservable.setValue(filesMap);
+    });
+
+    String copilotTurnId = boundChatView.getChatContentViewer().getLatestCopilotTurn().getTurnId();
+    NotifyCodeAcceptanceParams acceptance = new NotifyCodeAcceptanceParams(copilotTurnId, acceptedFileCount,
+        totalFileCount);
+    lsConnection.notifyCodeAcceptance(acceptance);
   }
 
   /**
@@ -203,13 +271,15 @@ public class FileToolService extends ChatBaseService {
     } catch (CoreException e) {
       CopilotCore.LOGGER.error("Error undoing changes for the new file", e);
     }
-    this.completeFile(file);
+    this.completeFile(file, FileChangeAction.REJECTED);
   }
 
   /**
    * Handles the action of undoing all changes to files.
    */
   public void onUndoAllChanges() {
+    notifyCodeAcceptance();
+
     try {
       this.createFileTool.onUndoAllChanges(getCreatedFiles());
       this.editFileTool.onUndoAllChanges(getEditedFiles());
@@ -302,25 +372,52 @@ public class FileToolService extends ChatBaseService {
    */
   public static class FileChangeProperty {
     private FileChangeType changeType;
-    private boolean isHandled;
+    private FileChangeAction action;
+    private boolean isRemoved;
 
     /**
      * Constructor for FileChangeProperty.
      *
      * @param changeType The type of file change (new or edited).
-     * @param isHandled Whether the file change is confirmed by user or not.
+     * @param action The action taken on the file change (accepted, rejected, or none).
+     * @param isRemoved Whether the file row is removed from the bar or not.
      */
-    public FileChangeProperty(FileChangeType changeType, boolean isHandled) {
+    public FileChangeProperty(FileChangeType changeType, FileChangeAction action, boolean isRemoved) {
       this.changeType = changeType;
-      this.isHandled = isHandled;
+      this.action = action;
+      this.isRemoved = isRemoved;
     }
 
     public FileChangeType getChangeType() {
       return changeType;
     }
 
-    public boolean isHandled() {
-      return isHandled;
+    public FileChangeAction getAction() {
+      return action;
     }
+
+    public boolean isHandled() {
+      return action == FileChangeAction.ACCEPTED || action == FileChangeAction.REJECTED
+          || action == FileChangeAction.NOTIFIED;
+    }
+
+    public boolean isAccepted() {
+      return action == FileChangeAction.ACCEPTED;
+    }
+
+    public boolean isNotified() {
+      return action == FileChangeAction.NOTIFIED;
+    }
+
+    public boolean isRemoved() {
+      return isRemoved;
+    }
+  }
+
+  /**
+   * Enum for file tool actions.
+   */
+  public enum FileChangeAction {
+    NONE, ACCEPTED, REJECTED, NOTIFIED
   }
 }

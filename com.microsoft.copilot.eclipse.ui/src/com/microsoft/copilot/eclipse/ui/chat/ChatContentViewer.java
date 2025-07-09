@@ -222,6 +222,10 @@ public class ChatContentViewer extends ScrolledComposite {
     return turns.get(turnId);
   }
 
+  public BaseTurnWidget getLatestCopilotTurn() {
+    return latestCopilotTurn;
+  }
+
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code) {
     latestTurnWidget.createWarnDialog(errorMessage, code);
     refreshScrollerLayout();

@@ -433,6 +433,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     if (createNewTurn) {
+      // TODO: Move to createPartControl...eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND...(line 114)
+      // after the refactor.
+      this.chatServiceManager.getFileToolService().notifyCodeAcceptance();
       this.chatContentViewer.startNewTurn(workDoneToken, message);
     }
   }

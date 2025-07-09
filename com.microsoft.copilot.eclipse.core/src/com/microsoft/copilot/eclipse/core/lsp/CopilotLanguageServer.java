@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
@@ -152,6 +153,12 @@ public interface CopilotLanguageServer extends LanguageServer {
   @JsonRequest("conversation/agents")
   CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
 
+  /**
+   * Notify the code acceptance.
+   */
+  @JsonRequest("conversation/notifyCodeAcceptance")
+  CompletableFuture<String> notifyCodeAcceptance(NotifyCodeAcceptanceParams params);
+  
   /**
    * Generate commit messages.
    */

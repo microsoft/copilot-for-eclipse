@@ -35,7 +35,7 @@ public class ChatServiceManager implements IChatServiceManager {
     avatarService = new AvatarService(this.authStatusManager);
     authStatusService = new AuthStatusService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
-    fileToolService = new FileToolService();
+    fileToolService = new FileToolService(this.lsConnection);
     referencedFileService = new ReferencedFileService();
     mcpToolService = new McpToolService();
     mcpRuntimeLogger = new McpRuntimeLogger();

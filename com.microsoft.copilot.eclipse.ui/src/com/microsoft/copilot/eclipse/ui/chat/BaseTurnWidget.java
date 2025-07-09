@@ -92,6 +92,10 @@ public abstract class BaseTurnWidget extends Composite {
     eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_CANCELLED, cancelMsgEventHandler);
   }
 
+  public String getTurnId() {
+    return turnId;
+  }
+
   private void createContent() {
     Composite cmpTitle = new Composite(this, SWT.NONE);
     GridLayout titleLayout = new GridLayout(2, false);

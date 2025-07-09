@@ -32,6 +32,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
@@ -350,6 +351,18 @@ public class CopilotLanguageServerConnection {
    */
   public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
     this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
+  }
+
+  /**
+   * Notify the language server about code acceptance.
+   */
+  public CompletableFuture<String> notifyCodeAcceptance(NotifyCodeAcceptanceParams params) {
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .notifyCodeAcceptance(params);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
   }
 
   /**

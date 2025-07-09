@@ -152,7 +152,12 @@ public class FileChangeSummaryBar extends Composite {
 
       // Create the title label with left alignment
       titleLabel = new Label(this, SWT.NONE);
-      int fileChangeCount = filesMap.size();
+      int fileChangeCount = 0;
+      for (FileChangeProperty property : filesMap.values()) {
+        if (!property.isRemoved()) {
+          fileChangeCount++;
+        }
+      }
       String titlePostfix = fileChangeCount > 1 ? " Files Changed" : " File Changed";
       titleLabel.setText(fileChangeCount + titlePostfix);
       GridData labelGridData = new GridData(SWT.BEGINNING, SWT.CENTER, true, false);
@@ -242,7 +247,7 @@ public class FileChangeSummaryBar extends Composite {
       WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
       fileRows = new LinkedList<>();
       for (IFile file : filesMap.keySet()) {
-        if (file == null) {
+        if (file == null || filesMap.get(file).isRemoved()) {
           continue;
         }
 
