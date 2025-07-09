@@ -351,6 +351,18 @@
 			id="com.microsoft.copilot.eclipse.ui.ghostTextProvider">
 		</codeMiningProvider>
 	</extension>
+
+	<!-- Register the Copilot perspective -->
+	<extension
+		point="org.eclipse.ui.perspectives">
+		<perspective
+			class="com.microsoft.copilot.eclipse.ui.perspectives.CopilotPerspectiveFactory"
+			icon="icons/github_copilot.png"
+			id="com.microsoft.copilot.eclipse.ui.perspectives.CopilotPerspective"
+			name="Copilot">
+		</perspective>
+	</extension>
+
 	<!-- PerspectiveExtension: Manage Chat View Position -->
 	<extension
 		point="org.eclipse.ui.perspectiveExtensions">
