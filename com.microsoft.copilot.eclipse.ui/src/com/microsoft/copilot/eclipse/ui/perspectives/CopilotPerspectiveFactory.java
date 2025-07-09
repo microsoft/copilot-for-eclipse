@@ -28,8 +28,8 @@ public class CopilotPerspectiveFactory implements IPerspectiveFactory {
 
     // Put Outline view and Mylyn tasks view at the bottom of Project Explorer view
     IFolderLayout outlineLayout = layout.createFolder("bottomLeft", IPageLayout.BOTTOM, 0.5f, "left");
-    outlineLayout.addView("org.eclipse.mylyn.tasks.ui.views.tasks");
     outlineLayout.addView(IPageLayout.ID_OUTLINE);
+    outlineLayout.addView("org.eclipse.mylyn.tasks.ui.views.tasks");
 
     // Put Console view at the bottom of the editor area
     IFolderLayout consoleLayout = layout.createFolder("bottom", IPageLayout.BOTTOM, 0.8f, editorArea);
