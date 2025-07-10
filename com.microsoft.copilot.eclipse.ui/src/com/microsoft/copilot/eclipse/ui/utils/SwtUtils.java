@@ -81,6 +81,32 @@ public class SwtUtils {
   }
 
   /**
+   * Invokes the given runnable on the display thread asynchronously.
+   *
+   * @param runnable the runnable to invoke
+   */
+  public static void invokeOnDisplayThreadAsync(Runnable runnable) {
+    Display currentDisplay = Display.getCurrent();
+    if (currentDisplay != null) {
+      runnable.run();
+      return;
+    }
+
+    IWorkbench workbench = PlatformUI.getWorkbench();
+    IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
+    if (windows != null && windows.length > 0) {
+      Shell shell = windows[0].getShell();
+      if (shell != null && !shell.isDisposed()) {
+        Display display = shell.getDisplay();
+        display.asyncExec(runnable);
+        return;
+      }
+    }
+
+    Display.getDefault().asyncExec(runnable);
+  }
+
+  /**
    * Get the active editor part from workbench.
    */
   @Nullable

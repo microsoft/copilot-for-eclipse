@@ -6,6 +6,8 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.preference.IPersistentPreferenceStore;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
@@ -13,6 +15,7 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -55,6 +58,8 @@ public class CopilotUi extends AbstractUIPlugin {
     Job initJob = new Job("Copilot initialization") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
+        renderQuickStart();
+
         try {
           // wait until Core is initialized.
           Job.getJobManager().join(CopilotCore.INIT_JOB_FAMILY, null);
@@ -107,6 +112,27 @@ public class CopilotUi extends AbstractUIPlugin {
     };
     initJob.setSystem(true);
     initJob.schedule();
+  }
+
+  private void renderQuickStart() {
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+    int storedVersion = preferenceStore.getInt(Constants.QUICK_START_VERSION);
+    
+    if (storedVersion < Constants.CURRENT_QUICK_START_VERSION) {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openQuickStart", null);
+      });
+      preferenceStore.setValue(Constants.QUICK_START_VERSION, Constants.CURRENT_QUICK_START_VERSION);
+
+      // Save the preference store to persist the change
+      if (preferenceStore instanceof IPersistentPreferenceStore) {
+        try {
+          ((IPersistentPreferenceStore) preferenceStore).save();
+        } catch (Exception e) {
+          CopilotCore.LOGGER.error("Failed to save preference store while rendering quick start.", e);
+        }
+      }
+    }
   }
 
   public CopilotStatusManager getCopilotStatusManager() {

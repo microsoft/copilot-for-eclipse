@@ -154,6 +154,7 @@ public final class Messages extends NLS {
   public static String agent_tool_cancelConfirmationDialog_defaultTitle;
   public static String quickStart_title;
   public static String quickStart_description;
+  public static String quickStart_closeButton_tooltip;
   public static String quickStart_continueButton;
   public static String quickStart_agent_title;
   public static String quickStart_agent_description;

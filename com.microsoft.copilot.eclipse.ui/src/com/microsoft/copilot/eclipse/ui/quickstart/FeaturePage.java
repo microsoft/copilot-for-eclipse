@@ -3,9 +3,11 @@ package com.microsoft.copilot.eclipse.ui.quickstart;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.GC;
@@ -98,7 +100,14 @@ public class FeaturePage extends Composite {
     titleComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
     titleComposite.setBackground(normalBackgroundColor);
 
-    Label titleLabel = new Label(titleComposite, SWT.NONE);
+    Composite titleAndCloseComposite = new Composite(titleComposite, SWT.NONE);
+    GridLayout titleAndCloseLayout = new GridLayout(2, false);
+    titleAndCloseLayout.marginLeft = 20;
+    titleAndCloseComposite.setLayout(titleAndCloseLayout);
+    titleAndCloseComposite.setBackground(normalBackgroundColor);
+    titleAndCloseComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+    Label titleLabel = new Label(titleAndCloseComposite, SWT.NONE);
     titleLabel.setText(Messages.quickStart_title);
     titleLabel.setBackground(normalBackgroundColor);
     titleLabel.setForeground(fontColor);
@@ -113,6 +122,55 @@ public class FeaturePage extends Composite {
     titleLabel.addDisposeListener(e -> {
       if (titleFont != null && !titleFont.isDisposed()) {
         titleFont.dispose();
+      }
+    });
+
+    // Close button on the right
+    Image closeButtonImage = UiUtils.buildImageFromPngPath(
+        UiUtils.isDarkTheme() ? "/icons/quickStart/close_dark.png" : "/icons/quickStart/close_light.png");
+    Label closeButton = new Label(titleAndCloseComposite, SWT.NONE);
+    closeButton.setImage(closeButtonImage);
+    closeButton.setBackground(normalBackgroundColor);
+    GridData closeButtonData = new GridData(SWT.RIGHT, SWT.TOP, false, false);
+    closeButtonData.verticalIndent = 0;
+    closeButton.setLayoutData(closeButtonData);
+    closeButton.setToolTipText(Messages.quickStart_closeButton_tooltip);
+    // Add click listener to close the dialog
+    closeButton.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseDown(MouseEvent e) {
+        closeDialog();
+      }
+    });
+
+    Image closeButtonHoverImage = UiUtils.buildImageFromPngPath(
+        UiUtils.isDarkTheme() ? "/icons/quickStart/close_hover_dark.png" : "/icons/quickStart/close_hover_light.png");
+    // Add dispose listener for close button image
+    closeButton.addDisposeListener(e -> {
+      if (closeButtonImage != null && !closeButtonImage.isDisposed()) {
+        closeButtonImage.dispose();
+      }
+      if (closeButtonHoverImage != null && !closeButtonHoverImage.isDisposed()) {
+        closeButtonHoverImage.dispose();
+      }
+    });
+
+    // Add hover effect for close button
+    closeButton.addMouseTrackListener(new MouseTrackAdapter() {
+      @Override
+      public void mouseEnter(MouseEvent e) {
+        // Change cursor to hand and adjust close button image for hover effect
+        closeButton.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));
+        closeButton.setImage(closeButtonHoverImage);
+        closeButton.redraw();
+      }
+
+      @Override
+      public void mouseExit(MouseEvent e) {
+        // Revert cursor and close button image
+        closeButton.setCursor(null);
+        closeButton.setImage(closeButtonImage);
+        closeButton.redraw();
       }
     });
 
@@ -468,6 +526,14 @@ public class FeaturePage extends Composite {
     currentContentImage = UiUtils.buildImageFromPngPath(imagePath);
     rightPanelContent.setImage(currentContentImage);
     rightPanelContent.getParent().layout();
+  }
+
+  /**
+   * Closes the dialog containing this feature page.
+   */
+  private void closeDialog() {
+    // Find the parent shell and close it
+    getShell().close();
   }
 
   /**
