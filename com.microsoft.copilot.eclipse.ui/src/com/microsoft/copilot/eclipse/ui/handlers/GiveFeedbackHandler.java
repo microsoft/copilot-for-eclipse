@@ -11,7 +11,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 /**
  * Open the Copilot feedback forum in browser.
  */
-public class ViewFeedbackForumHandler extends AbstractHandler {
+public class GiveFeedbackHandler extends AbstractHandler {
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {

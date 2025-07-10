@@ -133,7 +133,7 @@
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.viewFeedbackForum"
-			name="%command.openFeedbackForum.name">
+			name="%command.giveFeedback.name">
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
@@ -238,7 +238,7 @@
 			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion">
 		</handler>
 		<handler
-			class="com.microsoft.copilot.eclipse.ui.handlers.ViewFeedbackForumHandler"
+			class="com.microsoft.copilot.eclipse.ui.handlers.GiveFeedbackHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.viewFeedbackForum">
 		</handler>
 		<handler

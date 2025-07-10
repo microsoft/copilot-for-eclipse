@@ -57,8 +57,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     languageServerSettingManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
 
     MenuManager menuManager = new MenuManager();
-    // Sign in status section
-    addStatusAction(menuManager);
+    // Sign in/Username
+    addSignInOrUsernameAction(menuManager);
 
     // Copilot usage section
     if (!authStatusManager.isNotSignedInOrNotAuthorized()) {
@@ -69,29 +69,26 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       CopilotCore.getPlugin().getAuthStatusManager().checkQuota().thenAccept(this::updateQuotaActions);
     }
 
-    // Sign in & sign out section
+    // Open Copilot chat view section
     menuManager.add(new Separator());
-    if (!Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
-      addAuthenticationActions(menuManager);
-    }
+    addOpenChatViewAction(menuManager);
 
-    // Provide feedback section
+    // Completion settings section
     menuManager.add(new Separator());
-    addLinkToFeedbackForumAction(menuManager);
-    addShowWhatIsNewAction(menuManager);
+    addCompletionSettingsAction(menuManager);
 
     // Preferences section
     menuManager.add(new Separator());
     addEditKeyboardShortcutsAction(menuManager);
     addPreferencesAction(menuManager);
 
-    // Completion settings section
+    // Provide feedback section
     menuManager.add(new Separator());
-    addCompletionSettingsAction(menuManager);
+    addLinkToFeedbackForumAction(menuManager);
+    addShowWhatIsNewAction(menuManager);
 
-    // Open Copilot chat view section
-    menuManager.add(new Separator());
-    addOpenChatViewAction(menuManager);
+    // Copilot settings and Sign out section
+    addAuthenticationActions(menuManager);
 
     Shell shell = PlatformUI.getWorkbench().getDisplay().getActiveShell();
     Menu menu = menuManager.createContextMenu(shell);
@@ -185,15 +182,18 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     }
   }
 
-  private void addStatusAction(MenuManager menuManager) {
-    String copilotStatus = getCopilotStatusBasedOnAuthAndCompletionResult(authStatusManager.getCopilotStatus());
-    if (Objects.equals(CopilotStatusResult.OK, authStatusManager.getCopilotStatus())
-        && !authStatusManager.getUserName().isBlank()) {
-      copilotStatus += " (" + authStatusManager.getUserName() + ")";
-    }
-    String copilotStatusTitle = Messages.menu_copilotStatus + ": " + copilotStatus;
+  private void addSignInOrUsernameAction(MenuManager menuManager) {
+    String status = authStatusManager != null ? authStatusManager.getCopilotStatus() : CopilotStatusResult.LOADING;
 
-    MenuActionFactory.createMenuAction(menuManager, copilotStatusTitle, handlerService, copilotStatus, false);
+    if (CopilotStatusResult.NOT_SIGNED_IN.equals(status)) {
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png"), handlerService,
+          "com.microsoft.copilot.eclipse.commands.signIn", true);
+    } else if (CopilotStatusResult.OK.equals(status)) {
+      MenuActionFactory.createMenuActionWithTooltipText(menuManager, authStatusManager.getUserName(),
+          authStatusManager.getUserName(), null, handlerService,
+          "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+    }
   }
 
   private void addCopilotUsageAction(MenuManager menuManager) {
@@ -306,7 +306,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   private void addLinkToFeedbackForumAction(MenuManager menuManager) {
     ImageDescriptor feedbackIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png");
-    MenuActionFactory.createMenuAction(menuManager, Messages.menu_viewFeedbackForum, feedbackIcon, handlerService,
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_giveFeedback, feedbackIcon, handlerService,
         "com.microsoft.copilot.eclipse.commands.viewFeedbackForum", true);
   }
 
@@ -326,10 +326,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   private void addCompletionSettingsAction(MenuManager menuManager) {
     ImageDescriptor placeHolder = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
     if (languageServerSettingManager.isAutoShowCompletionEnabled()) {
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_disableCompletions, placeHolder, handlerService,
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_turnOffCompletions, placeHolder, handlerService,
           "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
     } else {
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_enableCompletions, placeHolder, handlerService,
+      MenuActionFactory.createMenuAction(menuManager, Messages.menu_turnOnCompletions, placeHolder, handlerService,
           "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
     }
   }
@@ -338,27 +338,6 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     ImageDescriptor placeHolder = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_whatIsNew, placeHolder, handlerService,
         "com.microsoft.copilot.eclipse.commands.showWhatIsNew", true);
-  }
-
-  private String getCopilotStatusBasedOnAuthAndCompletionResult(String copilotStatus) {
-    CopilotStatusManager copilotStatusManager = getCopilotStatusManager();
-    switch (copilotStatus) {
-      case CopilotStatusResult.OK:
-        return copilotStatusManager.isCompletionInProgress() ? Messages.menu_copilotStatus_completionInProgress
-            : Messages.menu_copilotStatus_ready;
-      case CopilotStatusResult.ERROR:
-        return Messages.menu_copilotStatus_unknownError;
-      case CopilotStatusResult.LOADING:
-        return Messages.menu_copilotStatus_loading;
-      case CopilotStatusResult.NOT_SIGNED_IN:
-        return Messages.menu_copilotStatus_notSignedInToGitHub;
-      case CopilotStatusResult.WARNING:
-        return Messages.menu_copilotStatus_agentWarning;
-      case CopilotStatusResult.NOT_AUTHORIZED:
-        return Messages.menu_copilotStatus_notAuthorized;
-      default:
-        return Messages.menu_copilotStatus_loading;
-    }
   }
 
   private void scheduleSpinnerJob(UIElement uiElement) {
@@ -372,21 +351,19 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addAuthenticationActions(MenuManager menuManager) {
+    if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)
+        || Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_SIGNED_IN)) {
+      return;
+    }
+    menuManager.add(new Separator());
     if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_AUTHORIZED)) {
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_configureGitHubCopilotSettings, null,
           handlerService, "com.microsoft.copilot.eclipse.commands.configureCopilotSettings", true);
     }
-
-    if (Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.NOT_SIGNED_IN)) {
-      ImageDescriptor signInIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png");
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub, signInIcon, handlerService,
-          "com.microsoft.copilot.eclipse.commands.signIn", true);
-    } else if (!Objects.equals(authStatusManager.getCopilotStatus(), CopilotStatusResult.LOADING)) {
-      // Only show sign out action when the user is in OK, NOT_AUTHORIZED, WARNING, or ERROR state.
-      ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
-      MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutFromGitHub, signOutIcon, handlerService,
-          "com.microsoft.copilot.eclipse.commands.signOut", true);
-    }
+    // Only show sign out action when the user is in OK, NOT_AUTHORIZED, WARNING, or ERROR state.
+    ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutOfGitHub, signOutIcon, handlerService,
+        "com.microsoft.copilot.eclipse.commands.signOut", true);
   }
 
   private static class MenuActionFactory {

@@ -16,14 +16,14 @@ public final class Messages extends NLS {
   public static String menu_copilotStatus_notAuthorized;
   public static String menu_copilotStatus_agentWarning;
   public static String menu_signToGitHub;
-  public static String menu_signOutFromGitHub;
+  public static String menu_signOutOfGitHub;
   public static String menu_configureGitHubCopilotSettings;
-  public static String menu_viewFeedbackForum;
+  public static String menu_giveFeedback;
   public static String menu_whatIsNew;
   public static String menu_editPreferences;
   public static String menu_editKeyboardShortcuts;
-  public static String menu_enableCompletions;
-  public static String menu_disableCompletions;
+  public static String menu_turnOnCompletions;
+  public static String menu_turnOffCompletions;
   public static String menu_openChatView;
   public static String menu_quota_copilotUsage;
   public static String menu_quota_codeCompletions;

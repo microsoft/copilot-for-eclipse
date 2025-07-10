@@ -48,57 +48,58 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
   protected IContributionItem[] getContributionItems() {
     List<IContributionItem> items = new ArrayList<>();
 
+    AuthStatusManager authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
+    String status = authStatusManager != null ? authStatusManager.getCopilotStatus() : CopilotStatusResult.LOADING;
+
+    // menu: username/Sign In
+    if (CopilotStatusResult.NOT_SIGNED_IN.equals(status)) {
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signIn", Messages.menu_signToGitHub,
+          UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png")));
+    } else if (CopilotStatusResult.OK.equals(status)) {
+      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.disabledDoNothing",
+          authStatusManager.getUserName(), authStatusManager.getUserName(), null));
+    }
+
+    // menu: copilot Usage
+    addCopilotUsageItems(authStatusManager, items);
+
     // menu: openChatView
+    items.add(new Separator());
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openChatView", Messages.menu_openChatView,
         UiUtils.buildImageDescriptorFromPngPath("/icons/chat/github_copilot_chat.png")));
-    items.add(new Separator());
 
-    // menu:(label options) enableCompletions or disableCompletions
+    // menu:(label options) Turn off Completions or Turn on Completions
     LanguageServerSettingManager languageServerSettingManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
     if (languageServerSettingManager != null) {
-      String label = languageServerSettingManager.isAutoShowCompletionEnabled() ? Messages.menu_disableCompletions
-          : Messages.menu_enableCompletions;
+      items.add(new Separator());
+      String label = languageServerSettingManager.isAutoShowCompletionEnabled() ? Messages.menu_turnOffCompletions
+          : Messages.menu_turnOnCompletions;
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.autoShowCompletions", label,
           UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
-      items.add(new Separator());
     }
+
+    // menu: editKeyboardShortcuts
+    items.add(new Separator());
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts",
+        Messages.menu_editKeyboardShortcuts,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/edit_keyboard_shortcuts.png")));
 
     // menu: editPreferences
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openPreferences", Messages.menu_editPreferences,
         UiUtils.buildImageDescriptorFromPngPath("/icons/edit_preferences.png")));
 
-    // menu: editKeyboardShortcuts
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts",
-        Messages.menu_editKeyboardShortcuts,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/edit_keyboard_shortcuts.png")));
+    // menu: giveFeedback
     items.add(new Separator());
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.viewFeedbackForum", Messages.menu_giveFeedback,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png")));
 
-    // menu: viewFeedbackForum
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.viewFeedbackForum",
-        Messages.menu_viewFeedbackForum, UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png")));
-
+    // menu: whatIsNew
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.showWhatIsNew", Messages.menu_whatIsNew,
         UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
-    items.add(new Separator());
 
-    AuthStatusManager authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
-    String status = authStatusManager != null ? authStatusManager.getCopilotStatus() : CopilotStatusResult.LOADING;
+    // menu: Copilot settings and Sign Out
+    addAuthenticationActions(items, status);
 
-    // menu: configureGitHubCopilotSettings
-    if (CopilotStatusResult.NOT_AUTHORIZED.equals(status)) {
-      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.configureCopilotSettings",
-          Messages.menu_configureGitHubCopilotSettings, null));
-    }
-
-    // menu:(command options) signToGitHub or signOutFromGitHub
-    if (CopilotStatusResult.NOT_SIGNED_IN.equals(status)) {
-      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signIn", Messages.menu_signToGitHub,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png")));
-    } else if (!CopilotStatusResult.LOADING.equals(status)) {
-      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signOut", Messages.menu_signOutFromGitHub,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png")));
-    }
-    addCopilotUsageItems(authStatusManager, items);
     return items.toArray(new IContributionItem[0]);
   }
 
@@ -210,6 +211,19 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     }
     // Create a CompletableFuture to update quota information
     CopilotCore.getPlugin().getAuthStatusManager().checkQuota().thenAccept(this::updateQuotaItems);
+  }
+
+  private void addAuthenticationActions(List<IContributionItem> items, String status) {
+    if (CopilotStatusResult.LOADING.equals(status) || CopilotStatusResult.NOT_SIGNED_IN.equals(status)) {
+      return;
+    }
+    items.add(new Separator());
+    if (CopilotStatusResult.NOT_AUTHORIZED.equals(status)) {
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.configureCopilotSettings",
+          Messages.menu_configureGitHubCopilotSettings, null));
+    }
+    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signOut", Messages.menu_signOutOfGitHub,
+        UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png")));
   }
 
   /**

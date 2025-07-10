@@ -10,6 +10,6 @@ class MessagesTest {
   void testMessagesInitialization() {
     // Ensure that the static fields are initialized
     assertNotNull(Messages.menu_signToGitHub);
-    assertNotNull(Messages.menu_signOutFromGitHub);
+    assertNotNull(Messages.menu_signOutOfGitHub);
   }
 }
