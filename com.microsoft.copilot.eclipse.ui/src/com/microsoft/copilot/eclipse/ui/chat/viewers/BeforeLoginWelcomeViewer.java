@@ -197,6 +197,12 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     if (this.chatIcon != null) {
       this.chatIcon.dispose();
     }
+    if (this.agentIcon != null) {
+      this.agentIcon.dispose();
+    }
+    if (this.mcpIcon != null) {
+      this.mcpIcon.dispose();
+    }
     super.dispose();
   }
 }
