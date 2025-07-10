@@ -342,6 +342,13 @@
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="CTRL+ALT+I">
 		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.openChatView"
+			contextId="org.eclipse.ui.contexts.window"
+			platform="gtk"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="CTRL+ALT+I">
+		</key>
 	</extension>
 	<!-- Code mining registration, for block ghost text rendering -->
 	<extension
