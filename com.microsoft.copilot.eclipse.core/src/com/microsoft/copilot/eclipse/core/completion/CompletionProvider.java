@@ -42,7 +42,6 @@ public class CompletionProvider {
   private CompletionJob completionJob;
   private Set<CompletionListener> completionListeners;
   private FormatOptionProvider formatOptionProvider;
-  private Set<CompletionStatusListener> completionStatusListeners;
   private AuthStatusManager statusManager;
 
   /**
@@ -52,7 +51,6 @@ public class CompletionProvider {
     this.statusManager = statusManager;
     this.completionJob = new CompletionJob(lsConnection);
     this.completionListeners = new LinkedHashSet<>();
-    this.completionStatusListeners = new LinkedHashSet<>();
     this.formatOptionProvider = CopilotCore.getPlugin().getFormatOptionProvider();
   }
 
@@ -91,25 +89,10 @@ public class CompletionProvider {
   }
 
   /**
-   * Register a completion status listener.
-   */
-  public void addCompletionStatusListener(CompletionStatusListener listener) {
-    this.completionStatusListeners.add(listener);
-  }
-
-  /**
    * Remove a completion listener.
    */
   public void removeCompletionListener(CompletionListener listener) {
     this.completionListeners.remove(listener);
-  }
-
-  /**
-   * Unregister a completion status listener.
-   */
-  public void removeCompletionStatusListener(CompletionStatusListener listener) {
-    listener.onCompletionDone();
-    this.completionStatusListeners.remove(listener);
   }
 
   /**
@@ -144,17 +127,12 @@ public class CompletionProvider {
 
     @Override
     protected IStatus run(IProgressMonitor monitor) {
-      notifyCompletionAboutToRun();
       this.completions = null;
-      try {
-        IStatus status = runCompletion(monitor);
-        if (status.isOK() && this.completions != null) {
-          notifyCompletionResolved();
-        }
-        return status;
-      } finally {
-        notifyCompletionDone();
+      IStatus status = runCompletion(monitor);
+      if (status.isOK() && this.completions != null) {
+        notifyCompletionResolved();
       }
+      return status;
     }
 
     private IStatus runCompletion(IProgressMonitor monitor) {
@@ -200,18 +178,6 @@ public class CompletionProvider {
     @Override
     public boolean belongsTo(Object family) {
       return Objects.equals(family, COMPLETION_JOB_FAMILY);
-    }
-
-    private void notifyCompletionAboutToRun() {
-      for (CompletionStatusListener listener : CompletionProvider.this.completionStatusListeners) {
-        listener.onCompletionAboutToRun();
-      }
-    }
-
-    private void notifyCompletionDone() {
-      for (CompletionStatusListener listener : CompletionProvider.this.completionStatusListeners) {
-        listener.onCompletionDone();
-      }
     }
 
     private void notifyCompletionResolved() {

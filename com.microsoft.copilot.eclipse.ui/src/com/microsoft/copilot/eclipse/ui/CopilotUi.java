@@ -93,7 +93,6 @@ public class CopilotUi extends AbstractUIPlugin {
           // to initialize it.
           initCompletionHandlerForActiveEditor();
 
-          addCompletionStatusListener();
           addCopilotAuthStatusListener();
           // refresh the menu icon in case we miss the event to refresh it.
           UiUtils.refreshCopilotMenu();
@@ -146,7 +145,6 @@ public class CopilotUi extends AbstractUIPlugin {
   @Override
   public void stop(BundleContext context) throws Exception {
     unregisterPartListener();
-    removeCompletionStatusListener();
     removeCopilotAuthStatusListener();
 
     if (this.editorsManager != null) {
@@ -181,10 +179,6 @@ public class CopilotUi extends AbstractUIPlugin {
     CopilotCore.getPlugin().getAuthStatusManager().addCopilotAuthStatusListener(this.copilotStatusManager);
   }
 
-  private void addCompletionStatusListener() {
-    CopilotCore.getPlugin().getCompletionProvider().addCompletionStatusListener(this.copilotStatusManager);
-  }
-
   private void initCompletionHandlerForActiveEditor() {
     IEditorPart editorPart = SwtUtils.getActiveEditorPart();
     if (editorPart != null) {
@@ -198,11 +192,7 @@ public class CopilotUi extends AbstractUIPlugin {
       window.getPartService().removePartListener(this.editorLifecycleListener);
     }
   }
-
-  private void removeCompletionStatusListener() {
-    CopilotCore.getPlugin().getCompletionProvider().removeCompletionStatusListener(this.copilotStatusManager);
-  }
-
+  
   private void removeCopilotAuthStatusListener() {
     CopilotCore.getPlugin().getAuthStatusManager().removeCopilotAuthStatusListener(this.copilotStatusManager);
   }

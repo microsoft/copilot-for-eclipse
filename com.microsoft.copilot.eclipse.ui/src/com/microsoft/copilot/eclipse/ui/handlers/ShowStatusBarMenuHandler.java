@@ -134,7 +134,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   public void updateElement(UIElement element, Map parameters) {
     CopilotStatusManager copilotStatusManager = getCopilotStatusManager();
 
-    if (copilotStatusManager == null || copilotStatusManager.isCompletionInProgress()) {
+    if (copilotStatusManager == null) {
       scheduleSpinnerJob(element);
       return;
     } else {
@@ -449,10 +449,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         }
         setIconOnDisplayThread(this.uiElement, String.format("/icons/spinner/%d.png", currentIconIndex));
         currentIconIndex = (currentIconIndex % TOTAL_SPINNER_ICONS) + 1;
-        if (CopilotUi.getPlugin().getCopilotStatusManager() != null
-            && CopilotUi.getPlugin().getCopilotStatusManager().isCompletionInProgress()
-            || CopilotCore.getPlugin().getAuthStatusManager() != null
-                && CopilotCore.getPlugin().getAuthStatusManager().isLoading()) {
+        if (CopilotCore.getPlugin().getAuthStatusManager() != null
+            && CopilotCore.getPlugin().getAuthStatusManager().isLoading()) {
           schedule(COMPLETION_IN_PROGRESS_SPINNER_ROTATE_RATE_MILLIS);
         } else {
           cancel();
