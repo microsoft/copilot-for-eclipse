@@ -1,3 +1,58 @@
+# GitHub Copilot 0.9.0 Release Notes
+### 🚀 GitHub Copilot Now Supports Eclipse 2024-03 & 2024-06!
+We’re thrilled to announce that GitHub Copilot is now fully compatible with **Eclipse 2024-03** and **2024-06**! Whether you're coding in the latest release or just upgraded, you can now enjoy the full power of Copilot’s AI assistance right inside your Eclipse IDE.
+
+---
+
+### ✍️ One-Click Commit Messages Generation with Copilot
+You can now automatically generate meaningful Git commit messages with a single click. Just head to the **Git Staging** view and hit the **Generate Commit Message With Copilot** button in the toolbar. Copilot will analyze your staged changes and suggest a clear, concise message.
+
+![Generate Commit Message](./0.9.0/generate_commit_message_1.png)
+
+---
+
+### 🔍 Making Chat An Expert with @workspace Context
+You can now supercharge your prompts in **Ask Mode** using the new @workspace context!
+
+To enable it:
+
+1. Head to GitHub Copilot Preferences
+2. Check the box for Enable workspace context
+
+![Enable workspace context](./0.9.0/project_context_1.png)
+
+Once enabled, Copilot can understand and respond based on your entire codebase—just use **@workspace** in your questions.
+
+![Using @workspace](./0.9.0/project_context_2.png)
+
+---
+
+### 🖥️ Dive into MCP Logs in Console View
+You can now view **detailed logs** from your configured MCP servers directly in the Console View. Just toggle to **Copilot (MCP)** and explore the insights.
+
+![MCP console](./0.9.0/mcp_console_1.png)
+
+---
+
+### ✨ A Smoother Start: Revamped Getting Started Experience
+
+We’ve reimagined the onboarding journey to make it easier than ever to get started with GitHub Copilot in Eclipse:
+
+1. **Quickstart Guide**: A step-by-step walkthrough to get you up and running.
+
+   ![Quickstart Guide](./0.9.0/getting_started_1.png)
+2. **Dedicated Perspective**: A new layout tailored for Copilot workflows. To enable the **Copilot** perspective, go to **Window** > **Perspective** > **Open Perspective** > **Other...** > **Copilot**
+
+   ![Copilot Perspective](./0.9.0/perspective_1.png)
+3. **Refined Chat View**: The Copilot Chat interface has been polished with a cleaner layout and a more intuitive default placement across commonly used Eclipse perspectives.
+
+---
+
+### 🐞 Bug Fixes & Improvements
+This release also includes bug fixes and enhancements to improve overall stability and user experience.
+
+---
+
 # GitHub Copilot 0.8.0 Release Notes
 
 ### 🛠️ Remote MCP Server support
@@ -43,23 +98,3 @@ Click the `Tools` icon in the chat input box to quickly open the preferences pag
 
 ### 🐞 Bug Fixes & Improvements
 This release also includes bug fixes and enhancements to improve overall stability and user experience.
-
-# GitHub Copilot 0.6.0 Release Notes
-
-## Feature Highlights
-
-With the introduction of agent mode in Eclipse, vibe coding becomes a reality. GitHub Copilot's new agent mode can iterate on its own code, detect errors, and fix them automatically with a set of tools. It can suggest terminal commands for you to execute and even analyze run-time errors with self-healing capabilities. With MCP, GitHub Copilot can connect to external tools, enabling more interactive and context-aware assistance directly in your IDE.
-
-### Agent Mode
-Agent mode transforms GitHub Copilot into a more proactive coding companion, capable of understanding your project context and taking autonomous actions to help you code more efficiently.
-
-#### How to Enable Agent Mode
-In the chat window, if you are in the ask mode, select the agent mode in the drop down list.
-Read more on the [Copilot agent mode](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide?tool=eclipse#copilot-agent-mode-1).
-
-### Model Context Protocol (MCP)
-MCP is an open standard that enables AI models to interact with external tools and services through a unified interface. With MCP support in Eclipse, it extends agent mode capabilities by integrating tools contributed by MCP servers, enhancing the agent's ability to assist across more workflows and tasks. 
-
-#### How to Configure MCP
-Click the GitHub Copilot icon on the lower right corner, select **Edit Preferences**, then find the MCP Servers section to configure your MCP settings.
-Read more on the [Copilot chat with MCP](https://docs.github.com/en/copilot/customizing-copilot/extending-copilot-chat-with-mcp?tool=eclipse).

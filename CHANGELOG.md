@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.9.0
+### Added
+- Show MCP logs in Console View. [#833](https://github.com/microsoft/copilot-eclipse/issues/833)
+- Add welcome introduction page. [PR#904](https://github.com/microsoft/copilot-eclipse/pull/904)
+- Support workspace context (@workspace) in ask mode. [PR#780](https://github.com/microsoft/copilot-eclipse/pull/780)
+- Add open chat view command to perspectives' onboard command list. [PR#883](https://github.com/microsoft/copilot-eclipse/pull/883)
+- Add keyboard shortcut command for open chat view command. [PR#882](https://github.com/microsoft/copilot-eclipse/pull/882)
+- Add new Copilot perspective. [PR#912](https://github.com/microsoft/copilot-eclipse/pull/912)
+- Support generate git commit message. [#794](https://github.com/microsoft/copilot-eclipse/issues/794)
+- Display chat title on top of the chat view. [PR#917](https://github.com/microsoft/copilot-eclipse/pull/917)
+
+### Changed
+- Support Eclipse 2024-03 & 2024-06. [PR#876](https://github.com/microsoft/copilot-eclipse/pull/876)
+- Improve the chat view layout. [PR#890](https://github.com/microsoft/copilot-eclipse/pull/890), [PR#879](https://github.com/microsoft/copilot-eclipse/pull/879)
+- Improve the Copilot menu in menu bar and status bar. [PR#923](https://github.com/microsoft/copilot-eclipse/pull/923)
+- Remove the spinner when completing code. [#788](https://github.com/microsoft/copilot-eclipse/issues/788)
+
+### Fixed
+- MCP tool configuration button should not be visible in ask mode. [#880](https://github.com/microsoft/copilot-eclipse/issues/880)
+- Use workbench job to avoid blocking shutdown action. [PR#907](https://github.com/microsoft/copilot-eclipse/pull/907)
+- Check if the project is accessible before scanning watched files. [PR#908](https://github.com/microsoft/copilot-eclipse/pull/908)
+- Fix quota rendering issue on MacOS and Linux. [#822](https://github.com/microsoft/copilot-eclipse/issues/822), [#878](https://github.com/microsoft/copilot-eclipse/issues/878)
+- Wrong completion when IDE auto closed brackets. [PR#892](https://github.com/microsoft/copilot-eclipse/pull/892)
+- Entire settings are synced even just changing one item. [#877](https://github.com/microsoft/copilot-eclipse/issues/877)
+- Wrong welcome page displayed in chat view when user is not signed in. [#851](https://github.com/microsoft/copilot-eclipse/issues/851)
+- File with no extension cannot be attached in chat view. [#863](https://github.com/microsoft/copilot-eclipse/issues/863)
+
 ## 0.8.0
 ### Added
 - Enable remote MCP server.

@@ -512,14 +512,14 @@ public class FeaturePage extends Composite {
     String imagePath;
     switch (feature) {
       case ASK:
-        imagePath = "/icons/quickStart/quick_start_ask.png";
+        imagePath = "/intro/quickstart/quick_start_ask.png";
         break;
       case COMPLETION:
-        imagePath = "/icons/quickStart/quick_start_completion.png";
+        imagePath = "/intro/quickstart/quick_start_completion.png";
         break;
       case AGENT:
       default:
-        imagePath = "/icons/quickStart/quick_start_agent.png";
+        imagePath = "/intro/quickstart/quick_start_agent.png";
     }
 
     // Load and set the new image

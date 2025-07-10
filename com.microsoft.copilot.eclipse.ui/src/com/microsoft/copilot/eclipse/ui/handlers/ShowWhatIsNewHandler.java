@@ -34,23 +34,26 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ShowWhatIsNewHandler extends AbstractHandler {
 
-  private static final String WHATISNEW_NAME = "WHATISNEW.md";
+  private static final String WHATISNEW_RESOURCES_PATH = "intro/whatsnew";
+  private static final String WHATISNEW_FILE_NAME = "WHATISNEW.md";
   private static final String HTML_EDITOR_ID = "org.eclipse.ui.browser.editor";
   private static final String FALLBACK_EDITOR_ID = "org.eclipse.ui.DefaultTextEditor";
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     try {
-      File changelogFile = locateChangelogFile();
-      if (changelogFile == null) {
+      File changelogResources = locateChangelogResources();
+      if (changelogResources == null) {
         return null;
       }
 
-      String markdownContent = readMarkdownFile(changelogFile);
-      String htmlContent = convertMarkdownToHtml(markdownContent);
-      File htmlFile = createHtmlFile(changelogFile, htmlContent);
+      File markdownFile = new File(changelogResources, WHATISNEW_FILE_NAME);
 
-      openHtmlFileInEditor(htmlFile, changelogFile);
+      String markdownContent = readMarkdownFile(markdownFile);
+      String htmlContent = convertMarkdownToHtml(markdownContent);
+      File htmlFile = createHtmlFile(markdownFile, htmlContent);
+
+      openHtmlFileInEditor(htmlFile, markdownFile);
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to process changelog", e);
     }
@@ -65,16 +68,16 @@ public class ShowWhatIsNewHandler extends AbstractHandler {
    * @throws IOException if there's an error locating the file
    * @throws URISyntaxException if there's an error converting URLs
    */
-  private File locateChangelogFile() throws IOException, URISyntaxException {
+  private File locateChangelogResources() throws IOException, URISyntaxException {
     Bundle bundle = FrameworkUtil.getBundle(this.getClass());
     if (bundle == null) {
       CopilotCore.LOGGER.error(new IllegalStateException("Bundle not found"));
       return null;
     }
 
-    URL fileUrl = FileLocator.find(bundle, new Path(WHATISNEW_NAME));
+    URL fileUrl = FileLocator.find(bundle, new Path(WHATISNEW_RESOURCES_PATH));
     if (fileUrl == null) {
-      CopilotCore.LOGGER.error(new IllegalStateException(WHATISNEW_NAME + " not found"));
+      CopilotCore.LOGGER.error(new IllegalStateException(WHATISNEW_RESOURCES_PATH + " not found"));
       return null;
     }
 
