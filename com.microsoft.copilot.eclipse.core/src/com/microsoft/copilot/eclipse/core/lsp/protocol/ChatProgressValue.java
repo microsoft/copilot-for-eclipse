@@ -25,6 +25,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
   private String cancellationReason;
   private ConversationError error;
   private List<AgentRound> editAgentRounds;
+  private String suggestedTitle;
 
   public WorkDoneProgressKind getKind() {
     return kind;
@@ -86,6 +87,10 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     return editAgentRounds;
   }
 
+  public String getSuggestedTitle() {
+    return suggestedTitle;
+  }
+
   public void setKind(WorkDoneProgressKind kind) {
     this.kind = kind;
   }
@@ -138,6 +143,10 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     this.error = error;
   }
 
+  public void setSuggestedTitle(String suggestedTitle) {
+    this.suggestedTitle = suggestedTitle;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -147,7 +156,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     result = prime * result + Arrays.hashCode(references);
     result = prime * result + Arrays.hashCode(steps);
     result = prime * result + Objects.hash(editAgentRounds, cancellationReason, conversationId, error, hideText, kind,
-        reply, title, turnId);
+        reply, title, turnId, suggestedTitle);
     return result;
   }
 
@@ -169,7 +178,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
         && hideText == other.hideText && kind == other.kind && Arrays.equals(notifications, other.notifications)
         && Arrays.equals(references, other.references) && Objects.equals(reply, other.reply)
         && Arrays.equals(steps, other.steps) && Objects.equals(title, other.title)
-        && Objects.equals(turnId, other.turnId);
+        && Objects.equals(turnId, other.turnId) && Objects.equals(suggestedTitle, other.suggestedTitle);
   }
 
   @Override
@@ -188,6 +197,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     builder.add("cancellationReason", cancellationReason);
     builder.add("error", error);
     builder.add("editAgentRounds", editAgentRounds);
+    builder.add("suggestedTitle", suggestedTitle);
     return builder.toString();
   }
 }

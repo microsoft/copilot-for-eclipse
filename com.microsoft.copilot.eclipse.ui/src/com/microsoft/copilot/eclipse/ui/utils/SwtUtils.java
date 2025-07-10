@@ -107,6 +107,21 @@ public class SwtUtils {
   }
 
   /**
+   * Invokes the given runnable on the display thread asynchronously.
+   *
+   * @param runnable the runnable to invoke
+   * @param control the control used for the display
+   */
+  public static void invokeOnDisplayThreadAsync(Runnable runnable, Control control) {
+    if (Objects.isNull(control) || control.isDisposed()) {
+      invokeOnDisplayThreadAsync(runnable);
+    } else {
+      Display display = control.getDisplay();
+      display.asyncExec(runnable);
+    }
+  }
+
+  /**
    * Get the active editor part from workbench.
    */
   @Nullable

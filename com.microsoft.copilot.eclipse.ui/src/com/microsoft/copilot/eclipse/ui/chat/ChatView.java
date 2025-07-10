@@ -59,6 +59,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private TopBanner topBanner;
   private Composite mainSection;
   private ActionBar actionBar;
+  private Composite actionBarWrapper;
   private ChatContentViewer chatContentViewer;
   private Composite loadingViewer;
   private Composite noSubscriptionViewer;
@@ -75,8 +76,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.parent = parent;
     GridLayout layout = new GridLayout(1, true);
     layout.verticalSpacing = 0;
-    layout.marginWidth = 10;
-    layout.marginHeight = 10;
+    layout.marginWidth = 0;
+    layout.marginHeight = 0;
+    layout.marginBottom = 10;
     parent.setLayout(layout);
     parent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
@@ -207,8 +209,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createAgentModePage();
     }
 
+    createActionBarWrapper();
+
     // input field
-    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
+    this.actionBar = new ActionBar(this.actionBarWrapper, SWT.NONE, chatServiceManager);
     this.actionBar.registerMessageListener(this);
     this.topBanner.registerNewConversationListener(this.actionBar);
   }
@@ -227,8 +231,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createAfterLoginWelcomePage();
     }
 
+    createActionBarWrapper();
+
     // input field
-    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
+    this.actionBar = new ActionBar(this.actionBarWrapper, SWT.NONE, chatServiceManager);
     this.actionBar.registerMessageListener(this);
     this.topBanner.registerNewConversationListener(this.actionBar);
   }
@@ -245,11 +251,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private void createMainSection(GridData gridData) {
     this.mainSection = new Composite(parent, SWT.NONE);
     GridLayout gl = new GridLayout(1, true);
-    gl.marginLeft = 0;
-    gl.marginRight = 0;
-    gl.marginWidth = 0;
+    gl.marginWidth = 10;
     this.mainSection.setLayout(gl);
     this.mainSection.setLayoutData(gridData);
+  }
+
+  private void createActionBarWrapper() {
+    this.actionBarWrapper = new Composite(parent, SWT.NONE);
+    GridLayout abLayout = new GridLayout(1, false);
+    abLayout.marginWidth = 10;
+    abLayout.marginHeight = 0;
+    this.actionBarWrapper.setLayout(abLayout);
+    this.actionBarWrapper.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
   }
 
   private void createLoadingPage() {
@@ -368,6 +381,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
           this.actionBar.resetSendButton();
+          this.topBanner.updateTitle(value.getSuggestedTitle());
         }
         break;
       default:

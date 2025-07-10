@@ -37,6 +37,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   private static final int MAX_INPUT_ROWS = 5;
 
   private Composite parent;
+  private Composite reLayoutComposite;
   private Consumer<String> sendMessageHandler;
   private ChatCompletionService chatCompletionService;
   private UserPreferenceService userPreferenceService;
@@ -52,9 +53,10 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   private boolean needDisposeColorResource;
   private Color placeholderColor;
 
-  public ChatInputTextViewer(Composite parent, ChatServiceManager chatServiceManager) {
+  public ChatInputTextViewer(Composite parent, Composite reLayoutComposite, ChatServiceManager chatServiceManager) {
     super(parent, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
     this.parent = parent;
+    this.reLayoutComposite = reLayoutComposite;
     this.userPreferenceService = chatServiceManager.getUserPreferenceService();
     this.chatCompletionService = chatServiceManager.getChatCompletionService();
     this.init();
@@ -151,7 +153,7 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     gd.heightHint = Math.min(tvw.getLineHeight() * MAX_INPUT_ROWS, size.y);
     // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
     // The width of welcome view will become shorter and shorter, may investigate it later
-    ChatInputTextViewer.this.parent.getParent().layout(true, false);
+    ChatInputTextViewer.this.reLayoutComposite.layout(true, false);
   }
 
   private void onKeyPressed(KeyEvent e) {
