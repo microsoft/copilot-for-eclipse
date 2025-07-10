@@ -194,7 +194,11 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
           CopilotCore.LOGGER.error("Failed to save preference 'Enable workspace context'", e);
         }
 
-        PlatformUI.getWorkbench().restart();
+        // Close the preference dialog properly before restarting
+        getShell().getDisplay().asyncExec(() -> {
+          // Using asyncExec ensures the preference dialog completes its current operations
+          PlatformUI.getWorkbench().restart();
+        });
       }
     }
     
