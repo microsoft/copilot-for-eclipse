@@ -1,5 +1,8 @@
 package com.microsoft.copilot.eclipse.ui;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -14,6 +17,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.Version;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -58,7 +62,7 @@ public class CopilotUi extends AbstractUIPlugin {
     Job initJob = new Job("Copilot initialization") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
-        renderQuickStart();
+        showHintIfNecessary(context);
 
         try {
           // wait until Core is initialized.
@@ -113,23 +117,36 @@ public class CopilotUi extends AbstractUIPlugin {
     initJob.schedule();
   }
 
-  private void renderQuickStart() {
+  private void showHintIfNecessary(BundleContext context) {
     IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
-    int storedVersion = preferenceStore.getInt(Constants.QUICK_START_VERSION);
-    
-    if (storedVersion < Constants.CURRENT_QUICK_START_VERSION) {
-      SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openQuickStart", null);
-      });
-      preferenceStore.setValue(Constants.QUICK_START_VERSION, Constants.CURRENT_QUICK_START_VERSION);
+    if (!(preferenceStore instanceof IPersistentPreferenceStore)) {
+      // to make sure the updated preference store is saved, we will only show the quick start
+      // if the preference store is IPersistentPreferenceStore.
+      return;
+    }
 
-      // Save the preference store to persist the change
-      if (preferenceStore instanceof IPersistentPreferenceStore) {
-        try {
-          ((IPersistentPreferenceStore) preferenceStore).save();
-        } catch (Exception e) {
-          CopilotCore.LOGGER.error("Failed to save preference store while rendering quick start.", e);
-        }
+    int storedVersion = preferenceStore.getInt(Constants.QUICK_START_VERSION);
+    if (storedVersion < Constants.CURRENT_QUICK_START_VERSION) {
+      SwtUtils.invokeOnDisplayThreadAsync(
+          () -> UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openQuickStart", null));
+      preferenceStore.setValue(Constants.QUICK_START_VERSION, Constants.CURRENT_QUICK_START_VERSION);
+    }
+
+    String lastUsedVersion = preferenceStore.getString(Constants.LAST_USED_PLUGIN_VERSION);
+    Version bundleVersion = context.getBundle().getVersion();
+    String currentVersion = bundleVersion.getMajor() + "." + bundleVersion.getMinor();
+    if (!Objects.equals(lastUsedVersion, currentVersion)) {
+      SwtUtils.invokeOnDisplayThreadAsync(
+          () -> UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.showWhatIsNew", null));
+      preferenceStore.setValue(Constants.LAST_USED_PLUGIN_VERSION, currentVersion);
+    }
+
+    IPersistentPreferenceStore ps = (IPersistentPreferenceStore) preferenceStore;
+    if (ps.needsSaving()) {
+      try {
+        ps.save();
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to save preference store during preference update.", e);
       }
     }
   }
@@ -192,7 +209,7 @@ public class CopilotUi extends AbstractUIPlugin {
       window.getPartService().removePartListener(this.editorLifecycleListener);
     }
   }
-  
+
   private void removeCopilotAuthStatusListener() {
     CopilotCore.getPlugin().getAuthStatusManager().removeCopilotAuthStatusListener(this.copilotStatusManager);
   }

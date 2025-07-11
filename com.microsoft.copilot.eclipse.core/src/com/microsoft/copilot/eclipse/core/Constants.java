@@ -24,6 +24,7 @@ public class Constants {
   public static final String MCP_TOOLS_STATUS = "mcpToolsStatus";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
   public static final String QUICK_START_VERSION = "quickStartVersion";
+  public static final String LAST_USED_PLUGIN_VERSION = "lastUsedPluginVersion";
   public static final String CHAT_VIEW_ID = "com.microsoft.copilot.eclipse.ui.chat.ChatView";
   public static final String CHAT_CHANNEL = "chatProgress";
   // Copied from InelliJ, excluded file extension list
