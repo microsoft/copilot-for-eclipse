@@ -96,7 +96,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, updateSendButtonToCancelButtonHandler);
     this.setBackground(UiUtils.getThemeColor(UiConstants.EDITOR_BACKGROUND));
-
     GridLayout gl = new GridLayout(1, false);
     gl.marginHeight = 5;
     gl.verticalSpacing = 0;
@@ -126,9 +125,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     referencedFileService.bindCurrentFileWidget(currentFileRef);
     referencedFileService.bindReferencedFilesWidget(this);
 
-    // Because the ActionBar is wrappered by a Composite, so need to pass the parent of wrapper(ChatView) to the
-    // ChatInputTextViewer to re-layout
-    ChatInputTextViewer tv = new ChatInputTextViewer(this, this.getParent().getParent(), chatServiceManager);
+    ChatInputTextViewer tv = new ChatInputTextViewer(this, chatServiceManager);
     tv.setEditable(true);
     tv.addTextListener(new ITextListener() {
       @Override
@@ -154,7 +151,8 @@ public class ActionBar extends Composite implements NewConversationListener {
     ca.enableAutoActivateCompletionOnType(true);
     ca.enableCompletionProposalTriggerChars(true);
     ca.enableAutoActivation(true);
-    ca.setContentAssistProcessor(new ChatAssistProcessor(tv, chatServiceManager), IDocument.DEFAULT_CONTENT_TYPE);
+    ca.setContentAssistProcessor(new ChatAssistProcessor(tv, chatServiceManager),
+        IDocument.DEFAULT_CONTENT_TYPE);
     ca.setProposalPopupOrientation(IContentAssistant.PROPOSAL_STACKED);
     ca.enableColoredLabels(true);
     ca.setAutoActivationDelay(0);

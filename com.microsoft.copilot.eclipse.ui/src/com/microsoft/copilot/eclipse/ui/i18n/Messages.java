@@ -85,7 +85,6 @@ public final class Messages extends NLS {
   public static String preferences_page_note_text;
   public static String preferences_page_note_content;
   public static String chat_topBanner_newConversationButton_Tooltip;
-  public static String chat_topBanner_defaultChatTitle;
   public static String chat_actionBar_initialContent;
   public static String chat_actionBar_initialContentForAgent;
   public static String chat_actionBar_attachContextButton_Tooltip;
