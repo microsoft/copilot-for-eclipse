@@ -503,6 +503,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createAfterLoginWelcomePage();
     }
     chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
+    setFocus();
   }
 
   /**
