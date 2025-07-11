@@ -550,9 +550,11 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
     if (currentVersion == this.documentVersion) {
       // if the caret position is changed without document version change, we should remove the ghost text.
       clearGhostTexts();
-    } else if (this.autoShowCompletion) {
+    } else {
       this.documentVersion = currentVersion;
-      triggerCompletion();
+      if (this.autoShowCompletion) {
+        triggerCompletion();
+      }
     }
     redrawBlockLineAtModelOffset(modelOffset);
   }
