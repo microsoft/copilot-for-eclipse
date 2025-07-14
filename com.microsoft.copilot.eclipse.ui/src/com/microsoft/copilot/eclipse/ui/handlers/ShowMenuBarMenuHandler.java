@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -20,6 +21,7 @@ import org.eclipse.ui.services.IServiceLocator;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
@@ -42,6 +44,24 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
   @Override
   public void initialize(IServiceLocator serviceLocator) {
     this.serviceLocator = serviceLocator;
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (data instanceof CopilotStatusResult statusResult && statusResult != null && statusResult.isNotSignedIn()) {
+        if (chatUsageItem != null) {
+          chatUsageItem.dispose();
+          chatUsageItem = null;
+        }
+        if (completionsUsageItem != null) {
+          completionsUsageItem.dispose();
+          completionsUsageItem = null;
+        }
+        if (premiumRequestsUsageItem != null) {
+          premiumRequestsUsageItem.dispose();
+          premiumRequestsUsageItem = null;
+        }
+      }
+    });
   }
 
   @Override

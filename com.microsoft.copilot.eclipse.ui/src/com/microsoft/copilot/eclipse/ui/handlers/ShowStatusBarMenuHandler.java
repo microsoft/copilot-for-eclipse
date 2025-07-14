@@ -12,6 +12,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
@@ -27,6 +28,7 @@ import org.eclipse.ui.menus.UIElement;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
@@ -49,6 +51,27 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   private Action completionRemainingAction;
   private Action chatRemainingAction;
   private Action premiumRequestsAction;
+
+  /**
+   * Constructor for ShowStatusBarMenuHandler.
+   */
+  public ShowStatusBarMenuHandler() {
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (data instanceof CopilotStatusResult statusResult && statusResult != null && statusResult.isNotSignedIn()) {
+        if (completionRemainingAction != null) {
+          completionRemainingAction = null;
+        }
+        if (chatRemainingAction != null) {
+          chatRemainingAction = null;
+        }
+        if (premiumRequestsAction != null) {
+          premiumRequestsAction = null;
+        }
+      }
+    });
+  }
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {

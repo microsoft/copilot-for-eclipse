@@ -502,7 +502,7 @@ public class UiUtils {
    */
   public static String getAlignedText(GC gc, String originalText, String fineTuneCharacter, String suffix,
       int initialSpaceNumber, int maxWidth) {
-    String result = originalText + fineTuneCharacter.repeat(initialSpaceNumber) + suffix;
+    String result = originalText + fineTuneCharacter.repeat(Math.max(0, initialSpaceNumber)) + suffix;
     // On some platforms, the textExtent of "foo" and "foofoo" does not scale linearly.
     // Typically, "foofoo" is shorter than the width of "foo x 2" but the exact behavior varies across different
     // operating systems. Therefore, we start with spacesToAdd and adjust it incrementally or decreasingly until we find
