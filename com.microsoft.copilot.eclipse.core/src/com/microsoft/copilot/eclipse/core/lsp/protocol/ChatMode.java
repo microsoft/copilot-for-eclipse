@@ -22,7 +22,7 @@ public enum ChatMode {
   Agent {
     @Override
     public String displayName() {
-      return "Agent (Preview)";
+      return "Agent";
     }
   };
 

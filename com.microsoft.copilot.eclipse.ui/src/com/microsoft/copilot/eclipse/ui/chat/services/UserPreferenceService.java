@@ -176,7 +176,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       return preference.getChatModeName();
     }
 
-    return ChatMode.Ask.toString();
+    return ChatMode.Agent.toString();
   }
 
   private List<String> restoreUserInputs() {
@@ -319,7 +319,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     ensureRealm(() -> {
       ISideEffect activeChatModeSideEffect = ISideEffect.create(() -> {
         ChatMode activeMode = this.activeChatModeObservable.getValue();
-        return activeMode == null ? ChatMode.Ask : activeMode;
+        return activeMode == null ? ChatMode.valueOf(restoreChatModeName()) : activeMode;
       }, (ChatMode mode) -> {
         if (combo.isDisposed()) {
           return;
