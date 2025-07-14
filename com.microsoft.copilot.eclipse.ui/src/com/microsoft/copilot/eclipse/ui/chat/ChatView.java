@@ -159,9 +159,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     // Skip building the view when the user is not signed in or authenticated to avoid mode page overrides
     // @link BeforeLoginWelcomeViewer. See: https://github.com/microsoft/copilot-eclipse/issues/851
-    if (!this.chatServiceManager.getAuthStatusManager().isNotSignedInOrNotAuthorized() && !hasHistory) {
-      disposeChildren(parent);
-      showChatPage(chatMode);
+    if (!this.chatServiceManager.getAuthStatusManager().isNotSignedInOrNotAuthorized()) {
+      if (hasHistory) {
+        // Keep the main section to keep the conversation history and refresh the action bar only
+        refreshActionBarTextViewerAndButtons();
+      } else {
+        // If no history, refresh the main section and action bar together
+        disposeChildren(parent);
+        showChatPage(chatMode);
+      }
       this.parent.layout();
     }
   }
@@ -208,9 +214,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     // input field
-    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
-    this.actionBar.registerMessageListener(this);
-    this.topBanner.registerNewConversationListener(this.actionBar);
+    if (this.actionBar == null || this.actionBar.isDisposed()) {
+      createActionBar();
+    } else {
+      refreshActionBarTextViewerAndButtons();
+    }
   }
 
   private void showAfterLoginPage() {
@@ -228,9 +236,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     // input field
-    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
-    this.actionBar.registerMessageListener(this);
-    this.topBanner.registerNewConversationListener(this.actionBar);
+    if (this.actionBar == null || this.actionBar.isDisposed()) {
+      createActionBar();
+    } else {
+      refreshActionBarTextViewerAndButtons();
+    }
   }
 
   private void disposeChildren(Composite composite) {
@@ -250,6 +260,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     gl.marginWidth = 0;
     this.mainSection.setLayout(gl);
     this.mainSection.setLayoutData(gridData);
+  }
+
+  private void createActionBar() {
+    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
+    this.actionBar.registerMessageListener(this);
+    this.topBanner.registerNewConversationListener(this.actionBar);
   }
 
   private void createLoadingPage() {
@@ -292,6 +308,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     clearChatView();
     this.agentModeViewer = new AgentModeViewer(this.mainSection, SWT.NONE);
     this.mainSection.layout();
+  }
+  
+  private void refreshActionBarTextViewerAndButtons() {
+    this.actionBar.refreshChatInputTextViewer();
+    this.actionBar.updateButtonsLayout();
   }
 
   private void clearChatView() {

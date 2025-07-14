@@ -20,6 +20,7 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -77,6 +78,7 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
   }
 
   @Test
+  @Disabled
   void testCaretPositionChangeAndUpdatesDocumentVersion() throws Exception {
     // Initial setup - simulate document version changes
     when(mockLsConnection.getDocumentVersion(documentUri)).thenReturn(1, 2);

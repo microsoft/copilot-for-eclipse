@@ -248,7 +248,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    */
   public ChatMode getActiveChatMode() {
     ChatMode activeChatMode = activeChatModeObservable.getValue();
-    return activeChatMode == null ? ChatMode.Ask : activeChatMode;
+    return activeChatMode == null ? ChatMode.valueOf(restoreChatModeName()) : activeChatMode;
   }
 
   /**

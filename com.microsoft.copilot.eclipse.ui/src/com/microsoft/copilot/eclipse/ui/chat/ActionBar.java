@@ -66,11 +66,11 @@ public class ActionBar extends Composite implements NewConversationListener {
   private ChatInputTextViewer inputTextViewer;
   private Composite cmpFileRef;
   private Composite cmpActionArea;
+  private Composite bottomRightButtonsComposite;
   private CurrentReferencedFile currentFileRef;
   private ContentAssistant ca;
   private Image sendImage;
   private Image cancelImage;
-  private Image attachImage;
   private boolean isSendButton = true;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
@@ -226,13 +226,60 @@ public class ActionBar extends Composite implements NewConversationListener {
     GridLayout buttonsLayout = new GridLayout(2, false);
     buttonsLayout.marginWidth = 0;
     buttonsLayout.marginHeight = 0;
-    Composite bottomRightButtonsComposite = new Composite(this.cmpActionArea, SWT.NONE);
-    bottomRightButtonsComposite.setLayout(buttonsLayout);
-    bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
-    UiUtils.useParentBackground(bottomRightButtonsComposite);
+    this.bottomRightButtonsComposite = new Composite(this.cmpActionArea, SWT.NONE);
+    this.bottomRightButtonsComposite.setLayout(buttonsLayout);
+    this.bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+    UiUtils.useParentBackground(this.bottomRightButtonsComposite);
 
-    // Add a button that will open McpPreferencePage.
-    if (chatServiceManager.getUserPreferenceService().getActiveChatMode().equals(ChatMode.Agent)) {
+    // Update both MCP button and send button together
+    updateButtonsLayout();
+  }
+
+  /**
+   * Update the referenced file widgets when the file set changes.
+   */
+  public void updateReferencedFiles(List<IFile> files) {
+    if (files == null) {
+      return;
+    }
+
+    for (Control child : cmpFileRef.getChildren()) {
+      if (child instanceof ReferencedFile && !(child instanceof CurrentReferencedFile)) {
+        child.dispose();
+      }
+    }
+
+    for (IFile file : files) {
+      new ReferencedFile(this.cmpFileRef, file);
+    }
+    refreshLayout();
+  }
+
+  /**
+   * Refresh the layout of both MCP button and send button together to ensure proper coordination.
+   */
+  public void updateButtonsLayout() {
+    // Dispose existing MCP button if it exists
+    if (this.mcpToolButton != null && !this.mcpToolButton.isDisposed()) {
+      this.mcpToolButton.dispose();
+      this.mcpToolButton = null;
+    }
+    if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
+      mcpToolImage.dispose();
+      mcpToolImage = null;
+    }
+    if (btnMsgToggle != null && !btnMsgToggle.isDisposed()) {
+      btnMsgToggle.dispose();
+      btnMsgToggle = null;
+    }
+
+    // Update the bottom right buttons composite layout based on chat mode
+    boolean isAgentMode = chatServiceManager.getUserPreferenceService().getActiveChatMode().equals(ChatMode.Agent);
+    GridLayout buttonsLayout = (GridLayout) this.bottomRightButtonsComposite.getLayout();
+    buttonsLayout.numColumns = isAgentMode ? 2 : 1;
+
+    // Add MCP button for Agent mode
+    if (isAgentMode) {
       mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
       this.addDisposeListener(e -> {
         if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
@@ -240,7 +287,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         }
       });
 
-      this.mcpToolButton = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
+      this.mcpToolButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       this.mcpToolButton.setImage(mcpToolImage);
       this.mcpToolButton.setToolTipText(Messages.preferences_page_mcp_tools_settings);
       GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
@@ -263,18 +310,18 @@ public class ActionBar extends Composite implements NewConversationListener {
       });
     }
 
-    sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
-    cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
+    // Add toggle button for all modes
+    this.sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
+    this.cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
     this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
     this.btnMsgToggle.setEnabled(false);
-    this.btnMsgToggle.setImage(sendImage);
+    this.btnMsgToggle.setImage(this.sendImage);
     this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
     GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
-    sendGd.widthHint = sendImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
-    sendGd.heightHint = sendImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
+    sendGd.widthHint = this.sendImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
+    sendGd.heightHint = this.sendImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
     this.btnMsgToggle.setLayoutData(sendGd);
     this.btnMsgToggle.addSelectionListener(new SelectionAdapter() {
-
       @Override
       public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
         if (isSendButton) {
@@ -284,26 +331,26 @@ public class ActionBar extends Composite implements NewConversationListener {
         }
       }
     });
+    this.btnMsgToggle.addDisposeListener(e -> {
+      if (sendImage != null && !sendImage.isDisposed()) {
+        sendImage.dispose();
+      }
+      if (cancelImage != null && !cancelImage.isDisposed()) {
+        cancelImage.dispose();
+      }
+    });
+
+    // Refresh the layout
+    this.bottomRightButtonsComposite.requestLayout();
   }
 
   /**
-   * Update the referenced file widgets when the file set changes.
+   * Refresh the chat input text viewer.
    */
-  public void updateReferencedFiles(List<IFile> files) {
-    if (files == null) {
-      return;
+  public void refreshChatInputTextViewer() {
+    if (this.inputTextViewer != null) {
+      this.inputTextViewer.refresh();
     }
-
-    for (Control child : cmpFileRef.getChildren()) {
-      if (child instanceof ReferencedFile && !(child instanceof CurrentReferencedFile)) {
-        child.dispose();
-      }
-    }
-
-    for (IFile file : files) {
-      new ReferencedFile(this.cmpFileRef, file);
-    }
-    refreshLayout();
   }
 
   private void setUpModelPicker(Composite parent) {
@@ -436,6 +483,9 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void updateSendOrCancelMsgBtn(boolean enable, Image image, String tooltip) {
+    if (btnMsgToggle == null || btnMsgToggle.isDisposed()) {
+      return;
+    }
     SwtUtils.invokeOnDisplayThread(() -> {
       btnMsgToggle.setEnabled(enable);
       btnMsgToggle.setImage(image);
@@ -482,15 +532,6 @@ public class ActionBar extends Composite implements NewConversationListener {
   public void dispose() {
     super.dispose();
     ReferencedFile.disposeLabelProvider();
-    if (sendImage != null && !sendImage.isDisposed()) {
-      sendImage.dispose();
-    }
-    if (cancelImage != null && !cancelImage.isDisposed()) {
-      cancelImage.dispose();
-    }
-    if (attachImage != null) {
-      attachImage.dispose();
-    }
     if (messageListeners != null) {
       messageListeners.clear();
     }

@@ -13,7 +13,7 @@ import org.eclipse.swt.widgets.Listener;
  * A chat viewer that displays information about the chat.
  */
 public abstract class BaseViewer extends Composite {
-  public static final int ALIGNED_WIDTH = 200;
+  public static final int ALIGNED_WIDTH = 250;
   public static final int ALIGNED_TITLE_HEIGHT = 14;
   public static final int ALIGNED_LABEL_WIDTH = 370;
   public static final int ALIGNED_SPACE_BETWEEN_ICON_AND_LABEL = 10;
