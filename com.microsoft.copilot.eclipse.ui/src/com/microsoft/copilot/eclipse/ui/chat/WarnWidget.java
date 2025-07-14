@@ -52,14 +52,19 @@ public class WarnWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
     UiUtils.useParentBackground(composite);
 
-    Label icon = new Label(composite, SWT.TOP);
+    Label iconLabel = new Label(composite, SWT.TOP);
     warnImage = UiUtils.buildImageFromPngPath("/icons/message_warning.png");
-    icon.setImage(warnImage);
+    iconLabel.setImage(warnImage);
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;
-    icon.setLayoutData(iconGd);
+    iconLabel.setLayoutData(iconGd);
     buttonLeftMargin = warnImage.getBounds().width + iconGd.verticalIndent;
-    UiUtils.useParentBackground(icon);
+    UiUtils.useParentBackground(iconLabel);
+    iconLabel.addDisposeListener(e -> {
+      if (warnImage != null && !warnImage.isDisposed()) {
+        warnImage.dispose();
+      }
+    });
 
     ChatMarkupViewer textLabel = new ChatMarkupViewer(composite, SWT.LEFT | SWT.WRAP);
     StyledText styledText = textLabel.getTextWidget();
@@ -87,13 +92,5 @@ public class WarnWidget extends Composite {
         UiUtils.openLink(Messages.chat_noQuotaView_updatePlanLink);
       }
     });
-  }
-
-  @Override
-  public void dispose() {
-    super.dispose();
-    if (warnImage != null) {
-      warnImage.dispose();
-    }
   }
 }
