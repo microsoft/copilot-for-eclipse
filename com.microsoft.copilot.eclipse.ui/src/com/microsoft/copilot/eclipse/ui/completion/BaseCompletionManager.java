@@ -542,7 +542,8 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       return;
     }
 
-    int modelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset());
+    int modelOffset = getModelOffsetFromCaretPosition();
+
     if (this.triggerPosition.offset == modelOffset) {
       return;
     }
@@ -557,6 +558,18 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       }
     }
     redrawBlockLineAtModelOffset(modelOffset);
+  }
+
+  /**
+   * Gets the model offset from the current caret position using the display thread. This ensures thread safety when
+   * accessing UI components.
+   */
+  protected int getModelOffsetFromCaretPosition() {
+    int[] modelOffsetHolder = new int[1];
+    SwtUtils.invokeOnDisplayThread(() -> {
+      modelOffsetHolder[0] = UiUtils.widgetOffset2ModelOffset(textViewer, styledText.getCaretOffset());
+    }, this.styledText);
+    return modelOffsetHolder[0];
   }
 
   /**
