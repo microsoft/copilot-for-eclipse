@@ -1,0 +1,417 @@
+name: VscUse UI testing of Github Copilot Plugin for Eclipse IDEs
+
+on:
+  workflow_dispatch:
+    inputs:
+      test-cases:
+        description: "Comma-separated list of test cases to run (e.g. case1,case2)"
+        required: false
+        type: string
+        default: ''
+  push:
+    branches:
+      - 'main'
+    paths:
+      - '.github/workflows/vscuse-ui-test.yml'
+      - 'tests-ui/vscuse-cases/**'
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - '.github/workflows/vscuse-ui-test.yml'
+  release:
+    types: [ released ]
+  schedule:
+    - cron: '0 1 * * *' # Once per day at 1am UTC
+env:
+  GH_APP_ID: ${{ secrets.VSCUSEAPPID }}
+  GH_APP_PRIVATE_KEY: ${{ secrets.VSCUSEAPPSECRET }}
+  MODEL_NAME : "azure/gpt-4.1"  # support 'azure/gpt-4o-mini', "azure/gpt-4o"
+  AZURE_OPENAI_KEY : "${{ secrets.AZURE_OPENAI_KEY }}"
+  AZURE_OPENAI_ENDPOINT : "${{ secrets.AZURE_OPENAI_ENDPOINT }}"
+  AZURE_VISION_ENDPOINT : "${{ secrets.AZURE_VISION_ENDPOINT }}"
+  AZURE_VISION_KEY : "${{ secrets.AZURE_VISION_KEY }}"
+  AZURE_COSMOS_ENDPOINT : "${{ secrets.AZURE_COSMOS_ENDPOINT }}"
+  AZURE_COSMOS_DATABASE : "${{ secrets.AZURE_COSMOS_DATABASE }}"
+  AZURE_COSMOS_CONTAINER : "${{ secrets.AZURE_COSMOS_CONTAINER }}"
+  AZURE_COSMOS_KEY : "${{ secrets.AZURE_COSMOS_KEY }}"
+
+jobs:
+  build-plugin:
+    name: Build Eclipse Github Copilot Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+          lfs: true
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Copilot agent
+        working-directory: com.microsoft.copilot.eclipse.core/copilot-agent
+        run: npm i
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: List all files and folders before build
+        run: |
+          echo "Listing all files and folders under ${{ github.workspace }}:"
+          ls -alR ${{ github.workspace }}
+
+      - name: Build
+        uses: coactions/setup-xvfb@b6b4fcfb9f5a895edadc3bc76318fae0ac17c8b3 # v1.0.1
+        with:
+          run: >-
+            ./mvnw package
+
+      - name: List files in com.microsoft.copilot.eclipse.repository/target
+        run: |
+          echo "Listing files under ${{ github.workspace }}/com.microsoft.copilot.eclipse.repository/target:"
+          ls -al ${{ github.workspace }}/com.microsoft.copilot.eclipse.repository/target
+
+
+      - name: List first .zip file in target folder
+        id: first_zip
+        run: |
+          first_zip=$(ls -1 ${{ github.workspace }}/com.microsoft.copilot.eclipse.repository/target/*.zip | head -n 1)
+          echo "First zip file: $first_zip"
+          echo "FIRST_ZIP=$first_zip" >> $GITHUB_ENV
+
+      - name: Upload first Eclipse Plugin Artifact (.zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-plugin-zip
+          path: ${{ github.workspace }}/com.microsoft.copilot.eclipse.repository/target/*.zip
+          if-no-files-found: error
+
+  generate-test-cases-matrix:
+    name: Generate Test Cases Matrix
+    runs-on: windows-latest
+    needs: build-plugin
+    outputs:
+      matrix: ${{ steps.set_output.outputs.matrix }}
+    steps:
+
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Generate file list
+        shell: pwsh
+        run: |
+          # Handle test cases input
+          $testCasesInput = "${{ github.event.inputs.test-cases }}".Trim()
+        
+          if (![string]::IsNullOrWhiteSpace($testCasesInput)) {
+              # Use specified test cases
+              $testCases = $testCasesInput -split ',' | ForEach-Object { $_.Trim() }
+              $files = $testCases
+              Write-Host "Using specified test cases: $($testCases -join ', ')"
+          } else {
+              # Default behavior: find all test cases
+              $files = Get-ChildItem -Path "${{ github.workspace }}/tests-ui/vscuse-cases" -Filter *.txt -Recurse | ForEach-Object { $_.BaseName }
+              Write-Host "Using all test cases in directory: $($files -join ', ')"
+          }
+
+          # Create array of test case objects
+          $fileObjects = [System.Collections.ArrayList]@()
+          foreach ($file in $files) {
+              $null = $fileObjects.Add(
+                  [PSCustomObject]@{
+                      file = $file
+                  }
+              )
+          }
+
+          # Export as JSON
+          ConvertTo-Json -InputObject @($fileObjects) -Compress | Out-File -Encoding utf8 files_list.json
+
+      
+      - name: Set output variable
+        id: set_output
+        shell: pwsh
+        run: |
+          # Read the JSON file and convert it to a PowerShell object
+          $jsonArray = Get-Content -Raw files_list.json | ConvertFrom-Json
+  
+          $matrix = @{
+              include = @($jsonArray) 
+          }
+  
+          $jsonText = $matrix | ConvertTo-Json -Compress
+  
+          "matrix=$jsonText" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          Write-Host "Validated matrix: $jsonText"
+          
+  main:
+    name: Case-${{ matrix.file }}
+    runs-on: windows-latest
+    needs: generate-test-cases-matrix
+    strategy:
+      fail-fast: false
+      max-parallel: 3 # Limit concurrent executions due to the OpenAI API rate limit
+      matrix: ${{ fromJson(needs.generate-test-cases-matrix.outputs.matrix) }}
+    env:
+      APPS_JSON : ${{ secrets.APPS_JSON_ECLIPSE }}
+      
+    steps:      # Download the current branch (not main)
+      - name: Checkout current branch (not main)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+          fetch-tags: true
+          lfs: true
+
+      - name: Create ci-build folder if not exists
+        shell: pwsh
+        run: |
+          $ciBuildPath = "${{ github.workspace }}\ci-build"
+          if (-not (Test-Path $ciBuildPath)) {
+            New-Item -ItemType Directory -Path $ciBuildPath | Out-Null
+            Write-Host "Created ci-build folder at $ciBuildPath"
+          } else {
+            Write-Host "ci-build folder already exists at $ciBuildPath"
+          }
+
+      - name: Download eclipse-plugin-zip artifact to ci-build folder
+        uses: actions/download-artifact@v4
+        with:
+          name: eclipse-plugin-zip
+          path: ${{ github.workspace }}/ci-build
+
+      - name: List files in ci-build folder
+        shell: pwsh
+        run: |
+          Write-Host "Listing files and folders under ${{ github.workspace }}\ci-build:"
+          Get-ChildItem -Path "${{ github.workspace }}\ci-build" -Recurse | ForEach-Object {
+            $type = if ($_.PSIsContainer) { "Folder" } else { "File" }
+            Write-Host "$type`t$($_.FullName)"
+          }
+
+      - name: Rename zip file to copilot_eclipse.zip
+        shell: pwsh
+        run: |
+          $ciBuildPath = "${{ github.workspace }}\ci-build"
+          $zipFiles = Get-ChildItem -Path $ciBuildPath -Filter *.zip
+          if ($zipFiles.Count -eq 0) {
+            Write-Error "No zip file found in $ciBuildPath"
+            exit 1
+          }
+          $targetPath = Join-Path $ciBuildPath "copilot_eclipse.zip"
+          Rename-Item -Path $zipFiles[0].FullName -NewName "copilot_eclipse.zip" -Force
+          Write-Host "Renamed $($zipFiles[0].Name) to copilot_eclipse.zip"
+
+      - name: Download and Install Eclipse
+        shell: pwsh
+        env:
+          ECLIPSE_URL: https://mirror.csclub.uwaterloo.ca/eclipse/technology/epp/downloads/release/2025-03/R/eclipse-committers-2025-03-R-win32-x86_64.zip
+        run: |
+          $webClient = New-Object System.Net.WebClient
+          $webClient.Headers.Add("User-Agent", "Mozilla/5.0")
+          
+          Write-Host "Starting download from $env:ECLIPSE_URL"
+          try {
+            $request = [System.Net.HttpWebRequest]::Create($env:ECLIPSE_URL)
+            $request.AllowAutoRedirect = $true
+            $request.UserAgent = "Mozilla/5.0"
+            $request.Timeout = 300000  # 5 minutes timeout
+            
+            $response = $request.GetResponse()
+            $realUrl = $response.ResponseUri.AbsoluteUri
+            $response.Dispose()
+            
+            Write-Host "Actual download URL: $realUrl"
+            
+            $webClient.DownloadFile($realUrl, "eclipse-latest.zip")
+          }
+          catch {
+            Write-Error "Download failed: $_"
+            exit 1
+          }
+          finally {
+            $webClient.Dispose()
+          }
+            
+          if (Test-Path "eclipse-latest.zip") {
+            $fileInfo = Get-Item "eclipse-latest.zip"
+            if ($fileInfo.Length -lt 100000) {
+              Write-Error "Downloaded file is too small to be valid"
+              exit 1
+            }
+          
+            Write-Host "Download completed successfully"
+            Expand-Archive -Path eclipse-latest.zip -DestinationPath "$env:USERPROFILE" -Force
+            Write-Host "Eclipse unzipped to $env:USERPROFILE"
+          }
+          else {
+            Write-Error "Download file not found"
+            exit 1
+          }
+
+      - name: Add Eclipse to PATH and print PATH
+        shell: pwsh
+        run: |
+          $eclipsePath = "$env:USERPROFILE\eclipse"
+          $env:PATH = "$eclipsePath;$env:PATH"
+          Write-Host "Eclipse path added to PATH."
+          Write-Host "Current PATH variable:"
+          $env:PATH -split ';' | ForEach-Object { Write-Host $_ }
+
+      - name: Verify Eclipse installation
+        shell: pwsh
+        run: |
+          Get-ChildItem "$env:USERPROFILE\eclipse" -Recurse -ErrorAction SilentlyContinue
+
+      - name: Setup VscUse Environment
+        uses: ./.github/actions/setup-vscuse-environment
+        with:
+          version: latest
+          store-path: ${{ github.workspace }}/tests-ui/vscuse-cases 
+
+      - name: Setup Microsoft Edge and WebDriver
+        uses: browser-actions/setup-edge@v1
+        with:
+          edge-version: dev  # or beta, dev, canary
+
+      - name: Close all web browsers
+        shell: powershell
+        run: |
+          # Close Microsoft Edge
+          Get-Process msedge -ErrorAction SilentlyContinue | Stop-Process -Force
+          # Close Chrome if running
+          Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force
+          # Close Firefox if running
+          Get-Process firefox -ErrorAction SilentlyContinue | Stop-Process -Force
+          Write-Host "All browsers have been closed"
+
+      - name: Minimize all windows
+        shell: powershell
+        run: |
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          [Microsoft.VisualBasic.Interaction]::AppActivate('Program Manager') | Out-Null
+          $shell = New-Object -ComObject "Shell.Application"
+          $shell.MinimizeAll()
+
+      - name: Create apps.json file
+        shell: pwsh
+        run: |
+          $localAppData = [System.Environment]::GetFolderPath('LocalApplicationData')
+          $copilotPath = Join-Path $localAppData "github-copilot"
+          if (-not (Test-Path $copilotPath)) {
+              New-Item -ItemType Directory -Path $copilotPath -Force | Out-Null
+          }
+          $appsJsonPath = Join-Path $copilotPath "apps.json"
+          $env:APPS_JSON | Out-File -FilePath $appsJsonPath -Encoding UTF8
+          Write-Host "Created apps.json at: $appsJsonPath"
+
+      - name: Run VscUse UI Tests
+        working-directory: ${{ github.workspace }}/tests-ui/vscuse-cases
+        shell: cmd
+        run: |
+          vscuse.exe version
+          vscuse.exe agent -f "${{ matrix.file }}.txt" -s 90 -v --telemetry-id copilot_plugin_eclipse | tee "${{ runner.temp }}\output.log"
+
+      - name: Check for HTML report and test result
+        id: check_report
+        run: |
+          $log_path = "${{ runner.temp }}\output.log"
+          $local_report_path = ""
+          $remote_report_path = ""
+          $test_result = "failed"
+          
+          $remote_report_path = ""
+          $test_result = "failed"
+        
+          # Iterate through the log file to find "Report uploaded to Azure Blob Storage:"
+          Get-Content $log_path | ForEach-Object {
+            if ($_ -match 'Report uploaded to Azure Blob Storage: (https?://\S+\.html)') {
+              $remote_report_path = $matches[1]
+            }
+          }
+
+
+          # Iterate through the log file to find "Report saved to:"
+          Get-Content $log_path | ForEach-Object {
+            if ($_ -match 'Report saved to: (.+\.html)') {
+              $local_report_path = $matches[1]
+            }
+            if ($_ -match 'Test Result: pass') {
+              $test_result = "passed"
+            }
+          }
+          
+          if ($local_report_path -ne "") {
+            # Extract SESSION_PATH by getting the parent directory of the report folder
+            $session_path = Split-Path -Parent (Split-Path -Parent $local_report_path)
+
+            $report_child_path = $local_report_path.Substring($session_path.Length + 1)
+            $report_child_path = $report_child_path.Replace('\', '/')
+        
+            "LOCAL_REPORT_PATH=$local_report_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "REMOTE_REPORT_PATH=$remote_report_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "SESSION_PATH=$session_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "TEST_RESULT=$test_result" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "REPORT_CHILD_PATH=$report_child_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        
+            Write-Host "SESSION_PATH=$session_path"
+            Write-Host "TEST_RESULT=$test_result"
+            Write-Host "REPORT_CHILD_PATH=$report_child_path"
+          } else {
+            Write-Host "No report found in the output log."
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Upload VSCUSE session files
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclipse-ui-test-log-html-files
+          path: ${{ env.SESSION_PATH }}
+
+      - name: Fail pipeline if test result is not passed
+        run: |
+          if ("${{ env.TEST_RESULT }}" -ne "passed") {
+            Write-Host "❌ Test did not pass. Failing pipeline..."
+            if ("${{ env.REMOTE_REPORT_PATH }}") {
+              Write-Host "🌐Report Link: ${{ env.REMOTE_REPORT_PATH }}"
+            }
+            exit 1
+            } else {
+            Write-Host "✅ Test passed. Continuing pipeline..."
+            if ("${{ env.REMOTE_REPORT_PATH }}") {
+              Write-Host "🌐Report Link: ${{ env.REMOTE_REPORT_PATH }}"
+            }
+          }
+        shell: pwsh
+
+  rerun:
+    permissions:
+      actions: write
+    needs: main
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && failure() && github.run_attempt < 2 }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger rerun workflow
+        run: |
+          curl \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"\
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/rerun.yml/dispatches \
+            -d '{"ref":"${{ github.ref_name }}","inputs":{"run_id":"${{ github.run_id }}", "max_attempts":"2"}}'
