@@ -78,7 +78,7 @@ public class FileToolService extends ChatBaseService {
           disposeFileChangeSummaryBar();
         } else {
           if (this.fileChangeSummaryBar == null) {
-            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getChatViewParent(), SWT.NONE);
+            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getContentWrapper(), SWT.NONE);
           }
           this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
           this.fileChangeSummaryBar.moveAbove(chatView.getActionBar());
@@ -151,8 +151,7 @@ public class FileToolService extends ChatBaseService {
       if (action == FileChangeAction.NONE) {
         action = FileChangeAction.REJECTED; // Default to rejected if no action is set
       }
-      filesMap.put(file,
-          new FileChangeProperty(filesMap.get(file).getChangeType(), action, true));
+      filesMap.put(file, new FileChangeProperty(filesMap.get(file).getChangeType(), action, true));
       filesObservable.setValue(filesMap);
     });
   }
@@ -216,7 +215,7 @@ public class FileToolService extends ChatBaseService {
     Realm.runWithDefault(filesObservable.getRealm(), () -> {
       filesMap.putAll(filesObservable.getValue());
     });
-    
+
     if (filesMap.size() == 0) {
       return; // No files changed, nothing to notify
     }

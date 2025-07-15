@@ -37,6 +37,8 @@ public class TopBanner extends Composite {
     GridLayout gl = new GridLayout(2, false);
     gl.marginWidth = 0;
     gl.marginHeight = 0;
+    // Keep this to align with previous ChatView layout setting, Will remove it when adding ChatTitle.
+    gl.marginTop = 10;
     setLayout(gl);
     setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 

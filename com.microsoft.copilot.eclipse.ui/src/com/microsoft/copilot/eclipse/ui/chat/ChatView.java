@@ -57,6 +57,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private Composite parent;
   private TopBanner topBanner;
+  private Composite contentWrapper;
   private Composite mainSection;
   private ActionBar actionBar;
   private ChatContentViewer chatContentViewer;
@@ -75,8 +76,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.parent = parent;
     GridLayout layout = new GridLayout(1, true);
     layout.verticalSpacing = 0;
-    layout.marginWidth = 10;
-    layout.marginHeight = 10;
+    layout.marginWidth = 0;
+    layout.marginHeight = 0;
     parent.setLayout(layout);
     parent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
@@ -185,16 +186,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   private void showLoadingPage() {
+    createContentWrapper();
     createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createLoadingPage();
   }
 
   private void showBeforeLoginPage() {
+    createContentWrapper();
     createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createBeforeLoginWelcomePage();
   }
 
   private void showNoSubscriptionPage() {
+    createContentWrapper();
     createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createNoSubscriptionPage();
   }
@@ -203,6 +207,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // upper bar
     this.topBanner = new TopBanner(parent, SWT.NONE);
     this.topBanner.registerNewConversationListener(this);
+
+    createContentWrapper();
 
     // main section
     createMainSection(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -225,6 +231,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // upper bar
     this.topBanner = new TopBanner(parent, SWT.NONE);
     this.topBanner.registerNewConversationListener(this);
+
+    createContentWrapper();
 
     // main section
     createMainSection(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -252,8 +260,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
   }
 
+  private void createContentWrapper() {
+    this.contentWrapper = new Composite(parent, SWT.NONE);
+    GridLayout layout = new GridLayout(1, true);
+    layout.marginWidth = 10;
+    layout.marginHeight = 0;
+    layout.marginBottom = 10;
+    layout.verticalSpacing = 0;
+    this.contentWrapper.setLayout(layout);
+    this.contentWrapper.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+  }
+
   private void createMainSection(GridData gridData) {
-    this.mainSection = new Composite(parent, SWT.NONE);
+    this.mainSection = new Composite(this.contentWrapper, SWT.NONE);
     GridLayout gl = new GridLayout(1, true);
     gl.marginLeft = 0;
     gl.marginRight = 0;
@@ -263,7 +282,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   private void createActionBar() {
-    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
+    this.actionBar = new ActionBar(this.contentWrapper, SWT.NONE, chatServiceManager);
     this.actionBar.registerMessageListener(this);
     this.topBanner.registerNewConversationListener(this.actionBar);
   }
@@ -309,7 +328,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.agentModeViewer = new AgentModeViewer(this.mainSection, SWT.NONE);
     this.mainSection.layout();
   }
-  
+
   private void refreshActionBarTextViewerAndButtons() {
     this.actionBar.refreshChatInputTextViewer();
     this.actionBar.updateButtonsLayout();
@@ -528,10 +547,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
-   * Get the parent composite of the chat view.
+   * Get the content section of the chat view.
    */
-  public Composite getChatViewParent() {
-    return this.parent;
+  public Composite getContentWrapper() {
+    return this.contentWrapper;
   }
 
   public Composite getActionBar() {
