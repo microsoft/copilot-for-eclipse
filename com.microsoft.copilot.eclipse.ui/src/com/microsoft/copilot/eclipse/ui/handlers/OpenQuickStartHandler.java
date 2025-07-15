@@ -124,18 +124,18 @@ public class OpenQuickStartHandler extends AbstractHandler {
           close();
 
           // Close the Eclipse welcome view if it's open
-          IIntroPart introPart = PlatformUI.getWorkbench().getIntroManager().getIntro();
-          if (introPart != null) {
-            PlatformUI.getWorkbench().getIntroManager().closeIntro(introPart);
-          }
-
-          IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()
-              .getService(IHandlerService.class);
-          try {
-            handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.openChatView", null);
-          } catch (Exception ex) {
-            CopilotCore.LOGGER.error("Failed to open chat view", ex);
-          }
+          //          IIntroPart introPart = PlatformUI.getWorkbench().getIntroManager().getIntro();
+          //          if (introPart != null) {
+          //            PlatformUI.getWorkbench().getIntroManager().closeIntro(introPart);
+          //          }
+          //
+          //          IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()
+          //              .getService(IHandlerService.class);
+          //          try {
+          //            handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.openChatView", null);
+          //          } catch (Exception ex) {
+          //            CopilotCore.LOGGER.error("Failed to open chat view", ex);
+          //          }
         }
       });
     }
