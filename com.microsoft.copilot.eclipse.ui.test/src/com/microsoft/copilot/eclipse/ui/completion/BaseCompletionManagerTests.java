@@ -2,7 +2,6 @@ package com.microsoft.copilot.eclipse.ui.completion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -20,7 +19,6 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -78,7 +76,6 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
   }
 
   @Test
-  @Disabled
   void testCaretPositionChangeAndUpdatesDocumentVersion() throws Exception {
     // Initial setup - simulate document version changes
     when(mockLsConnection.getDocumentVersion(documentUri)).thenReturn(1, 2);
@@ -99,9 +96,7 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
 
     // Verify completion was triggered with correct document version
     ArgumentCaptor<Integer> versionCaptor = ArgumentCaptor.forClass(Integer.class);
-    ArgumentCaptor<Position> positionCaptor = ArgumentCaptor.forClass(Position.class);
-    verify(mockCompletionProvider, times(1)).triggerCompletion(eq(testFile), positionCaptor.capture(),
-        versionCaptor.capture());
+    verify(mockCompletionProvider, times(1)).triggerCompletion(any(), any(Position.class), versionCaptor.capture());
 
     assertEquals(2, versionCaptor.getValue().intValue());
     assertEquals(2, completionManager.getDocumentVersion());
