@@ -375,143 +375,143 @@
 		point="org.eclipse.ui.perspectiveExtensions">
 	<perspectiveExtension
 		  targetID="*">
-	   <editorOnboardingCommand
+		 <editorOnboardingCommand
 			 id="com.microsoft.copilot.eclipse.commands.openChatView">
-	   </editorOnboardingCommand>
+		 </editorOnboardingCommand>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.ui.resourcePerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 ratio="0.66"
 			 relationship="right"
 			 relative="org.eclipse.ui.editorss">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.team.ui.TeamSynchronizingPerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 ratio="0.66"
 			 relationship="right"
 			 relative="org.eclipse.ui.editorss">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.jdt.ui.JavaHierarchyPerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 ratio="0.66"
 			 relationship="right"
 			 relative="org.eclipse.ui.editorss">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.jdt.ui.JavaPerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="org.eclipse.ui.views.ContentOutline">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.ui.views.ContentOutline"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.mylyn.tasks.ui.views.tasks"
 			 minimized="false"
 			 relationship="stack"
 			 relative="org.eclipse.ui.views.ContentOutline">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.jdt.ui.JavaBrowsingPerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 ratio="0.75"
 			 relationship="right"
 			 relative="org.eclipse.ui.editorss">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.debug.ui.DebugPerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="org.eclipse.debug.ui.VariableView">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.debug.ui.VariableView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.debug.ui.BreakpointView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.debug.ui.ExpressionView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.egit.ui.GitRepositoryExploring">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 ratio="0.66"
 			 relationship="right"
 			 relative="org.eclipse.ui.editorss">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.mylyn.tasks.ui.perspectives.planning">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="org.eclipse.mylyn.tasks.ui.views.tasks">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.mylyn.tasks.ui.views.tasks"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	<perspectiveExtension
 		  targetID="org.eclipse.pde.ui.PDEPerspective">
-	   <view
+		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			 minimized="false"
 			 relationship="stack"
 			 relative="org.eclipse.ui.views.ContentOutline">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.ui.views.ContentOutline"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
-	   <view
+		 </view>
+		 <view
 			 id="org.eclipse.mylyn.tasks.ui.views.tasks"
 			 minimized="false"
 			 relationship="stack"
 			 relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
-	   </view>
+		 </view>
 	</perspectiveExtension>
 	</extension>
 	<extension point="org.eclipse.ui.intro.quicklinks">
@@ -529,4 +529,28 @@
 			content="/intro/whatsnew/whatsNewExtensionContent.xml">
 		</configExtension>
 	</extension>
+	<extension point="org.eclipse.ui.intro.quicklinks">
+		 <command
+			description="%intro.quickStart.description"
+			importance="high"
+			icon="icons/github_copilot_intro.png"
+			id="com.microsoft.copilot.eclipse.commands.openQuickStart"
+			label="%intro.quickStart.label">
+		</command>
+	</extension>
+	<extension point="org.eclipse.e4.ui.css.swt.theme">
+		<stylesheet uri="css/dark.css">
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark"></themeid>
+			<themeid
+				refid="org.eclipse.e4.ui.css.theme.high-contrast">
+			</themeid>
+			</stylesheet>
+			<stylesheet uri="css/light.css">
+				<themeid refid="org.eclipse.e4.ui.css.theme.e4_default"></themeid>
+				<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview"></themeid>
+			<themeid
+				refid="org.eclipse.e4.ui.css.theme.e4_classic">
+			</themeid>
+		</stylesheet>
+</extension>
 </plugin>

@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.quickstart;
 
+import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
+import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
@@ -7,7 +9,6 @@ import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.GC;
@@ -21,6 +22,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -42,9 +44,9 @@ public class FeaturePage extends Composite {
   private Composite selectedCard;
   private Color normalBackgroundColor;
   private Color selectedBackgroundColor;
-  private Color fontColor;
-  private Color featureCardFontColor;
   private Image currentContentImage;
+  private Display display;
+  private boolean isDarkTheme;
 
   private static final int ALIGNED_MARGIN = 24;
 
@@ -53,19 +55,12 @@ public class FeaturePage extends Composite {
    */
   public FeaturePage(Composite parent) {
     super(parent, SWT.NONE);
-    if (UiUtils.isDarkTheme()) {
-      // Dark theme colors
-      normalBackgroundColor = new Color(Display.getCurrent(), 47, 48, 48); // #2F3030
-      selectedBackgroundColor = new Color(Display.getCurrent(), 72, 72, 76); // #48484C
-      fontColor = new Color(Display.getCurrent(), 237, 238, 238); // #EDEEEE
-      featureCardFontColor = new Color(Display.getCurrent(), 237, 238, 238); // #EDEEEE
-    } else {
-      // Light theme colors
-      normalBackgroundColor = new Color(Display.getCurrent(), 255, 255, 255); // #FFFFFF
-      selectedBackgroundColor = new Color(Display.getCurrent(), 241, 241, 242); // #F1F1F2
-      fontColor = new Color(Display.getCurrent(), 90, 90, 90); // #5A5A5A
-      featureCardFontColor = new Color(Display.getCurrent(), 0, 0, 0); // #000000
-    }
+
+    // Cache commonly used objects
+    this.display = Display.getCurrent();
+    this.isDarkTheme = UiUtils.isDarkTheme();
+
+    initializeColors();
 
     this.addDisposeListener(e -> disposeColors());
 
@@ -73,15 +68,30 @@ public class FeaturePage extends Composite {
   }
 
   /**
+   * Initializes theme-appropriate colors.
+   */
+  private void initializeColors() {
+    if (isDarkTheme) {
+      // Dark theme colors
+      normalBackgroundColor = new Color(display, 47, 48, 48); // #2F3030
+      selectedBackgroundColor = new Color(display, 72, 72, 76); // #48484C
+    } else {
+      // Light theme colors
+      normalBackgroundColor = new Color(display, 255, 255, 255); // #FFFFFF
+      selectedBackgroundColor = new Color(display, 241, 241, 242); // #F1F1F2
+    }
+  }
+
+  /**
    * Creates the main content area with all UI components.
    */
   private void createContent(Composite parent) {
     GridLayout containerLayout = new GridLayout(1, false);
-    containerLayout.marginWidth = ALIGNED_MARGIN;
-    containerLayout.verticalSpacing = ALIGNED_MARGIN;
+    containerLayout.marginWidth = 0;
+    containerLayout.verticalSpacing = 0;
     this.setLayout(containerLayout);
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-    this.setBackground(normalBackgroundColor);
+    setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
     // Title section
     createTitleSection(this);
@@ -98,86 +108,35 @@ public class FeaturePage extends Composite {
     Composite titleComposite = new Composite(parent, SWT.NONE);
     titleComposite.setLayout(titleLayout);
     titleComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-    titleComposite.setBackground(normalBackgroundColor);
+    titleComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
     Composite titleAndCloseComposite = new Composite(titleComposite, SWT.NONE);
     GridLayout titleAndCloseLayout = new GridLayout(2, false);
     titleAndCloseLayout.marginLeft = 20;
     titleAndCloseComposite.setLayout(titleAndCloseLayout);
-    titleAndCloseComposite.setBackground(normalBackgroundColor);
+    titleAndCloseComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
     titleAndCloseComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
     Label titleLabel = new Label(titleAndCloseComposite, SWT.NONE);
     titleLabel.setText(Messages.quickStart_title);
-    titleLabel.setBackground(normalBackgroundColor);
-    titleLabel.setForeground(fontColor);
+    titleLabel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
     titleLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false));
     FontData fontData = new FontData();
-    fontData.setHeight(16);
+    fontData.setHeight(14);
     fontData.setStyle(SWT.BOLD);
     Font titleFont = new Font(Display.getCurrent(), fontData);
-    titleLabel.setFont(titleFont); // This line applies the bold font to the label
-
-    // Add dispose listener for title font
+    titleLabel.setFont(titleFont);
     titleLabel.addDisposeListener(e -> {
       if (titleFont != null && !titleFont.isDisposed()) {
         titleFont.dispose();
       }
     });
 
-    // Close button on the right
-    Image closeButtonImage = UiUtils.buildImageFromPngPath(
-        UiUtils.isDarkTheme() ? "/icons/quickStart/close_dark.png" : "/icons/quickStart/close_light.png");
-    Label closeButton = new Label(titleAndCloseComposite, SWT.NONE);
-    closeButton.setImage(closeButtonImage);
-    closeButton.setBackground(normalBackgroundColor);
-    GridData closeButtonData = new GridData(SWT.RIGHT, SWT.TOP, false, false);
-    closeButtonData.verticalIndent = 0;
-    closeButton.setLayoutData(closeButtonData);
-    closeButton.setToolTipText(Messages.quickStart_closeButton_tooltip);
-    // Add click listener to close the dialog
-    closeButton.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        closeDialog();
-      }
-    });
-
-    Image closeButtonHoverImage = UiUtils.buildImageFromPngPath(
-        UiUtils.isDarkTheme() ? "/icons/quickStart/close_hover_dark.png" : "/icons/quickStart/close_hover_light.png");
-    // Add dispose listener for close button image
-    closeButton.addDisposeListener(e -> {
-      if (closeButtonImage != null && !closeButtonImage.isDisposed()) {
-        closeButtonImage.dispose();
-      }
-      if (closeButtonHoverImage != null && !closeButtonHoverImage.isDisposed()) {
-        closeButtonHoverImage.dispose();
-      }
-    });
-
-    // Add hover effect for close button
-    closeButton.addMouseTrackListener(new MouseTrackAdapter() {
-      @Override
-      public void mouseEnter(MouseEvent e) {
-        // Change cursor to hand and adjust close button image for hover effect
-        closeButton.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));
-        closeButton.setImage(closeButtonHoverImage);
-        closeButton.redraw();
-      }
-
-      @Override
-      public void mouseExit(MouseEvent e) {
-        // Revert cursor and close button image
-        closeButton.setCursor(null);
-        closeButton.setImage(closeButtonImage);
-        closeButton.redraw();
-      }
-    });
+    createCloseButton(titleAndCloseComposite);
 
     Label subtitleLabel = new Label(titleComposite, SWT.WRAP | SWT.CENTER);
     subtitleLabel.setText(Messages.quickStart_description);
-    subtitleLabel.setBackground(normalBackgroundColor);
-    subtitleLabel.setForeground(fontColor);
+    subtitleLabel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
     subtitleLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false));
   }
 
@@ -191,7 +150,7 @@ public class FeaturePage extends Composite {
     GridData mainLayoutData = new GridData(SWT.FILL, SWT.FILL, true, true);
     mainLayoutData.minimumHeight = 327;
     mainComposite.setLayoutData(mainLayoutData);
-    mainComposite.setBackground(normalBackgroundColor);
+    mainComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
     // Left panel with feature cards
     createLeftPanel(mainComposite);
@@ -214,7 +173,7 @@ public class FeaturePage extends Composite {
     GridData leftPanelData = new GridData(SWT.FILL, SWT.FILL, false, true);
     leftPanelData.widthHint = 245;
     leftPanel.setLayoutData(leftPanelData);
-    leftPanel.setBackground(normalBackgroundColor);
+    leftPanel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
     // Create clickable feature cards (Agent selected by default)
     selectedCard = createClickableFeatureCard(leftPanel, "/icons/github_copilot.png", Messages.quickStart_agent_title,
@@ -231,10 +190,11 @@ public class FeaturePage extends Composite {
     rightPanelData.widthHint = 520; // Set width to 520 pixels
     rightPanelData.heightHint = 327; // Set height to 327 pixels
     rightPanel.setLayoutData(rightPanelData);
+    rightPanel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
 
     // Content area that will change based on selection
     rightPanelContent = new Label(rightPanel, SWT.WRAP | SWT.CENTER);
-    rightPanelContent.setBackground(normalBackgroundColor);
+    rightPanelContent.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
     rightPanelContent.addDisposeListener(e -> {
       if (currentContentImage != null && !currentContentImage.isDisposed()) {
         currentContentImage.dispose();
@@ -254,10 +214,13 @@ public class FeaturePage extends Composite {
       Feature feature) {
     // Create a canvas for custom rounded painting
     Canvas cardCanvas = new Canvas(parent, SWT.NONE);
-    cardCanvas.setBackground(normalBackgroundColor);
+    cardCanvas.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
     GridData canvasData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    canvasData.widthHint = 245;
+    canvasData.heightHint = 102;
     cardCanvas.setLayoutData(canvasData);
+    cardCanvas.setSize(245, 102);
 
     // Add paint listener for rounded border
     cardCanvas.addPaintListener(new PaintListener() {
@@ -287,7 +250,7 @@ public class FeaturePage extends Composite {
     cardLayout.verticalSpacing = 0;
     Composite card = new Composite(cardCanvas, SWT.NONE);
     card.setLayout(cardLayout);
-    card.setBackground(normalBackgroundColor);
+    card.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
 
     // Add resize listener to properly size the card content
     cardCanvas.addListener(SWT.Resize, e -> {
@@ -298,21 +261,15 @@ public class FeaturePage extends Composite {
       card.setBounds(x, y, bounds.width - 16, cardSize.y);
     });
 
-    // Make the canvas clickable
-    cardCanvas.addMouseListener(new MouseAdapter() {
+    // Make components clickable
+    MouseAdapter clickHandler = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
         selectCard(card, feature);
       }
-    });
+    };
 
-    // Make the content composite clickable
-    card.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        selectCard(card, feature);
-      }
-    });
+    addClickableToControls(clickHandler, cardCanvas, card);
 
     // Icon and title composite
     GridLayout iconTitleLayout = new GridLayout(2, false);
@@ -322,13 +279,13 @@ public class FeaturePage extends Composite {
     Composite iconTitleComposite = new Composite(card, SWT.NONE);
     iconTitleComposite.setLayout(iconTitleLayout);
     iconTitleComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    iconTitleComposite.setBackground(normalBackgroundColor);
+    iconTitleComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
 
     // Icon - Load image from path using UiUtils
     Image iconImage = UiUtils.buildImageFromPngPath(imagePath);
     Label iconLabel = new Label(iconTitleComposite, SWT.NONE);
     iconLabel.setImage(iconImage);
-    iconLabel.setBackground(normalBackgroundColor);
+    iconLabel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
     GridData iconData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
     iconData.widthHint = 20;
     iconData.heightHint = 20;
@@ -342,26 +299,15 @@ public class FeaturePage extends Composite {
     });
 
     // Make icon clickable too
-    iconLabel.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        selectCard(card, feature);
-      }
-    });
+    addClickableToControls(clickHandler, iconLabel);
 
     Label titleLabel = new Label(iconTitleComposite, SWT.NONE);
     titleLabel.setText(title);
-    titleLabel.setBackground(normalBackgroundColor);
-    titleLabel.setForeground(featureCardFontColor);
+    titleLabel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
     titleLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
     // Make title clickable too
-    titleLabel.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        selectCard(card, feature);
-      }
-    });
+    addClickableToControls(clickHandler, titleLabel);
 
     // Make title bold
     FontData[] fontDataArray = titleLabel.getFont().getFontData();
@@ -369,13 +315,13 @@ public class FeaturePage extends Composite {
       fontData.setStyle(SWT.BOLD);
       fontData.setHeight(PlatformUtils.isMac() ? 15 : 10);
     }
-    Font titleFont = new Font(Display.getCurrent(), fontDataArray);
-    titleLabel.setFont(titleFont);
+    Font cardTitleFont = new Font(display, fontDataArray);
+    titleLabel.setFont(cardTitleFont);
 
     // Add dispose listener for title font
     titleLabel.addDisposeListener(e -> {
-      if (titleFont != null && !titleFont.isDisposed()) {
-        titleFont.dispose();
+      if (cardTitleFont != null && !cardTitleFont.isDisposed()) {
+        cardTitleFont.dispose();
       }
     });
 
@@ -387,20 +333,14 @@ public class FeaturePage extends Composite {
     Composite descComposite = new Composite(card, SWT.NONE);
     descComposite.setLayout(descLayout);
     descComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    descComposite.setBackground(normalBackgroundColor);
+    descComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
 
     // Make description composite clickable
-    descComposite.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        selectCard(card, feature);
-      }
-    });
+    addClickableToControls(clickHandler, descComposite);
 
     Label descLabel = new Label(descComposite, SWT.WRAP);
     descLabel.setText(description);
-    descLabel.setBackground(normalBackgroundColor);
-    descLabel.setForeground(featureCardFontColor);
+    descLabel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
     descLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
     if (PlatformUtils.isMac()) {
@@ -421,34 +361,25 @@ public class FeaturePage extends Composite {
     }
 
     // Make description clickable too
-    descLabel.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseDown(MouseEvent e) {
-        selectCard(card, feature);
-      }
-    });
-
-    // Store reference to canvas for background updates
-    card.setData("canvas", cardCanvas);
+    addClickableToControls(clickHandler, descLabel);
 
     return card;
   }
 
   private Canvas createRoundedPanel(Composite parent) {
     Canvas canvas = new Canvas(parent, SWT.NONE);
-    canvas.setBackground(normalBackgroundColor);
+    canvas.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
 
     canvas.addPaintListener(new PaintListener() {
       @Override
       public void paintControl(PaintEvent e) {
         GC gc = e.gc;
-        Rectangle bounds = canvas.getBounds();
 
         // Set anti-aliasing for smoother curves
         gc.setAntialias(SWT.ON);
-
-        // Fill rounded rectangle background first
         gc.setBackground(selectedBackgroundColor);
+
+        Rectangle bounds = canvas.getBounds();
         gc.fillRoundRectangle(2, 2, bounds.width - 5, bounds.height - 5, 15, 15);
       }
     });
@@ -459,45 +390,42 @@ public class FeaturePage extends Composite {
   private void selectCard(Composite card, Feature feature) {
     // Update the previously selected card back to normal
     if (selectedCard != null) {
-      updateCardSelection(selectedCard, false);
+      updateControlBackground(selectedCard, false);
     }
 
     // Update the newly selected card
     selectedCard = card;
-    updateCardSelection(card, true);
+    updateControlBackground(card, true);
 
     // Update right panel content
     updateRightPanelContent(feature);
   }
 
-  private void updateCardSelection(Composite card, boolean selected) {
-    Color bgColor = selected ? selectedBackgroundColor : normalBackgroundColor;
+  private void updateControlBackground(Control card, boolean selected) {
+    Color backgroundColor = selected ? selectedBackgroundColor : normalBackgroundColor;
 
-    // Update card background
-    card.setBackground(bgColor);
-
-    // Update the canvas background and trigger repaint
-    Canvas canvas = (Canvas) card.getData("canvas");
-    if (canvas != null) {
-      // Store the background color as data instead of setting it directly
-      canvas.setData("bgColor", bgColor);
-      canvas.redraw(); // Trigger repaint with new background color
+    // Find the parent canvas and set the bgColor data there
+    Control parent = card.getParent();
+    if (parent instanceof Canvas) {
+      parent.setData("bgColor", backgroundColor);
+      parent.redraw(); // Redraw the canvas to trigger the paint listener
     }
 
-    // Update all child controls recursively
-    updateControlBackground(card, bgColor);
+    // Update CSS ID for styling consistency
+    updateChildrenControlBackground(card, selected);
+
+    IStylingEngine engine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
+    if (engine != null) {
+      engine.setId(card, selected ? "quick-start-feature-card-selected" : "quick-start-feature-card");
+    }
   }
 
-  private void updateControlBackground(Control control, Color bgColor) {
-    control.setBackground(bgColor);
-    // Also update foreground color for labels to maintain proper contrast
-    if (control instanceof Label) {
-      ((Label) control).setForeground(featureCardFontColor);
-    }
-    if (control instanceof Composite) {
-      Composite composite = (Composite) control;
+  private void updateChildrenControlBackground(Control control, boolean selected) {
+    control.setData(CSSSWTConstants.CSS_ID_KEY,
+        selected ? "quick-start-feature-card-selected" : "quick-start-feature-card");
+    if (control instanceof Composite composite) {
       for (Control child : composite.getChildren()) {
-        updateControlBackground(child, bgColor);
+        updateChildrenControlBackground(child, selected);
       }
     }
   }
@@ -525,7 +453,7 @@ public class FeaturePage extends Composite {
     // Load and set the new image
     currentContentImage = UiUtils.buildImageFromPngPath(imagePath);
     rightPanelContent.setImage(currentContentImage);
-    rightPanelContent.getParent().layout();
+    rightPanelContent.requestLayout();
   }
 
   /**
@@ -546,11 +474,68 @@ public class FeaturePage extends Composite {
     if (selectedBackgroundColor != null && !selectedBackgroundColor.isDisposed()) {
       selectedBackgroundColor.dispose();
     }
-    if (fontColor != null && !fontColor.isDisposed()) {
-      fontColor.dispose();
-    }
-    if (featureCardFontColor != null && !featureCardFontColor.isDisposed()) {
-      featureCardFontColor.dispose();
+  }
+
+  /**
+   * Creates a close button with hover effects.
+   */
+  private Label createCloseButton(Composite parent) {
+    Image normalImage = UiUtils
+        .buildImageFromPngPath(isDarkTheme ? "/intro/quickstart/close_dark.png" : "/intro/quickstart/close_light.png");
+    Label closeButton = new Label(parent, SWT.NONE);
+    closeButton.setImage(normalImage);
+    closeButton.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
+    GridData closeButtonData = new GridData(SWT.RIGHT, SWT.TOP, false, false);
+    closeButtonData.verticalIndent = 0;
+    closeButton.setLayoutData(closeButtonData);
+    closeButton.setToolTipText(Messages.quickStart_closeButton_tooltip);
+
+    // Add click listener to close the dialog
+    closeButton.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseDown(MouseEvent e) {
+        closeDialog();
+      }
+    });
+
+    Image hoverImage = UiUtils.buildImageFromPngPath(
+        isDarkTheme ? "/intro/quickstart/close_hover_dark.png" : "/intro/quickstart/close_hover_light.png");
+    // Add dispose listener for close button images
+    closeButton.addDisposeListener(e -> {
+      if (normalImage != null && !normalImage.isDisposed()) {
+        normalImage.dispose();
+      }
+      if (hoverImage != null && !hoverImage.isDisposed()) {
+        hoverImage.dispose();
+      }
+    });
+
+    // Add hover effect for close button
+    closeButton.addMouseTrackListener(new MouseTrackAdapter() {
+      @Override
+      public void mouseEnter(MouseEvent e) {
+        closeButton.setCursor(display.getSystemCursor(SWT.CURSOR_HAND));
+        closeButton.setImage(hoverImage);
+        closeButton.redraw();
+      }
+
+      @Override
+      public void mouseExit(MouseEvent e) {
+        closeButton.setCursor(null);
+        closeButton.setImage(normalImage);
+        closeButton.redraw();
+      }
+    });
+
+    return closeButton;
+  }
+
+  /**
+   * Adds a click handler to multiple controls.
+   */
+  private void addClickableToControls(MouseAdapter clickHandler, Control... controls) {
+    for (Control control : controls) {
+      control.addMouseListener(clickHandler);
     }
   }
 }

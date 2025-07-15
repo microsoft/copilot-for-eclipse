@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.handlers;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
@@ -14,7 +15,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
@@ -24,7 +24,6 @@ import org.eclipse.ui.intro.IIntroPart;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.quickstart.FeaturePage;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Handler for opening the quick start page.
@@ -54,28 +53,15 @@ public class OpenQuickStartHandler extends AbstractHandler {
 
     @Override
     protected Control createDialogArea(Composite parent) {
-      if (UiUtils.isDarkTheme()) {
-        // Dark theme colors
-        this.normalBackgroundColor = new Color(Display.getCurrent(), 47, 48, 48); // #2F3030
-      } else {
-        // Light theme colors
-        this.normalBackgroundColor = new Color(Display.getCurrent(), 255, 255, 255); // #FFFFFF
-      }
-
       // Create a composite to add a border around the dialog area, dialog without header doesn't have a border
       Composite mainComposite = new Composite(parent, SWT.BORDER);
       mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-      mainComposite.setBackground(this.normalBackgroundColor);
+      mainComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
       GridLayout parentLayout = new GridLayout(1, false);
-      parentLayout.marginWidth = 0;
-      parentLayout.marginHeight = 24;
+      parentLayout.marginWidth = 56;
+      parentLayout.marginHeight = 32;
       parentLayout.verticalSpacing = 24;
       mainComposite.setLayout(parentLayout);
-      mainComposite.addDisposeListener(e -> {
-        if (normalBackgroundColor != null && !normalBackgroundColor.isDisposed()) {
-          normalBackgroundColor.dispose();
-        }
-      });
 
       new FeaturePage(mainComposite);
       this.createButtonArea(mainComposite);
@@ -84,7 +70,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
 
     @Override
     protected Point getInitialSize() {
-      return new Point(863, 564);
+      return new Point(890, 544);
     }
 
     @Override
@@ -100,7 +86,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
       buttonLayout.marginHeight = 0;
       buttonComposite.setLayout(buttonLayout);
       buttonComposite.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
-      buttonComposite.setBackground(this.normalBackgroundColor);
+      buttonComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
       Button continueButton = new Button(buttonComposite, SWT.PUSH);
       continueButton.setText(Messages.quickStart_continueButton);
@@ -108,15 +94,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
       buttonData.widthHint = 200;
       buttonData.heightHint = 28;
       continueButton.setLayoutData(buttonData);
-
-      Color buttonColor = new Color(Display.getCurrent(), 0, 120, 212); // #0078D4
-      continueButton.setBackground(buttonColor);
-      continueButton.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
-      continueButton.addDisposeListener(e -> {
-        if (buttonColor != null && !buttonColor.isDisposed()) {
-          buttonColor.dispose();
-        }
-      });
+      continueButton.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-continue-button");
 
       continueButton.addMouseListener(new MouseAdapter() {
         @Override

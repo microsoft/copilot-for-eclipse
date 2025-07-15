@@ -1,0 +1,19 @@
+#quick-start-container {
+	color: #5A5A5A;
+	background-color: #FFFFFF;
+}
+
+#quick-start-feature-card {
+	color: #000000;
+	background-color: #FFFFFF;
+}
+
+#quick-start-feature-card-selected {
+	color: #000000;
+	background-color: #F1F1F2;
+}
+
+#quick-start-continue-button {
+	color: #FFFFFF;
+	background-color: #0078D4;
+}
