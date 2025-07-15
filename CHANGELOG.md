@@ -14,10 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add keyboard shortcut command for open chat view command. [PR#882](https://github.com/microsoft/copilot-eclipse/pull/882)
 - Add new Copilot perspective. [PR#912](https://github.com/microsoft/copilot-eclipse/pull/912)
 - Support generate git commit message. [#794](https://github.com/microsoft/copilot-eclipse/issues/794)
-- Display chat title on top of the chat view. [PR#917](https://github.com/microsoft/copilot-eclipse/pull/917)
 
 ### Changed
 - Support Eclipse 2024-03 & 2024-06. [PR#876](https://github.com/microsoft/copilot-eclipse/pull/876)
+- Make agent mode as default chat mode. [PR#959](https://github.com/microsoft/copilot-eclipse/pull/959)
 - Improve the chat view layout. [PR#890](https://github.com/microsoft/copilot-eclipse/pull/890), [PR#879](https://github.com/microsoft/copilot-eclipse/pull/879)
 - Improve the Copilot menu in menu bar and status bar. [PR#923](https://github.com/microsoft/copilot-eclipse/pull/923)
 - Remove the spinner when completing code. [#788](https://github.com/microsoft/copilot-eclipse/issues/788)
@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Entire settings are synced even just changing one item. [#877](https://github.com/microsoft/copilot-eclipse/issues/877)
 - Wrong welcome page displayed in chat view when user is not signed in. [#851](https://github.com/microsoft/copilot-eclipse/issues/851)
 - File with no extension cannot be attached in chat view. [#863](https://github.com/microsoft/copilot-eclipse/issues/863)
+- Error 'SWT Resource was not properly disposed' after sign in. [#949](https://github.com/microsoft/copilot-eclipse/issues/949)
 
 ## 0.8.0
 ### Added

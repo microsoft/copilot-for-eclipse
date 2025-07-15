@@ -37,7 +37,7 @@
 		<menuContribution locationURI="toolbar:org.eclipse.egit.ui.StagingView">
 		<command
 			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage"
-			icon="icons/generate_commit_message.png"
+			icon="icons/github_copilot.png"
 			id="com.microsoft.copilot.egit.generateCommitMessage"
 			label="%command.generateCommitMessage.name"
 			style="push">
