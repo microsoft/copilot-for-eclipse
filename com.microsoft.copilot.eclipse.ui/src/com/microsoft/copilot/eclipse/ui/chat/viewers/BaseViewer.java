@@ -33,7 +33,7 @@ public abstract class BaseViewer extends Composite {
    * @param text the text for the label
    */
   protected void buildLabelWithIcon(Composite parent, Image labelIcon, String text) {
-    Composite composite = new Composite(parent, SWT.CENTER);
+    Composite composite = new Composite(parent, SWT.NONE);
     GridLayout gl = new GridLayout(2, false);
     gl.horizontalSpacing = ALIGNED_SPACE_BETWEEN_ICON_AND_LABEL;
     composite.setLayout(gl);
