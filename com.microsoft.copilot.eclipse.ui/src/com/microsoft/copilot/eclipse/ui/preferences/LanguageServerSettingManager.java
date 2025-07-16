@@ -81,32 +81,31 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   @Override
   public void propertyChange(PropertyChangeEvent event) {
     CopilotLanguageServerSettings singleSetting;
-    Object newValue = event.getNewValue();
 
     switch (event.getProperty()) {
       case Constants.AUTO_SHOW_COMPLETION:
-        settings.setEnableAutoCompletions((Boolean) newValue);
+        settings.setEnableAutoCompletions(preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION));
         singleSetting = new CopilotLanguageServerSettings(settings.isEnableAutoCompletions(), null, null, null);
         break;
       case Constants.ENABLE_STRICT_SSL:
-        settings.getHttp().setProxyStrictSsl((Boolean) newValue);
+        settings.getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
         singleSetting = new CopilotLanguageServerSettings(null, settings.getHttp(), null, null);
         updateGithubPanicErrorReport();
         break;
       case Constants.PROXY_KERBEROS_SP:
-        settings.getHttp().setProxyKerberosServicePrincipal((String) newValue);
+        settings.getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
         singleSetting = new CopilotLanguageServerSettings(null, settings.getHttp(), null, null);
         break;
       case Constants.GITHUB_ENTERPRISE:
-        settings.getGithubEnterprise().setUri((String) newValue);
+        settings.getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
         singleSetting = new CopilotLanguageServerSettings(null, null, settings.getGithubEnterprise(), null);
         break;
       case Constants.MCP:
-        settings.setMcpServers((String) newValue);
+        settings.setMcpServers(preferenceStore.getString(Constants.MCP));
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       case Constants.MCP_TOOLS_STATUS:
-        updateMcpToolsStatus((String) newValue);
+        updateMcpToolsStatus(preferenceStore.getString(Constants.MCP_TOOLS_STATUS));
         return;
       default:
         return;

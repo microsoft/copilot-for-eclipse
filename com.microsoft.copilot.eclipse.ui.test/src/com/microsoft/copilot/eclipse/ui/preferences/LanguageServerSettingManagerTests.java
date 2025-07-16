@@ -1,7 +1,9 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,26 +14,32 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 @ExtendWith(MockitoExtension.class)
 class LanguageServerSettingManagerTests {
   @Mock
   private IPreferenceStore mockPreferenceStore;
 
+  @Mock
+  private CopilotLanguageServerConnection mockLsConnection;
+
+  @Mock
+  private IProxyService mockProxyService;
+
   @Test
   void testNoProxy() {
     // when no proxy is applicable
     // arrange
-    IProxyService mockProxyService = mock(IProxyService.class);
-    CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-	  when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
     var params = new DidChangeConfigurationParams();
     params.setSettings(new CopilotLanguageServerSettings());
 
@@ -42,14 +50,13 @@ class LanguageServerSettingManagerTests {
     manager.syncConfiguration();
 
     // assert
-	  verify(mockLsConnection, times(1)).updateConfig(params);
+    verify(mockLsConnection, times(1)).updateConfig(params);
   }
 
   @Test
   void testBasicProxy() {
     // basic proxy test
     // arrange
-    IProxyService mockProxyService = mock(IProxyService.class);
     IProxyData mockProxyData = mock(IProxyData.class);
     when(mockProxyData.getHost()).thenReturn("localhost");
     when(mockProxyData.getPort()).thenReturn(8080);
@@ -58,12 +65,11 @@ class LanguageServerSettingManagerTests {
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-	  when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://localhost:8080");
     params.setSettings(settings);
-    CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
 
     // act
     LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
@@ -72,14 +78,13 @@ class LanguageServerSettingManagerTests {
     manager.syncConfiguration();
 
     // assert
-	  verify(mockLsConnection, times(1)).updateConfig(params);
+    verify(mockLsConnection, times(1)).updateConfig(params);
   }
 
   @Test
   void testBasicAuthProxy() {
     // basic auth proxy test
     // arrange
-    IProxyService mockProxyService = mock(IProxyService.class);
     IProxyData mockProxyData = mock(IProxyData.class);
     when(mockProxyData.getHost()).thenReturn("localhost");
     when(mockProxyData.getPort()).thenReturn(8080);
@@ -90,12 +95,11 @@ class LanguageServerSettingManagerTests {
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-	  when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://user:password@localhost:8080");
     params.setSettings(settings);
-    CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
 
     // act
     LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
@@ -104,7 +108,41 @@ class LanguageServerSettingManagerTests {
     manager.syncConfiguration();
 
     // assert
-	  verify(mockLsConnection, times(1)).updateConfig(params);
+    verify(mockLsConnection, times(1)).updateConfig(params);
+  }
+
+  @Test
+  void testUpdateAutoCompletionSetting() {
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+
+    new LanguageServerSettingManager(mockLsConnection, mockProxyService, preferenceStore);
+    ArgumentCaptor<DidChangeConfigurationParams> paramsCaptor = ArgumentCaptor
+        .forClass(DidChangeConfigurationParams.class);
+
+    preferenceStore.setValue(Constants.AUTO_SHOW_COMPLETION, false);
+
+    verify(mockLsConnection, timeout(100).times(1)).updateConfig(paramsCaptor.capture());
+
+    CopilotLanguageServerSettings capturedSettings = (CopilotLanguageServerSettings) paramsCaptor.getValue()
+        .getSettings();
+    assertFalse(capturedSettings.isEnableAutoCompletions());
+  }
+
+  @Test
+  void testUpdateStrictSslSetting() {
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+
+    new LanguageServerSettingManager(mockLsConnection, mockProxyService, preferenceStore);
+    ArgumentCaptor<DidChangeConfigurationParams> paramsCaptor = ArgumentCaptor
+        .forClass(DidChangeConfigurationParams.class);
+
+    preferenceStore.setValue(Constants.ENABLE_STRICT_SSL, false);
+
+    verify(mockLsConnection, timeout(100).times(1)).updateConfig(paramsCaptor.capture());
+
+    CopilotLanguageServerSettings capturedSettings = (CopilotLanguageServerSettings) paramsCaptor.getValue()
+        .getSettings();
+    assertFalse(capturedSettings.getHttp().isProxyStrictSsl());
   }
 
 }
