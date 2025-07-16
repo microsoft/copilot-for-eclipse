@@ -16,11 +16,19 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.IPerspectiveDescriptor;
+import org.eclipse.ui.IViewPart;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.WorkbenchException;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.intro.IIntroPart;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.quickstart.FeaturePage;
@@ -100,20 +108,25 @@ public class OpenQuickStartHandler extends AbstractHandler {
         @Override
         public void mouseDown(MouseEvent e) {
           close();
+          
+          IWorkbench workBench = PlatformUI.getWorkbench();
 
           // Close the Eclipse welcome view if it's open
-          //          IIntroPart introPart = PlatformUI.getWorkbench().getIntroManager().getIntro();
-          //          if (introPart != null) {
-          //            PlatformUI.getWorkbench().getIntroManager().closeIntro(introPart);
-          //          }
-          //
-          //          IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()
-          //              .getService(IHandlerService.class);
-          //          try {
-          //            handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.openChatView", null);
-          //          } catch (Exception ex) {
-          //            CopilotCore.LOGGER.error("Failed to open chat view", ex);
-          //          }
+          IIntroPart introPart = workBench.getIntroManager().getIntro();
+          if (introPart != null) {
+            workBench.getIntroManager().closeIntro(introPart);
+          }
+          
+          // Open the Copilot chat view
+          workBench.getDisplay().asyncExec(() -> {
+            IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()
+                .getService(IHandlerService.class);
+            try {
+              handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.openChatView", null);
+            } catch (Exception ex) {
+              CopilotCore.LOGGER.error("Failed to open chat view", ex);
+            }
+          });
         }
       });
     }
