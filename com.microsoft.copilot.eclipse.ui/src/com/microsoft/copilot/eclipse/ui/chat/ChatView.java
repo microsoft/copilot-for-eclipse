@@ -129,6 +129,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * @param status the status
    */
   public void buildViewFor(String status) {
+    this.hasHistory = false;
     disposeChildren(parent);
     switch (status) {
       case CopilotStatusResult.LOADING:
