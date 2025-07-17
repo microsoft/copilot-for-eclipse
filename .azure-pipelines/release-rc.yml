@@ -1,0 +1,136 @@
+# This pipeline is used to release the GitHub Copilot for Eclipse rc build.
+# It contains following steps:
+#   1. Download the plugin artifact from the rc build pipeline.
+#   2. Upload the plugin files to Azure blob storage.
+#   3. Purge the Azure Front Door cache to ensure the latest files are served.
+
+name: $(Date:yyyyMMdd).$(Rev:r)
+
+variables:
+  - name: Codeql.Enabled
+    value: true
+resources:
+  repositories:
+    - repository: self
+      type: git
+      ref: refs/heads/main
+    - repository: 1esPipelines
+      type: git
+      name: 1ESPipelineTemplates/1ESPipelineTemplates
+      ref: refs/tags/release
+trigger: none
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
+  parameters:
+    pool:
+      os: linux
+      name: 1ES_JavaTooling_Pool
+      image: 1ES_JavaTooling_Ubuntu-2004
+    stages:
+      - stage: Release
+        jobs:
+          - job: Job
+            displayName: Release GitHub-Copilot-Eclipse-RC
+            templateContext:
+              type: releaseJob
+              isProduction: true
+              inputs:
+              - input: pipelineArtifact
+                buildType: specific
+                project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
+                definition: 19982
+                artifactName: plugin
+                downloadType: specific
+                targetPath: '$(Build.SourcesDirectory)'
+            steps:
+              - bash: |
+                  echo "Copying zip to artifacts directory"
+                  mkdir -p $(Build.SourcesDirectory)/publish/
+                  cp $(Build.SourcesDirectory)/artifacts/eclipse/GithubCopilotForEclipse.zip $(Build.SourcesDirectory)/publish/GithubCopilotForEclipse.zip
+
+                  echo "Unzip the zip file"
+                  unzip -o $(Build.SourcesDirectory)/publish/GithubCopilotForEclipse.zip -d $(Build.SourcesDirectory)/publish/
+
+                  echo "Remove the zip file"
+                  rm -f $(Build.SourcesDirectory)/publish/GithubCopilotForEclipse.zip
+
+              - task: AzureCLI@2
+                displayName: 'Remove old artifacts.jar'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot \
+                      --pattern "artifacts.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Remove old content.jar'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot \
+                      --pattern "content.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Remove old features folder'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot \
+                      --pattern "features/*.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Remove old plugins folder'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob delete-batch \
+                      --account-name azuredownloads \
+                      --source github-copilot \
+                      --pattern "plugins/*.jar" \
+                      --auth-mode login
+
+              - task: AzureCLI@2
+                displayName: 'Upload files to blob storage'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az storage blob upload-batch \
+                      --account-name azuredownloads \
+                      --destination github-copilot \
+                      --source $(Build.SourcesDirectory)/publish \
+                      --auth-mode login \
+                      --overwrite true
+
+              - task: AzureCLI@2
+                displayName: 'Purge Azure Front Door cache'
+                inputs:
+                  azureSubscription: 'copilot-eclipse'
+                  scriptType: 'bash'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    az afd endpoint purge \
+                      --resource-group azuredownloads-Migrated \
+                      --profile-name azuredownloads \
+                      --content-paths "/github-copilot/*" \
+                      --domains azuredownloads-g3ahgwb5b8bkbxhd.b01.azurefd.net \
+                      --endpoint-name azuredownloads
+
