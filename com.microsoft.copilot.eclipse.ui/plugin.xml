@@ -73,7 +73,7 @@
 		<view
 			id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			name="%page.showViewPageShowChatView.name"
-			icon="icons/chat/github_copilot_chat.png"
+			icon="icons/github_copilot.png"
 			class="com.microsoft.copilot.eclipse.ui.chat.ChatView"
 			category="com.microsoft.copilot.eclipse.chat"
 			inject="true">

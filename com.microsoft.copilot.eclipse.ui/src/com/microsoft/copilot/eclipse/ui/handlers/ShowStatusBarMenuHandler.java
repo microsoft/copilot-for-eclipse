@@ -322,7 +322,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addOpenChatViewAction(MenuManager menuManager) {
-    ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/github_copilot_chat.png");
+    ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png");
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_openChatView, icon, handlerService,
         "com.microsoft.copilot.eclipse.commands.openChatView", true);
   }

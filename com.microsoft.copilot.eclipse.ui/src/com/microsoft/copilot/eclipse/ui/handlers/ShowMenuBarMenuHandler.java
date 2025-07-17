@@ -86,7 +86,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     // menu: openChatView
     items.add(new Separator());
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openChatView", Messages.menu_openChatView,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/chat/github_copilot_chat.png")));
+        UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png")));
 
     // menu:(label options) Turn off Completions or Turn on Completions
     LanguageServerSettingManager languageServerSettingManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
