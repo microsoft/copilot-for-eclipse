@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.9.1
+### Fixed
+- Reset history to avoid skipping the main section rendering. [#970](https://github.com/microsoft/copilot-eclipse/pull/970)
+- Updated bundle version to fit 2024-03. [#971](https://github.com/microsoft/copilot-eclipse/pull/971)
+- Fixed Linux rendering problem. [#974](https://github.com/microsoft/copilot-eclipse/pull/974)
+- Async open chat after closing welcome page. [#975](https://github.com/microsoft/copilot-eclipse/pull/975)
+- Use IPreferenceStore.getBoolean() to get the updated value. [#976](https://github.com/microsoft/copilot-eclipse/pull/976)
+- Perspective logo should support dark mode. [#980](https://github.com/microsoft/copilot-eclipse/pull/980)
+
 ## 0.9.0
 ### Added
 - Show MCP logs in Console View. [#833](https://github.com/microsoft/copilot-eclipse/issues/833)
