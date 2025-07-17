@@ -12,10 +12,12 @@ import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCompletionContentPart;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
@@ -44,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParam
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
+import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
@@ -218,13 +221,17 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message, List<IFile> files,
-      IFile currentFile, String modelName, String chatModeName) {
+      IFile currentFile, CopilotModel activeModel, String chatModeName) {
+    boolean supportVision = activeModel.getCapabilities().supports().vision();
+    Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
+        .createMessageWithImages(message, files, supportVision);
+    List<IFile> nonImageFiles = files.stream().filter(file -> !ChatMessageUtils.isImageFile(file)).toList();
     Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
-      ConversationCreateParams param = new ConversationCreateParams(message, workDoneToken);
+      ConversationCreateParams param = new ConversationCreateParams(messageWithImages, workDoneToken);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
-      param.addFileRefs(files);
-      param.setModel(modelName);
+      param.addFileRefs(nonImageFiles);
+      param.setModel(getModelName(activeModel));
       param.setChatMode(chatModeName);
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
       param.setNeedToolCallConfirmation(true);
@@ -240,11 +247,15 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
-      String message, List<IFile> files, IFile currentFile, String modelName, String chatModeName) {
+      String message, List<IFile> files, IFile currentFile, CopilotModel activeModel, String chatModeName) {
+    boolean supportVision = activeModel.getCapabilities().supports().vision();
+    Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
+        .createMessageWithImages(message, files, supportVision);
+    List<IFile> nonImageFiles = files.stream().filter(file -> !ChatMessageUtils.isImageFile(file)).toList();
     Function<LanguageServer, CompletableFuture<ChatTurnResult>> fn = server -> {
-      ConversationTurnParams param = new ConversationTurnParams(workDoneToken, conversationId, message);
-      param.addFileRefs(files);
-      param.setModel(modelName);
+      ConversationTurnParams param = new ConversationTurnParams(workDoneToken, conversationId, messageWithImages);
+      param.addFileRefs(nonImageFiles);
+      param.setModel(getModelName(activeModel));
       param.setChatMode(chatModeName);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
@@ -386,4 +397,8 @@ public class CopilotLanguageServerConnection {
     this.languageServerWrapper.stop();
   }
 
+  private String getModelName(CopilotModel activeModel) {
+    return activeModel == null ? null
+        : activeModel.isChatFallback() ? activeModel.getId() : activeModel.getModelFamily();
+  }
 }

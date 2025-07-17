@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepTitles;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -432,8 +434,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     String processedMessage = replaceWorkspaceCommand(message);
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
-    String modelName = activeModel == null ? null
-        : activeModel.isChatFallback() ? activeModel.getId() : activeModel.getModelFamily();
     String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
     if (!(this.hasHistory)) {
       this.hasHistory = true;
@@ -443,10 +443,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     ReferencedFileService fileService = chatServiceManager.getReferencedFileService();
     IFile currentFile = fileService.getCurrentFile();
     List<IFile> references = fileService.getReferencedFiles();
+
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation
       CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken,
-          processedMessage, references, currentFile, modelName, chatModeName);
+          processedMessage, references, currentFile, activeModel, chatModeName);
       conversationFutures.add(createConversationFuture);
 
       createConversationFuture.exceptionally(ex -> {
@@ -460,7 +461,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       // send message to existing conversation
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, modelName, chatModeName);
+          processedMessage, references, currentFile, activeModel, chatModeName);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.exceptionally(ex -> {

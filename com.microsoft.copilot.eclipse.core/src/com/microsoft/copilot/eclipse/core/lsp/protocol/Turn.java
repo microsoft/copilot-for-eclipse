@@ -1,7 +1,9 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
@@ -10,20 +12,20 @@ import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
  */
 public class Turn {
   @NonNull
-  String request;
+  Either<String, List<ChatCompletionContentPart>> request;
   String response;
   String agentSlug;
 
   /**
    * Creates a new Turn.
    */
-  public Turn(@NonNull String request, String response, String agentSlug) {
+  public Turn(@NonNull Either<String, List<ChatCompletionContentPart>> request, String response, String agentSlug) {
     this.request = request;
     this.response = response;
     this.agentSlug = agentSlug;
   }
 
-  public String getRequest() {
+  public Either<String, List<ChatCompletionContentPart>> getRequest() {
     return request;
   }
 
@@ -35,7 +37,7 @@ public class Turn {
     return agentSlug;
   }
 
-  public void setRequest(String request) {
+  public void setRequest(Either<String, List<ChatCompletionContentPart>> request) {
     this.request = request;
   }
 

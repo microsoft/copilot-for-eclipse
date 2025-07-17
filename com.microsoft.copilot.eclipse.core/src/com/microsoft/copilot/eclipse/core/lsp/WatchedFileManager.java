@@ -215,7 +215,7 @@ class WatchedFileManager {
     }
 
     String extension = resource.getFileExtension();
-    if (!StringUtils.isEmptyOrNull(extension) && Constants.EXCLUDED_FILE_TYPE.contains(extension)) {
+    if (!StringUtils.isEmptyOrNull(extension) && Constants.EXCLUDED_CURRENT_FILE_TYPE.contains(extension)) {
       return false;
     }
 

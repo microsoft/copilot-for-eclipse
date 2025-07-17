@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
@@ -20,7 +21,7 @@ public class ConversationTurnParams {
   @NonNull
   private String conversationId;
   @NonNull
-  private String message;
+  private Either<String, List<ChatCompletionContentPart>> message; // String or ChatCompletionContentPart[]
   private List<FileReferenceParams> references;
   private TextDocumentIdentifier textDocument;
   private Boolean computeSuggestions;
@@ -36,7 +37,8 @@ public class ConversationTurnParams {
   /**
    * Creates a new ConversationTurnParams.
    */
-  public ConversationTurnParams(String workDoneToken, String conversationId, String message) {
+  public ConversationTurnParams(String workDoneToken, String conversationId,
+      Either<String, List<ChatCompletionContentPart>> message) {
     this.workDoneToken = workDoneToken;
     this.conversationId = conversationId;
     this.message = message;
@@ -68,11 +70,11 @@ public class ConversationTurnParams {
     this.conversationId = conversationId;
   }
 
-  public String getMessage() {
+  public Either<String, List<ChatCompletionContentPart>> getMessage() {
     return message;
   }
 
-  public void setMessage(String message) {
+  public void setMessage(Either<String, List<ChatCompletionContentPart>> message) {
     this.message = message;
   }
 

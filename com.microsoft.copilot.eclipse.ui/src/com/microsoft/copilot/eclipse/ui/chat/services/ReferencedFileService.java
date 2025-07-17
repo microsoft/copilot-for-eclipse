@@ -181,7 +181,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
    */
   private void addFilesToMap(List<IFile> files, Map<String, IFile> fileMap) {
     for (IFile file : files) {
-      if (file != null && !isExcluded(file)) {
+      if (file != null && !isExcludedFromReferencedFiles(file)) {
         String uri = FileUtils.getResourceUri(file);
         if (uri != null) {
           fileMap.put(uri, file);
@@ -227,7 +227,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   private void updateCurrentReferencedFile(IFile currentFile) {
-    if (isExcluded(currentFile)) {
+    if (isExcludedFromCurrentFile(currentFile)) {
       currentFile = null;
     }
     final IFile finalCurrentFile = currentFile;
@@ -237,7 +237,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   /**
    * Returns true if the file needs to be excluded from 'Current file' reference in chat.
    */
-  private boolean isExcluded(@Nullable IFile file) {
+  private boolean isExcludedFromCurrentFile(@Nullable IFile file) {
     if (file == null) {
       return true;
     }
@@ -245,7 +245,21 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     if (file.getFileExtension() == null) {
       return false; // If the file has no extension, we do not exclude it.
     }
-    return Constants.EXCLUDED_FILE_TYPE.contains(file.getFileExtension());
+    return Constants.EXCLUDED_CURRENT_FILE_TYPE.contains(file.getFileExtension());
+  }
+
+  /**
+   * Returns true if the file needs to be excluded from the referenced files.
+   */
+  private boolean isExcludedFromReferencedFiles(@Nullable IFile file) {
+    if (file == null) {
+      return true;
+    }
+
+    if (file.getFileExtension() == null) {
+      return false; // If the file has no extension, we do not exclude it.
+    }
+    return Constants.EXCLUDED_REFERENCE_FILE_TYPE.contains(file.getFileExtension());
   }
 
   /**

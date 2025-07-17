@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
@@ -35,7 +36,7 @@ public class ConversationCreateParams {
   /**
    * Creates a new ConversationCreateParams.
    */
-  public ConversationCreateParams(String prompt, String workDoneToken) {
+  public ConversationCreateParams(Either<String, List<ChatCompletionContentPart>> prompt, String workDoneToken) {
     this.workDoneToken = workDoneToken;
     this.turns = new Turn[] { new Turn(prompt, null, null) };
     this.capabilities = new ConversationCapabilities();

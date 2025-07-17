@@ -45,9 +45,9 @@ class AttachFileSelectionDialog extends FilteredResourcesSelectionDialog {
         }
         if (StringUtils.equals(pattern, OPENED_FILES)) {
           return AttachFileSelectionDialog.this.openedFiles.contains(item) && Objects.nonNull(extension)
-              && !Constants.EXCLUDED_FILE_TYPE.contains(extension);
+              && !Constants.EXCLUDED_REFERENCE_FILE_TYPE.contains(extension);
         } else {
-          return Objects.nonNull(extension) && !Constants.EXCLUDED_FILE_TYPE.contains(extension)
+          return Objects.nonNull(extension) && !Constants.EXCLUDED_REFERENCE_FILE_TYPE.contains(extension)
               && super.matchItem(item);
         }
       }
