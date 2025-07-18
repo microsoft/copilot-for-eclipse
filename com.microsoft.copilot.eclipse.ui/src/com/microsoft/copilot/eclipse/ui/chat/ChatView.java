@@ -411,6 +411,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
           this.actionBar.resetSendButton();
+          this.topBanner.updateTitle(value.getSuggestedTitle());
         }
         break;
       default:

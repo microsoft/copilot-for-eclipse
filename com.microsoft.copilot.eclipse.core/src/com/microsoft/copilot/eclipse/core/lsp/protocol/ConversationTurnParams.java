@@ -24,7 +24,7 @@ public class ConversationTurnParams {
   private Either<String, List<ChatCompletionContentPart>> message; // String or ChatCompletionContentPart[]
   private List<FileReferenceParams> references;
   private TextDocumentIdentifier textDocument;
-  private Boolean computeSuggestions;
+  private boolean computeSuggestions;
   private String workspaceFolder;
   private List<WorkspaceFolder> workspaceFolders;
   private String[] ignoredSkills;
@@ -43,6 +43,7 @@ public class ConversationTurnParams {
     this.conversationId = conversationId;
     this.message = message;
     this.references = new ArrayList<>();
+    this.computeSuggestions = true;
   }
 
   /**
@@ -94,11 +95,11 @@ public class ConversationTurnParams {
     this.textDocument = textDocument;
   }
 
-  public Boolean getComputeSuggestions() {
+  public boolean isComputeSuggestions() {
     return computeSuggestions;
   }
 
-  public void setComputeSuggestions(Boolean computeSuggestions) {
+  public void setComputeSuggestions(boolean computeSuggestions) {
     this.computeSuggestions = computeSuggestions;
   }
 
@@ -172,7 +173,7 @@ public class ConversationTurnParams {
       return false;
     }
     ConversationTurnParams other = (ConversationTurnParams) obj;
-    return Objects.equals(chatMode, other.chatMode) && Objects.equals(computeSuggestions, other.computeSuggestions)
+    return Objects.equals(chatMode, other.chatMode) && computeSuggestions == other.computeSuggestions
         && Objects.equals(conversationId, other.conversationId) && Arrays.equals(ignoredSkills, other.ignoredSkills)
         && Objects.equals(message, other.message) && Objects.equals(model, other.model)
         && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
