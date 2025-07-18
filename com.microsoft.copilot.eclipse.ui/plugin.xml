@@ -380,6 +380,14 @@
 		 </editorOnboardingCommand>
 	</perspectiveExtension>
 	<perspectiveExtension
+		targetID="com.microsoft.copilot.eclipse.ui.perspectives.CopilotPerspective"
+		editorOnboardingImage="icons/copilot_perspective.png"
+		editorOnboardingText="Open a file or drop files here to open them">
+		<editorOnboardingCommand
+			id="org.eclipse.ui.window.showKeyAssist">
+		</editorOnboardingCommand>
+	</perspectiveExtension>
+	<perspectiveExtension
 		  targetID="org.eclipse.ui.resourcePerspective">
 		 <view
 			 id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
