@@ -33,7 +33,10 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
-class ChatInputTextViewer extends TextViewer implements PaintListener {
+/**
+ * A custom TextViewer for the chat input area with configurable hints messages.
+ */
+public class ChatInputTextViewer extends TextViewer implements PaintListener {
   private static final int MAX_INPUT_ROWS = 5;
 
   private Composite parent;
@@ -52,6 +55,12 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   private boolean needDisposeColorResource;
   private Color placeholderColor;
 
+  /**
+   * Constructs a new ChatInputTextViewer.
+   *
+   * @param parent the parent composite
+   * @param chatServiceManager the chat service manager to access services
+   */
   public ChatInputTextViewer(Composite parent, ChatServiceManager chatServiceManager) {
     super(parent, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
     this.parent = parent;
@@ -65,12 +74,14 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
   }
 
   public String getContent() {
-    if (this.getDocument() == null) {
-      this.setDocument(new Document());
-    }
     return this.getDocument().get();
   }
 
+  /**
+   * Sets the content of the text viewer.
+   *
+   * @param content the content to set
+   */
   public void setContent(String content) {
     this.getDocument().set(content);
   }
@@ -113,6 +124,9 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     initializePlaceHolderColor();
     tvw.addPaintListener(this);
     SwtUtils.invokeOnDisplayThread(tvw::redraw, tvw);
+
+    // new document after styled text redraw to avoid a redundant line being added to the document.
+    this.setDocument(new Document());
   }
 
   private void initializePlaceHolderColor() {
@@ -305,6 +319,9 @@ class ChatInputTextViewer extends TextViewer implements PaintListener {
     caretLineOffsetChanged = false;
   }
 
+  /**
+   * Disposes the resources used by this viewer, including the placeholder color if it was created.
+   */
   public void dispose() {
     if (needDisposeColorResource && placeholderColor != null && !placeholderColor.isDisposed()) {
       placeholderColor.dispose();

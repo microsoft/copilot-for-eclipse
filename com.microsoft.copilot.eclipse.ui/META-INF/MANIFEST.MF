@@ -5,6 +5,7 @@ Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui;singleton:=true
 Bundle-Version: 0.9.1.qualifier
 Bundle-Localization: plugin
 Export-Package: com.microsoft.copilot.eclipse.ui,
+ com.microsoft.copilot.eclipse.ui.chat,
  com.microsoft.copilot.eclipse.ui.chat.services,
  com.microsoft.copilot.eclipse.ui.chat.tools,
  com.microsoft.copilot.eclipse.ui.completion,

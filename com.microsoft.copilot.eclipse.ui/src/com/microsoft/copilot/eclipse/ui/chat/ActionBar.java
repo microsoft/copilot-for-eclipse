@@ -404,6 +404,29 @@ public class ActionBar extends Composite implements NewConversationListener {
     return false;
   }
 
+  /**
+   * Get the content of the input text viewer.
+   *
+   * @return the current content of the input text viewer
+   */
+  public String getInputTextViewerContent() {
+    if (inputTextViewer != null) {
+      return inputTextViewer.getContent();
+    }
+    return StringUtils.EMPTY;
+  }
+
+  /**
+   * Set the content of the input text viewer.
+   *
+   * @param content the content to set
+   */
+  public void setInputTextViewerContent(String content) {
+    if (inputTextViewer != null && content != null) {
+      inputTextViewer.setContent(content);
+    }
+  }
+
   private void handleSendMessage() {
     updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     String message = this.inputTextViewer.getContent();

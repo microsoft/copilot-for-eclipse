@@ -72,6 +72,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private String conversationId = "";
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+  private String cachedInputContent = StringUtils.EMPTY;
 
   @Override
   public void createPartControl(Composite parent) {
@@ -164,15 +165,21 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // Skip building the view when the user is not signed in or authenticated to avoid mode page overrides
     // @link BeforeLoginWelcomeViewer. See: https://github.com/microsoft/copilot-eclipse/issues/851
     if (!this.chatServiceManager.getAuthStatusManager().isNotSignedInOrNotAuthorized()) {
+      // If no history, cache content before disposing and refresh the main section and action bar together
+      cacheInputContent();
+
       if (hasHistory) {
         // Keep the main section to keep the conversation history and refresh the action bar only
         refreshActionBarTextViewerAndButtons();
       } else {
-        // If no history, refresh the main section and action bar together
         disposeChildren(parent);
         showChatPage(chatMode);
+        
+        if (StringUtils.isNotBlank(this.cachedInputContent)) {
+          restoreInputContent();
+        }
       }
-      this.parent.layout();
+      this.parent.requestLayout();
     }
   }
 
@@ -565,6 +572,24 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
     this.topBanner.registerNewConversationListener(listener);
+  }
+
+  /**
+   * Cache the input text content before ActionBar recreation.
+   */
+  public void cacheInputContent() {
+    if (this.actionBar != null) {
+      this.cachedInputContent = this.actionBar.getInputTextViewerContent();
+    }
+  }
+
+  /**
+   * Restore the input text content after ActionBar recreation.
+   */
+  public void restoreInputContent() {
+    if (this.actionBar != null && !this.cachedInputContent.isEmpty()) {
+      this.actionBar.setInputTextViewerContent(this.cachedInputContent);
+    }
   }
 
   /**
