@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -36,7 +37,7 @@ public class FileToolService extends ChatBaseService {
   private FileChangeSummaryBar fileChangeSummaryBar;
   private CreateFileTool createFileTool;
   private EditFileTool editFileTool;
-  private ChatView boundChatView;
+  private String latestCopilotTurnId;
 
   /**
    * Constructor for FileToolService.
@@ -51,8 +52,6 @@ public class FileToolService extends ChatBaseService {
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, event -> {
-      // TODO: notifyCodeAcceptance(); The current behavior of New Chat button is accepting all changes. Pending
-      // discussion of this behavior in https://github.com/microsoft/copilot-eclipse/issues/911.
       onResolveAllChanges();
     });
   }
@@ -69,8 +68,6 @@ public class FileToolService extends ChatBaseService {
       this.editFileTool = (EditFileTool) CopilotUi.getPlugin().getChatServiceManager().getAgentToolService()
           .getTool(EditFileTool.TOOL_NAME);
     }
-
-    this.boundChatView = chatView;
 
     ensureRealm(() -> {
       ISideEffect.create(() -> filesObservable.getValue(), (Map<IFile, FileChangeProperty> filesMap) -> {
@@ -249,10 +246,17 @@ public class FileToolService extends ChatBaseService {
       filesObservable.setValue(filesMap);
     });
 
-    String copilotTurnId = boundChatView.getChatContentViewer().getLatestCopilotTurn().getTurnId();
-    NotifyCodeAcceptanceParams acceptance = new NotifyCodeAcceptanceParams(copilotTurnId, acceptedFileCount,
-        totalFileCount);
-    lsConnection.notifyCodeAcceptance(acceptance);
+    if (!StringUtils.isBlank(latestCopilotTurnId)) {
+      NotifyCodeAcceptanceParams acceptance = new NotifyCodeAcceptanceParams(latestCopilotTurnId, acceptedFileCount,
+          totalFileCount);
+      lsConnection.notifyCodeAcceptance(acceptance);
+    } else {
+      CopilotCore.LOGGER.error("Latest Copilot turn ID is not set, cannot notify code acceptance.", null);      
+    }
+  }
+
+  public void setLatestCopilotTurnId(String latestCopilotTurnId) {
+    this.latestCopilotTurnId = latestCopilotTurnId;
   }
 
   /**

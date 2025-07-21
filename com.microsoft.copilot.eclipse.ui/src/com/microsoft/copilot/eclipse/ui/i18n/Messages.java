@@ -169,6 +169,11 @@ public final class Messages extends NLS {
   public static String generateCommitMessage_noRepo_message;
   public static String generateCommitMessage_noStagedFiles_title;
   public static String generateCommitMessage_noStagedFiles_message;
+  public static String newChat_confirmationTitle;
+  public static String newChat_confirmationMessage;
+  public static String newChat_keepChangesButton;
+  public static String newChat_undoChangesButton;
+  public static String newChat_cancelButton;
 
   static {
     // initialize resource bundle
