@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.viewers;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -29,6 +30,10 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
   private Image agentIcon;
   private Image mcpIcon;
 
+  private Label copilotIconLabel;
+  private WrapLabel welcomeSubLabel;
+  private Composite subComposite;
+
   /**
    * Create the composite.
    *
@@ -39,27 +44,74 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     super(parent, style);
 
     GridLayout layout = new GridLayout(1, true);
-    layout.verticalSpacing = ALIGNED_MARGIN_TOP * 2;
     setLayout(layout);
     GridData gridData = new GridData(SWT.CENTER, SWT.FILL, true, true);
     setLayoutData(gridData);
-    buildMainIconAndLabel();
-    buildSubComposite();
-    buildCopilotForFreeLinkAndSignInButton();
+
+    buildEmptyComposite();
+
+    Composite mainComposite = new Composite(this, SWT.NONE);
+    GridLayout mainLayout = new GridLayout(1, true);
+    mainLayout.verticalSpacing = ALIGNED_MARGIN_TOP;
+    mainComposite.setLayout(mainLayout);
+    mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
+    buildMainIconAndLabel(mainComposite);
+    buildSubComposite(mainComposite);
+    buildCopilotForFreeLinkAndSignInButton(mainComposite);
+
+    buildEmptyComposite();
+
     buildFooterLinks();
+
+    handleResize(parent); // Call resize for the initial layout to prepare appropriate layout after view switch.
+
+    addControlListener(ControlListener.controlResizedAdapter(e -> handleResize(parent)));
   }
 
-  private void buildMainIconAndLabel() {
-    Composite iconLabelComposite = new Composite(this, SWT.NONE);
+  private void handleResize(Composite listenedComposite) {
+    int height = listenedComposite.getBounds().height;
+
+    boolean shouldShowNarrowView = height >= SHOW_NARROW_VIEW_HEIGHT_THRESHOLD;
+    if (this.subComposite != null && !this.subComposite.isDisposed()
+        && this.subComposite.getVisible() != shouldShowNarrowView) {
+      this.subComposite.setVisible(shouldShowNarrowView);
+      ((GridData) this.subComposite.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.subComposite.requestLayout();
+    }
+
+    if (this.welcomeSubLabel != null && !this.welcomeSubLabel.isDisposed()
+        && this.welcomeSubLabel.getVisible() != shouldShowNarrowView) {
+      this.welcomeSubLabel.setVisible(shouldShowNarrowView);
+      ((GridData) this.welcomeSubLabel.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.welcomeSubLabel.requestLayout();
+    }
+
+    if (this.copilotIconLabel != null && !this.copilotIconLabel.isDisposed()
+        && this.copilotIconLabel.getVisible() != shouldShowNarrowView) {
+      this.copilotIconLabel.setVisible(shouldShowNarrowView);
+      ((GridData) this.copilotIconLabel.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.copilotIconLabel.requestLayout();
+    }
+  }
+
+  private void buildEmptyComposite() {
+    Composite emptyComposite = new Composite(this, SWT.NONE);
+    GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    emptyComposite.setLayoutData(gridData);
+    emptyComposite.setLayout(new GridLayout(1, true));
+  }
+
+  private void buildMainIconAndLabel(Composite parent) {
+    Composite iconLabelComposite = new Composite(parent, SWT.NONE);
     GridLayout iconLabelGridlayout = new GridLayout(1, true);
     iconLabelGridlayout.verticalSpacing = ALIGNED_MARGIN_TOP;
     iconLabelComposite.setLayout(iconLabelGridlayout);
-    iconLabelComposite.setLayoutData(new GridData(SWT.CENTER, SWT.FILL, true, true));
+    iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
-    Label icon = new Label(iconLabelComposite, SWT.CENTER);
-    icon.setImage(mainIcon);
-    icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, true));
+    this.copilotIconLabel = new Label(iconLabelComposite, SWT.CENTER);
+    this.copilotIconLabel.setImage(mainIcon);
+    this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, true));
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_welcomeView_title);
@@ -73,14 +125,14 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     this.mainLabelFont = new Font(Display.getCurrent(), fontData);
     label.setFont(mainLabelFont);
 
-    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
-    subLabel.setText(Messages.chat_welcomeView_description);
-    subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+    this.welcomeSubLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
+    this.welcomeSubLabel.setText(Messages.chat_welcomeView_description);
+    this.welcomeSubLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
 
-  private void buildSubComposite() {
-    Composite subComposite = new Composite(this, SWT.NONE);
-    GridData gridData = new GridData(SWT.CENTER, SWT.FILL, false, true);
+  private void buildSubComposite(Composite parent) {
+    subComposite = new Composite(parent, SWT.NONE);
+    GridData gridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     subComposite.setLayoutData(gridData);
     subComposite.setLayout(new GridLayout(1, true));
 
@@ -109,23 +161,25 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     buildLabelWithIcon(subComposite, codeIcon, Messages.chat_welcomeView_completionSuffix);
   }
 
-  private void buildCopilotForFreeLinkAndSignInButton() {
-    Composite mainComposite = new Composite(this, SWT.NONE);
+  private void buildCopilotForFreeLinkAndSignInButton(Composite parent) {
+    Composite linkAndButtonComposite = new Composite(parent, SWT.NONE);
     GridLayout gridLayout = new GridLayout(1, true);
     gridLayout.verticalSpacing = ALIGNED_MARGIN_TOP;
-    mainComposite.setLayout(gridLayout);
-    mainComposite.setLayoutData(new GridData(SWT.CENTER, SWT.FILL, false, true));
+    linkAndButtonComposite.setLayout(gridLayout);
+    GridData mainGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    mainGridData.minimumHeight = 70;
+    linkAndButtonComposite.setLayoutData(mainGridData);
 
     // Copilot for free link
     StringBuilder linkText = new StringBuilder();
     linkText.append(Messages.chat_welcomeView_freeCopilotIntroPrefix).append(Messages.chat_welcomeView_freeCopilotLink)
         .append(Messages.chat_welcomeView_freeCopilotIntroSuffix);
-    buildTextWithLinkAndListener(mainComposite, linkText.toString(), null, event -> {
+    buildTextWithLinkAndListener(linkAndButtonComposite, linkText.toString(), null, event -> {
       UiUtils.openLink(Messages.chat_welcomeView_freeCopilotLink);
     });
 
     // Sign-in button
-    Button signInButton = new Button(mainComposite, SWT.PUSH);
+    Button signInButton = new Button(linkAndButtonComposite, SWT.PUSH);
     signInButton.setText(Messages.chat_welcomeView_signInButton);
     signInButton.setToolTipText(Messages.chat_welcomeView_signInButton_Tooltip);
     GridData buttonGridData = new GridData(SWT.FILL, SWT.CENTER, true, true);
@@ -146,12 +200,10 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
 
   private void buildFooterLinks() {
     GridLayout footerLayout = new GridLayout(1, false);
-    footerLayout.marginTop = ALIGNED_MARGIN_TOP * 2;
     footerLayout.marginLeft = 50;
     footerLayout.marginRight = 50;
     Composite footerComposite = new Composite(this, SWT.NONE);
     footerComposite.setLayout(footerLayout);
-
     GridData footerGridData = new GridData(SWT.CENTER, SWT.BOTTOM, true, false);
     footerComposite.setLayoutData(footerGridData);
 
@@ -160,13 +212,14 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     termsAndPrivacyText.append(Messages.chat_welcomeView_termsPrefix).append(Messages.chat_welcomeView_termsLink)
         .append(Messages.chat_welcomeView_termsSuffix).append(Messages.chat_welcomeView_privacyPolicyPrefix)
         .append(Messages.chat_welcomeView_privacyPolicyLink).append(Messages.chat_welcomeView_privacyPolicySuffix);
-    buildTextWithLinkAndListener(footerComposite, termsAndPrivacyText.toString(), null, event -> {
-      if (event.text.equals(Messages.chat_welcomeView_termsLink)) {
-        UiUtils.openLink(Messages.chat_welcomeView_termsLink);
-      } else {
-        UiUtils.openLink(Messages.chat_welcomeView_privacyPolicyLink);
-      }
-    });
+    buildTextWithLinkAndListener(footerComposite, termsAndPrivacyText.toString(),
+        new GridData(SWT.LEFT, SWT.CENTER, true, true), event -> {
+          if (event.text.equals(Messages.chat_welcomeView_termsLink)) {
+            UiUtils.openLink(Messages.chat_welcomeView_termsLink);
+          } else {
+            UiUtils.openLink(Messages.chat_welcomeView_privacyPolicyLink);
+          }
+        });
 
     // Public Code and Settings links
     StringBuilder publicCodeAndSettingsLink = new StringBuilder();

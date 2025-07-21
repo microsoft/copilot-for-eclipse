@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.viewers;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
@@ -23,6 +24,9 @@ public class AgentModeViewer extends BaseViewer {
   private Image attachContextIcon;
   private Image configureMcpIcon;
 
+  private Label copilotIconLabel;
+  private Composite subComposite;
+
   /**
    * Create the composite.
    *
@@ -37,6 +41,38 @@ public class AgentModeViewer extends BaseViewer {
     setLayout(layout);
     buildMainIconAndLabel();
     buildSubComposite();
+    buildInstructions();
+
+    if (parent != null && !parent.isDisposed()) {
+      Composite mainComposite = parent.getParent();
+      if (mainComposite != null && !mainComposite.isDisposed()) {
+        Composite contentWrapper = mainComposite.getParent();
+        if (contentWrapper != null && !contentWrapper.isDisposed()) {
+          Composite chatView = contentWrapper.getParent();
+          handleResize(chatView); // Call resize for the initial layout to prepare appropriate layout after view switch.
+          chatView.addControlListener(ControlListener.controlResizedAdapter(e -> handleResize(chatView)));
+        }
+      }
+    }
+  }
+
+  private void handleResize(Composite listenedComposite) {
+    int height = listenedComposite.getBounds().height;
+
+    boolean shouldShowNarrowView = height >= SHOW_NARROW_VIEW_HEIGHT_THRESHOLD;
+    if (this.subComposite != null && !this.subComposite.isDisposed()
+        && this.subComposite.getVisible() != shouldShowNarrowView) {
+      this.subComposite.setVisible(shouldShowNarrowView);
+      ((GridData) this.subComposite.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.subComposite.requestLayout();
+    }
+
+    if (this.copilotIconLabel != null && !this.copilotIconLabel.isDisposed()
+        && this.copilotIconLabel.getVisible() != shouldShowNarrowView) {
+      this.copilotIconLabel.setVisible(shouldShowNarrowView);
+      ((GridData) this.copilotIconLabel.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.copilotIconLabel.requestLayout();
+    }
   }
 
   private void buildMainIconAndLabel() {
@@ -47,14 +83,14 @@ public class AgentModeViewer extends BaseViewer {
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
-    Label icon = new Label(iconLabelComposite, SWT.CENTER);
-    icon.addDisposeListener(e -> {
+    this.copilotIconLabel = new Label(iconLabelComposite, SWT.CENTER);
+    this.copilotIconLabel.addDisposeListener(e -> {
       if (this.mainIcon != null && !this.mainIcon.isDisposed()) {
         this.mainIcon.dispose();
       }
     });
-    icon.setImage(mainIcon);
-    icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
+    this.copilotIconLabel.setImage(mainIcon);
+    this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_agentModeView_title);
@@ -72,22 +108,24 @@ public class AgentModeViewer extends BaseViewer {
         this.mainLabelFont.dispose();
       }
     });
+  }
 
-    Composite lineAndIntroComposite = new Composite(iconLabelComposite, SWT.NONE);
-    GridLayout lineAndIntroLayout = new GridLayout(1, true);
-    lineAndIntroLayout.verticalSpacing = 0;
-    lineAndIntroComposite.setLayout(lineAndIntroLayout);
-    GridData lineAndIntroGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-    lineAndIntroComposite.setLayoutData(lineAndIntroGridData);
+  private void buildSubComposite() {
+    this.subComposite = new Composite(this, SWT.NONE);
+    GridLayout subCompositelayout = new GridLayout(1, true);
+    this.subComposite.setLayout(subCompositelayout);
+    GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, true);
+    gridData.widthHint = ALIGNED_WIDTH;
+    this.subComposite.setLayoutData(gridData);
 
-    WrapLabel introLabel = new WrapLabel(lineAndIntroComposite, SWT.CENTER);
+    WrapLabel introLabel = new WrapLabel(this.subComposite, SWT.CENTER);
     introLabel.setText(Messages.chat_agentModeView_agentModeIntro);
     introLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     GridData introGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     introGridData.widthHint = ALIGNED_LABEL_WIDTH;
     introLabel.setLayoutData(introGridData);
 
-    WrapLabel warnLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
+    WrapLabel warnLabel = new WrapLabel(this.subComposite, SWT.CENTER);
     warnLabel.setText(Messages.chat_aiWarn_description);
     warnLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     GridData warnGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
@@ -95,30 +133,31 @@ public class AgentModeViewer extends BaseViewer {
     warnLabel.setLayoutData(warnGridData);
   }
 
-  private void buildSubComposite() {
-    Composite subComposite = new Composite(this, SWT.NONE);
+  private void buildInstructions() {
+    Composite instructionComposite = new Composite(this, SWT.NONE);
     GridLayout subCompositelayout = new GridLayout(1, true);
-    subComposite.setLayout(subCompositelayout);
-    GridData gridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    instructionComposite.setLayout(subCompositelayout);
+    GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, true);
     gridData.widthHint = ALIGNED_WIDTH;
-    subComposite.setLayoutData(gridData);
+    gridData.minimumHeight = 70;
+    instructionComposite.setLayoutData(gridData);
 
     // configure MCP icon with label
     this.configureMcpIcon = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
-    subComposite.addDisposeListener(e -> {
+    instructionComposite.addDisposeListener(e -> {
       if (this.configureMcpIcon != null && !this.configureMcpIcon.isDisposed()) {
         this.configureMcpIcon.dispose();
       }
     });
-    buildLabelWithIcon(subComposite, this.configureMcpIcon, Messages.chat_agentModeView_configureMcpSuffix);
+    buildLabelWithIcon(instructionComposite, this.configureMcpIcon, Messages.chat_agentModeView_configureMcpSuffix);
 
     // attach context icon with label
     this.attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    subComposite.addDisposeListener(e -> {
+    instructionComposite.addDisposeListener(e -> {
       if (this.attachContextIcon != null && !this.attachContextIcon.isDisposed()) {
         this.attachContextIcon.dispose();
       }
     });
-    buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_agentModeView_attachContextSuffix);
+    buildLabelWithIcon(instructionComposite, this.attachContextIcon, Messages.chat_agentModeView_attachContextSuffix);
   }
 }

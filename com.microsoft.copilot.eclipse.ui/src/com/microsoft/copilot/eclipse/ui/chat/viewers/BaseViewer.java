@@ -18,6 +18,7 @@ public abstract class BaseViewer extends Composite {
   public static final int ALIGNED_LABEL_WIDTH = 370;
   public static final int ALIGNED_SPACE_BETWEEN_ICON_AND_LABEL = 10;
   public static final int ALIGNED_MARGIN_TOP = 12;
+  public static final int SHOW_NARROW_VIEW_HEIGHT_THRESHOLD = 500;
 
   BaseViewer(Composite parent, int style) {
     super(parent, style);
@@ -69,6 +70,7 @@ public abstract class BaseViewer extends Composite {
    *
    * @param parent the parent composite
    * @param text the text for the link
+   * @param gridData the layout data for the link
    * @param listener the listener to be added to the link
    */
   protected void buildTextWithLinkAndListener(Composite parent, String text, GridData gridData, Listener listener) {

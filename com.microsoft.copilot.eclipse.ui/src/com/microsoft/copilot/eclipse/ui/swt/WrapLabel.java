@@ -82,11 +82,40 @@ public class WrapLabel {
     label.setLayoutData(layoutData);
   }
 
+  public GridData getLayoutData() {
+    return gridData;
+  }
+
   /**
    * Set the dispose listener of the label.
    */
   public void addDisposeListener(DisposeListener listener) {
     label.addDisposeListener(listener);
+  }
+
+  public boolean isDisposed() {
+    return label.isDisposed();
+  }
+
+  /**
+   * Get the visibility of the label.
+   */
+  public boolean getVisible() {
+    return label.getVisible();
+  }
+
+  /**
+   * Set the visibility of the label.
+   */
+  public void setVisible(boolean visible) {
+    label.setVisible(visible);
+  }
+
+  /**
+   * Request a layout for the label.
+   */
+  public void requestLayout() {
+    label.requestLayout();
   }
 
   private void updateWidth() {

@@ -199,20 +199,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   private void showLoadingPage() {
-    createContentWrapper();
-    createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createLoadingPage();
   }
 
   private void showBeforeLoginPage() {
-    createContentWrapper();
-    createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createBeforeLoginWelcomePage();
   }
 
   private void showNoSubscriptionPage() {
-    createContentWrapper();
-    createMainSection(new GridData(SWT.FILL, SWT.CENTER, true, true));
     createNoSubscriptionPage();
   }
 
@@ -224,7 +218,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     createContentWrapper();
 
     // main section
-    createMainSection(new GridData(SWT.FILL, SWT.FILL, true, true));
+    createMainSection();
 
     if (hasHistory) {
       createConversationPage();
@@ -248,7 +242,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     createContentWrapper();
 
     // main section
-    createMainSection(new GridData(SWT.FILL, SWT.FILL, true, true));
+    createMainSection();
 
     if (hasHistory) {
       createConversationPage();
@@ -284,14 +278,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.contentWrapper.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
   }
 
-  private void createMainSection(GridData gridData) {
+  private void createMainSection() {
     this.mainSection = new Composite(this.contentWrapper, SWT.NONE);
     GridLayout gl = new GridLayout(1, true);
     gl.marginLeft = 0;
     gl.marginRight = 0;
     gl.marginWidth = 0;
     this.mainSection.setLayout(gl);
-    this.mainSection.setLayoutData(gridData);
+    this.mainSection.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
   }
 
   private void createActionBar() {
@@ -302,8 +296,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void createLoadingPage() {
     clearChatView();
-    this.loadingViewer = new LoadingViewer(this.mainSection, SWT.NONE);
-    this.mainSection.layout();
+    this.loadingViewer = new LoadingViewer(parent, SWT.NONE);
+    this.loadingViewer.requestLayout();
   }
 
   /**
@@ -312,7 +306,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private void createConversationPage() {
     clearChatView();
     this.chatContentViewer = new ChatContentViewer(this.mainSection, SWT.NONE, this.chatServiceManager);
-    this.mainSection.layout(true, true);
+    this.chatContentViewer.requestLayout();
   }
 
   /**
@@ -321,25 +315,25 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private void createAfterLoginWelcomePage() {
     clearChatView();
     this.afterLoginWelcomeViewer = new AfterLoginWelcomeViewer(this.mainSection, SWT.NONE);
-    this.mainSection.layout();
+    this.afterLoginWelcomeViewer.requestLayout();
   }
 
   private void createBeforeLoginWelcomePage() {
     clearChatView();
     this.beforeLoginWelcomeViewer = new BeforeLoginWelcomeViewer(parent, SWT.NONE);
-    this.mainSection.layout();
+    this.beforeLoginWelcomeViewer.requestLayout();
   }
 
   private void createNoSubscriptionPage() {
     clearChatView();
-    this.beforeLoginWelcomeViewer = new NoSubscriptionViewer(this.mainSection, SWT.NONE);
-    this.mainSection.layout();
+    this.noSubscriptionViewer = new NoSubscriptionViewer(parent, SWT.NONE);
+    this.noSubscriptionViewer.requestLayout();
   }
 
   private void createAgentModePage() {
     clearChatView();
     this.agentModeViewer = new AgentModeViewer(this.mainSection, SWT.NONE);
-    this.mainSection.layout();
+    this.agentModeViewer.requestLayout();
   }
 
   private void refreshActionBarTextViewerAndButtons() {

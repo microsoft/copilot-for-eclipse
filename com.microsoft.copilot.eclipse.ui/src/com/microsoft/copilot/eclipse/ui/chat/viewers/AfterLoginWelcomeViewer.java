@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.viewers;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
@@ -22,6 +23,9 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
   private Font mainLabelFont;
   private Image attachContextIcon;
 
+  private Label copilotIconLabel;
+  private Composite subComposite;
+
   /**
    * Create the composite.
    *
@@ -36,6 +40,38 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     setLayout(layout);
     buildMainIconAndLabel();
     buildSubComposite();
+    buildInstructions();
+
+    if (parent != null && !parent.isDisposed()) {
+      Composite mainComposite = parent.getParent();
+      if (mainComposite != null && !mainComposite.isDisposed()) {
+        Composite contentWrapper = mainComposite.getParent();
+        if (contentWrapper != null && !contentWrapper.isDisposed()) {
+          Composite chatView = contentWrapper.getParent();
+          handleResize(chatView); // Call resize for the initial layout to prepare appropriate layout after view switch.
+          chatView.addControlListener(ControlListener.controlResizedAdapter(e -> handleResize(chatView)));
+        }
+      }
+    }
+  }
+
+  private void handleResize(Composite listenedComposite) {
+    int height = listenedComposite.getBounds().height;
+
+    boolean shouldShowNarrowView = height >= SHOW_NARROW_VIEW_HEIGHT_THRESHOLD;
+    if (this.subComposite != null && !this.subComposite.isDisposed()
+        && this.subComposite.getVisible() != shouldShowNarrowView) {
+      this.subComposite.setVisible(shouldShowNarrowView);
+      ((GridData) this.subComposite.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.subComposite.requestLayout();
+    }
+
+    if (this.copilotIconLabel != null && !this.copilotIconLabel.isDisposed()
+        && this.copilotIconLabel.getVisible() != shouldShowNarrowView) {
+      this.copilotIconLabel.setVisible(shouldShowNarrowView);
+      ((GridData) this.copilotIconLabel.getLayoutData()).exclude = !shouldShowNarrowView;
+      this.copilotIconLabel.requestLayout();
+    }
   }
 
   private void buildMainIconAndLabel() {
@@ -46,14 +82,14 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
     this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
-    Label icon = new Label(iconLabelComposite, SWT.NONE);
-    icon.addDisposeListener(e -> {
+    this.copilotIconLabel = new Label(iconLabelComposite, SWT.NONE);
+    this.copilotIconLabel.addDisposeListener(e -> {
       if (this.mainIcon != null && !this.mainIcon.isDisposed()) {
         this.mainIcon.dispose();
       }
     });
-    icon.setImage(mainIcon);
-    icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
+    this.copilotIconLabel.setImage(mainIcon);
+    this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
     label.setText(Messages.chat_initialChatView_title);
@@ -76,32 +112,41 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     GridData labelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
     labelGridData.widthHint = ALIGNED_LABEL_WIDTH;
     label.setLayoutData(labelGridData);
+  }
 
-    WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
+  private void buildSubComposite() {
+    this.subComposite = new Composite(this, SWT.NONE);
+    this.subComposite.setLayout(new GridLayout(1, true));
+    GridData gridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    gridData.widthHint = ALIGNED_LABEL_WIDTH;
+    this.subComposite.setLayoutData(gridData);
+
+    WrapLabel subLabel = new WrapLabel(this.subComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_aiWarn_description);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     GridData subLabelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     subLabelGridData.widthHint = ALIGNED_LABEL_WIDTH;
     subLabel.setLayoutData(subLabelGridData);
-
   }
 
-  private void buildSubComposite() {
-    Composite subComposite = new Composite(this, SWT.NONE);
-    subComposite.setLayout(new GridLayout(1, true));
+  private void buildInstructions() {
+    Composite instructionComposite = new Composite(this, SWT.NONE);
+    GridLayout subCompositelayout = new GridLayout(1, true);
+    instructionComposite.setLayout(subCompositelayout);
     GridData gridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-    gridData.widthHint = 175; // min width to avoid wrapping
-    subComposite.setLayoutData(gridData);
+    gridData.widthHint = ALIGNED_WIDTH;
+    gridData.minimumHeight = 70;
+    instructionComposite.setLayoutData(gridData);
 
     this.attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    subComposite.addDisposeListener(e -> {
+    instructionComposite.addDisposeListener(e -> {
       if (this.attachContextIcon != null && !this.attachContextIcon.isDisposed()) {
         this.attachContextIcon.dispose();
       }
     });
-    buildLabelWithIcon(subComposite, this.attachContextIcon, Messages.chat_initialChatView_attachContextSuffix);
+    buildLabelWithIcon(instructionComposite, this.attachContextIcon, Messages.chat_initialChatView_attachContextSuffix);
 
-    WrapLabel subLabel = new WrapLabel(subComposite, SWT.CENTER);
+    WrapLabel subLabel = new WrapLabel(instructionComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_initialChatView_useCommandsIntro);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
