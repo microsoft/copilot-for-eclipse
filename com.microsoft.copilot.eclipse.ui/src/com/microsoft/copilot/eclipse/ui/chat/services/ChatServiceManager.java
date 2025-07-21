@@ -17,7 +17,6 @@ public class ChatServiceManager implements IChatServiceManager {
   private ChatCompletionService chatCompletionService;
   private UserPreferenceService userPreferenceService;
   private AvatarService avatarService;
-  private AuthStatusService authStatusService;
   private AgentToolService agentToolService;
   private FileToolService fileToolService;
   private ReferencedFileService referencedFileService;
@@ -33,7 +32,6 @@ public class ChatServiceManager implements IChatServiceManager {
     chatCompletionService = new ChatCompletionService(this.lsConnection, this.authStatusManager);
     userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager);
     avatarService = new AvatarService(this.authStatusManager);
-    authStatusService = new AuthStatusService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
     fileToolService = new FileToolService(this.lsConnection);
     referencedFileService = new ReferencedFileService();
@@ -68,10 +66,6 @@ public class ChatServiceManager implements IChatServiceManager {
    */
   public AvatarService getAvatarService() {
     return avatarService;
-  }
-
-  public AuthStatusService getAuthStatusService() {
-    return authStatusService;
   }
 
   /**
@@ -117,7 +111,6 @@ public class ChatServiceManager implements IChatServiceManager {
     this.avatarService.dispose();
     this.chatCompletionService.dispose();
     this.userPreferenceService.dispose();
-    this.authStatusService.dispose();
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpToolService.dispose();

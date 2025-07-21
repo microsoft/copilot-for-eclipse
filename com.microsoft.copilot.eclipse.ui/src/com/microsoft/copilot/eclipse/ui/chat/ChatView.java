@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepTitles;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
-import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -100,7 +98,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             CopilotCore.LOGGER.error(new IllegalStateException("Chat service manager is not ready."));
             return;
           }
-          ChatView.this.chatServiceManager.getAuthStatusService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
           ChatView.this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
@@ -109,7 +106,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       };
       Job.getJobManager().addJobChangeListener(adapter);
     } else {
-      this.chatServiceManager.getAuthStatusService().bindChatView(this);
       this.chatServiceManager.getUserPreferenceService().bindChatView(this);
       this.chatServiceManager.getAgentToolService().bindChatView(this);
       this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
@@ -122,6 +118,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         String previousInput = (String) properties.get("previousInput");
         boolean needCreateUserTurn = (boolean) properties.get("needCreateUserTurn");
         onSend(workDoneToken, previousInput, needCreateUserTurn);
+      }
+    });
+
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, event -> {
+      Object status = event.getProperty(IEventBroker.DATA);
+      if (status != null && status instanceof CopilotStatusResult statusResult) {
+        buildViewFor(statusResult.getStatus());
       }
     });
   }
@@ -174,7 +177,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       } else {
         disposeChildren(parent);
         showChatPage(chatMode);
-        
+
         if (StringUtils.isNotBlank(this.cachedInputContent)) {
           restoreInputContent();
         }
@@ -600,10 +603,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     ChatEventsManager p = CopilotCore.getPlugin().getChatEventsManager();
     if (p != null) {
       p.removeChatProgressListener(this);
-    }
-    // Unbind from the auth status service to dispose of the side effect
-    if (this.chatServiceManager != null) {
-      this.chatServiceManager.getAuthStatusService().unbindChatView(this);
     }
     if (this.actionBar != null) {
       this.actionBar.unregisterMessageListener(this);
