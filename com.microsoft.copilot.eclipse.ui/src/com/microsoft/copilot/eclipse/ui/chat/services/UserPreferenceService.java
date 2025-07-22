@@ -89,6 +89,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         return modelsForCurrentMode;
       }, (Map<String, CopilotModel> currentModels) -> {
         modelObservable.setValue(currentModels);
+        updateActiveModelForModeChange();
       });
     });
     init();
@@ -257,6 +258,26 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   public void setFallBackModelAsActiveModel() {
     if (fallbackModel != null) {
       setActiveModel(fallbackModel.getModelName());
+    }
+  }
+
+  /**
+   * Check if active model is valid for the current mode, otherwise set the default model.
+   *
+   * @param model the current active model
+   */
+  private void updateActiveModelForModeChange() {
+    CopilotModel model = activeModelObservable.getValue();
+    if (ensureModelCanBeEnabled(model, getActiveChatMode())) {
+      return;
+    }
+    if (defaultModel != null) {
+      UserPreference preference = getUserPreference();
+      preference.setChatModel(defaultModel.getId());
+      persistUserPreference();
+      ensureRealm(() -> {
+        activeModelObservable.setValue(defaultModel);
+      });
     }
   }
 
@@ -435,21 +456,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       });
 
       ISideEffect activeModelSideEffect = ISideEffect.create(() -> {
-        CopilotModel activeModel = this.activeModelObservable.getValue();
-        ChatMode activeMode = this.activeChatModeObservable.getValue();
-        if (ensureModelCanBeEnabled(activeModel, activeMode)) {
-          return activeModel.getModelName();
-        } else if (defaultModel != null) {
-          return defaultModel.getModelName();
-        }
-        return null;
-      }, (String modelName) -> {
-        if (modelName == null || combo.isDisposed()) {
+        return this.activeModelObservable.getValue();
+      }, (CopilotModel activeModel) -> {
+        if (activeModel == null || combo.isDisposed()) {
           return;
         }
-        int index = getModelIndexFromComboByModelName(combo, modelName);
+        int index = getModelIndexFromComboByModelName(combo, activeModel.getModelName());
         if (index >= 0) {
-          updateSelectedItem(combo, modelName, index);
+          updateSelectedItem(combo, activeModel.getModelName(), index);
         }
       });
 
