@@ -148,10 +148,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         showNoSubscriptionPage();
         break;
       default:
-        showChatPage(chatServiceManager.getUserPreferenceService().getActiveChatMode());
+        if (chatServiceManager != null) {
+          showChatPage(chatServiceManager.getUserPreferenceService().getActiveChatMode());
+        }
         break;
     }
-    this.parent.layout();
+    this.parent.requestLayout();
   }
 
   /**
