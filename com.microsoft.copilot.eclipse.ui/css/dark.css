@@ -17,3 +17,13 @@
 	color: #FFFFFF;
 	background-color: #0078D4;
 }
+
+#not-supported-referenced-file-name {
+	color: #b2640A;
+	background-color: #2f2f2f;
+}
+
+#normal-referenced-file-name {
+	color: #aaaaaa;
+	background-color: #2f2f2f;
+}

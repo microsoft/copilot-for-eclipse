@@ -30,7 +30,8 @@ public class CurrentReferencedFile extends ReferencedFile {
    * Creates a new CurrentReferencedFile.
    */
   public CurrentReferencedFile(Composite parent) {
-    super(parent, null);
+    //No need to get supportVision here, as currentFile will not be an image file.
+    super(parent, null, false);
 
     // change to 4 col layout
     GridLayout layout = new GridLayout(4, false);

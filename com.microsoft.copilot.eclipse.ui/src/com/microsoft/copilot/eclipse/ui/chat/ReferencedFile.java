@@ -1,8 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyleRange;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Image;
@@ -17,6 +20,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -24,10 +28,12 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ReferencedFile extends Composite {
   private Label lblfileIcon;
-  private Label lblFileName;
+  private StyledText lblFileName;
   protected Label lblClose;
   private Image lblImage;
+  private Image warningImage;
   private IFile file;
+  private boolean isUnSupportedFile = false;
 
   // make it static to avoid creating multiple instances of the same label provider
   protected static WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
@@ -35,8 +41,9 @@ public class ReferencedFile extends Composite {
   /**
    * Creates a new TwinButton.
    */
-  public ReferencedFile(Composite parent, IFile file) {
+  public ReferencedFile(Composite parent, IFile file, boolean isUnSupportedFile) {
     super(parent, SWT.BORDER);
+    this.isUnSupportedFile = isUnSupportedFile;
     GridLayout layout = new GridLayout(3, false);
     layout.marginWidth = 4;
     layout.marginHeight = 2;
@@ -45,8 +52,10 @@ public class ReferencedFile extends Composite {
     lblfileIcon = new Label(this, SWT.NONE);
     lblfileIcon.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     UiUtils.useParentBackground(this.lblfileIcon);
-    lblFileName = new Label(this, SWT.NONE);
+    lblFileName = new StyledText(this, SWT.NONE);
+    lblFileName.setEditable(false);
     lblFileName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
+    lblFileName.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
     UiUtils.useParentBackground(this.lblFileName);
 
     MouseAdapter mouseAdapter = new MouseAdapter() {
@@ -68,7 +77,15 @@ public class ReferencedFile extends Composite {
 
     setFile(file);
     UiUtils.useParentBackground(this);
-    this.addDisposeListener(e -> lblImage.dispose());
+
+    this.addDisposeListener(e -> {
+      if (lblImage != null && !lblImage.isDisposed()) {
+        lblImage.dispose();
+      }
+      if (warningImage != null && !warningImage.isDisposed()) {
+        warningImage.dispose();
+      }
+    });
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
   }
 
@@ -99,11 +116,19 @@ public class ReferencedFile extends Composite {
   }
 
   /**
+   * Returns whether this file is unsupported by the current model.
+   */
+  public boolean isFileUnSupported() {
+    return isUnSupportedFile;
+  }
+
+  /**
    * Set the file for this widget.
    */
   protected void setFile(@Nullable IFile file) {
     this.file = file;
     RowData layoutData = getLayoutData() == null ? new RowData() : (RowData) getLayoutData();
+
     if (file == null) {
       // Hide the file name label
       layoutData.exclude = true;
@@ -112,11 +137,13 @@ public class ReferencedFile extends Composite {
       setVisible(false);
     } else {
       lblFileName.setText(file.getName());
-      Image image = labelProvider.getImage(file);
-      if (image != null) {
-        lblfileIcon.setImage(image);
-      }
       lblClose.setImage(lblImage);
+
+      if (isUnSupportedFile) {
+        setupUnsupportedFileDisplay();
+      } else {
+        setupNormalFileDisplay();
+      }
 
       // Show the file name label
       layoutData.exclude = false;
@@ -129,6 +156,44 @@ public class ReferencedFile extends Composite {
     if (chatView != null) {
       chatView.layout(true, true);
     }
+  }
+
+  /**
+   * Setup display for unsupported files (e.g., images without vision support).
+   */
+  private void setupUnsupportedFileDisplay() {
+    // Set warning icon
+    if (warningImage == null || warningImage.isDisposed()) {
+      warningImage = UiUtils.buildImageFromPngPath("/icons/message_warning.png");
+    }
+    lblfileIcon.setImage(warningImage);
+    // Set tooltip with model name
+    String modelName = CopilotUi.getPlugin().getChatServiceManager().getUserPreferenceService().getActiveModel()
+        .getModelName();
+    String tooltipText = String.format(Messages.chat_referencedFile_noVision_tooltip, modelName);
+    lblfileIcon.setToolTipText(tooltipText);
+    lblFileName.setToolTipText(tooltipText);
+    lblClose.setToolTipText(tooltipText);
+    lblFileName.setData(CSSSWTConstants.CSS_ID_KEY, "not-supported-referenced-file-name");
+
+    // Set the file name label to strikeout
+    StyleRange style = new StyleRange();
+    style.start = 0;
+    style.length = lblFileName.getText().length();
+    style.strikeout = true;
+
+    lblFileName.setStyleRange(style);
+  }
+
+  /**
+   * Setup display for normal supported files.
+   */
+  private void setupNormalFileDisplay() {
+    Image image = labelProvider.getImage(file);
+    if (image != null) {
+      lblfileIcon.setImage(image);
+    }
+    lblFileName.setData(CSSSWTConstants.CSS_ID_KEY, "normal-referenced-file-name");
   }
 
   /**

@@ -35,6 +35,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -64,6 +65,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   // Track side effects for each combo
   private final Map<Combo, ISideEffect[]> modelComboSideEffects = new HashMap<>();
   private final Map<Combo, ISideEffect[]> chatModeComboSideEffects = new HashMap<>();
+  private ISideEffect actionBarSideEffect;
   private ISideEffect chatViewSideEffect;
 
   /**
@@ -321,6 +323,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
+   * Check if the active model supports vision capabilities.
+   */
+  public boolean isVisionSupported() {
+    CopilotModel model = getActiveModel();
+    return model != null && model.getCapabilities().supports().vision();
+  }
+
+  /**
    * Bind a chat mode picker combo to this service.
    *
    * @param combo the combo to bind
@@ -473,6 +483,42 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       // Add a dispose listener to auto-unbind when the combo is disposed
       combo.addDisposeListener(e -> unbindModelPicker(combo));
     });
+  }
+
+  /**
+   * Bind the action bar to respond to model vision capability changes.
+   *
+   * @param actionBar the action bar to bind
+   */
+  public void bindActionBarForSupportVisionChange(ActionBar actionBar) {
+    // First unbind if previously bound to prevent leaks
+    unbindActionBarForSupportVisionChange(actionBar);
+
+    ensureRealm(() -> {
+      actionBarSideEffect = ISideEffect.create(() -> {
+        return isVisionSupported();
+      }, (Boolean supportVision) -> {
+        if (actionBar.isDisposed()) {
+          return;
+        }
+        actionBar.updateReferencedWidgetsWithSupportVision(supportVision);
+      });
+
+      // Add a dispose listener to auto-unbind when the action bar is disposed
+      actionBar.addDisposeListener(e -> unbindActionBarForSupportVisionChange(actionBar));
+    });
+  }
+
+  /**
+   * Unbind and dispose side effects for a specific action bar.
+   *
+   * @param actionBar the action bar to unbind
+   */
+  public void unbindActionBarForSupportVisionChange(ActionBar actionBar) {
+    if (actionBarSideEffect != null) {
+      actionBarSideEffect.dispose();
+      actionBarSideEffect = null;
+    }
   }
 
   private String[] composeModelList(Combo combo, Map<String, CopilotModel> modelMap) {

@@ -149,7 +149,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
             if (actionBar.isDisposed()) {
               return;
             }
-            actionBar.updateReferencedFiles(List.copyOf(files.values()));
+            actionBar.updateReferencedWidgetsWithFiles(List.copyOf(files.values()));
           });
     });
   }

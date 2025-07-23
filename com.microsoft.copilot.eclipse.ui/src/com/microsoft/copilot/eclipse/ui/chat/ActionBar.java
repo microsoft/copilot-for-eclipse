@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,6 +47,8 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -125,6 +128,9 @@ public class ActionBar extends Composite implements NewConversationListener {
     referencedFileService.bindCurrentFileWidget(currentFileRef);
     referencedFileService.bindReferencedFilesWidget(this);
 
+    UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
+    userPreferenceService.bindActionBarForSupportVisionChange(this);
+
     ChatInputTextViewer tv = new ChatInputTextViewer(this, chatServiceManager);
     tv.setEditable(true);
     tv.addTextListener(new ITextListener() {
@@ -151,8 +157,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     ca.enableAutoActivateCompletionOnType(true);
     ca.enableCompletionProposalTriggerChars(true);
     ca.enableAutoActivation(true);
-    ca.setContentAssistProcessor(new ChatAssistProcessor(tv, chatServiceManager),
-        IDocument.DEFAULT_CONTENT_TYPE);
+    ca.setContentAssistProcessor(new ChatAssistProcessor(tv, chatServiceManager), IDocument.DEFAULT_CONTENT_TYPE);
     ca.setProposalPopupOrientation(IContentAssistant.PROPOSAL_STACKED);
     ca.enableColoredLabels(true);
     ca.setAutoActivationDelay(0);
@@ -236,10 +241,38 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   /**
-   * Update the referenced file widgets when the file set changes.
+   * Update the referenced file widgets when supportVision changes.
+   *
+   * @param supportVision true if the current model supports vision, false otherwise
    */
-  public void updateReferencedFiles(List<IFile> files) {
+  public void updateReferencedWidgetsWithSupportVision(boolean supportVision) {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      List<IFile> referencedFiles = chatServiceManager.getReferencedFileService().getReferencedFiles();
+      updateReferencedFilesInternal(referencedFiles, supportVision);
+    }, this);
+  }
+
+  /**
+   * Update the referenced file widgets when the file set changes.
+   *
+   * @param files the list of files to update
+   */
+  public void updateReferencedWidgetsWithFiles(List<IFile> files) {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      boolean supportVision = chatServiceManager.getUserPreferenceService().isVisionSupported();
+      updateReferencedFilesInternal(files, supportVision);
+    }, this);
+  }
+
+  /**
+   * Update the referenced file widgets with the given files and supportVision flag.
+   */
+  private void updateReferencedFilesInternal(List<IFile> files, boolean supportVision) {
     if (files == null) {
+      return;
+    }
+
+    if (this.cmpFileRef == null || this.cmpFileRef.isDisposed()) {
       return;
     }
 
@@ -250,7 +283,8 @@ public class ActionBar extends Composite implements NewConversationListener {
     }
 
     for (IFile file : files) {
-      new ReferencedFile(this.cmpFileRef, file);
+      boolean isUnSupportedFile = !supportVision && ChatMessageUtils.isImageFile(file);
+      new ReferencedFile(this.cmpFileRef, file, isUnSupportedFile);
     }
     refreshLayout();
   }
