@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.9.2
+### Fixed
+- Update CLS to 1.347.0.
+
 ## 0.9.1
 ### Fixed
 - Reset history to avoid skipping the main section rendering. [#970](https://github.com/microsoft/copilot-eclipse/pull/970)
