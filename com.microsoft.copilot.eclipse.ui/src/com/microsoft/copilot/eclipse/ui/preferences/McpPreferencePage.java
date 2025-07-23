@@ -24,16 +24,12 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ControlAdapter;
-import org.eclipse.swt.events.ControlEvent;
-import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbench;
@@ -52,11 +48,9 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class McpPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
   private static final int GROUP_HEIGHT_HINT = 300;
-  private static final int NOTE_LABEL_MARGIN = 20;
   private static final Gson GSON = new Gson();
 
   private Group toolsGroup;
-
   private Tree toolsTree;
 
   /**
@@ -128,18 +122,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         1));
     // @formatter:on
     addField(mcpField);
-    // add note to mcp field
-    var mcpNoteComposite = new Composite(mcpGroup, SWT.NONE);
-    GridLayout gridLayout = new GridLayout(2, false);
-    gridLayout.marginLeft = -3;
-    gridLayout.marginBottom = 1;
-    mcpNoteComposite.setLayout(gridLayout);
-    mcpNoteComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
-    Label mcpNoteContentLabel = new Label(mcpNoteComposite, SWT.WRAP);
-    GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
-    gd.widthHint = 400;
-    mcpNoteContentLabel.setLayoutData(gd);
-    mcpNoteContentLabel.setText(Messages.preferences_page_mcp_note_content);
+    
+    // add note to mcp field using WrappableNoteLabel
+    new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix, 
+        Messages.preferences_page_mcp_note_content);
 
     toolsGroup = new Group(parent, SWT.WRAP);
     toolsGroup.setLayout(gl);
@@ -150,22 +136,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Set equal height constraint for both groups
     ((GridData) mcpGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
     ((GridData) toolsGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
-
-    ControlListener controlListener = new ControlAdapter() {
-      @Override
-      public void controlResized(ControlEvent e) {
-        // resize the note label
-        int width = McpPreferencePage.this.getFieldEditorParent().getSize().x - NOTE_LABEL_MARGIN;
-        GridData mcpNoteContentGrid = new GridData(SWT.FILL, SWT.FILL, true, true);
-        mcpNoteContentGrid.widthHint = width;
-        mcpNoteContentLabel.setLayoutData(mcpNoteContentGrid);
-        McpPreferencePage.this.getFieldEditorParent().layout();
-      }
-    };
-    parent.addControlListener(controlListener);
-    parent.addDisposeListener(e -> {
-      parent.removeControlListener(controlListener);
-    });
   }
 
   private boolean validateMcpField(StringFieldEditor mcpField) {

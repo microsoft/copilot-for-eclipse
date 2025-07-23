@@ -23,13 +23,12 @@ public class CopilotLanguageServerSettings {
   /**
    * Http settings.
    */
-  public class Http {
+  public static class Http {
 
     private String proxy;
     @SerializedName("proxyStrictSSL")
     private boolean proxyStrictSsl;
     private String proxyKerberosServicePrincipal;
-
 
     /**
      * get proxy.
@@ -121,7 +120,7 @@ public class CopilotLanguageServerSettings {
   /**
    * Github Enterprise settings.
    */
-  public class GithubEnterprise {
+  public static class GithubEnterprise {
     private String uri;
 
     /**
@@ -174,7 +173,7 @@ public class CopilotLanguageServerSettings {
   /**
    * Github settings.
    */
-  public class GitHubSettings {
+  public static class GitHubSettings {
     @SerializedName("copilot")
     private CopilotSettings copilotSettings;
 
@@ -191,6 +190,15 @@ public class CopilotLanguageServerSettings {
 
     public void setCopilotSettings(CopilotSettings copilotSettings) {
       this.copilotSettings = copilotSettings;
+    }
+
+    /**
+     * set workspace Copilot instructions.
+     *
+     * @param workspaceInstructions the workspace instructions to set
+     */
+    public void setWorkspaceCopilotInstructions(String workspaceInstructions) {
+      this.copilotSettings.setWorkspaceCopilotInstructions(workspaceInstructions);
     }
 
     @Override
@@ -224,15 +232,19 @@ public class CopilotLanguageServerSettings {
   /**
    * Copilot settings.
    */
-  public class CopilotSettings {
+  public static class CopilotSettings {
     @SerializedName("mcp")
     private String mcpServers;
+
+    @SerializedName("globalCopilotInstructions")
+    private String workspaceCopilotInstructions;
 
     /**
      * Constructor.
      */
     public CopilotSettings() {
-      this.mcpServers = "";
+      this.mcpServers = null;
+      this.workspaceCopilotInstructions = null;
     }
 
     public String getMcpServers() {
@@ -243,16 +255,25 @@ public class CopilotLanguageServerSettings {
       this.mcpServers = mcpServers;
     }
 
+    public String getWorkspaceCopilotInstructions() {
+      return workspaceCopilotInstructions;
+    }
+
+    public void setWorkspaceCopilotInstructions(String workspaceCopilotInstructions) {
+      this.workspaceCopilotInstructions = workspaceCopilotInstructions;
+    }
+
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.add("mcpServers", mcpServers);
+      builder.add("workspaceCopilotInstructions", workspaceCopilotInstructions);
       return builder.toString();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(mcpServers);
+      return Objects.hash(mcpServers, workspaceCopilotInstructions);
     }
 
     @Override
@@ -267,7 +288,8 @@ public class CopilotLanguageServerSettings {
         return false;
       }
       CopilotSettings other = (CopilotSettings) obj;
-      return Objects.equals(mcpServers, other.mcpServers);
+      return Objects.equals(mcpServers, other.mcpServers)
+          && Objects.equals(workspaceCopilotInstructions, other.workspaceCopilotInstructions);
     }
   }
 
@@ -389,8 +411,7 @@ public class CopilotLanguageServerSettings {
   }
 
   private String parseMcpServers(String mcpServersPreference) {
-    mcpServersPreference = mcpServersPreference.trim(); // ls does not accept blank string, empty string is ok
-    if (StringUtils.isEmpty(mcpServersPreference)) {
+    if (StringUtils.isBlank(mcpServersPreference)) {
       return mcpServersPreference;
     }
 
@@ -407,7 +428,7 @@ public class CopilotLanguageServerSettings {
       return mcpServersPreference;
     } catch (JsonParseException e) {
       CopilotCore.LOGGER.error("Failed to parse MCP servers JSON", e);
-      return StringUtils.EMPTY;
+      return null;
     }
   }
 

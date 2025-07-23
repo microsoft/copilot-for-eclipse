@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.perspectives;
 
-import org.eclipse.tm.terminal.view.ui.interfaces.IUIConstants;
 import org.eclipse.ui.IFolderLayout;
 import org.eclipse.ui.IPageLayout;
 import org.eclipse.ui.IPerspectiveFactory;

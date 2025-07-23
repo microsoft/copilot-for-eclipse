@@ -1,6 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
@@ -21,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.CopilotSettings;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +42,7 @@ class LanguageServerSettingManagerTests {
     // when no proxy is applicable
     // arrange
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn(null);
     var params = new DidChangeConfigurationParams();
     params.setSettings(new CopilotLanguageServerSettings());
 
@@ -65,7 +68,7 @@ class LanguageServerSettingManagerTests {
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn(null);
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://localhost:8080");
@@ -95,7 +98,7 @@ class LanguageServerSettingManagerTests {
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn("");
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn(null);
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://user:password@localhost:8080");
@@ -110,7 +113,75 @@ class LanguageServerSettingManagerTests {
     // assert
     verify(mockLsConnection, times(1)).updateConfig(params);
   }
+  
+  private void setupWorkspaceInstructionsMocks(boolean enabled, String instructions) {
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+    when(mockPreferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL)).thenReturn(false);
+    when(mockPreferenceStore.getString(Constants.MCP)).thenReturn(null);
+    when(mockPreferenceStore.getString(Constants.PROXY_KERBEROS_SP)).thenReturn(null);
+    when(mockPreferenceStore.getString(Constants.GITHUB_ENTERPRISE)).thenReturn(null);
+    when(mockPreferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)).thenReturn(enabled);
+    if (enabled && instructions != null) {
+      when(mockPreferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE)).thenReturn(instructions);
+    }
+  }
 
+  @Test
+  void testUpdateConfigShouldBeCalledWhenWorkspaceInstructionsEnabledWithContent() {
+    // arrange
+    IProxyService mockProxyService = mock(IProxyService.class);
+    CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
+    setupWorkspaceInstructionsMocks(true, "Test instructions");
+
+    DidChangeConfigurationParams params = new DidChangeConfigurationParams();
+    CopilotSettings copilotSettings = new CopilotSettings();
+    copilotSettings.setWorkspaceCopilotInstructions("Test instructions");
+    CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
+    settings.getGithubSettings().setCopilotSettings(copilotSettings);
+    params.setSettings(settings);
+
+    // act
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+    manager.updateProxySettings();
+    manager.syncConfiguration();
+
+    // assert
+    verify(mockPreferenceStore, times(1)).getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE);
+    verify(mockLsConnection, times(1)).updateConfig(params);
+    
+    CopilotSettings capturedSettings = ((CopilotLanguageServerSettings) params.getSettings()).getGithubSettings().getCopilotSettings();
+    assertEquals("Test instructions", capturedSettings.getWorkspaceCopilotInstructions());
+    assertNull(capturedSettings.getMcpServers(), "Custom instructions update should not set MCP servers");
+  }
+  
+  @Test
+  void testUpdateConfigShouldBeCalledWithoutInstructionWhenWorkspaceInstructionsDisabled() {
+    // arrange
+    IProxyService mockProxyService = mock(IProxyService.class);
+    CopilotLanguageServerConnection mockLsConnection = mock(CopilotLanguageServerConnection.class);
+    setupWorkspaceInstructionsMocks(false, null);
+
+    // Expected params should have empty workspace instructions since it's disabled
+    DidChangeConfigurationParams expectedParams = new DidChangeConfigurationParams();
+    CopilotLanguageServerSettings expectedSettings = new CopilotLanguageServerSettings();
+    expectedParams.setSettings(expectedSettings);
+
+    // act
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+    manager.updateProxySettings();
+    manager.syncConfiguration();
+
+    // assert - verify that updateConfig is called with settings that have empty workspace instructions
+    verify(mockPreferenceStore, times(0)).getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE);
+    verify(mockLsConnection, times(1)).updateConfig(expectedParams);
+    
+    CopilotSettings capturedSettings = ((CopilotLanguageServerSettings) expectedParams.getSettings()).getGithubSettings().getCopilotSettings();
+    assertNull(capturedSettings.getWorkspaceCopilotInstructions());
+    assertNull(capturedSettings.getMcpServers(), "Custom instructions update should not set MCP servers");
+  }
+  
   @Test
   void testUpdateAutoCompletionSetting() {
     IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();

@@ -20,6 +20,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.GitHubSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsStatusCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpToolStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpToolsStatusCollection;
@@ -63,6 +64,14 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().setMcpServers(preferenceStore.getString(Constants.MCP));
     getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
     getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
+
+    // Set workspace context instructions when it is enabled
+    if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
+      getSettings().getGithubSettings()
+          .setWorkspaceCopilotInstructions(preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE));
+    } else {
+      getSettings().getGithubSettings().setWorkspaceCopilotInstructions(null);
+    }
   }
 
   /**
@@ -107,6 +116,20 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.MCP_TOOLS_STATUS:
         updateMcpToolsStatus(preferenceStore.getString(Constants.MCP_TOOLS_STATUS));
         return;
+      case Constants.CUSTOM_INSTRUCTIONS_WORKSPACE:
+        String workspaceInstructions = preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE);
+        settings.getGithubSettings().setWorkspaceCopilotInstructions(workspaceInstructions);
+        if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
+          GitHubSettings githubSettings = new GitHubSettings();
+          githubSettings.setWorkspaceCopilotInstructions(workspaceInstructions);
+          singleSetting = new CopilotLanguageServerSettings(null, null, null, githubSettings);
+          break;
+        }
+        return;
+      case Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED:
+        singleSetting = updateWorkspaceInstructionEnabled(
+            preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED));
+        break;
       default:
         return;
     }
@@ -145,7 +168,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * Updates the MCP tools status.
    *
    * @param mcpToolsStatus the MCP tools status in JSON format. e.g.
-   *     {"server1":{"tool1":true,"tool2":false},"server2":{"tool1":true}}
+   *        {"server1":{"tool1":true,"tool2":false},"server2":{"tool1":true}}
    */
   private void updateMcpToolsStatus(String mcpToolsStatus) {
     try {
@@ -241,6 +264,23 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
     proxyString += host + ":" + port;
     return proxyString;
+  }
+
+  /**
+   * Updates the workspace instruction enabled/disabled state and manages the instruction content accordingly. This
+   * method is called when the user toggles the workspace instructions on or off in preferences. When enabled, it loads
+   * the stored workspace instructions; when disabled, it clears them.
+   *
+   * @param isEnabled true to enable workspace instructions and load the stored content, false to disable them and clear
+   *        the content.
+   * @return the CopilotLanguageServerSettings to sync with the language server if workspace instructions are being
+   *         changed.
+   */
+  private CopilotLanguageServerSettings updateWorkspaceInstructionEnabled(boolean isEnabled) {
+    GitHubSettings githubSettings = new GitHubSettings();
+    githubSettings.setWorkspaceCopilotInstructions(
+        isEnabled ? preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE) : null);
+    return new CopilotLanguageServerSettings(null, null, null, githubSettings);
   }
 
   /**

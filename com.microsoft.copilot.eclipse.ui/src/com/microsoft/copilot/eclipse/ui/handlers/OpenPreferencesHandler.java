@@ -19,6 +19,8 @@ public class OpenPreferencesHandler extends AbstractHandler {
       "com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage";
 
   public static final String mcpPreferencePage = "com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage";
+  public static final String customInstructionsPreferencePage = 
+      "com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage";
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -32,7 +34,7 @@ public class OpenPreferencesHandler extends AbstractHandler {
       dialog = PreferencesUtil.createPreferenceDialogOn(shell, activePageId, pageIds, null);
     } else {
       dialog = PreferencesUtil.createPreferenceDialogOn(shell, copilotPreferencesPage,
-          new String[] { mcpPreferencePage }, null);
+          new String[] { customInstructionsPreferencePage, mcpPreferencePage }, null);
     }
 
     dialog.open();

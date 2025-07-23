@@ -16,7 +16,6 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
@@ -35,9 +34,9 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class CopilotPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
   private Composite parent;
-  private ControlListener controlListener;
   private ProxyConfigLinkListener proxyConfigLinkListener;
   private Link link;
+  private ControlListener controlListener;
 
   /**
    * Constructor.
@@ -92,18 +91,8 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     bfeSsl.getDescriptionControl(ctnSsl).setToolTipText(Messages.preferences_page_enable_strict_ssl_tooltip);
     addField(bfeSsl);
 
-    // add Note
-    var ctnNote = new Composite(grpProxy, SWT.NONE);
-    ctnNote.setLayout(glTextIndent);
-    ctnNote.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
-    Label lblProxyNoteContent = new Label(ctnNote, SWT.WRAP);
-    lblProxyNoteContent.setText(Messages.preferences_page_note_content);
-    GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
-    gd.widthHint = 400;
-    lblProxyNoteContent.setLayoutData(gd);
-    // add kerberos sp field
-    // addField(
-    // new StringFieldEditor(Constants.PROXY_KERBEROS_SP, Messages.preferences_page_proxy_kerberos_sp, grpProxy));
+    // add Note using WrappableNoteLabel
+    new WrappableNoteLabel(grpProxy, Messages.preferences_page_note_prefix, Messages.preferences_page_note_content);
 
     // auth group
     Group grpAuth = new Group(parent, SWT.NONE);
@@ -134,30 +123,26 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     workspaceContextField.getDescriptionControl(chatComposite).setLayoutData(workspaceContextFieldGridData);
 
     addField(workspaceContextField);
-    Composite chatNoteComposite = new Composite(chatGroup, SWT.NONE);
-    chatNoteComposite.setLayout(glTextIndent);
-    chatNoteComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
-    Label chatNoteContentLabel = new Label(chatNoteComposite, SWT.WRAP);
-    GridData chatNoteContentLabelGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    chatNoteContentLabelGridData.widthHint = 400;
-    chatNoteContentLabel.setLayoutData(chatNoteContentLabelGridData);
-    chatNoteContentLabel.setText(Messages.preferences_page_watched_files_note_content);
 
-    this.controlListener = new ControlAdapter() {
+    // add chat note using WrappableNoteLabel
+    new WrappableNoteLabel(chatGroup, Messages.preferences_page_note_prefix,
+        Messages.preferences_page_watched_files_note_content);
+
+    // Add control listener to handle workspace context field resizing
+    controlListener = new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
-        // resize the note label
+        // resize the workspace context field description
         var pg = CopilotPreferencesPage.this;
         int width = pg.getFieldEditorParent().getSize().x - 20;
-
-        ((GridData) lblProxyNoteContent.getLayoutData()).widthHint = width;
-        ((GridData) chatNoteContentLabel.getLayoutData()).widthHint = width;
         ((GridData) workspaceContextField.getDescriptionControl(chatComposite).getLayoutData()).widthHint = width;
-
         pg.getFieldEditorParent().layout();
       }
     };
     parent.addControlListener(controlListener);
+    parent.addDisposeListener(e -> {
+      parent.removeControlListener(controlListener);
+    });
   }
 
   /**
@@ -180,11 +165,11 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
     boolean result = super.performOk();
     boolean newWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
-    
+
     if (oldWorkspaceContextValue ^ newWorkspaceContextValue) {
       boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
           Messages.preferences_page_watched_files_restart_question);
-      
+
       if (restart) {
         try {
           // Explicitly save the preferences to disk to ensure they persist across the restart
@@ -201,15 +186,15 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
         });
       }
     }
-    
+
     return result;
   }
 
   @Override
   public void dispose() {
-    parent.removeControlListener(controlListener);
-    link.removeSelectionListener(proxyConfigLinkListener);
-    parent.dispose();
+    if (link != null && !link.isDisposed() && proxyConfigLinkListener != null) {
+      link.removeSelectionListener(proxyConfigLinkListener);
+    }
     super.dispose();
   }
 }

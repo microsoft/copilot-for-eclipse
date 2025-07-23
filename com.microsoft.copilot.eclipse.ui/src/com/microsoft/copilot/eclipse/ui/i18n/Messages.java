@@ -82,7 +82,13 @@ public final class Messages extends NLS {
   public static String preferences_page_mcp_note_content;
   public static String preferences_page_mcp_tools_settings;
   public static String preferences_page_mcp_server_init_error;
-  public static String preferences_page_note_text;
+  public static String preferences_page_custom_instructions_copilot_instructions;
+  public static String preferences_page_custom_instructions_copilot_instructions_desc;
+  public static String preferences_page_custom_instructions_copilot_instructions_note;
+  public static String preferences_page_custom_instructions_workspace;
+  public static String preferences_page_custom_instructions_workspace_enable;
+  public static String preferences_page_custom_instructions_workspace_tooltip;
+  public static String preferences_page_note_prefix;
   public static String preferences_page_note_content;
   public static String chat_topBanner_newConversationButton_Tooltip;
   public static String chat_topBanner_defaultChatTitle;
@@ -91,6 +97,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_attachContextButton_Tooltip;
   public static String chat_actionBar_sendButton_Tooltip;
   public static String chat_actionBar_cancelButton_Tooltip;
+  public static String chat_actionBar_toolButton_toolTip;
   public static String chat_welcomeView_title;
   public static String chat_welcomeView_description;
   public static String chat_welcomeView_agentSuffix;

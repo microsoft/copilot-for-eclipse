@@ -289,7 +289,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
       this.mcpToolButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       this.mcpToolButton.setImage(mcpToolImage);
-      this.mcpToolButton.setToolTipText(Messages.preferences_page_mcp_tools_settings);
+      this.mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_toolTip);
       GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -302,8 +302,9 @@ public class ActionBar extends Composite implements NewConversationListener {
           parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
               OpenPreferencesHandler.mcpPreferencePage);
 
-          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds", String.join(",",
-              OpenPreferencesHandler.copilotPreferencesPage, OpenPreferencesHandler.mcpPreferencePage));
+          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
+              String.join(",", OpenPreferencesHandler.copilotPreferencesPage,
+                  OpenPreferencesHandler.customInstructionsPreferencePage, OpenPreferencesHandler.mcpPreferencePage));
 
           UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
         }
