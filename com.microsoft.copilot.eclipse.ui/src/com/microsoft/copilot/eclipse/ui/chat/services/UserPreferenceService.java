@@ -363,6 +363,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       }, (String[] chatModes) -> {
         if (!combo.isDisposed()) {
           combo.setItems(chatModes);
+          if (chatModes.length == 1) {
+            combo.select(0);
+          }
         }
       });
 
