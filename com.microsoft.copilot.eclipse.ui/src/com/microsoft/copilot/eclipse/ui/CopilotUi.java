@@ -62,49 +62,48 @@ public class CopilotUi extends AbstractUIPlugin {
     Job initJob = new Job("Copilot initialization") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
-        showHintIfNecessary(context);
-
         try {
           // wait until Core is initialized.
           Job.getJobManager().join(CopilotCore.INIT_JOB_FAMILY, null);
-
-          CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
-          if (connection == null) {
-            var ex = new IllegalStateException("Failed to start copilot language server.");
-            CopilotCore.LOGGER.error(ex);
-            throw ex;
-          }
-
-          // init the settings manager
-          ServiceReference<?> serviceReference = context.getServiceReference(IProxyService.class.getName());
-          LanguageServerSettingManager mgr = new LanguageServerSettingManager(
-              CopilotCore.getPlugin().getCopilotLanguageServer(), (IProxyService) context.getService(serviceReference),
-              getPreferenceStore());
-          CopilotUi.this.settingMgr = mgr;
-          CopilotUi.this.editorsManager = new EditorsManager(connection,
-              CopilotCore.getPlugin().getCompletionProvider(), mgr);
-          CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(connection, editorsManager);
-          CopilotUi.this.chatServiceManager = new ChatServiceManager();
-          // inject the chat service manager into the core plugin, so that it can be used to handle
-          // some server to client request that needs to be handled with UI logics.
-          CopilotCore.getPlugin().setChatServiceManager(chatServiceManager);
-          CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
-          // sync to language server on load
-          mgr.syncConfiguration();
-
-          registerPartListener();
-          // Initialize the completion handler for the active editor in case we miss the event
-          // to initialize it.
-          initCompletionHandlerForActiveEditor();
-
-          addCopilotAuthStatusListener();
-          // refresh the menu icon in case we miss the event to refresh it.
-          UiUtils.refreshCopilotMenu();
-
         } catch (OperationCanceledException | InterruptedException e) {
           CopilotCore.LOGGER.error(e);
           return Status.error("Failed to initialize GitHub Copilot plugin.", e);
         }
+
+        CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
+        if (connection == null) {
+          var ex = new IllegalStateException("Failed to start copilot language server.");
+          CopilotCore.LOGGER.error(ex);
+          throw ex;
+        }
+
+        // init the settings manager
+        ServiceReference<?> serviceReference = context.getServiceReference(IProxyService.class.getName());
+        LanguageServerSettingManager mgr = new LanguageServerSettingManager(
+            CopilotCore.getPlugin().getCopilotLanguageServer(), (IProxyService) context.getService(serviceReference),
+            getPreferenceStore());
+        CopilotUi.this.settingMgr = mgr;
+        CopilotUi.this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider(),
+            mgr);
+        CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(connection, editorsManager);
+        CopilotUi.this.chatServiceManager = new ChatServiceManager();
+        // inject the chat service manager into the core plugin, so that it can be used to handle
+        // some server to client request that needs to be handled with UI logics.
+        CopilotCore.getPlugin().setChatServiceManager(chatServiceManager);
+        CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
+        // sync to language server on load
+        mgr.syncConfiguration();
+
+        registerPartListener();
+        // Initialize the completion handler for the active editor in case we miss the event
+        // to initialize it.
+        initCompletionHandlerForActiveEditor();
+
+        addCopilotAuthStatusListener();
+        // refresh the menu icon in case we miss the event to refresh it.
+        UiUtils.refreshCopilotMenu();
+
+        showHintIfNecessary(context);
         return Status.OK_STATUS;
       }
 
