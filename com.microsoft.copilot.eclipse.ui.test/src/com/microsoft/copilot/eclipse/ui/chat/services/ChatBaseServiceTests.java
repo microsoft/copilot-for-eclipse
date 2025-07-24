@@ -33,15 +33,15 @@ class ChatBaseServiceTests {
   }
 
   @Test
-  void persistUserPreference_WhenNotSignedIn_ShouldNotInvokeLogger() {
+  void persistUserPreference_WhenNotSignedIn_ShouldSkipLspInteraction() {
     // Arrange
-    when(mockAuthStatusManager.isNotSignedIn()).thenReturn(true);
+    when(mockAuthStatusManager.isSignedIn()).thenReturn(false);
 
     // Act
     chatBaseService.persistUserPreference();
 
     // Assert
-    verify(mockAuthStatusManager).isNotSignedIn();
+    verify(mockAuthStatusManager).isSignedIn();
     verifyNoInteractions(mockLsConnection); // LSP connection should not be used
   }
 
