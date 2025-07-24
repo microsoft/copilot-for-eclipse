@@ -29,6 +29,7 @@ import org.osgi.framework.FrameworkUtil;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -36,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
@@ -187,6 +189,22 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public void mcpRuntimeLogs(McpRuntimeLog mcpRuntimeLog) {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MCP_RUNTIME_LOG, mcpRuntimeLog);
+    }
+  }
+
+  /**
+   * Notify when feature flags change.
+   * This is used to update the UI based on the feature flags.
+   */
+  @JsonNotification("copilot/didChangeFeatureFlags")
+  public void onDidChangeFeatureFlags(DidChangeFeatureFlagsParams params) {
+    IdeCapabilities ideCapabilities = CopilotCore.getPlugin().getIdeCapabilities();
+    if (ideCapabilities != null) {
+      ideCapabilities.setAgentModeEnabled(params.isAgentModeEnabled());
+    }
+    
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_FEATURE_FLAGS_AGENT_MODE, params.isAgentModeEnabled());
     }
   }
 
