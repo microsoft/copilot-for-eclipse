@@ -12,6 +12,6 @@
     "postinstall": "npx --yes copyfiles -u 3 \"node_modules/@github/copilot-language-server/native/**/*\" \".\" && npx --yes copyfiles -u 3 \"node_modules/@github/copilot-language-server/dist/**/*\" \".\""
   },
   "dependencies": {
-    "@github/copilot-language-server": "1.339.0"
+    "@github/copilot-language-server": "1.348.0"
   }
 }
