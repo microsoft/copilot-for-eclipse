@@ -42,7 +42,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -71,7 +70,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   private final Map<Combo, ISideEffect[]> modelComboSideEffects = new HashMap<>();
   private final Map<Combo, ISideEffect[]> chatModeComboSideEffects = new HashMap<>();
   private ISideEffect chatViewSideEffect;
-  
+
   // Event handling
   private EventHandler featureFlagNotifiedEventHandler;
   private IEventBroker eventBroker;
@@ -88,7 +87,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       activeChatModeObservable = new WritableValue<>(null, ChatMode.class);
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       activeModelObservable = new WritableValue<>(null, CopilotModel.class);
-      
+
       ISideEffect.create(() -> {
         ChatMode mode = activeChatModeObservable.getValue();
         final Map<String, CopilotModel> modelsForCurrentMode = new HashMap<>();
@@ -103,7 +102,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         modelObservable.setValue(currentModels);
       });
     });
-    
+
     featureFlagNotifiedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof Boolean agentModeEnabled) {
@@ -111,22 +110,21 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
           if (!Arrays.deepEquals(getAvalibleChatModes(), chatModeObservable.getValue())) {
             chatModeObservable.setValue(getAvalibleChatModes());
           }
-          
+
           if (!agentModeEnabled) {
-            activeChatModeObservable.setValue(ChatMode.Ask);
+            setActiveChatMode(ChatMode.Ask.toString());
           }
         });
       }
     };
-    
+
     eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (eventBroker != null) {
-      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_FEATURE_FLAGS_AGENT_MODE, 
-          featureFlagNotifiedEventHandler);
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_FEATURE_FLAGS_AGENT_MODE, featureFlagNotifiedEventHandler);
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
     }
-    
+
     init();
   }
 
@@ -165,13 +163,13 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       job.schedule();
     }
   }
-  
+
   private String[] getAvalibleChatModes() {
     IdeCapabilities capabilities = CopilotCore.getPlugin().getIdeCapabilities();
     if (capabilities != null && Boolean.FALSE.equals(capabilities.isAgentModeEnabled())) {
       return new String[] { ChatMode.Ask.displayName() }; // Only Ask mode is available
-    } 
-    
+    }
+
     return Arrays.stream(ChatMode.values()).map(ChatMode::displayName).toArray(String[]::new);
   }
 
@@ -282,6 +280,15 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     }
 
     String chatModeName = modes[index].toString();
+    // Persist the chat mode selection
+    setActiveChatMode(chatModeName);
+  }
+
+  private void setActiveChatMode(String chatModeName) {
+    if (StringUtils.isBlank(chatModeName)) {
+      return;
+    }
+    
     // Persist the chat mode selection
     UserPreference preference = getUserPreference();
     preference.setChatModeName(chatModeName);
