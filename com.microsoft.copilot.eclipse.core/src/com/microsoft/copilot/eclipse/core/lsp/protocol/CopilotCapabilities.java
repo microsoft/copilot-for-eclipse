@@ -11,11 +11,14 @@ public class CopilotCapabilities {
   private boolean fetch;
 
   private boolean watchedFiles;
+  
+  private boolean didChangeFeatureFlags;
 
   /**
    * Creates a new CopilotCapabilities.
    */
   public CopilotCapabilities(boolean fetch, boolean watchedFiles) {
+    this.didChangeFeatureFlags = true;
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
   }
@@ -41,12 +44,13 @@ public class CopilotCapabilities {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.add("fetch", fetch);
     builder.add("watchedFiles", watchedFiles);
+    builder.add("didChangeFeatureFlags", didChangeFeatureFlags);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(fetch, watchedFiles);
+    return Objects.hash(didChangeFeatureFlags, fetch, watchedFiles);
   }
 
   @Override
@@ -61,6 +65,7 @@ public class CopilotCapabilities {
       return false;
     }
     CopilotCapabilities other = (CopilotCapabilities) obj;
-    return fetch == other.fetch && watchedFiles == other.watchedFiles;
+    return didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
+        && watchedFiles == other.watchedFiles;
   }
 }

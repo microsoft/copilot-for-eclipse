@@ -10,6 +10,15 @@ import org.osgi.framework.Version;
  * Class to check the IDE capabilities.
  */
 public class IdeCapabilities {
+  private Boolean agentModeEnabled = null;
+
+  public Boolean isAgentModeEnabled() {
+    return agentModeEnabled;
+  }
+
+  public void setAgentModeEnabled(Boolean agentModeEnabled) {
+    this.agentModeEnabled = agentModeEnabled;
+  }
 
   /**
    * Checks if code mining capability is available based on Eclipse version.
