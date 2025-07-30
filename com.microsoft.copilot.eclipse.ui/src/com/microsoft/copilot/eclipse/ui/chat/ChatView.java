@@ -162,30 +162,30 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * @param chatMode the chat mode
    */
   public void buildViewFor(ChatMode chatMode) {
+    if (this.chatServiceManager.getAuthStatusManager().isNotSignedIn()) {
+      createBeforeLoginWelcomePage();
+      return;
+    }
     if (chatMode == null) {
       return;
     }
     this.onCancel();
 
-    // Skip building the view when the user is not signed in or authenticated to avoid mode page overrides
-    // @link BeforeLoginWelcomeViewer. See: https://github.com/microsoft/copilot-eclipse/issues/851
-    if (!this.chatServiceManager.getAuthStatusManager().isNotSignedInOrNotAuthorized()) {
-      // If no history, cache content before disposing and refresh the main section and action bar together
-      cacheInputContent();
+    // If no history, cache content before disposing and refresh the main section and action bar together
+    cacheInputContent();
 
-      if (hasHistory) {
-        // Keep the main section to keep the conversation history and refresh the action bar only
-        refreshActionBarTextViewerAndButtons();
-      } else {
-        disposeChildren(parent);
-        createChatPage(chatMode);
+    if (hasHistory) {
+      // Keep the main section to keep the conversation history and refresh the action bar only
+      refreshActionBarTextViewerAndButtons();
+    } else {
+      disposeChildren(parent);
+      createChatPage(chatMode);
 
-        if (StringUtils.isNotBlank(this.cachedInputContent)) {
-          restoreInputContent();
-        }
+      if (StringUtils.isNotBlank(this.cachedInputContent)) {
+        restoreInputContent();
       }
-      this.parent.requestLayout();
     }
+    this.parent.requestLayout();
   }
 
   private void createChatPage(ChatMode chatMode) {
@@ -285,7 +285,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   private void createLoadingPage() {
-    clearChatView();
+    clearChatView(parent);
     this.loadingViewer = new LoadingViewer(parent, SWT.NONE);
     this.loadingViewer.requestLayout();
   }
@@ -294,7 +294,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * Create a conversation page.
    */
   private void createConversationPage() {
-    clearChatView();
+    clearChatView(this.mainSection);
     this.chatContentViewer = new ChatContentViewer(this.mainSection, SWT.NONE, this.chatServiceManager);
     this.chatContentViewer.requestLayout();
   }
@@ -303,25 +303,25 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * Create a welcome page.
    */
   private void createAfterLoginWelcomePage() {
-    clearChatView();
+    clearChatView(this.mainSection);
     this.afterLoginWelcomeViewer = new AfterLoginWelcomeViewer(this.mainSection, SWT.NONE);
     this.afterLoginWelcomeViewer.requestLayout();
   }
 
   private void createBeforeLoginWelcomePage() {
-    clearChatView();
+    clearChatView(parent);
     this.beforeLoginWelcomeViewer = new BeforeLoginWelcomeViewer(parent, SWT.NONE);
     this.beforeLoginWelcomeViewer.requestLayout();
   }
 
   private void createNoSubscriptionPage() {
-    clearChatView();
+    clearChatView(parent);
     this.noSubscriptionViewer = new NoSubscriptionViewer(parent, SWT.NONE);
     this.noSubscriptionViewer.requestLayout();
   }
 
   private void createAgentModePage() {
-    clearChatView();
+    clearChatView(this.mainSection);
     this.agentModeViewer = new AgentModeViewer(this.mainSection, SWT.NONE);
     this.agentModeViewer.requestLayout();
   }
@@ -331,13 +331,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.actionBar.updateButtonsLayout();
   }
 
-  private void clearChatView() {
-    if (this.mainSection == null || mainSection.isDisposed()) {
-      return;
-    }
-    for (Control control : mainSection.getChildren()) {
-      control.dispose();
-    }
+  private void clearChatView(Composite composite) {
+    disposeChildren(composite);
     if (this.beforeLoginWelcomeViewer != null) {
       this.beforeLoginWelcomeViewer.dispose();
       this.beforeLoginWelcomeViewer = null;
