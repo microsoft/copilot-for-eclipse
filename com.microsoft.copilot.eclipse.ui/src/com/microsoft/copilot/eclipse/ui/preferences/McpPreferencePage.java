@@ -29,6 +29,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
@@ -37,6 +38,7 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -51,6 +53,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private static final Gson GSON = new Gson();
 
   private Group toolsGroup;
+  private Group mcpGroup;
   private Tree toolsTree;
 
   /**
@@ -71,7 +74,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         } catch (OperationCanceledException | InterruptedException e) {
           CopilotCore.LOGGER.error(e);
         }
-        CopilotUi.getPlugin().getChatServiceManager().getMcpToolService()
+        CopilotUi.getPlugin().getChatServiceManager().getMcpConfigService()
             .bindWithMcpPreferencePage(McpPreferencePage.this);
         return Status.OK_STATUS;
       }
@@ -81,7 +84,26 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   }
 
   @Override
+  protected Control createContents(Composite parent) {
+    // Create a simple note for the feature disabled case
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags != null && !flags.isMcpEnabled()) {
+      return new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix, 
+          Messages.preferences_page_mcp_disabled_tip);
+    }
+    
+    // Call the default implementation for enabled case
+    return super.createContents(parent);
+  }
+
+  @Override
   protected void createFieldEditors() {
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags != null && !flags.isMcpEnabled()) {
+      // Don't create field editors when MCP is disabled - handled in createContents
+      return;
+    }
+    
     Composite parent = getFieldEditorParent();
     parent.setLayout(new GridLayout(1, true));
     var gl = new GridLayout(1, true);
@@ -89,7 +111,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     gl.marginLeft = 2;
 
     GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, true);
-    Group mcpGroup = new Group(parent, SWT.NONE);
+    mcpGroup = new Group(parent, SWT.NONE);
     mcpGroup.setLayout(gl);
     gdf.applyTo(mcpGroup);
     mcpGroup.setText(Messages.preferences_page_mcp_settings);
@@ -245,6 +267,27 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
   }
 
+  /**
+   * Updates the UI based on the MCP enabled setting.
+   *
+   * @param mcpEnabled true if MCP is enabled, false otherwise
+   */
+  public void updateMcpPreferencePage(Boolean mcpEnabled) {
+    if (mcpEnabled) {
+      return;
+    }
+
+    if (mcpGroup != null && !mcpGroup.isDisposed()) {
+      mcpGroup.dispose();
+      mcpGroup = null;
+    }
+    
+    if (toolsGroup != null && !toolsGroup.isDisposed()) {
+      toolsGroup.dispose();
+      toolsGroup = null;
+    }
+  }
+  
   /**
    * Displays the server names and tool names in the tools group using a tree view.
    */

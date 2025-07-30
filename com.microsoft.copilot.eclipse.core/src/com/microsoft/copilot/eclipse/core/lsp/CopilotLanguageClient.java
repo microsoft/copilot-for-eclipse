@@ -29,6 +29,7 @@ import org.osgi.framework.FrameworkUtil;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
@@ -198,13 +199,14 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    */
   @JsonNotification("copilot/didChangeFeatureFlags")
   public void onDidChangeFeatureFlags(DidChangeFeatureFlagsParams params) {
-    IdeCapabilities ideCapabilities = CopilotCore.getPlugin().getIdeCapabilities();
-    if (ideCapabilities != null) {
-      ideCapabilities.setAgentModeEnabled(params.isAgentModeEnabled());
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags != null) {
+      flags.setAgentModeEnabled(params.isAgentModeEnabled());
+      flags.setMcpEnabled(params.isMcpEnabled());
     }
     
     if (eventBroker != null) {
-      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_FEATURE_FLAGS_AGENT_MODE, params.isAgentModeEnabled());
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, params);
     }
   }
 

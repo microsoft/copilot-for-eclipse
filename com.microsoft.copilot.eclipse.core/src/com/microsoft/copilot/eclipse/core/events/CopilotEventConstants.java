@@ -51,7 +51,7 @@ public class CopilotEventConstants {
   public static final String TOPIC_CHAT_MCP_RUNTIME_LOG = TOPIC_CHAT + "MCP_RUNTIME_LOG";
   
   /**
-   * Event when the chat feature flag - agent_mode are updated.
+   * Event when the chat feature flag are updated.
    */
-  public static final String TOPIC_CHAT_FEATURE_FLAGS_AGENT_MODE = TOPIC_CHAT + "FEATURE_FLAGS_AGENT_MODE";
+  public static final String TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS = TOPIC_CHAT + "DID_CHANGE_FEATURE_FLAGS";
 }

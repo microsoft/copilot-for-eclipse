@@ -29,7 +29,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.IdeCapabilities;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NameAndVersion;
@@ -48,7 +48,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     NameAndVersion editorInfo = new NameAndVersion(EDITOR_NAME, PlatformUtils.getEclipseVersion());
     String bundleVersion = PlatformUtils.getBundleVersion();
     NameAndVersion editorPluginInfo = new NameAndVersion(EDITOR_PLUGIN_NAME, bundleVersion);
-    CopilotCapabilities capabilities = new CopilotCapabilities(false, IdeCapabilities.isWorkspaceContextEnabled());
+    CopilotCapabilities capabilities = new CopilotCapabilities(false, FeatureFlags.isWorkspaceContextEnabled());
     return new InitializationOptions(editorInfo, editorPluginInfo, capabilities);
   }
 

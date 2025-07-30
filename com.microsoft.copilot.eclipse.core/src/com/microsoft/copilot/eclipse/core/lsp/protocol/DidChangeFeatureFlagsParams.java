@@ -32,12 +32,16 @@ public class DidChangeFeatureFlagsParams {
     return featureFlags;
   }
 
-  public void setFeatureFlags(Map<String, String> configurations) {
-    this.featureFlags = configurations;
+  public void setFeatureFlags(Map<String, String> featureFlags) {
+    this.featureFlags = featureFlags;
   }
 
+  /**
+   * Checks if the MCP is enabled.
+   */
   public boolean isMcpEnabled() {
-    return featureFlags != null && "1".equals(featureFlags.get("mcp"));
+    boolean disabled = featureFlags != null && "0".equals(featureFlags.get("mcp"));
+    return !disabled;
   }
   
   /**

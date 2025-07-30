@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -39,6 +40,8 @@ class ChatViewTest {
   private AuthStatusManager mockAuthStatusManager;
   @Mock
   private ReferencedFileService mockReferencedFileService;
+  @Mock
+  private McpConfigService mockMcpConfigService;
 
   @BeforeEach
   void setUp() {
@@ -85,6 +88,7 @@ class ChatViewTest {
 
     // Build the view for Agent mode and set cached content to the input viewer
     when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Agent);
+    when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
     SwtUtils.invokeOnDisplayThread(() -> {
       chatView.buildViewFor(ChatMode.Agent);
     });

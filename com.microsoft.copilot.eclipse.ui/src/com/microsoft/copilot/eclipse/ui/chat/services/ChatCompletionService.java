@@ -15,6 +15,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
@@ -95,7 +96,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
         String agentSlug = agent.getSlug();
         // @see ui.chat.ChatView#replaceWorkspaceCommand(String)
         if (agentSlug.equals("project")) {
-          if (!IdeCapabilities.isWorkspaceContextEnabled()) {
+          if (!FeatureFlags.isWorkspaceContextEnabled()) {
             continue;
           }
 

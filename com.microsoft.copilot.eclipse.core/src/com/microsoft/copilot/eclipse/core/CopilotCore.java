@@ -36,6 +36,7 @@ public class CopilotCore extends Plugin {
   private ChatEventsManager chatEventsManager;
   private IChatServiceManager chatServiceManager;
   private IdeCapabilities ideCapabilities;
+  private FeatureFlags featureFlags;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -90,6 +91,7 @@ public class CopilotCore extends Plugin {
       this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.ideCapabilities = new IdeCapabilities();
       this.authStatusManager.checkStatus();
+      this.featureFlags = new FeatureFlags();
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {
@@ -152,6 +154,10 @@ public class CopilotCore extends Plugin {
   
   public IdeCapabilities getIdeCapabilities() {
     return ideCapabilities;
+  }
+  
+  public FeatureFlags getFeatureFlags() {
+    return featureFlags;
   }
 
   /**

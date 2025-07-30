@@ -45,6 +45,9 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
@@ -293,8 +296,8 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Refresh the layout of both MCP button and send button together to ensure proper coordination.
    */
   public void updateButtonsLayout() {
-    // Dispose existing MCP button if it exists
     if (this.mcpToolButton != null && !this.mcpToolButton.isDisposed()) {
+      this.chatServiceManager.getMcpConfigService().unbindWithMcpToolButton();
       this.mcpToolButton.dispose();
       this.mcpToolButton = null;
     }
@@ -324,6 +327,8 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.mcpToolButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       this.mcpToolButton.setImage(mcpToolImage);
       this.mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_toolTip);
+      this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton);
+      this.mcpToolButton.setEnabled(CopilotCore.getPlugin().getFeatureFlags().isMcpEnabled());
       GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;

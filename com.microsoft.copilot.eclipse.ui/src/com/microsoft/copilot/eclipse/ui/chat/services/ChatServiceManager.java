@@ -20,7 +20,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private AgentToolService agentToolService;
   private FileToolService fileToolService;
   private ReferencedFileService referencedFileService;
-  private McpToolService mcpToolService;
+  private McpConfigService mcpConfigService;
   private McpRuntimeLogger mcpRuntimeLogger;
 
   /**
@@ -35,7 +35,7 @@ public class ChatServiceManager implements IChatServiceManager {
     agentToolService = new AgentToolService(this.lsConnection);
     fileToolService = new FileToolService(this.lsConnection);
     referencedFileService = new ReferencedFileService();
-    mcpToolService = new McpToolService();
+    mcpConfigService = new McpConfigService();
     mcpRuntimeLogger = new McpRuntimeLogger();
   }
 
@@ -95,8 +95,8 @@ public class ChatServiceManager implements IChatServiceManager {
     return fileToolService;
   }
 
-  public McpToolService getMcpToolService() {
-    return mcpToolService;
+  public McpConfigService getMcpConfigService() {
+    return mcpConfigService;
   }
 
   @Override
@@ -113,7 +113,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.userPreferenceService.dispose();
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
-    this.mcpToolService.dispose();
+    this.mcpConfigService.dispose();
   }
 
 }

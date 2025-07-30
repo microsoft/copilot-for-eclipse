@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -19,11 +22,13 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,4 +80,49 @@ class CopilotLanguageClientTests {
     }
   }
 
+  @Test
+  void testOnDidChangeFeatureFlags() {
+    // Arrange
+    DidChangeFeatureFlagsParams params = new DidChangeFeatureFlagsParams();
+    Map<String, String> featureFlags = new HashMap<>();
+    featureFlags.put("agent_mode", "1");
+    featureFlags.put("mcp", "0");
+    params.setFeatureFlags(featureFlags);
+
+    FeatureFlags mockFeatureFlags = mock(FeatureFlags.class);
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getFeatureFlags()).thenReturn(mockFeatureFlags);
+
+      // Act
+      client.onDidChangeFeatureFlags(params);
+
+      // Assert
+      verify(mockFeatureFlags).setAgentModeEnabled(true);
+      verify(mockFeatureFlags).setMcpEnabled(false);
+    }
+  }
+
+  @Test
+  void testOnDidChangeFeatureFlagsWithEmptyFeatureFlags() {
+    // Arrange
+    DidChangeFeatureFlagsParams params = new DidChangeFeatureFlagsParams();
+    Map<String, String> featureFlags = new HashMap<>();
+    params.setFeatureFlags(featureFlags);
+
+    FeatureFlags mockFeatureFlags = mock(FeatureFlags.class);
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getFeatureFlags()).thenReturn(mockFeatureFlags);
+
+      // Act
+      client.onDidChangeFeatureFlags(params);
+
+      // Assert - should by default enable agent mode and MCP
+      verify(mockFeatureFlags).setAgentModeEnabled(true);
+      verify(mockFeatureFlags).setMcpEnabled(true);
+    }
+  }
 }

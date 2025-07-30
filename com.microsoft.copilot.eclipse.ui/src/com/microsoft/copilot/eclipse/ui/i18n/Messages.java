@@ -80,6 +80,7 @@ public final class Messages extends NLS {
   public static String preferences_page_github_enterprise_tooltip;
   public static String preferences_page_mcp_tooltip;
   public static String preferences_page_mcp_note_content;
+  public static String preferences_page_mcp_disabled_tip;
   public static String preferences_page_mcp_tools_settings;
   public static String preferences_page_mcp_server_init_error;
   public static String preferences_page_custom_instructions_copilot_instructions;
@@ -98,6 +99,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_sendButton_Tooltip;
   public static String chat_actionBar_cancelButton_Tooltip;
   public static String chat_actionBar_toolButton_toolTip;
+  public static String chat_actionBar_toolButton_disabled_toolTip;
   public static String chat_welcomeView_title;
   public static String chat_welcomeView_description;
   public static String chat_welcomeView_agentSuffix;
