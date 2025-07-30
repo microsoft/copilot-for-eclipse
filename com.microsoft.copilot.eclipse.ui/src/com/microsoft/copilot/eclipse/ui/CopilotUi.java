@@ -8,7 +8,9 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.jface.preference.IPersistentPreferenceStore;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.IEditorPart;
@@ -99,10 +101,6 @@ public class CopilotUi extends AbstractUIPlugin {
         // to initialize it.
         initCompletionHandlerForActiveEditor();
 
-        addCopilotAuthStatusListener();
-        // refresh the menu icon in case we miss the event to refresh it.
-        UiUtils.refreshCopilotMenu();
-
         showHintIfNecessary(context);
         return Status.OK_STATUS;
       }
@@ -113,6 +111,13 @@ public class CopilotUi extends AbstractUIPlugin {
       }
     };
     initJob.setSystem(true);
+    initJob.addJobChangeListener(new JobChangeAdapter() {
+      @Override
+      public void done(IJobChangeEvent event) {
+        // refresh the menu icon in case we miss the event to refresh it.
+        UiUtils.refreshCopilotMenu();
+      }
+    });
     initJob.schedule();
   }
 
@@ -150,10 +155,6 @@ public class CopilotUi extends AbstractUIPlugin {
     }
   }
 
-  public CopilotStatusManager getCopilotStatusManager() {
-    return copilotStatusManager;
-  }
-
   public LanguageServerSettingManager getLanguageServerSettingManager() {
     return settingMgr;
   }
@@ -161,7 +162,6 @@ public class CopilotUi extends AbstractUIPlugin {
   @Override
   public void stop(BundleContext context) throws Exception {
     unregisterPartListener();
-    removeCopilotAuthStatusListener();
 
     if (this.editorsManager != null) {
       this.editorsManager.dispose();
@@ -191,10 +191,6 @@ public class CopilotUi extends AbstractUIPlugin {
     }
   }
 
-  private void addCopilotAuthStatusListener() {
-    CopilotCore.getPlugin().getAuthStatusManager().addCopilotAuthStatusListener(this.copilotStatusManager);
-  }
-
   private void initCompletionHandlerForActiveEditor() {
     IEditorPart editorPart = SwtUtils.getActiveEditorPart();
     if (editorPart != null) {
@@ -207,10 +203,6 @@ public class CopilotUi extends AbstractUIPlugin {
     for (IWorkbenchWindow window : windows) {
       window.getPartService().removePartListener(this.editorLifecycleListener);
     }
-  }
-
-  private void removeCopilotAuthStatusListener() {
-    CopilotCore.getPlugin().getAuthStatusManager().removeCopilotAuthStatusListener(this.copilotStatusManager);
   }
 
 }

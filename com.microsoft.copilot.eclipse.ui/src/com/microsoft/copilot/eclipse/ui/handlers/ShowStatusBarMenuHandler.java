@@ -33,7 +33,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
-import com.microsoft.copilot.eclipse.ui.CopilotStatusManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
@@ -155,11 +154,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
   @Override
   public void updateElement(UIElement element, Map parameters) {
-    CopilotStatusManager copilotStatusManager = getCopilotStatusManager();
-
-    if (copilotStatusManager == null) {
+    if (Job.getJobManager().find(CopilotUi.INIT_JOB_FAMILY).length > 0) {
       scheduleSpinnerJob(element);
-      return;
     } else {
       // Since spinner job has 100ms delay, cancel the spinner job if it is running to avoid flickering.
       if (spinnerJob != null) {
