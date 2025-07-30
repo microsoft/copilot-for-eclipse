@@ -8,6 +8,10 @@ import org.osgi.framework.Version;
  * Class to check the IDE capabilities.
  */
 public class IdeCapabilities {
+  private IdeCapabilities() {
+    // Prevent instantiation
+  }
+
   /**
    * Checks if code mining capability is available based on Eclipse version.
    *
