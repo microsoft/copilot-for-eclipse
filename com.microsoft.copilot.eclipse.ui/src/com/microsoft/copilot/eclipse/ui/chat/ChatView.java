@@ -84,8 +84,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     this.chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
     if (this.chatServiceManager == null) {
-      parent.layout();
-
+      createLoadingPage();
       // if chat service manager is not ready, wait for the init job to finish
       JobChangeAdapter adapter = new JobChangeAdapter() {
         @Override
@@ -98,9 +97,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             CopilotCore.LOGGER.error(new IllegalStateException("Chat service manager is not ready."));
             return;
           }
-          ChatView.this.chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
-          ChatView.this.chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
-          ChatView.this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
+          chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
+          chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
+          chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
@@ -135,22 +134,23 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * @param status the status
    */
   public void buildViewFor(String status) {
+    if (chatServiceManager == null) {
+      return;
+    }
     this.hasHistory = false;
     disposeChildren(parent);
     switch (status) {
       case CopilotStatusResult.LOADING:
-        showLoadingPage();
+        createLoadingPage();
         break;
       case CopilotStatusResult.NOT_SIGNED_IN:
-        showBeforeLoginPage();
+        createBeforeLoginWelcomePage();
         break;
       case CopilotStatusResult.NOT_AUTHORIZED:
-        showNoSubscriptionPage();
+        createNoSubscriptionPage();
         break;
       default:
-        if (chatServiceManager != null) {
-          showChatPage(chatServiceManager.getUserPreferenceService().getActiveChatMode());
-        }
+        createChatPage(chatServiceManager.getUserPreferenceService().getActiveChatMode());
         break;
     }
     this.parent.requestLayout();
@@ -178,7 +178,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         refreshActionBarTextViewerAndButtons();
       } else {
         disposeChildren(parent);
-        showChatPage(chatMode);
+        createChatPage(chatMode);
 
         if (StringUtils.isNotBlank(this.cachedInputContent)) {
           restoreInputContent();
@@ -188,31 +188,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
   }
 
-  private void showChatPage(ChatMode chatMode) {
+  private void createChatPage(ChatMode chatMode) {
     switch (chatMode) {
-      case Agent:
-        showAgentModePage();
-        break;
       case Ask:
+        createChatModeView();
+        break;
+      case Agent:
       default:
-        showAfterLoginPage();
+        createAgentModeView();
         break;
     }
   }
 
-  private void showLoadingPage() {
-    createLoadingPage();
-  }
-
-  private void showBeforeLoginPage() {
-    createBeforeLoginWelcomePage();
-  }
-
-  private void showNoSubscriptionPage() {
-    createNoSubscriptionPage();
-  }
-
-  private void showAgentModePage() {
+  private void createAgentModeView() {
     // upper bar
     this.topBanner = new TopBanner(parent, SWT.NONE);
     this.topBanner.registerNewConversationListener(this);
@@ -236,7 +224,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
   }
 
-  private void showAfterLoginPage() {
+  private void createChatModeView() {
     // upper bar
     this.topBanner = new TopBanner(parent, SWT.NONE);
     this.topBanner.registerNewConversationListener(this);

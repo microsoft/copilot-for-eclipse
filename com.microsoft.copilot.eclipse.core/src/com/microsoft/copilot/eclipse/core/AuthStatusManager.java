@@ -105,9 +105,11 @@ public class AuthStatusManager {
 
   /**
    * Check the authentication status for current machine.
+   *
+   * @return CompletableFuture that completes when the status check is done
    */
-  public void checkStatus() {
-    this.connection.checkStatus(false).handle((result, ex) -> {
+  public CompletableFuture<CopilotStatusResult> checkStatus() {
+    return this.connection.checkStatus(false).handle((result, ex) -> {
       if (ex != null) {
         CopilotCore.LOGGER.error(ex);
         setCopilotStatus(CopilotStatusResult.ERROR);
@@ -116,7 +118,7 @@ public class AuthStatusManager {
         setCopilotUser(result.getUser());
         setCopilotStatus(result.getStatus());
       }
-      return null;
+      return this.copilotStatusResult;
     });
   }
 
