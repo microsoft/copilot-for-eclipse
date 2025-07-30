@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -76,7 +75,7 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<LanguageServerWrapper> connectDocument(IDocument document, IFile file) {
     try {
       return languageServerWrapper.connect(document, file);
-    } catch (IOException e) {
+    } catch (Exception e) {
       CopilotCore.LOGGER.error(e);
       return null;
     }

@@ -12,7 +12,6 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.contexts.EclipseContextFactory;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageClientImpl;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
@@ -30,7 +29,6 @@ import org.osgi.framework.FrameworkUtil;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
-import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -54,6 +52,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
  */
 @SuppressWarnings("restriction")
 public class CopilotLanguageClient extends LanguageClientImpl {
+
+  private static final String HTTP = "http"; //$NON-NLS-1$
 
   private WatchedFileManager watchedFileManager;
 
@@ -194,8 +194,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Notify when feature flags change.
-   * This is used to update the UI based on the feature flags.
+   * Notify when feature flags change. This is used to update the UI based on the feature flags.
    */
   @JsonNotification("copilot/didChangeFeatureFlags")
   public void onDidChangeFeatureFlags(DidChangeFeatureFlagsParams params) {
@@ -204,7 +203,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       flags.setAgentModeEnabled(params.isAgentModeEnabled());
       flags.setMcpEnabled(params.isMcpEnabled());
     }
-    
+
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, params);
     }
@@ -221,7 +220,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   @Override
   public CompletableFuture<ShowDocumentResult> showDocument(ShowDocumentParams params) {
-    if (params.getUri() != null && params.getUri().startsWith(LSPEclipseUtils.HTTP) && params.getSelection() == null) {
+    if (params.getUri() != null && params.getUri().startsWith(HTTP) && params.getSelection() == null) {
       // override the method to open the URL in the browser, ideally, core should not have UI dependencies,
       // TODO: we should figure out a way to move this to UI plugin.
       openLink(params.getUri());
