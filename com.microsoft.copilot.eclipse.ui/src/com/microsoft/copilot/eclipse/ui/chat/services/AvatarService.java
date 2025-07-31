@@ -10,12 +10,15 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
-import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -34,7 +37,8 @@ public class AvatarService {
   private Image defaultGithubAvatar;
   private Image defaultUserAvatar;
   private AuthStatusManager authStatusManager;
-  private CopilotAuthStatusListener authStatuslistener;
+  private IEventBroker eventBroker;
+  private EventHandler authStatusChangedEventHandler;
 
   /**
    * Avatar Service.
@@ -43,18 +47,20 @@ public class AvatarService {
     this.authStatusManager = authStatusManager;
     this.defaultGithubAvatar = UiUtils.buildImageFromPngPath(DEFAULT_COPILOT_AVATAR_NAME);
     this.defaultUserAvatar = UiUtils.buildImageFromPngPath(DEFAULT_USER_AVATAR_NAME);
-
-    // pre-load image for current user, or chat will always show default avatar for the first message
-    this.authStatuslistener = new CopilotAuthStatusListener() {
-      @Override
-      public void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
-        if (copilotStatusResult.isSignedIn()) {
-          AvatarService.this.getAvatarForCurrentUser(SwtUtils.getDisplay());
-        }
+    this.authStatusChangedEventHandler = event -> {
+      Object property = event.getProperty(IEventBroker.DATA);
+      if (property instanceof CopilotStatusResult statusResult && statusResult.isSignedIn()) {
+        this.getAvatarForCurrentUser(SwtUtils.getDisplay());
       }
+
     };
-    this.authStatusManager.addCopilotAuthStatusListener(this.authStatuslistener);
-    AvatarService.this.getAvatarForCurrentUser(SwtUtils.getDisplay());
+
+    eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    if (eventBroker != null) {
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, authStatusChangedEventHandler);
+    }
+
+    this.getAvatarForCurrentUser(SwtUtils.getDisplay());
   }
 
   /**
@@ -132,8 +138,8 @@ public class AvatarService {
     defaultUserAvatar.dispose();
     avatarCache.values().forEach(Image::dispose);
     jobs.values().forEach(Job::cancel);
-    if (this.authStatuslistener != null) {
-      this.authStatusManager.removeCopilotAuthStatusListener(this.authStatuslistener);
+    if (this.eventBroker != null) {
+      this.eventBroker.unsubscribe(this.authStatusChangedEventHandler);
     }
   }
 
