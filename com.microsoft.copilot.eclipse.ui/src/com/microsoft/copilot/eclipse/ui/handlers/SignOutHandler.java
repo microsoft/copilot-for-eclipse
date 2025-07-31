@@ -10,6 +10,7 @@ import org.eclipse.swt.widgets.Shell;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -31,6 +32,9 @@ public class SignOutHandler extends AbstractHandler {
   public Object execute(ExecutionEvent event) throws ExecutionException {
     Shell shell = SwtUtils.getShellFromEvent(event);
     try {
+      // Persist user preferences before signing out due to once the user signs out, the preferences file path will be
+      // cleared.
+      CopilotUi.getPlugin().getChatServiceManager().getUserPreferenceService().persistUserPreference();
       CopilotStatusResult result = authStatusManager.signOut();
       if (!result.isSignedIn()) {
         showSignOutMessage(shell);

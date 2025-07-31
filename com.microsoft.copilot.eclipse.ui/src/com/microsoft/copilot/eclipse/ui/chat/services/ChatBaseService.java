@@ -69,11 +69,16 @@ public abstract class ChatBaseService {
   }
 
   /**
-   * Persist User Preference.
-   *
-   * @param userPreference The user preference to persist.
+   * Clear User Preference.
    */
-  protected synchronized void persistUserPreference() {
+  protected void clearUserPreferenceCache() {
+    userPreference = null;
+  }
+
+  /**
+   * Persist User Preference.
+   */
+  public synchronized void persistUserPreference() {
     Path path = getPersistentFilePath();
     if (path == null) {
       return;

@@ -30,7 +30,6 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
-import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -76,8 +75,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   private ISideEffect chatViewSideEffect;
 
   // Event handling
-  private EventHandler featureFlagNotifiedEventHandler;
   private IEventBroker eventBroker;
+  private EventHandler authStatusChangedEventHandler;
+  private EventHandler featureFlagNotifiedEventHandler;
 
   /**
    * Constructor for the CopilotModelService.
@@ -108,6 +108,18 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       });
     });
 
+    authStatusChangedEventHandler = event -> {
+      Object property = event.getProperty(IEventBroker.DATA);
+      if (property instanceof CopilotStatusResult statusResult) {
+        // If the user signs out, we need to clear the preference cache to avoid the current preference being used in
+        // the next sign in account.
+        if (statusResult.isNotSignedIn()) {
+          clearUserPreferenceCache();
+          this.inputNavigation = null;
+        }
+      }
+    };
+
     featureFlagNotifiedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof DidChangeFeatureFlagsParams params) {
@@ -125,6 +137,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
     eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (eventBroker != null) {
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, authStatusChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagNotifiedEventHandler);
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
@@ -293,7 +306,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     if (StringUtils.isBlank(chatModeName)) {
       return;
     }
-    
+
     // Persist the chat mode selection
     UserPreference preference = getUserPreference();
     preference.setChatModeName(chatModeName);
@@ -807,6 +820,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     // singleton and will only be disposed when the bundle is stopped. So right now they are not
     // explicitly disposed here.
     this.authStatusManager.removeCopilotAuthStatusListener(this);
+
+    if (eventBroker != null) {
+      eventBroker.unsubscribe(authStatusChangedEventHandler);
+      authStatusChangedEventHandler = null;
+      eventBroker = null;
+    }
   }
 
   private void disposeAllSideEffects() {
