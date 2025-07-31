@@ -1,6 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -19,14 +21,12 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
+import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -40,6 +40,8 @@ public class TopBanner extends Composite {
   private Image newChatIcon;
   private CLabel chatTitle;
   private LinkedHashSet<NewConversationListener> newConversationListeners = new LinkedHashSet<>();
+  private Button openPreferenceButton;
+  private Image openPreferenceIcon;
 
   /**
    * Create the widget.
@@ -73,6 +75,26 @@ public class TopBanner extends Composite {
     this.cmpActionArea.setLayout(glGroupButton);
     this.cmpActionArea.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false));
 
+    this.openPreferenceIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
+    this.openPreferenceButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
+    this.openPreferenceButton.setImage(this.openPreferenceIcon);
+    this.openPreferenceButton.setToolTipText(Messages.menu_editPreferences);
+    this.openPreferenceButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        Map<String, Object> parameters = new HashMap<>();
+
+        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
+            OpenPreferencesHandler.copilotPreferencesPage);
+
+        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
+            String.join(",", OpenPreferencesHandler.copilotPreferencesPage,
+                OpenPreferencesHandler.customInstructionsPreferencePage, OpenPreferencesHandler.mcpPreferencePage));
+
+        UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
+      }
+    });
+
     this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
     this.btnNewConversation = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
     this.btnNewConversation.setImage(this.newChatIcon);
@@ -81,7 +103,7 @@ public class TopBanner extends Composite {
       @Override
       public void widgetSelected(SelectionEvent e) {
         if (confirmedNewChat()) {
-          notifyNewConversationListeners();          
+          notifyNewConversationListeners();
           updateTitle(Messages.chat_topBanner_defaultChatTitle);
         }
       }

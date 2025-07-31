@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,11 +45,8 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.FeatureFlags;
-import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
@@ -341,9 +337,7 @@ public class ActionBar extends Composite implements NewConversationListener {
           parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
               OpenPreferencesHandler.mcpPreferencePage);
 
-          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-              String.join(",", OpenPreferencesHandler.copilotPreferencesPage,
-                  OpenPreferencesHandler.customInstructionsPreferencePage, OpenPreferencesHandler.mcpPreferencePage));
+          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds", StringUtils.EMPTY);
 
           UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
         }
