@@ -337,7 +337,9 @@ public class ActionBar extends Composite implements NewConversationListener {
           parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
               OpenPreferencesHandler.mcpPreferencePage);
 
-          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds", StringUtils.EMPTY);
+          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
+              String.join(",", OpenPreferencesHandler.copilotPreferencesPage,
+                  OpenPreferencesHandler.customInstructionsPreferencePage, OpenPreferencesHandler.mcpPreferencePage));
 
           UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
         }

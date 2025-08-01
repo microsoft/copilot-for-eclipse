@@ -88,8 +88,11 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Create a simple note for the feature disabled case
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isMcpEnabled()) {
-      return new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix, 
-          Messages.preferences_page_mcp_disabled_tip);
+      return new WrappableIconLink(
+          parent, 
+          "/icons/message_warning.png",
+          Messages.preferences_page_mcp_disabled_tip
+      );
     }
     
     // Call the default implementation for enabled case

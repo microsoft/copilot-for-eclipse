@@ -75,6 +75,20 @@ public class TopBanner extends Composite {
     this.cmpActionArea.setLayout(glGroupButton);
     this.cmpActionArea.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false));
 
+    this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
+    this.btnNewConversation = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
+    this.btnNewConversation.setImage(this.newChatIcon);
+    this.btnNewConversation.setToolTipText(Messages.chat_topBanner_newConversationButton_Tooltip);
+    this.btnNewConversation.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        if (confirmedNewChat()) {
+          notifyNewConversationListeners();
+          updateTitle(Messages.chat_topBanner_defaultChatTitle);
+        }
+      }
+    });
+    
     this.openPreferenceIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
     this.openPreferenceButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
     this.openPreferenceButton.setImage(this.openPreferenceIcon);
@@ -92,20 +106,6 @@ public class TopBanner extends Composite {
                 OpenPreferencesHandler.customInstructionsPreferencePage, OpenPreferencesHandler.mcpPreferencePage));
 
         UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
-      }
-    });
-
-    this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
-    this.btnNewConversation = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-    this.btnNewConversation.setImage(this.newChatIcon);
-    this.btnNewConversation.setToolTipText(Messages.chat_topBanner_newConversationButton_Tooltip);
-    this.btnNewConversation.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        if (confirmedNewChat()) {
-          notifyNewConversationListeners();
-          updateTitle(Messages.chat_topBanner_defaultChatTitle);
-        }
       }
     });
 
