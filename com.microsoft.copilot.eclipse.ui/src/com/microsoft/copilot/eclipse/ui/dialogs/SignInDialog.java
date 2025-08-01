@@ -1,7 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.dialogs;
 
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
@@ -37,7 +36,8 @@ public class SignInDialog extends MessageDialog {
    */
   public SignInDialog(Shell parentShell, SignInInitiateResult initResult) {
     super(parentShell, Messages.signInDialog_title, null, null, MessageDialog.INFORMATION,
-        new String[] { Messages.signInDialog_button_cancel, Messages.signInDialog_button_copyOpen }, Window.CANCEL);
+        new String[] { Messages.signInDialog_button_cancel, Messages.signInDialog_button_copyOpen },
+        1 /* defaultIndex */);
     this.signInInitiateResult = initResult;
   }
 
