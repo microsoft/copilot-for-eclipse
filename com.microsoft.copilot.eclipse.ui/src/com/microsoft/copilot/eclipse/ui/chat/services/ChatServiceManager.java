@@ -95,6 +95,7 @@ public class ChatServiceManager implements IChatServiceManager {
     return fileToolService;
   }
 
+  @Override
   public McpConfigService getMcpConfigService() {
     return mcpConfigService;
   }

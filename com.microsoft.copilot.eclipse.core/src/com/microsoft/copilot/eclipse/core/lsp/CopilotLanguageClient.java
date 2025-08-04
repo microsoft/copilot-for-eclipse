@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
+import com.microsoft.copilot.eclipse.core.chat.service.IMcpConfigService;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
@@ -42,6 +43,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthRequest;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpRuntimeLog;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
@@ -191,6 +194,21 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MCP_RUNTIME_LOG, mcpRuntimeLog);
     }
+  }
+  
+  /**
+   * Handles the OAuth request for MCP.
+   */
+  @JsonRequest("copilot/mcpOAuth")
+  public CompletableFuture<McpOauthResponse> mcpOauth(McpOauthRequest request) {
+    return CompletableFuture.supplyAsync(() -> {
+      IMcpConfigService mcpConfigService = CopilotCore.getPlugin().getChatServiceManager().getMcpConfigService();
+      boolean result = mcpConfigService.mcpOauth(request);
+      return new McpOauthResponse(result);
+    }).exceptionally(e -> {
+      CopilotCore.LOGGER.error(e);
+      return new McpOauthResponse(false);
+    });
   }
 
   /**

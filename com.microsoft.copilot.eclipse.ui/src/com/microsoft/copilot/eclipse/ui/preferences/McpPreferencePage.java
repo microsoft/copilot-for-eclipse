@@ -39,6 +39,7 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -55,6 +56,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Group toolsGroup;
   private Group mcpGroup;
   private Tree toolsTree;
+  private boolean hasFailedMcpServer;
+  private StringFieldEditor mcpField;
 
   /**
    * Constructor.
@@ -122,7 +125,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     var mcpFieldContainer = new Composite(mcpGroup, SWT.NONE);
     mcpFieldContainer.setLayout(gl);
     mcpFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-    var mcpField = new StringFieldEditor(Constants.MCP, Messages.preferences_page_mcp, StringFieldEditor.UNLIMITED, 20,
+    mcpField = new StringFieldEditor(Constants.MCP, Messages.preferences_page_mcp, StringFieldEditor.UNLIMITED, 20,
         StringFieldEditor.VALIDATE_ON_KEY_STROKE, mcpFieldContainer) {
       @Override
       protected boolean doCheckState() {
@@ -377,6 +380,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
     // corner case: server fails to init
     if (toolNodes == null || toolNodes.length == 0) {
+      hasFailedMcpServer = true;
       allChecked = false;
     }
 
@@ -443,9 +447,35 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     preferenceStore.setValue(Constants.MCP_TOOLS_STATUS, jsonResult);
   }
 
+  /**
+   * Resynchronizes MCP servers when there are failed server instances.
+   *
+   * <p>This method is specifically designed to handle cases where the MCP field value remains unchanged
+   * but server synchronization is still required. When the field value doesn't change, the normal
+   * property change event mechanism is not triggered, so this method provides an alternative way
+   * to force server resynchronization.</p>
+   */
+  private void resyncMcpServers() {
+    if (!hasFailedMcpServer) {
+      return;
+    }
+    hasFailedMcpServer = false;
+
+    IPreferenceStore preferenceStore = getPreferenceStore();
+    String storedMcp = preferenceStore.getString(Constants.MCP);
+    String currentMcp = mcpField.getStringValue();
+    if (StringUtils.equals(currentMcp, storedMcp)) {
+      CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
+      settings.setMcpServers(mcpField.getStringValue());
+      LanguageServerSettingManager mgr = CopilotUi.getPlugin().getLanguageServerSettingManager();
+      mgr.syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));
+    }
+  }
+
   @Override
   public boolean performOk() {
     saveToolStatusToPreferences();
+    resyncMcpServers();
     return super.performOk();
   }
 

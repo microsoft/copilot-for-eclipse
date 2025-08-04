@@ -2,25 +2,32 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.service.IMcpConfigService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 
 /**
  * This class is responsible for handling the MCP config service.
  */
-public class McpConfigService extends ChatBaseService {
+public class McpConfigService extends ChatBaseService implements IMcpConfigService {
   // MCP tools
   private IObservableValue<List<McpServerToolsCollection>> mcpToolsObservableValue;
   private ISideEffect mcpToolsSideEffect;
@@ -118,6 +125,31 @@ public class McpConfigService extends ChatBaseService {
     if (mcpToolButtonSideEffect != null) {
       mcpToolButtonSideEffect.dispose();
       mcpToolButtonSideEffect = null;
+    }
+  }
+
+  /**
+   * Handles the OAuth confirmation request.
+   *
+   * @return true if the OAuth confirmation is successful, false otherwise.
+   */
+  public boolean mcpOauth(McpOauthRequest request) {
+    String title = Messages.preferences_page_mcpOAuth_confirmTitle;
+    String message = String.format(Messages.preferences_page_mcpOAuth_confirmMessage, request.getMcpServer(),
+        request.getAuthLabel());
+
+    CompletableFuture<Boolean> result = new CompletableFuture<>();
+    ensureRealm(() -> {
+      var shell = new Shell(PlatformUI.getWorkbench().getDisplay());
+      boolean confirmed = MessageDialog.openConfirm(shell, title, message);
+      result.complete(confirmed);
+    });
+
+    try {
+      return result.get();
+    } catch (ExecutionException | InterruptedException e) {
+      CopilotCore.LOGGER.error("Error during MCP OAuth confirmation", e);
+      return false;
     }
   }
 

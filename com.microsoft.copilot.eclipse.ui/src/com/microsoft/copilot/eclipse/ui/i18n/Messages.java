@@ -91,6 +91,8 @@ public final class Messages extends NLS {
   public static String preferences_page_custom_instructions_workspace_tooltip;
   public static String preferences_page_note_prefix;
   public static String preferences_page_note_content;
+  public static String preferences_page_mcpOAuth_confirmTitle;
+  public static String preferences_page_mcpOAuth_confirmMessage;
   public static String chat_topBanner_newConversationButton_Tooltip;
   public static String chat_topBanner_defaultChatTitle;
   public static String chat_actionBar_initialContent;
