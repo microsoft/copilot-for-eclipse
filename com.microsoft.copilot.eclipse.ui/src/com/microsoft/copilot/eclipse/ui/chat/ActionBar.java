@@ -13,6 +13,8 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -246,7 +248,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    */
   public void updateReferencedWidgetsWithSupportVision(boolean supportVision) {
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
-      List<IFile> referencedFiles = chatServiceManager.getReferencedFileService().getReferencedFiles();
+      List<IResource> referencedFiles = chatServiceManager.getReferencedFileService().getReferencedFiles();
       updateReferencedFilesInternal(referencedFiles, supportVision);
     }, this);
   }
@@ -256,7 +258,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    *
    * @param files the list of files to update
    */
-  public void updateReferencedWidgetsWithFiles(List<IFile> files) {
+  public void updateReferencedWidgetsWithFiles(List<IResource> files) {
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
       boolean supportVision = chatServiceManager.getUserPreferenceService().isVisionSupported();
       updateReferencedFilesInternal(files, supportVision);
@@ -266,7 +268,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   /**
    * Update the referenced file widgets with the given files and supportVision flag.
    */
-  private void updateReferencedFilesInternal(List<IFile> files, boolean supportVision) {
+  private void updateReferencedFilesInternal(List<IResource> files, boolean supportVision) {
     if (files == null) {
       return;
     }
@@ -281,9 +283,13 @@ public class ActionBar extends Composite implements NewConversationListener {
       }
     }
 
-    for (IFile file : files) {
-      boolean isUnSupportedFile = !supportVision && ChatMessageUtils.isImageFile(file);
-      new ReferencedFile(this.cmpFileRef, file, isUnSupportedFile);
+    for (IResource file : files) {
+      if (file instanceof IFile) {
+        boolean isUnSupportedFile = !supportVision && ChatMessageUtils.isImageFile((IFile) file);
+        new ReferencedFile(this.cmpFileRef, file, isUnSupportedFile);
+      } else if (file instanceof IFolder) {
+        new ReferencedFile(this.cmpFileRef, file, false);
+      }
     }
     refreshLayout();
   }

@@ -18,7 +18,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
   private String turnId;
   private String reply;
   private CopilotAnnotation[] annotations;
-  private FileReferenceParams[] references;
+  private ChatReference[] references;
   private boolean hideText;
   private String[] notifications;
   private ChatStep[] steps;
@@ -51,7 +51,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     return annotations;
   }
 
-  public FileReferenceParams[] getReferences() {
+  public ChatReference[] getReferences() {
     return references;
   }
 
@@ -115,7 +115,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     this.annotations = annotations;
   }
 
-  public void setReferences(FileReferenceParams[] references) {
+  public void setReferences(ChatReference[] references) {
     this.references = references;
   }
 

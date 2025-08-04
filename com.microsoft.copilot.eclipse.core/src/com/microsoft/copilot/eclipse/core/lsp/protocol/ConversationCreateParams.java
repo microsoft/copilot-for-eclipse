@@ -20,7 +20,7 @@ public class ConversationCreateParams {
   private ConversationCapabilities capabilities;
   private boolean computeSuggestions;
   private TextDocumentIdentifier textDocument;
-  private List<FileReferenceParams> references;
+  private List<ChatReference> references;
   private String source = "panel";
   private String workspaceFolder;
   private List<WorkspaceFolder> workspaceFolders;
@@ -87,11 +87,11 @@ public class ConversationCreateParams {
     this.textDocument = textDocument;
   }
 
-  public List<FileReferenceParams> getReferences() {
+  public List<ChatReference> getReferences() {
     return references;
   }
 
-  public void setReferences(List<FileReferenceParams> references) {
+  public void setReferences(List<ChatReference> references) {
     this.references = references;
   }
 
@@ -210,14 +210,5 @@ public class ConversationCreateParams {
     builder.add("chatMode", chatMode);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     return builder.toString();
-  }
-
-  /**
-   * Adds file references to the conversation.
-   */
-  public void addFileRefs(List<IFile> files) {
-    for (IFile file : files) {
-      this.references.add(new FileReferenceParams(file));
-    }
   }
 }

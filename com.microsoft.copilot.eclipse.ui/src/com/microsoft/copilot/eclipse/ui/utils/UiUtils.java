@@ -17,11 +17,15 @@ import org.eclipse.core.commands.NotHandledException;
 import org.eclipse.core.commands.ParameterizedCommand;
 import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.ITextViewerExtension5;
+import org.eclipse.jface.viewers.ISelectionProvider;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
@@ -53,6 +57,10 @@ import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.ide.ResourceUtil;
+import org.eclipse.ui.navigator.CommonNavigator;
+import org.eclipse.ui.navigator.CommonViewer;
+import org.eclipse.ui.part.IShowInTarget;
+import org.eclipse.ui.part.ShowInContext;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.osgi.service.prefs.Preferences;
 
@@ -68,6 +76,8 @@ public class UiUtils {
 
   public static final String HAIR_SPACE = "\u200A";
   private static final int MAX_SPACE_TO_ADD = 500;
+  private static final List<String> REVEAL_IN_EXPLORER_VIEW_IDS = List.of("org.eclipse.ui.navigator.ProjectExplorer",
+      "org.eclipse.jdt.ui.PackageExplorer");
 
   private UiUtils() {
     // prevent instantiation
@@ -524,5 +534,72 @@ public class UiUtils {
       }
     }
     return result;
+  }
+
+  /**
+   * Reveals the given resource in the Project Explorer or Package Explorer view. If neither view is open, it will
+   * attempt to open the Project Explorer first, then the Package Explorer.
+   *
+   * @param resource the resource to reveal
+   */
+  public static void revealInExplorer(IResource resource) {
+    if (resource == null || !resource.exists()) {
+      return;
+    }
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+      if (window == null) {
+        return;
+      }
+
+      IWorkbenchPage page = window.getActivePage();
+      if (page == null) {
+        return;
+      }
+      IViewPart view = findOpenResourceView(page);
+      if (view != null) {
+        selectResourceInView(view, resource);
+        page.activate(view);
+        return;
+      }
+      // If no view is open, try to open one
+      for (String viewId : REVEAL_IN_EXPLORER_VIEW_IDS) {
+        try {
+          view = page.showView(viewId);
+          selectResourceInView(view, resource);
+          page.activate(view);
+          return; // Successfully opened and revealed
+        } catch (PartInitException e) {
+          //Continue to the next view ID if this one fails
+        }
+      }
+    });
+  }
+
+  private static IViewPart findOpenResourceView(IWorkbenchPage page) {
+    for (String viewId : REVEAL_IN_EXPLORER_VIEW_IDS) {
+      IViewPart view = page.findView(viewId);
+      if (view != null) {
+        return view;
+      }
+    }
+    return null;
+  }
+
+  private static void selectResourceInView(IViewPart view, IResource resource) {
+    ISelectionProvider selectionProvider = view.getSite().getSelectionProvider();
+    if (selectionProvider != null) {
+      IStructuredSelection selection = new StructuredSelection(resource);
+      selectionProvider.setSelection(selection);
+      if (view instanceof IShowInTarget) {
+        ShowInContext context = new ShowInContext(null, selection);
+        ((IShowInTarget) view).show(context);
+      } else if (view instanceof CommonNavigator) {
+        CommonNavigator navigator = (CommonNavigator) view;
+        CommonViewer viewer = navigator.getCommonViewer();
+        viewer.reveal(resource);
+        viewer.setSelection(selection, true);
+      }
+    }
   }
 }

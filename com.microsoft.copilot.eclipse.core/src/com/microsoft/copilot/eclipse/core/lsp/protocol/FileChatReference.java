@@ -11,8 +11,8 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 /**
  * Parameters for a file reference request.
  */
-public class FileReferenceParams {
-  private String type = "file";
+public class FileChatReference implements ChatReference {
+  private String type = ReferenceType.FILE.getValue();
   private String status;
   private Range range;
   private String uri = "";
@@ -24,8 +24,10 @@ public class FileReferenceParams {
 
   /**
    * Creates a new FileReferenceParams.
+   *
+   * @param file The file for which the reference is created.
    */
-  public FileReferenceParams(IFile file) {
+  public FileChatReference(IFile file) {
     URI uri = file.getLocationURI();
     if (uri != null) {
       this.uri = uri.toString();
@@ -117,7 +119,7 @@ public class FileReferenceParams {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    FileReferenceParams that = (FileReferenceParams) o;
+    FileChatReference that = (FileChatReference) o;
     return Objects.equals(type, that.type) && Objects.equals(status, that.status) && Objects.equals(range, that.range)
         && Objects.equals(uri, that.uri) && Objects.equals(position, that.position)
         && Objects.equals(visibleRange, that.visibleRange) && Objects.equals(selection, that.selection)

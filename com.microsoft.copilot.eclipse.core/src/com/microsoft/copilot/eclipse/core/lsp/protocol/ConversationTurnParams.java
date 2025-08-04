@@ -22,7 +22,7 @@ public class ConversationTurnParams {
   private String conversationId;
   @NonNull
   private Either<String, List<ChatCompletionContentPart>> message; // String or ChatCompletionContentPart[]
-  private List<FileReferenceParams> references;
+  private List<ChatReference> references;
   private TextDocumentIdentifier textDocument;
   private boolean computeSuggestions;
   private String workspaceFolder;
@@ -44,15 +44,6 @@ public class ConversationTurnParams {
     this.message = message;
     this.references = new ArrayList<>();
     this.computeSuggestions = true;
-  }
-
-  /**
-   * Adds file references to the conversation.
-   */
-  public void addFileRefs(List<IFile> files) {
-    for (IFile file : files) {
-      this.references.add(new FileReferenceParams(file));
-    }
   }
 
   public String getWorkDoneToken() {
@@ -79,11 +70,11 @@ public class ConversationTurnParams {
     this.message = message;
   }
 
-  public List<FileReferenceParams> getReferences() {
+  public List<ChatReference> getReferences() {
     return references;
   }
 
-  public void setReferences(List<FileReferenceParams> references) {
+  public void setReferences(List<ChatReference> references) {
     this.references = references;
   }
 

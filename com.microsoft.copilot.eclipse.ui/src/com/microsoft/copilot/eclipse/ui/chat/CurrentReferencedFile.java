@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
@@ -59,7 +60,7 @@ public class CurrentReferencedFile extends ReferencedFile {
   }
 
   @Override
-  public void setFile(IFile file) {
+  public void setFile(IResource file) {
     super.setFile(file);
   }
 

@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
@@ -432,7 +433,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     ReferencedFileService fileService = chatServiceManager.getReferencedFileService();
     IFile currentFile = fileService.getCurrentFile();
-    List<IFile> references = fileService.getReferencedFiles();
+    List<IResource> references = fileService.getReferencedFiles();
 
     if (conversationId == null || conversationId.isEmpty()) {
       // create a new conversation

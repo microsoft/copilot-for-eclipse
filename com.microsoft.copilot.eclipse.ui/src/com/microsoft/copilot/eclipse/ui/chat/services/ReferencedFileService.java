@@ -9,6 +9,8 @@ import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener2;
@@ -34,9 +36,9 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   private IObservableValue<Boolean> isCurrentFileVisibleObservable;
 
   // The reason that we use map to dedup the context file is that the hashCode() method
-  // of the IFile checks the full path, which will fail to dedup when it comes to multi-module
+  // of the IFile/IFolder checks the full path, which will fail to dedup when it comes to multi-module
   // project, so we use the URI instead.
-  private IObservableValue<Map<String, IFile>> referencedFilesObservable;
+  private IObservableValue<Map<String, IResource>> referencedFilesObservable;
 
   private ISideEffect currentReferencedFileSideEffect;
   private ISideEffect isCurrentFileVisibleSideEffect;
@@ -87,10 +89,10 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   @Override
-  public List<IFile> getReferencedFiles() {
-    final AtomicReference<List<IFile>> result = new AtomicReference<>();
+  public List<IResource> getReferencedFiles() {
+    final AtomicReference<List<IResource>> result = new AtomicReference<>();
     ensureRealm(() -> {
-      Map<String, IFile> files = referencedFilesObservable.getValue();
+      Map<String, IResource> files = referencedFilesObservable.getValue();
       result.set(List.copyOf(files.values()));
     });
     return result.get();
@@ -145,7 +147,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       }
 
       referencedFilesSideEffect = ISideEffect.create(referencedFilesObservable::getValue,
-          (Map<String, IFile> files) -> {
+          (Map<String, IResource> files) -> {
             if (actionBar.isDisposed()) {
               return;
             }
@@ -157,9 +159,9 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   /**
    * Update the referenced files observable with a new set of files.
    */
-  public void updateReferencedFiles(List<IFile> files) {
+  public void updateReferencedFiles(List<IResource> files) {
     ensureRealm(() -> {
-      Map<String, IFile> fileMap = new LinkedHashMap<>();
+      Map<String, IResource> fileMap = new LinkedHashMap<>();
       addFilesToMap(files, fileMap);
       referencedFilesObservable.setValue(fileMap);
     });
@@ -168,9 +170,9 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   /**
    * Add files to the existing referenced files observable.
    */
-  public void addReferencedFiles(List<IFile> files) {
+  public void addReferencedFiles(List<IResource> files) {
     ensureRealm(() -> {
-      Map<String, IFile> fileMap = new LinkedHashMap<>(referencedFilesObservable.getValue());
+      Map<String, IResource> fileMap = new LinkedHashMap<>(referencedFilesObservable.getValue());
       addFilesToMap(files, fileMap);
       referencedFilesObservable.setValue(fileMap);
     });
@@ -179,9 +181,16 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   /**
    * Helper method to add valid files to the map.
    */
-  private void addFilesToMap(List<IFile> files, Map<String, IFile> fileMap) {
-    for (IFile file : files) {
-      if (file != null && !isExcludedFromReferencedFiles(file)) {
+  private void addFilesToMap(List<IResource> files, Map<String, IResource> fileMap) {
+    for (IResource file : files) {
+      if (file instanceof IFile) {
+        if (file != null && !isExcludedFromReferencedFiles((IFile) file)) {
+          String uri = FileUtils.getResourceUri(file);
+          if (uri != null) {
+            fileMap.put(uri, file);
+          }
+        }
+      } else if (file instanceof IFolder) {
         String uri = FileUtils.getResourceUri(file);
         if (uri != null) {
           fileMap.put(uri, file);
@@ -195,8 +204,8 @@ public class ReferencedFileService extends ChatBaseService implements IReference
    */
   public void removeReferencedFile(String uri) {
     ensureRealm(() -> {
-      Map<String, IFile> fileMap = referencedFilesObservable.getValue();
-      IFile removedFile = fileMap.remove(uri);
+      Map<String, IResource> fileMap = referencedFilesObservable.getValue();
+      IResource removedFile = fileMap.remove(uri);
       if (removedFile == null) {
         return;
       }

@@ -1,6 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
@@ -32,7 +34,7 @@ public class ReferencedFile extends Composite {
   protected Label lblClose;
   private Image lblImage;
   private Image warningImage;
-  private IFile file;
+  private IResource file;
   private boolean isUnSupportedFile = false;
 
   // make it static to avoid creating multiple instances of the same label provider
@@ -41,7 +43,7 @@ public class ReferencedFile extends Composite {
   /**
    * Creates a new TwinButton.
    */
-  public ReferencedFile(Composite parent, IFile file, boolean isUnSupportedFile) {
+  public ReferencedFile(Composite parent, IResource file, boolean isUnSupportedFile) {
     super(parent, SWT.BORDER);
     this.isUnSupportedFile = isUnSupportedFile;
     GridLayout layout = new GridLayout(3, false);
@@ -61,7 +63,11 @@ public class ReferencedFile extends Composite {
     MouseAdapter mouseAdapter = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
-        UiUtils.openInEditor(ReferencedFile.this.file);
+        if (file instanceof IFile) {
+          UiUtils.openInEditor((IFile) ReferencedFile.this.file);
+        } else if (file instanceof IFolder) {
+          UiUtils.revealInExplorer(ReferencedFile.this.file);
+        }
       }
     };
     lblFileName.addMouseListener(mouseAdapter);
@@ -111,7 +117,7 @@ public class ReferencedFile extends Composite {
     lblClose.setImage(image);
   }
 
-  public IFile getFile() {
+  public IResource getFile() {
     return file;
   }
 
@@ -125,7 +131,7 @@ public class ReferencedFile extends Composite {
   /**
    * Set the file for this widget.
    */
-  protected void setFile(@Nullable IFile file) {
+  protected void setFile(@Nullable IResource file) {
     this.file = file;
     RowData layoutData = getLayoutData() == null ? new RowData() : (RowData) getLayoutData();
 

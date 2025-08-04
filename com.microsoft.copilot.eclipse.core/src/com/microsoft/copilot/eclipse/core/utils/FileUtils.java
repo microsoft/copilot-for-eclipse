@@ -1,9 +1,19 @@
 package com.microsoft.copilot.eclipse.core.utils;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.lsp4e.LSPEclipseUtils;
+
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReference;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
 
 /**
  * Utilities for the core module.
@@ -43,5 +53,32 @@ public class FileUtils {
     // See:
     // https://help.eclipse.org/latest/topic/org.eclipse.platform.doc.isv/reference/api/org/eclipse/e4/ui/css/swt/helpers/URI.html#createPlatformResourceURI(java.lang.String,boolean)
     return "platform:/resource" + resource.getFullPath().toString();
+  }
+
+  /**
+   * Get all the IFile instance in a List of resources.
+   *
+   * @param resources The list of resources to filter.
+   * @return A list of IFile instances or an empty list if no files are found.
+   */
+  public static List<IFile> filterFilesFrom(List<IResource> resources) {
+    return resources.stream().filter(IFile.class::isInstance).map(IFile.class::cast).collect(Collectors.toList());
+  }
+
+  /**
+   * Converts a list of resources to a list of ChatReference objects.
+   *
+   * @param resources The list of resources to convert
+   * @return A list of ChatReference objects
+   */
+  public static List<ChatReference> convertToChatReferences(List<IResource> resources) {
+    return resources.stream().map(resource -> {
+      if (resource instanceof IFile file && !ChatMessageUtils.isImageFile(file)) {
+        return new FileChatReference(file);
+      } else if (resource instanceof IFolder folder) {
+        return new DirectoryChatReference(folder);
+      }
+      return null;
+    }).filter(Objects::nonNull).collect(Collectors.toList());
   }
 }

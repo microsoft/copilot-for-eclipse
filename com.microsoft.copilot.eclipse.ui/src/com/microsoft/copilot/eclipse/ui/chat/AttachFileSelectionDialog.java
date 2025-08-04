@@ -6,6 +6,7 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.dialogs.FilteredResourcesSelectionDialog;
@@ -18,7 +19,7 @@ class AttachFileSelectionDialog extends FilteredResourcesSelectionDialog {
   private List<IFile> openedFiles;
 
   public AttachFileSelectionDialog(Shell shell, boolean multi, IContainer container) {
-    super(shell, multi, container, IResource.FILE);
+    super(shell, multi, container, IResource.FILE | IResource.FOLDER);
     this.openedFiles = UiUtils.getOpenedFiles();
 
     this.setInitialPattern(OPENED_FILES, NONE);
@@ -50,6 +51,8 @@ class AttachFileSelectionDialog extends FilteredResourcesSelectionDialog {
           return Objects.nonNull(extension) && !Constants.EXCLUDED_REFERENCE_FILE_TYPE.contains(extension)
               && super.matchItem(item);
         }
+      } else if (item instanceof IFolder) {
+        return super.matchItem(item);
       }
       return false;
     }

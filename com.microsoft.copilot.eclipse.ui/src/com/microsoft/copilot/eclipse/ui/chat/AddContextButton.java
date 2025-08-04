@@ -8,6 +8,8 @@ import java.util.Set;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jdt.annotation.NonNull;
@@ -66,7 +68,7 @@ public class AddContextButton extends Composite {
     MouseAdapter clickListener = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
-        List<IFile> files = selectFiles();
+        List<IResource> files = selectFiles();
         ReferencedFileService fileService = CopilotUi.getPlugin().getChatServiceManager().getReferencedFileService();
         fileService.addReferencedFiles(files);
       }
@@ -84,14 +86,14 @@ public class AddContextButton extends Composite {
    * Popup a file picker dialog to select files. It's guaranteed that the selected files are unique.
    */
   @NonNull
-  private List<IFile> selectFiles() {
+  private List<IResource> selectFiles() {
     Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
     IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
     IContainer container = root.getContainerForLocation(root.getLocation());
     AttachFileSelectionDialog dialog = new AttachFileSelectionDialog(shell, true, container);
     dialog.setTitle(Messages.chat_filePicker_title);
     dialog.setMessage(Messages.chat_filePicker_message);
-    List<IFile> result = new ArrayList<>();
+    List<IResource> result = new ArrayList<>();
     if (dialog.open() == Window.OK) {
       Object[] selectedFiles = dialog.getResult();
       Set<String> selectedFileUris = new HashSet<>();
@@ -100,6 +102,11 @@ public class AddContextButton extends Composite {
           URI fileUri = file.getLocationURI();
           if (fileUri != null && selectedFileUris.add(fileUri.toASCIIString())) {
             result.add(file);
+          }
+        } else if (selectedFile instanceof IFolder folder) {
+          URI folderUri = folder.getLocationURI();
+          if (folderUri != null && selectedFileUris.add(folderUri.toASCIIString())) {
+            result.add(folder);
           }
         }
       }
