@@ -79,6 +79,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
   private Image mcpToolImage;
+  private Image mcpToolDisabledImage;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
@@ -307,6 +308,10 @@ public class ActionBar extends Composite implements NewConversationListener {
       mcpToolImage.dispose();
       mcpToolImage = null;
     }
+    if (mcpToolDisabledImage != null && !mcpToolDisabledImage.isDisposed()) {
+      mcpToolDisabledImage.dispose();
+      mcpToolDisabledImage = null;
+    }
     if (btnMsgToggle != null && !btnMsgToggle.isDisposed()) {
       btnMsgToggle.dispose();
       btnMsgToggle = null;
@@ -320,17 +325,19 @@ public class ActionBar extends Composite implements NewConversationListener {
     // Add MCP button for Agent mode
     if (isAgentMode) {
       mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+      mcpToolDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_disabled.png");
       this.addDisposeListener(e -> {
         if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
           mcpToolImage.dispose();
         }
+        if (mcpToolDisabledImage != null && !mcpToolDisabledImage.isDisposed()) {
+          mcpToolDisabledImage.dispose();
+        }
       });
 
       this.mcpToolButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-      this.mcpToolButton.setImage(mcpToolImage);
-      this.mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_toolTip);
-      this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton);
-      this.mcpToolButton.setEnabled(CopilotCore.getPlugin().getFeatureFlags().isMcpEnabled());
+      this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
+          mcpToolDisabledImage);
       GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -338,6 +345,10 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.mcpToolButton.addSelectionListener(new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent e) {
+          if (!CopilotCore.getPlugin().getFeatureFlags().isMcpEnabled()) {
+            return;
+          }
+
           Map<String, Object> parameters = new HashMap<>();
 
           parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",

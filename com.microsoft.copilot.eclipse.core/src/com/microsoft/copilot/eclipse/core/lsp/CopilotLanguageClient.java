@@ -195,7 +195,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MCP_RUNTIME_LOG, mcpRuntimeLog);
     }
   }
-  
+
   /**
    * Handles the OAuth request for MCP.
    */

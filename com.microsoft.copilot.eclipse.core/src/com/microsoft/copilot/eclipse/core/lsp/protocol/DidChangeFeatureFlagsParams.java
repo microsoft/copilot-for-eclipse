@@ -43,7 +43,7 @@ public class DidChangeFeatureFlagsParams {
     boolean disabled = featureFlags != null && "0".equals(featureFlags.get("mcp"));
     return !disabled;
   }
-  
+
   /**
    * Checks if the agent mode is enabled.
    */
