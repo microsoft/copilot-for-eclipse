@@ -356,7 +356,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
     this.cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
     this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-    this.btnMsgToggle.setEnabled(false);
+    this.btnMsgToggle.setEnabled(StringUtils.isBlank(this.inputTextViewer.getContent()) ? false : true);
     this.btnMsgToggle.setImage(this.sendImage);
     this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
     GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);

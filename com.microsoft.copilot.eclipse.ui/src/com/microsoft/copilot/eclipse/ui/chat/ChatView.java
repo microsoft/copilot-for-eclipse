@@ -15,6 +15,7 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -71,7 +72,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private String conversationId = "";
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-  private String cachedInputContent = StringUtils.EMPTY;
 
   @Override
   public void createPartControl(Composite parent) {
@@ -139,7 +139,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
     this.hasHistory = false;
-    disposeChildren(parent);
+
     switch (status) {
       case CopilotStatusResult.LOADING:
         createLoadingPage();
@@ -172,24 +172,22 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
     this.onCancel();
 
-    // If no history, cache content before disposing and refresh the main section and action bar together
-    cacheInputContent();
-
-    if (hasHistory) {
-      // Keep the main section to keep the conversation history and refresh the action bar only
-      refreshActionBarTextViewerAndButtons();
-    } else {
-      disposeChildren(parent);
+    if (!hasHistory) {
       createChatPage(chatMode);
 
-      if (StringUtils.isNotBlank(this.cachedInputContent)) {
-        restoreInputContent();
-      }
+      // This is a necessary step since we use actionBar cache when switching
+      // chat modes and the topBanner & mainSection will on the bottom of the
+      // actionBar if we use cache.
+      this.actionBar.moveBelow(this.mainSection);
     }
+    refreshActionBarTextViewerAndButtons();
     this.parent.requestLayout();
   }
 
   private void createChatPage(ChatMode chatMode) {
+    disposeComposite(topBanner);
+    disposeComposite(mainSection);
+
     switch (chatMode) {
       case Ask:
         createChatModeView();
@@ -206,7 +204,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.topBanner = new TopBanner(parent, SWT.NONE);
     this.topBanner.registerNewConversationListener(this);
 
-    createContentWrapper();
+    createOrReuseContentWrapper();
 
     // main section
     createMainSection();
@@ -221,7 +219,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (this.actionBar == null || this.actionBar.isDisposed()) {
       createActionBar();
     } else {
-      refreshActionBarTextViewerAndButtons();
+      // re-register the action bar if it already exists
+      this.topBanner.registerNewConversationListener(this.actionBar);
     }
   }
 
@@ -230,7 +229,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.topBanner = new TopBanner(parent, SWT.NONE);
     this.topBanner.registerNewConversationListener(this);
 
-    createContentWrapper();
+    createOrReuseContentWrapper();
 
     // main section
     createMainSection();
@@ -245,10 +244,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (this.actionBar == null || this.actionBar.isDisposed()) {
       createActionBar();
     } else {
-      refreshActionBarTextViewerAndButtons();
+      // re-register the action bar if it already exists
+      this.topBanner.registerNewConversationListener(this.actionBar);
     }
   }
 
+  /**
+   * Keep the composite itself but dispose all children of the given composite.
+   *
+   * @param composite the composite to dispose children from
+   */
   private void disposeChildren(Composite composite) {
     if (composite == null || composite.isDisposed()) {
       return;
@@ -258,7 +263,32 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
   }
 
-  private void createContentWrapper() {
+  /**
+   * Dispose a composite and all its children.
+   *
+   * @param composite the composite to dispose, can be null
+   */
+  private void disposeComposite(@Nullable Composite composite) {
+    if (composite == null || composite.isDisposed()) {
+      return;
+    }
+
+    composite.dispose();
+  }
+
+  private void createOrReuseContentWrapper() {
+    if (this.contentWrapper != null && !this.contentWrapper.isDisposed()) {
+      // If contentWrapper is already created, we can reuse it.
+      // This is a necessary step since we use contentWrapper cache when switching
+      // chat modes and the topBanner will on the bottom of the
+      // contentWrapper if we use cache.
+      this.topBanner.moveAbove(this.contentWrapper);
+    } else {
+      createNewContentWrapper();
+    }
+  }
+
+  private void createNewContentWrapper() {
     this.contentWrapper = new Composite(parent, SWT.NONE);
     GridLayout layout = new GridLayout(1, true);
     layout.marginWidth = 10;
@@ -555,24 +585,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
     this.topBanner.registerNewConversationListener(listener);
-  }
-
-  /**
-   * Cache the input text content before ActionBar recreation.
-   */
-  public void cacheInputContent() {
-    if (this.actionBar != null) {
-      this.cachedInputContent = this.actionBar.getInputTextViewerContent();
-    }
-  }
-
-  /**
-   * Restore the input text content after ActionBar recreation.
-   */
-  public void restoreInputContent() {
-    if (this.actionBar != null && !this.cachedInputContent.isEmpty()) {
-      this.actionBar.setInputTextViewerContent(this.cachedInputContent);
-    }
   }
 
   /**

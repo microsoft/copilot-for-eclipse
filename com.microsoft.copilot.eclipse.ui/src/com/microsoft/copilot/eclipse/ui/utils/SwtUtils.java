@@ -15,6 +15,7 @@ import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -105,7 +106,7 @@ public class SwtUtils {
 
     Display.getDefault().asyncExec(runnable);
   }
-  
+
   /**
    * Invokes the given runnable on the display thread asynchronously.
    *
