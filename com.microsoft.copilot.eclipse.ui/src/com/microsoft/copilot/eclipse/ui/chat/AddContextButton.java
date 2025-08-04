@@ -15,7 +15,6 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Image;
@@ -36,7 +35,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class AddContextButton extends Composite {
   private Label lblAttachIcon;
-  private StyledText lblButtonText;
+  private Label lblButtonText;
 
   /**
    * Creates a new AddContextButton.
@@ -59,10 +58,9 @@ public class AddContextButton extends Composite {
     });
     UiUtils.useParentBackground(this.lblAttachIcon);
 
-    lblButtonText = new StyledText(this, SWT.NONE);
+    lblButtonText = new Label(this, SWT.NONE);
     lblButtonText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
     lblButtonText.setText("Add Context...");
-    lblButtonText.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
     UiUtils.useParentBackground(this.lblButtonText);
 
     MouseAdapter clickListener = new MouseAdapter() {

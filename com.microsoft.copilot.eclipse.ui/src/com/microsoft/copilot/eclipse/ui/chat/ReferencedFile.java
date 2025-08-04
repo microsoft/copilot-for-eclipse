@@ -7,10 +7,10 @@ import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
-import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowData;
@@ -30,7 +30,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ReferencedFile extends Composite {
   private Label lblfileIcon;
-  private StyledText lblFileName;
+  private Label lblFileName;
   protected Label lblClose;
   private Image lblImage;
   private Image warningImage;
@@ -54,10 +54,8 @@ public class ReferencedFile extends Composite {
     lblfileIcon = new Label(this, SWT.NONE);
     lblfileIcon.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     UiUtils.useParentBackground(this.lblfileIcon);
-    lblFileName = new StyledText(this, SWT.NONE);
-    lblFileName.setEditable(false);
+    lblFileName = new Label(this, SWT.NONE);
     lblFileName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
-    lblFileName.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
     UiUtils.useParentBackground(this.lblFileName);
 
     MouseAdapter mouseAdapter = new MouseAdapter() {
@@ -182,13 +180,14 @@ public class ReferencedFile extends Composite {
     lblClose.setToolTipText(tooltipText);
     lblFileName.setData(CSSSWTConstants.CSS_ID_KEY, "not-supported-referenced-file-name");
 
-    // Set the file name label to strikeout
-    StyleRange style = new StyleRange();
-    style.start = 0;
-    style.length = lblFileName.getText().length();
-    style.strikeout = true;
-
-    lblFileName.setStyleRange(style);
+    lblFileName.addPaintListener(e -> {
+      String text = lblFileName.getText();
+      Point textSize = e.gc.textExtent(text);
+      
+      int y = textSize.y / 2;
+      e.gc.setLineWidth(1);
+      e.gc.drawLine(0, y, textSize.x, y);
+    });
   }
 
   /**
