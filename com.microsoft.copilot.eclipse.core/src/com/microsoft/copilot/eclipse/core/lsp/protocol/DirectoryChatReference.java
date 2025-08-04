@@ -11,7 +11,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
  * Represents a directory chat reference.
  */
 public class DirectoryChatReference implements ChatReference {
-  private final String type = ReferenceType.Directory.getValue();
+  private final String type = ReferenceType.directory.toString();
   private String uri;
   
   /**
@@ -26,7 +26,6 @@ public class DirectoryChatReference implements ChatReference {
     }
   }
 
-  @Override
   public String getType() {
     return type;
   }

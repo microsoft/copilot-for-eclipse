@@ -12,7 +12,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
  * Parameters for a file reference request.
  */
 public class FileChatReference implements ChatReference {
-  private String type = ReferenceType.FILE.getValue();
+  private String type = ReferenceType.file.toString();
   private String status;
   private Range range;
   private String uri = "";
