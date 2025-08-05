@@ -12,6 +12,8 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPage;
@@ -19,6 +21,7 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
@@ -123,7 +126,7 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       widget.addDisposeListener(e -> unbindCurrentFileWidget());
     });
 
-    updateCurrentReferencedFile(UiUtils.getCurrentFile());
+    updateCurrentReferencedFile(UiUtils.getActiveEditor());
   }
 
   /**
@@ -229,18 +232,38 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   private void updateCurrentReferencedFile(IWorkbenchPartReference partRef) {
     IWorkbenchPart part = partRef.getPart(false);
-    if (!(part instanceof IEditorPart)) {
-      return;
+    if (part instanceof IEditorPart editorPart) {
+      updateCurrentReferencedFile(editorPart);
     }
-    updateCurrentReferencedFile(UiUtils.getCurrentFile());
   }
 
-  private void updateCurrentReferencedFile(IFile currentFile) {
+  private void updateCurrentReferencedFile(IEditorPart editorPart) {
+    if (editorPart == null) {
+      updateObservable(currentFileObservable, null);
+      return;
+    }
+
+    ITextEditor textEditor = editorPart.getAdapter(ITextEditor.class);
+    if (textEditor == null) {
+      updateObservable(currentFileObservable, null);
+      return;
+    }
+
+    // We do following checks to ensure that un-connected document will not
+    // be added to the current file. See: https://github.com/microsoft/copilot-eclipse/issues/884
+    // TODO: Support other types of editors.
+    IDocument document = LSPEclipseUtils.getDocument(textEditor);
+    if (document == null || LSPEclipseUtils.toUri(document) == null) {
+      updateObservable(currentFileObservable, null);
+      return;
+    }
+
+    IFile currentFile = UiUtils.getCurrentFile();
     if (isExcludedFromCurrentFile(currentFile)) {
       currentFile = null;
     }
-    final IFile finalCurrentFile = currentFile;
-    ensureRealm(() -> currentFileObservable.setValue(finalCurrentFile));
+
+    updateObservable(currentFileObservable, currentFile);
   }
 
   /**

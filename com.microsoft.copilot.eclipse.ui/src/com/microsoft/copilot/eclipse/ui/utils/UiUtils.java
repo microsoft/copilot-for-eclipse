@@ -113,6 +113,20 @@ public class UiUtils {
   }
 
   /**
+   * Returns the active editor part.
+   *
+   * @return the active editor part or null if no editor is active
+   */
+  @Nullable
+  public static IEditorPart getActiveEditor() {
+    IWorkbenchPage page = getActivePage();
+    if (page == null) {
+      return null;
+    }
+    return page.getActiveEditor();
+  }
+
+  /**
    * Return the IFile from the given editor part.
    */
   @Nullable
@@ -570,7 +584,7 @@ public class UiUtils {
           page.activate(view);
           return; // Successfully opened and revealed
         } catch (PartInitException e) {
-          //Continue to the next view ID if this one fails
+          // Continue to the next view ID if this one fails
         }
       }
     });

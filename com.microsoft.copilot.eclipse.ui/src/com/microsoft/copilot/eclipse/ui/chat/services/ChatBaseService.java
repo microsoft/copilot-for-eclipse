@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.databinding.swt.DisplayRealm;
 import org.eclipse.swt.widgets.Display;
@@ -133,5 +134,17 @@ public abstract class ChatBaseService {
     }
 
     return Paths.get(this.persistentPath, user, PREF_FILE_NAME);
+  }
+
+  /**
+   * Update the value of an observable in its realm.
+   *
+   * @param observable The observable to update.
+   * @param value The new value to set.
+   */
+  protected <T> void updateObservable(IObservableValue<T> observable, final T value) {
+    if (observable != null) {
+      observable.getRealm().asyncExec(() -> observable.setValue(value));
+    }
   }
 }
