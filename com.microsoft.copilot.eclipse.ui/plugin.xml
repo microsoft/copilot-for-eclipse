@@ -138,11 +138,6 @@
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
-			id="com.microsoft.copilot.eclipse.commands.viewFeedbackForum"
-			name="%command.giveFeedback.name">
-		</command>
-		<command
-			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.openPreferences"
 			name="%command.openPreferencesPage.name">
 				<commandParameter 
@@ -178,16 +173,6 @@
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
-			id="com.microsoft.copilot.eclipse.commands.manageCopilot"
-			name="%command.manageCopilot.name">
-		</command>
-		<command
-			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
-			id="com.microsoft.copilot.eclipse.commands.manageCopilotOverage"
-			name="%command.manageCopilotOverage.name">
-		</command>
-		<command
-			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.generateCommitMessage"
 			name="%command.generateCommitMessage.name">
 		</command>
@@ -205,6 +190,16 @@
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.openQuickStart"
 			name="%command.openQuickStart.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.openUrl"
+			name="%command.openUrl.name">
+				<commandParameter
+					id="com.microsoft.copilot.eclipse.commands.openUrl.url"
+					name="URL"
+					values="">
+				</commandParameter>
 		</command>
 	</extension>
 
@@ -244,10 +239,6 @@
 			commandId="com.microsoft.copilot.eclipse.commands.discardSuggestion">
 		</handler>
 		<handler
-			class="com.microsoft.copilot.eclipse.ui.handlers.GiveFeedbackHandler"
-			commandId="com.microsoft.copilot.eclipse.commands.viewFeedbackForum">
-		</handler>
-		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.openPreferences">
 		</handler>
@@ -272,14 +263,6 @@
 			commandId="com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan">
 		</handler>
 		<handler
-			class="com.microsoft.copilot.eclipse.ui.handlers.ManageCopilotHandler"
-			commandId="com.microsoft.copilot.eclipse.commands.manageCopilot">
-		</handler>
-		<handler
-			class="com.microsoft.copilot.eclipse.ui.handlers.ManageCopilotOverageHandler"
-			commandId="com.microsoft.copilot.eclipse.commands.manageCopilotOverage">
-		</handler>
-		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.GenerateCommitMessageHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage">
 		</handler>
@@ -294,6 +277,10 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.OpenQuickStartHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.openQuickStart">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.OpenUrlHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.openUrl">
 		</handler>
 	</extension>
 

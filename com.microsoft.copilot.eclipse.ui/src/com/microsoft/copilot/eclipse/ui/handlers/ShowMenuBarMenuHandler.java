@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -27,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -76,7 +78,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signIn", Messages.menu_signToGitHub,
           UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png")));
     } else if (CopilotStatusResult.OK.equals(status)) {
-      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.disabledDoNothing",
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.disabledDoNothing",
           authStatusManager.getUserName(), authStatusManager.getUserName(), null));
     }
 
@@ -110,7 +112,9 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
 
     // menu: giveFeedback
     items.add(new Separator());
-    items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.viewFeedbackForum", Messages.menu_giveFeedback,
+    Map<String, String> parameters = Map.of(UiConstants.OPEN_URL_PARAMETER_NAME,
+        UiConstants.COPILOT_FEEDBACK_FORUM_URL);
+    items.add(createCommandItem(UiConstants.OPEN_URL_COMMAND_ID, Messages.menu_giveFeedback, parameters,
         UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png")));
 
     // menu: whatIsNew
@@ -160,8 +164,9 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
     }
 
-    items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.manageCopilot",
-        Messages.menu_quota_copilotUsage, Messages.menu_quota_manageCopilotTooltip, icon));
+    Map<String, String> parameters = Map.of(UiConstants.OPEN_URL_PARAMETER_NAME, UiConstants.MANAGE_COPILOT_URL);
+    items.add(createCommandItem(UiConstants.OPEN_URL_COMMAND_ID, Messages.menu_quota_copilotUsage, parameters,
+        Messages.menu_quota_manageCopilotTooltip, icon));
 
     GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
     QuotaTextCalculator calculator = new QuotaTextCalculator(gc, quotaStatus);
@@ -221,13 +226,13 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
     if (quotaStatus.getCopilotPlan() == CopilotPlan.free) {
       // If the user is on a free plan, show a link to upgrade.
-      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
           Messages.menu_quota_updateCopilotToPro, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
     } else if (quotaStatus.getCopilotPlan() != CopilotPlan.business
         && quotaStatus.getCopilotPlan() != CopilotPlan.enterprise) {
       // If the user is not on a free plan / business plan / enterprise plan, show a link to manage subscription.
-      items.add(createCommandItemWithTooltip("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
-          Messages.menu_quota_updateCopilotToProPlus, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
+      items.add(createCommandItem(UiConstants.OPEN_URL_COMMAND_ID, Messages.menu_quota_managePaidPremiumRequests,
+          Map.of(UiConstants.OPEN_URL_PARAMETER_NAME, UiConstants.MANAGE_COPILOT_OVERAGE_URL), upgradeIcon));
     }
     // Create a CompletableFuture to update quota information
     CopilotCore.getPlugin().getAuthStatusManager().checkQuota().thenAccept(this::updateQuotaItems);
@@ -311,24 +316,30 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     }
   }
 
-  private CommandContributionItem createCommandItem(String commandId, String label, ImageDescriptor icon) {
-    CommandContributionItemParameter parameter = new CommandContributionItemParameter(serviceLocator, null, commandId,
-        CommandContributionItem.STYLE_PUSH);
-    if (icon != null) {
-      parameter.icon = icon;
-    } else {
-      setDefaultBlankIcon(parameter);
-    }
+  private CommandContributionItem createCommandItem(String commandId, String label, Map<String, String> parameters,
+      ImageDescriptor icon) {
+    return createCommandItem(commandId, label, parameters, null, icon);
+  }
 
-    if (label != null) {
-      parameter.label = label;
-    }
+  private CommandContributionItem createCommandItem(String commandId, String label, ImageDescriptor icon) {
+    return createCommandItem(commandId, label, null, null, icon);
+  }
+
+  private CommandContributionItem createCommandItem(String commandId, String label, String tooltip,
+      ImageDescriptor icon) {
+    return createCommandItem(commandId, label, null, tooltip, icon);
+  }
+
+  private CommandContributionItem createCommandItem(String commandId, String label, Map<String, String> parameters,
+      String tooltip, ImageDescriptor icon) {
+    CommandContributionItemParameter parameter = createCommandContributionItemParameter(commandId, label, parameters,
+        tooltip, icon);
 
     return new CommandContributionItem(parameter);
   }
 
-  private CommandContributionItem createCommandItemWithTooltip(String commandId, String label, String tooltip,
-      ImageDescriptor icon) {
+  private CommandContributionItemParameter createCommandContributionItemParameter(String commandId, String label,
+      Map<String, String> parameters, String tooltip, ImageDescriptor icon) {
     CommandContributionItemParameter parameter = new CommandContributionItemParameter(serviceLocator, null, commandId,
         CommandContributionItem.STYLE_PUSH);
     if (icon != null) {
@@ -345,7 +356,11 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       parameter.tooltip = tooltip;
     }
 
-    return new CommandContributionItem(parameter);
+    if (parameters != null && !parameters.isEmpty()) {
+      parameter.parameters = parameters;
+    }
+
+    return parameter;
   }
 
   private void setDefaultBlankIcon(CommandContributionItemParameter parameter) {

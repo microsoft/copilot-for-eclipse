@@ -23,6 +23,8 @@ public class UiConstants {
   /**
    * The URL constants for the Copilot menu.
    */
+  public static final String OPEN_URL_COMMAND_ID = "com.microsoft.copilot.eclipse.commands.openUrl";
+  public static final String OPEN_URL_PARAMETER_NAME = "com.microsoft.copilot.eclipse.commands.openUrl.url";
   public static final String COPILOT_FEEDBACK_FORUM_URL = "https://github.com/orgs/community/discussions/categories/copilot";
   public static final String COPILOT_UPGRADE_PLAN_URL = "https://aka.ms/github-copilot-upgrade-plan";
   public static final String MANAGE_COPILOT_URL = "https://aka.ms/github-copilot-settings";

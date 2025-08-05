@@ -6,8 +6,10 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.commands.ParameterizedCommand;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -21,6 +23,7 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.handlers.IHandlerService;
@@ -34,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -209,9 +213,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png"), handlerService,
           "com.microsoft.copilot.eclipse.commands.signIn", true);
     } else if (CopilotStatusResult.OK.equals(status)) {
-      MenuActionFactory.createMenuActionWithTooltipText(menuManager, authStatusManager.getUserName(),
-          authStatusManager.getUserName(), null, handlerService,
-          "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+      MenuActionFactory.createMenuAction(menuManager, authStatusManager.getUserName(), authStatusManager.getUserName(),
+          null, handlerService, "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
     }
   }
 
@@ -247,9 +250,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       icon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
     }
 
-    MenuActionFactory.createMenuActionWithTooltipText(menuManager, Messages.menu_quota_copilotUsage,
-        Messages.menu_quota_manageCopilotTooltip, icon, handlerService,
-        "com.microsoft.copilot.eclipse.commands.manageCopilot", true);
+    Map<String, String> parameters = Map.of(UiConstants.OPEN_URL_PARAMETER_NAME, UiConstants.MANAGE_COPILOT_URL);
+    MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_copilotUsage,
+        Messages.menu_quota_manageCopilotTooltip, icon, handlerService, UiConstants.OPEN_URL_COMMAND_ID, parameters,
+        true);
 
     GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
     QuotaTextCalculator calculator = new QuotaTextCalculator(gc, quotaStatus);
@@ -313,7 +317,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         && quotaStatus.getCopilotPlan() != CopilotPlan.enterprise) {
       // If the user is not on a free plan / business plan / enterprise plan, show a link to manage subscription.
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_managePaidPremiumRequests, upgradeIcon,
-          handlerService, "com.microsoft.copilot.eclipse.commands.manageCopilotOverage", true);
+          handlerService, UiConstants.OPEN_URL_COMMAND_ID,
+          Map.of(UiConstants.OPEN_URL_PARAMETER_NAME, UiConstants.MANAGE_COPILOT_OVERAGE_URL), true);
     }
   }
 
@@ -324,9 +329,11 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addLinkToFeedbackForumAction(MenuManager menuManager) {
+    Map<String, String> parameters = Map.of(UiConstants.OPEN_URL_PARAMETER_NAME,
+        UiConstants.COPILOT_FEEDBACK_FORUM_URL);
     ImageDescriptor feedbackIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png");
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_giveFeedback, feedbackIcon, handlerService,
-        "com.microsoft.copilot.eclipse.commands.viewFeedbackForum", true);
+        UiConstants.OPEN_URL_COMMAND_ID, parameters, true);
   }
 
   private void addPreferencesAction(MenuManager menuManager) {
@@ -386,60 +393,83 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private static class MenuActionFactory {
-    public static Action createMenuAction(MenuManager menuManager, String actionName, ImageDescriptor icon,
-        IHandlerService handlerService, String commandId, boolean enabled) {
-      Action action = createActionInternal(actionName, icon, handlerService, commandId, enabled);
-      menuManager.add(action);
-      return action;
-    }
 
     /**
-     * Creates a menu action with the specified text and command ID.
+     * Creates and adds a menu action with all possible options.
      *
-     * @param menuManager The MenuManager to add the action to.
-     * @param text The text for the action.
-     * @param handlerService The IHandlerService to execute the command.
-     * @param commandId The command ID to execute when the action is triggered.
-     * @param enabled Whether the action should be enabled or not.
-     * @return The created Action.
+     * @param menuManager The MenuManager to add the action to
+     * @param text The text for the action
+     * @param tooltipText The tooltip text (can be null)
+     * @param icon The icon descriptor (can be null)
+     * @param handlerService The handler service
+     * @param commandId The command ID
+     * @param parameters Command parameters (can be null)
+     * @param enabled Whether the action is enabled
+     * @return The created Action
      */
-    public static Action createMenuAction(MenuManager menuManager, String text, IHandlerService handlerService,
-        String commandId, boolean enabled) {
-      return createMenuAction(menuManager, text, null, handlerService, commandId, enabled);
-    }
+    public static Action createMenuAction(MenuManager menuManager, String text, String tooltipText,
+        ImageDescriptor icon, IHandlerService handlerService, String commandId, Map<String, String> parameters,
+        boolean enabled) {
 
-    public static Action createMenuActionWithTooltipText(MenuManager menuManager, String text, String tooltipText,
-        ImageDescriptor icon, IHandlerService handlerService, String commandId, boolean enabled) {
-      Action action = createActionInternal(text, icon, handlerService, commandId, enabled);
-      action.setToolTipText(tooltipText);
+      Action action = new Action(text, icon) {
+        @Override
+        public void run() {
+          try {
+            if (parameters != null && !parameters.isEmpty()) {
+              ICommandService commandService = PlatformUI.getWorkbench().getService(ICommandService.class);
+              Command command = commandService.getCommand(commandId);
+              ParameterizedCommand parameterizedCommand = ParameterizedCommand.generateCommand(command, parameters);
+              handlerService.executeCommand(parameterizedCommand, null);
+            } else {
+              handlerService.executeCommand(commandId, null);
+            }
+          } catch (Exception e) {
+            CopilotCore.LOGGER.error(e);
+          }
+        }
+      };
+
+      action.setEnabled(enabled);
+      if (tooltipText != null) {
+        action.setToolTipText(tooltipText);
+      }
+      if (icon == null) {
+        setDefaultBlankIcon(action);
+      }
+
       menuManager.add(action);
       return action;
     }
-  }
 
-  private static Action createActionInternal(String actionName, ImageDescriptor icon, IHandlerService handlerService,
-      String commandId, boolean enabled) {
-    Action action = new Action(actionName, icon) {
-      @Override
-      public void run() {
-        try {
-          handlerService.executeCommand(commandId, null);
-        } catch (Exception e) {
-          CopilotCore.LOGGER.error(e);
-        }
-      }
-    };
-    action.setEnabled(enabled);
-    if (icon == null) {
-      setDefaultBlankIcon(action);
+    // Convenience method without tooltip
+    public static Action createMenuAction(MenuManager menuManager, String text, ImageDescriptor icon,
+        IHandlerService handlerService, String commandId, Map<String, String> parameters, boolean enabled) {
+      return createMenuAction(menuManager, text, null, icon, handlerService, commandId, parameters, enabled);
     }
-    return action;
-  }
 
-  private static void setDefaultBlankIcon(Action action) {
-    ImageDescriptor blankIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
-    if (PlatformUtils.isMac()) {
-      action.setImageDescriptor(blankIcon);
+    // Convenience method without parameters
+    public static Action createMenuAction(MenuManager menuManager, String text, ImageDescriptor icon,
+        IHandlerService handlerService, String commandId, boolean enabled) {
+      return createMenuAction(menuManager, text, null, icon, handlerService, commandId, null, enabled);
+    }
+
+    // Convenience method with just text and command
+    public static Action createMenuAction(MenuManager menuManager, String text, IHandlerService handlerService,
+        String commandId, boolean enabled) {
+      return createMenuAction(menuManager, text, null, null, handlerService, commandId, null, enabled);
+    }
+
+    // Convenience method with tooltip but no icon
+    public static Action createMenuAction(MenuManager menuManager, String text, String tooltipText,
+        ImageDescriptor icon, IHandlerService handlerService, String commandId, boolean enabled) {
+      return createMenuAction(menuManager, text, tooltipText, icon, handlerService, commandId, null, enabled);
+    }
+
+    private static void setDefaultBlankIcon(Action action) {
+      ImageDescriptor blankIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+      if (PlatformUtils.isMac()) {
+        action.setImageDescriptor(blankIcon);
+      }
     }
   }
 
