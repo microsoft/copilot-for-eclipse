@@ -63,7 +63,7 @@ public class WrappableNoteLabel extends Composite {
     GridLayout layout = new GridLayout(2, false);
     layout.marginLeft = -3;
     layout.marginBottom = 1;
-    layout.horizontalSpacing = 5;
+    layout.horizontalSpacing = 0;
     setLayout(layout);
     setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 

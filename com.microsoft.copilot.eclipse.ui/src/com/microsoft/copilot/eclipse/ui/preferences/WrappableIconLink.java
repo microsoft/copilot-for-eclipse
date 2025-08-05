@@ -19,8 +19,8 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * A composite that displays an icon and a wrappable link. The component automatically
- * resizes when the parent composite is resized and handles proper image disposal.
+ * A composite that displays an icon and a wrappable link. The component automatically resizes when the parent composite
+ * is resized and handles proper image disposal.
  */
 public class WrappableIconLink extends Composite {
 
@@ -38,6 +38,16 @@ public class WrappableIconLink extends Composite {
   // Link
   private Link linkControl;
   private String linkText;
+
+  /**
+   * Creates a new WrappableIconLink with default layout settings and no icon.
+   *
+   * @param parent the parent composite
+   * @param linkText the text for the link (may contain HTML link tags)
+   */
+  public WrappableIconLink(Composite parent, String linkText) {
+    this(parent, null, linkText, DEFAULT_MARGIN);
+  }
 
   /**
    * Creates a new WrappableIconLink with default layout settings.

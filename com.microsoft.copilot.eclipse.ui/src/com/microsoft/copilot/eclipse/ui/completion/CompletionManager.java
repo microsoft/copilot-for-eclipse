@@ -50,7 +50,9 @@ public class CompletionManager extends BaseCompletionManager {
   @Override
   public void clearGhostTexts() {
     disableContext();
-    this.suggestionUpdateManager.reset();
+    if (this.suggestionUpdateManager != null) {
+      this.suggestionUpdateManager.reset();
+    }
     this.codeMinings.clear();
     this.updateCodeMinings();
 
