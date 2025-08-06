@@ -18,10 +18,21 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
  */
 public class ChatProgressParamsAdapter extends TypeAdapter<ProgressParams> {
 
+  private final Gson gson;
+
+  /**
+   * Constructs a new ChatProgressParamsAdapter with the given Gson instance.
+   *
+   * @param gson the Gson instance to use for serialization and deserialization
+   */
+  public ChatProgressParamsAdapter(Gson gson) {
+    this.gson = gson;
+  }
+
   /**
    * Creates a new ChatProgressParams.
    */
-  public class Factory implements TypeAdapterFactory {
+  public static class Factory implements TypeAdapterFactory {
 
     @SuppressWarnings("unchecked")
     @Override
@@ -30,7 +41,7 @@ public class ChatProgressParamsAdapter extends TypeAdapter<ProgressParams> {
       if (!ProgressParams.class.isAssignableFrom(rawType)) {
         return null;
       }
-      return (TypeAdapter<T>) new ChatProgressParamsAdapter();
+      return (TypeAdapter<T>) new ChatProgressParamsAdapter(gson);
     }
 
   }
@@ -49,7 +60,6 @@ public class ChatProgressParamsAdapter extends TypeAdapter<ProgressParams> {
             ret.setToken(in.nextString());
             break;
           case "value":
-            Gson gson = new Gson();
             ChatProgressValue val = gson.fromJson(in, ChatProgressValue.class);
             ret.setValue(Either.forLeft(val));
             break;
@@ -72,7 +82,6 @@ public class ChatProgressParamsAdapter extends TypeAdapter<ProgressParams> {
     try {
       out.beginObject();
       out.name("token").value(value.getToken().getLeft());
-      Gson gson = new Gson();
       out.name("value").value(gson.toJson(chatProgress));
       out.endObject();
     } catch (Exception e) {
