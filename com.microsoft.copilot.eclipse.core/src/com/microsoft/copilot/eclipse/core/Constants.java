@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.core;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -33,17 +34,25 @@ public class Constants {
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list
   // https://github.com/microsoft/copilot-intellij/blob/main/core/src/main/kotlin/com/github/copilot/chat/references/FileSearchService.kt
-  private static final Set<String> BASE_EXCLUDED_FILE_TYPES = Set.of("ico", "raw", "indd", "ai", "eps", "pdf", "bin",
-      "exe", "dat", "dll", "so", "class", "jar", "app", "dmg", "iso", "img", "docx", "pptx", "xlsx", "mp3", "wav",
-      "flac", "mp4", "avi", "mov");
+  private static final Set<String> BASE_EXCLUDED_FILE_TYPES = Set.of("tif", "tiff", "ico", "raw", "indd", "ai", "eps",
+      "pdf", "bin", "exe", "dat", "dll", "so", "class", "jar", "app", "dmg", "iso", "img", "docx", "pptx", "xlsx",
+      "mp3", "wav", "flac", "mp4", "avi", "mov");
 
-  // Additional image types only excluded from current file
-  private static final Set<String> ADDITIONAL_IMAGE_TYPES = Set.of("jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff",
-      "webp");
+  // Additional excluded file types for current file
+  private static final Set<String> ADDITIONAL_EXCLUDED_FILE_TYPES = Set.of("svg");
+
+  // Allowed image file extensions
+  public static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("png", "jpg", "jpeg", "gif", "bmp", "webp");
+
+  // Map of image file extensions to their MIME types
+  public static final Map<String, String> EXTENSION_TO_MIMETYPE = Map.of("png", "image/png", "jpg", "image/jpeg",
+      "jpeg", "image/jpeg", "gif", "image/gif", "bmp", "image/bmp", "webp", "image/webp");
 
   public static final Set<String> EXCLUDED_REFERENCE_FILE_TYPE = BASE_EXCLUDED_FILE_TYPES;
 
+  // Excluded file types for current file, combining base and additional and allowed image extensions
   public static final Set<String> EXCLUDED_CURRENT_FILE_TYPE = Set
-      .of(Stream.concat(BASE_EXCLUDED_FILE_TYPES.stream(), ADDITIONAL_IMAGE_TYPES.stream()).toArray(String[]::new));
+      .of(Stream.concat(Stream.concat(BASE_EXCLUDED_FILE_TYPES.stream(), ADDITIONAL_EXCLUDED_FILE_TYPES.stream()),
+          ALLOWED_IMAGE_EXTENSIONS.stream()).toArray(String[]::new));
 
 }

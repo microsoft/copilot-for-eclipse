@@ -3,17 +3,15 @@ package com.microsoft.copilot.eclipse.core.utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCompletionContentPart;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ImageContentPart;
@@ -24,11 +22,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.TextContentPart;
  * to a Base64 string.
  */
 public class ChatMessageUtils {
-  private static List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("png", "jpg", "jpeg", "gif", "bmp", "webp",
-      "tiff", "tif");
-  private static final Map<String, String> EXTENSION_TO_MIMETYPE = Map.of("png", "image/png", "jpg", "image/jpeg",
-      "jpeg", "image/jpeg", "gif", "image/gif", "bmp", "image/bmp", "webp", "image/webp", "tiff", "image/tiff", "tif",
-      "image/tiff");
 
   /**
    * Checks if the given file is an image file based on its extension.
@@ -40,7 +33,7 @@ public class ChatMessageUtils {
     if (file == null || file.getFileExtension() == null) {
       return false;
     }
-    return ALLOWED_IMAGE_EXTENSIONS.stream().anyMatch(ext -> ext.equalsIgnoreCase(file.getFileExtension()));
+    return Constants.ALLOWED_IMAGE_EXTENSIONS.contains(file.getFileExtension().toLowerCase());
   }
 
   /**
@@ -54,7 +47,7 @@ public class ChatMessageUtils {
       return null;
     }
     String extName = file.getFileExtension();
-    String mimeType = EXTENSION_TO_MIMETYPE.get(extName.toLowerCase());
+    String mimeType = Constants.EXTENSION_TO_MIMETYPE.get(extName.toLowerCase());
     if (mimeType == null) {
       return null; // Unsupported image type
     }
