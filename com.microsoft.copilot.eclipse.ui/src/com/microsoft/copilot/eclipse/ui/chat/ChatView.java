@@ -174,11 +174,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     if (!hasHistory) {
       createChatPage(chatMode);
-
-      // This is a necessary step since we use actionBar cache when switching
-      // chat modes and the topBanner & mainSection will on the bottom of the
-      // actionBar if we use cache.
-      this.actionBar.moveBelow(this.mainSection);
     }
     refreshActionBarTextViewerAndButtons();
     this.parent.requestLayout();
@@ -221,6 +216,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       // re-register the action bar if it already exists
       this.topBanner.registerNewConversationListener(this.actionBar);
+
+      // This is a necessary step since we use actionBar cache when switching
+      // chat modes and the topBanner & mainSection will on the bottom of the
+      // actionBar if we use cache.
+      if (this.mainSection != null && !this.mainSection.isDisposed()) {
+        this.actionBar.moveBelow(this.mainSection);
+      }
     }
   }
 
@@ -246,6 +248,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       // re-register the action bar if it already exists
       this.topBanner.registerNewConversationListener(this.actionBar);
+
+      // This is a necessary step since we use actionBar cache when switching
+      // chat modes and the topBanner & mainSection will on the bottom of the
+      // actionBar if we use cache.
+      if (this.mainSection != null && !this.mainSection.isDisposed()) {
+        this.actionBar.moveBelow(this.mainSection);
+      }
     }
   }
 
