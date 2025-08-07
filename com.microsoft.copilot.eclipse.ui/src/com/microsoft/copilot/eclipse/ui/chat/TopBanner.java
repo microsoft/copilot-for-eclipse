@@ -88,7 +88,7 @@ public class TopBanner extends Composite {
         }
       }
     });
-    
+
     this.openPreferenceIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
     this.openPreferenceButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
     this.openPreferenceButton.setImage(this.openPreferenceIcon);
@@ -119,6 +119,19 @@ public class TopBanner extends Composite {
         gc.setLineWidth(borderWidth);
         Rectangle bounds = parent.getClientArea();
         gc.drawLine(bounds.x, getBounds().height - 1, bounds.width, getBounds().height - 1);
+      }
+    });
+
+    // Add dispose listener to clean up icons
+    this.addDisposeListener(e -> {
+      if (this.newConversationListeners != null) {
+        this.newConversationListeners.clear();
+      }
+      if (this.newChatIcon != null && !this.newChatIcon.isDisposed()) {
+        this.newChatIcon.dispose();
+      }
+      if (this.openPreferenceIcon != null && !this.openPreferenceIcon.isDisposed()) {
+        this.openPreferenceIcon.dispose();
       }
     });
   }
@@ -168,22 +181,17 @@ public class TopBanner extends Composite {
     FileToolService fileToolService = CopilotUi.getPlugin().getChatServiceManager().getFileToolService();
     boolean hasUnhandledChanges = fileToolService.getChangedFiles().values().stream()
         .anyMatch(property -> !property.isHandled());
-    
+
     if (!hasUnhandledChanges) {
       return true;
     }
 
     // Pop up a MessageDialog for confirmation
-    int result = MessageDialog.open(
-        MessageDialog.QUESTION, 
-        PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
-        Messages.newChat_confirmationTitle,
-        Messages.newChat_confirmationMessage,
-        SWT.NONE,
-        Messages.newChat_keepChangesButton,
-        Messages.newChat_undoChangesButton
-    );
-    
+    int result = MessageDialog.open(MessageDialog.QUESTION,
+        PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), Messages.newChat_confirmationTitle,
+        Messages.newChat_confirmationMessage, SWT.NONE, Messages.newChat_keepChangesButton,
+        Messages.newChat_undoChangesButton);
+
     if (result == 0) { // Keep
       fileToolService.onKeepAllChanges();
       return true;
@@ -191,10 +199,10 @@ public class TopBanner extends Composite {
       fileToolService.onUndoAllChanges();
       return true;
     }
-    
+
     return false; // Close
   }
-  
+
   /**
    * Notify new conversation listeners.
    */
@@ -204,16 +212,5 @@ public class TopBanner extends Composite {
     }
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.post(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, null);
-  }
-
-  @Override
-  public void dispose() {
-    super.dispose();
-    if (this.newConversationListeners != null) {
-      this.newConversationListeners.clear();
-    }
-    if (this.newChatIcon != null) {
-      this.newChatIcon.dispose();
-    }
   }
 }
