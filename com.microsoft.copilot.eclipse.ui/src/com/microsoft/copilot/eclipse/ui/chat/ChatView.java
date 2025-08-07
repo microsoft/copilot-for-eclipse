@@ -124,6 +124,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, event -> {
       Object status = event.getProperty(IEventBroker.DATA);
       if (status != null && status instanceof CopilotStatusResult statusResult) {
+        if (statusResult.isNotSignedIn()) {
+          this.conversationId = "";
+        }
         buildViewFor(statusResult.getStatus());
       }
     });
