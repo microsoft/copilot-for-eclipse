@@ -1,3 +1,67 @@
+# GitHub Copilot 0.10.0 Release Notes
+### Custom Instructions Now Supported in Copilot
+You can now use custom instructions to provide Copilot with additional context tailored to your work. This helps Copilot deliver more relevant and personalized assistance.
+
+Check for [more details](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions).
+
+![Custom Instructions](./0.10.0/custom_instructions_1.png)
+
+---
+
+### Image Support in Chat Context
+You can now add images directly to the chat context. Check below example how Copilot interpret a hand-drawn layout page, and generate corresponding HTML code:
+
+![Vision Demo](0.10.0/vision_demo_1.gif)
+
+Note: Some models do not support vision capabilities. In such cases, a warning will be displayed.
+
+![Model Not Support Images](0.10.0/image_not_support_1.png)
+
+---
+
+### Folders Can Now Be Added to Chat Context
+In addition to images, you can now attach entire folders to enrich the chat context. This makes it easier to share structured content and collaborate more effectively.
+
+![Attach Folder](./0.10.0/attach_folder_1.png)
+
+---
+
+### MCP Support Enhancements in Copilot
+Copilot now includes several enhancements for MCP support:
+
+#### GitHub MCP Server OAuth Integration
+You can now configure your GitHub MCP server using OAuth. Here's a sample configuration:
+
+```javascript
+{
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    }
+  }
+}
+```
+
+#### MCP Feature Flag Support
+The Copilot plugin will automatically disable MCP features if it is turned off in the Copilot portal: https://github.com/settings/copilot/features, ensuring better alignment with your configuration settings.
+
+---
+
+### Improved UX for Starting New Conversations in Agent Mode
+When creating a new conversation in agent mode, a confirmation dialog will now appear if there are any unhandled files in the current context. This helps prevent accidental data loss and ensures you don’t lose important changes unexpectedly.
+
+![Confirmation](./0.10.0/confirmation_1.png)
+
+---
+
+### Chat View Banner Enhancements
+The top banner in the chat view has been improved to enhance usability. It now displays the conversation title and includes a convenient Edit Preferences... shortcut button.
+
+![Top Banner](./0.10.0/top_bar_1.png)
+
+---
+
 # GitHub Copilot 0.9.0 Release Notes
 ### GitHub Copilot Now Supports Eclipse 2024-03 & 2024-06!
 We’re thrilled to announce that GitHub Copilot is now fully compatible with **Eclipse 2024-03** and **2024-06**! Whether you're coding in the latest release or just upgraded, you can now enjoy the full power of Copilot’s AI assistance right inside your Eclipse IDE.
@@ -74,27 +138,6 @@ Now user can configure remote MCP server in the MCP preference page, below is an
 ```
 
 _Note: OAuth authorization is not supported right now._
-
-### Bug Fixes & Improvements
-This release also includes bug fixes and enhancements to improve overall stability and user experience.
-
-# GitHub Copilot 0.7.0 Release Notes
-
-## Feature Highlights
-This release introduces a **new billing model** with support for premium requests in GitHub Copilot for Eclipse, enhanced chat usability with **Chat input history navigation**, **quick access to Agent Mode tool configuration**, and a range of **bug fixes and performance improvements**.
-
-### Billing for GitHub Copilot Update
-Starting **June 4, 2025**, a new billing model and updated user interface will be introduced in GitHub Copilot for Eclipse for all plans.
-
-Your Copilot plan now includes [Premium requests](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests#premium-features), which provide access to more advanced models and features. These requests count against your monthly premium request allowance, calculated based on the [Model multipliers](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests#model-multipliers).
-
-Read more on [About premium requests](https://docs.github.com/en/copilot/managing-copilot/monitoring-usage-and-entitlements/about-premium-requests) and [About billing for GitHub Copilot](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-copilot/about-billing-for-github-copilot).
-
-### Chat Input History Navigation
-You can now use the `Up` and `Down` arrow keys to navigate through your previous chat inputs, making it easier to reuse or revise past prompts.
-
-### Quick Access to Agent Mode Tool Configuration
-Click the `Tools` icon in the chat input box to quickly open the preferences page and configure your MCP tools.
 
 ### Bug Fixes & Improvements
 This release also includes bug fixes and enhancements to improve overall stability and user experience.

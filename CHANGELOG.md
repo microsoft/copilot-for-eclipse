@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.0
+### Added
+- Support custom instructions. [#576](https://github.com/microsoft/copilot-eclipse/issues/576)
+- Support MCP feature flag. [PR#1010](https://github.com/microsoft/copilot-eclipse/pull/1010)
+- Support GitHub MCP server OAuth. [PR#990](https://github.com/microsoft/copilot-eclipse/pull/990)
+- Support adding image to the chat context. [#968](https://github.com/microsoft/copilot-eclipse/pull/968)
+- Support adding folder to chat context. [PR#1032](https://github.com/microsoft/copilot-eclipse/pull/1032)
+- Add confirmation dialog for unhandled files when create a new conversation in agent mode. [#977](https://github.com/microsoft/copilot-eclipse/pull/977)
+- Add `Edit Preferences...` button into chat top banner. [PR#1019](https://github.com/microsoft/copilot-eclipse/pull/1019)
+- Show conversation title in chat top banner. [PR#978](https://github.com/microsoft/copilot-eclipse/pull/978)
+
+### Changed
+- Improve the Copilot perspective with onboarding images and more shortcuts. [PR#986](https://github.com/microsoft/copilot-eclipse/pull/986)
+- Update chat view's icon. [PR#981](https://github.com/microsoft/copilot-eclipse/pull/981)
+- Merge all open url related commands into one command. [PR#1030](https://github.com/microsoft/copilot-eclipse/pull/1030)
+
+### Fixed
+- Error 'Document for URI could not be found' during chat. [#884](https://github.com/microsoft/copilot-eclipse/issues/884)
+- Unexpected files are listed in the Search Attachments dialog. [#530](https://github.com/microsoft/copilot-eclipse/issues/530)
+- Correct the default index when build SignInDialog. [PR#1025](https://github.com/microsoft/copilot-eclipse/pull/1025)
+- Input history is not cleared after switching account. [#835](https://github.com/microsoft/copilot-eclipse/issues/835)
+- Preference will be cleared if username is not ready when start up. [#1008](https://github.com/microsoft/copilot-eclipse/issues/1008)
+- Delay the show hint invocation timing to avoid command not found error. [PR#998](https://github.com/microsoft/copilot-eclipse/pull/998)
+- Active model does not reset to default model when model list change. [#987](https://github.com/microsoft/copilot-eclipse/issues/987)
+- Welcome view does not render correctly when height is limited. [#895](https://github.com/microsoft/copilot-eclipse/issues/895)
+- Persist chat input when mode switches. [#762](https://github.com/microsoft/copilot-eclipse/issues/762)
+
+### Removed
+- Remove CopilotAuthStatusListener from AvatarService. [PR#1024](https://github.com/microsoft/copilot-eclipse/pull/1024)
+- Remove CopilotAuthStatusListener from CopilotStatusManager. [PR#1014](https://github.com/microsoft/copilot-eclipse/pull/1014)
+
 ## 0.9.3
 ### Fixed
 - Update CLS to 1.348.0.

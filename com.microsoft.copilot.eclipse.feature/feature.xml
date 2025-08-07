@@ -2,7 +2,7 @@
 <feature
       id="com.microsoft.copilot.eclipse.feature"
       label="GitHub Copilot"
-      version="0.9.3.qualifier">
+      version="0.10.0.qualifier">
 
    <license url="">
       GitHub Copilot 
