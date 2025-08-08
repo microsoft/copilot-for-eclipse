@@ -165,6 +165,14 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   }
 
   /**
+   * Initializes the MCP tools status from the preference store.
+   */
+  public void initializeMcpToolsStatus() {
+    String savedMcpToolsStatus = preferenceStore.getString(Constants.MCP_TOOLS_STATUS);
+    updateMcpToolsStatus(savedMcpToolsStatus);
+  }
+
+  /**
    * Updates the MCP tools status.
    *
    * @param mcpToolsStatus the MCP tools status in JSON format. e.g.

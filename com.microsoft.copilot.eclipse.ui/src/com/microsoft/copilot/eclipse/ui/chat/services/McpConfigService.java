@@ -22,6 +22,7 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 
@@ -33,6 +34,7 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
   private IObservableValue<List<McpServerToolsCollection>> mcpToolsObservableValue;
   private ISideEffect mcpToolsSideEffect;
   private EventHandler mcpToolNotifiedEventHandler;
+  private boolean mcpToolsInitialized = false;
 
   // MCP feature flag
   private EventHandler featureFlagNotifiedEventHandler;
@@ -64,6 +66,14 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
     ensureRealm(() -> mcpToolsObservableValue = new WritableValue<>(new ArrayList<>(), List.class));
 
     mcpToolNotifiedEventHandler = event -> {
+      // On IDE startup: Initialize MCP tools status after MCP servers start.
+      // This event is always received because the event broker is set up before the setting manager syncs MCP servers
+      // to language server.
+      if (!mcpToolsInitialized) {
+        CopilotUi.getPlugin().getLanguageServerSettingManager().initializeMcpToolsStatus();
+        mcpToolsInitialized = true;
+      }
+
       Object params = event.getProperty(IEventBroker.DATA);
       if (params instanceof List mcpServerTools) {
         ensureRealm(() -> mcpToolsObservableValue.setValue(mcpServerTools));
