@@ -1,7 +1,6 @@
 package com.microsoft.copilot.eclipse.core.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -9,8 +8,10 @@ import java.util.stream.Collectors;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
@@ -80,5 +81,33 @@ public class FileUtils {
       }
       return null;
     }).filter(Objects::nonNull).collect(Collectors.toList());
+  }
+
+  /**
+   * Returns true if the file needs to be excluded from the referenced files.
+   */
+  public static boolean isExcludedFromReferencedFiles(@Nullable IFile file) {
+    if (file == null) {
+      return true;
+    }
+
+    if (file.getFileExtension() == null) {
+      return false; // If the file has no extension, we do not exclude it.
+    }
+    return Constants.EXCLUDED_REFERENCE_FILE_TYPE.contains(file.getFileExtension());
+  }
+
+  /**
+   * Returns true if the file needs to be excluded from 'Current file' reference in chat.
+   */
+  public static boolean isExcludedFromCurrentFile(@Nullable IFile file) {
+    if (file == null) {
+      return true;
+    }
+
+    if (file.getFileExtension() == null) {
+      return false; // If the file has no extension, we do not exclude it.
+    }
+    return Constants.EXCLUDED_CURRENT_FILE_TYPE.contains(file.getFileExtension());
   }
 }

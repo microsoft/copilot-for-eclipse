@@ -278,21 +278,30 @@ public class ActionBar extends Composite implements NewConversationListener {
       return;
     }
 
-    for (Control child : cmpFileRef.getChildren()) {
-      if (child instanceof ReferencedFile && !(child instanceof CurrentReferencedFile)) {
-        child.dispose();
+    // Get parent composite and disable redraw to avoid flickering when references files are updated
+    Composite actionBarParent = this.getParent();
+    actionBarParent.setRedraw(false);
+    
+    try {
+      for (Control child : cmpFileRef.getChildren()) {
+        if (child instanceof ReferencedFile && !(child instanceof CurrentReferencedFile)) {
+          child.dispose();
+        }
       }
-    }
 
-    for (IResource file : files) {
-      if (file instanceof IFile) {
-        boolean isUnSupportedFile = !supportVision && ChatMessageUtils.isImageFile((IFile) file);
-        new ReferencedFile(this.cmpFileRef, file, isUnSupportedFile);
-      } else if (file instanceof IFolder) {
-        new ReferencedFile(this.cmpFileRef, file, false);
+      for (IResource file : files) {
+        if (file instanceof IFile) {
+          boolean isUnSupportedFile = !supportVision && ChatMessageUtils.isImageFile((IFile) file);
+          new ReferencedFile(this.cmpFileRef, file, isUnSupportedFile);
+        } else if (file instanceof IFolder) {
+          new ReferencedFile(this.cmpFileRef, file, false);
+        }
       }
+      
+    } finally {
+      actionBarParent.setRedraw(true);
+      refreshLayout();
     }
-    refreshLayout();
   }
 
   /**

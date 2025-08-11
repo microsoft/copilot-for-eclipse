@@ -201,6 +201,8 @@ public final class Messages extends NLS {
   public static String newChat_keepChangesButton;
   public static String newChat_undoChangesButton;
   public static String newChat_cancelButton;
+  public static String addToReference_addFile_title;
+  public static String addToReference_addFolder_title;
 
   static {
     // initialize resource bundle
