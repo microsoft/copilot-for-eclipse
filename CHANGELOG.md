@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Active model does not reset to default model when model list change. [#987](https://github.com/microsoft/copilot-eclipse/issues/987)
 - Welcome view does not render correctly when height is limited. [#895](https://github.com/microsoft/copilot-eclipse/issues/895)
 - Persist chat input when mode switches. [#762](https://github.com/microsoft/copilot-eclipse/issues/762)
+- Send MCP tools status notification after server started. [#1050](https://github.com/microsoft/copilot-eclipse/issues/1050)
 
 ### Removed
 - Remove CopilotAuthStatusListener from AvatarService. [PR#1024](https://github.com/microsoft/copilot-eclipse/pull/1024)
