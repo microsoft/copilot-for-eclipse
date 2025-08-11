@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -216,4 +217,22 @@ class LanguageServerSettingManagerTests {
     assertFalse(capturedSettings.getHttp().isProxyStrictSsl());
   }
 
+  @Test
+	void testInitializeMcpToolsStatusWhenEmpty() {
+    // arrange
+	when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+	when(mockPreferenceStore.getString(Constants.PROXY_KERBEROS_SP)).thenReturn(null);
+	when(mockPreferenceStore.getString(Constants.GITHUB_ENTERPRISE)).thenReturn(null);
+	when(mockPreferenceStore.getString(Constants.MCP)).thenReturn(null);
+    when(mockPreferenceStore.getString(Constants.MCP_TOOLS_STATUS)).thenReturn("");
+
+    // act
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+	assertDoesNotThrow(manager::initializeMcpToolsStatus);
+
+    // assert
+	verify(mockPreferenceStore, times(1)).getString(Constants.MCP_TOOLS_STATUS);
+    verify(mockLsConnection, times(0)).updateMcpToolsStatus(any());
+  }
 }

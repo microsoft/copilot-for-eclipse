@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.net.proxy.IProxyChangeEvent;
 import org.eclipse.core.net.proxy.IProxyChangeListener;
 import org.eclipse.core.net.proxy.IProxyData;
@@ -179,6 +180,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    *        {"server1":{"tool1":true,"tool2":false},"server2":{"tool1":true}}
    */
   private void updateMcpToolsStatus(String mcpToolsStatus) {
+    if (StringUtils.isBlank(mcpToolsStatus)) {
+      return;
+    }
+
     try {
       Gson gson = new Gson();
       Map<String, Map<String, Boolean>> toolStatusMap = gson.fromJson(mcpToolsStatus,

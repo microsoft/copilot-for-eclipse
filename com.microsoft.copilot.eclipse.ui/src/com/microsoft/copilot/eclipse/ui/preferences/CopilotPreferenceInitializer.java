@@ -43,7 +43,7 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
           }
         }
          """);
-    pref.setDefault(Constants.MCP_TOOLS_STATUS, "");
+    pref.setDefault(Constants.MCP_TOOLS_STATUS, "{}");
     pref.setDefault(Constants.QUICK_START_VERSION, 0);
   }
 }
