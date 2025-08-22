@@ -808,6 +808,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * Reset the input history cursor to the latest input.
    */
   public void resetInputHistoryCursor() {
+    if (inputNavigation == null) {
+      return;
+    }
+
     inputNavigation.updateCursorPosition(inputNavigation.size());
   }
 
