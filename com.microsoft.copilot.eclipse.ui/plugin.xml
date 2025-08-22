@@ -536,6 +536,87 @@
 				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 		</perspectiveExtension>
+		<!-- Java EE -->
+		<perspectiveExtension
+			targetID="org.eclipse.jst.j2ee.J2EEPerspective">
+			<view
+				id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+				minimized="false"
+				relationship="stack"
+				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="org.eclipse.ui.views.ContentOutline"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
+		</perspectiveExtension>
+		<!-- Web -->
+		<perspectiveExtension
+			targetID="org.eclipse.wst.web.ui.webDevPerspective">
+			<view
+				id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+				minimized="false"
+				relationship="stack"
+				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="org.eclipse.ui.views.ContentOutline"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
+		</perspectiveExtension>
+		<!-- Database Development -->
+		<perspectiveExtension
+			targetID="org.eclipse.datatools.sqltools.sqleditor.perspectives.EditorPerspective">
+			<view
+				id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+				minimized="false"
+				ratio="0.66"
+				relationship="right"
+				relative="org.eclipse.ui.editorss">
+			</view>
+		</perspectiveExtension>
+		<!-- JPA -->
+		<perspectiveExtension
+			targetID="org.eclipse.jpt.ui.jpaPerspective">
+			<view
+				id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+				minimized="false"
+				relationship="stack"
+				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="org.eclipse.jpt.ui.jpaStructureView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
+			<view
+				id="org.eclipse.ui.views.ContentOutline"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
+		</perspectiveExtension>
+		<!-- XML -->
+		<perspectiveExtension
+			targetID="org.eclipse.wst.xml.ui.perspective">
+			<view
+				id="com.microsoft.copilot.eclipse.ui.chat.ChatView"
+				minimized="false"
+				relationship="stack"
+				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="org.eclipse.ui.views.ContentOutline"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
+		</perspectiveExtension>
 	</extension>
 	<extension point="org.eclipse.ui.intro.quicklinks">
 		<command
