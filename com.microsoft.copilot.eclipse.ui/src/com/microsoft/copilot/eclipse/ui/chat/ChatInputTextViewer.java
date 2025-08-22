@@ -114,6 +114,14 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
       }
     });
 
+    // Add a traverse listener to handle Shift+Tab properly.
+    // Otherwise, it will also insert an unexpected tab character as a side effect.
+    tvw.addTraverseListener(e -> {
+      if (e.detail == SWT.TRAVERSE_TAB_PREVIOUS) {
+        e.doit = true;
+      }
+    });
+
     tvw.addKeyListener(new KeyAdapter() {
       @Override
       public void keyPressed(KeyEvent e) {
@@ -169,6 +177,13 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   }
 
   private void onKeyPressed(KeyEvent e) {
+    // Handle Shift+Tab to trigger focus traversal event for accessibility
+    if (e.keyCode == SWT.TAB && (e.stateMask & SWT.SHIFT) != 0) {
+      e.doit = false;
+      this.getTextWidget().traverse(SWT.TRAVERSE_TAB_PREVIOUS);
+      return;
+    }
+
     String text = this.getContent();
     // check the caret status so that we know if this is moving caret through multiple lines, or it's a switching
     this.updateCaretLineOffsetStatus();
