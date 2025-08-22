@@ -3,6 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.core.test
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.core.test;singleton:=true
 Bundle-Version: 0.10.0.qualifier
+Bundle-Vendor: GitHub Copilot
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Fragment-Host: com.microsoft.copilot.eclipse.core
 Automatic-Module-Name: com.microsoft.copilot.eclipse.core.test

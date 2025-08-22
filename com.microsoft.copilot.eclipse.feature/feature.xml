@@ -2,7 +2,9 @@
 <feature
       id="com.microsoft.copilot.eclipse.feature"
       label="GitHub Copilot"
-      version="0.10.0.qualifier">
+      version="0.10.0.qualifier"
+      provider-name="GitHub Copilot"
+      plugin="com.microsoft.copilot.eclipse.branding">
 
    <license url="">
       GitHub Copilot 
@@ -29,6 +31,10 @@ You may opt-out of many of these scenarios, but not all, as described in the sof
 
 For the purpose of improving GitHub Copilot, Microsoft and GitHub may share with each other your feedback and/or any collected data that Microsoft and/or GitHub determines directly relates to GitHub Copilot.
    </license>
+
+   <plugin
+         id="com.microsoft.copilot.eclipse.branding"
+         version="0.0.0"/>
 
    <plugin
          id="com.microsoft.copilot.eclipse.core"

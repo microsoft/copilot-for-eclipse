@@ -20,6 +20,9 @@
 		<module>com.microsoft.copilot.eclipse.core</module>
 		<module>com.microsoft.copilot.eclipse.ui</module>
 
+		<!-- branding -->
+		<module>com.microsoft.copilot.eclipse.branding</module>
+
 		<!-- features and update site -->
 		<module>com.microsoft.copilot.eclipse.feature</module>
 		<module>com.microsoft.copilot.eclipse.repository</module>

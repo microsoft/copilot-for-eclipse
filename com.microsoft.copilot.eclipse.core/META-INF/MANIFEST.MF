@@ -3,6 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.core
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.core;singleton:=true
 Bundle-Version: 0.10.0.qualifier
+Bundle-Vendor: GitHub Copilot
 Export-Package: com.microsoft.copilot.eclipse.core,
  com.microsoft.copilot.eclipse.core.chat,
  com.microsoft.copilot.eclipse.core.chat.service,
