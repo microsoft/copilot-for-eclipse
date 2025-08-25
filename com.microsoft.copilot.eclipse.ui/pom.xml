@@ -23,6 +23,30 @@
 				<version>${tycho-version}</version>
 				<extensions>true</extensions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>copy-terminal-jars</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<copy file="../com.microsoft.copilot.eclipse.ui.terminal/target/com.microsoft.copilot.eclipse.ui.terminal-${project.version}.jar" 
+									  tofile="terminal-bundles/com.microsoft.copilot.eclipse.ui.terminal.jar" 
+									  failonerror="false"/>
+								<copy file="../com.microsoft.copilot.eclipse.ui.terminal.tm/target/com.microsoft.copilot.eclipse.ui.terminal.tm-${project.version}.jar" 
+									  tofile="terminal-bundles/com.microsoft.copilot.eclipse.ui.terminal.tm.jar" 
+									  failonerror="false"/>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>

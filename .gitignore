@@ -36,3 +36,6 @@ replay_pid*
 
 # whatisnew html file in runtime
 **/whatisnew.html
+
+# Terminal bundles
+**/terminal-bundles/*.jar

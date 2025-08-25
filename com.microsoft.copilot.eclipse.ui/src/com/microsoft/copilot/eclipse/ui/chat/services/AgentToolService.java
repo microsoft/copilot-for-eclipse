@@ -19,6 +19,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
+import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
+import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
@@ -26,18 +28,19 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
-import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalTool;
-import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalTool.GetTerminalOutputTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter;
+import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter.GetTerminalOutputTool;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Service to manage and access tools.
  */
-public class AgentToolService implements ToolInvocationListener {
+public class AgentToolService implements ToolInvocationListener, TerminalServiceManager.TerminalServiceListener {
   private ConcurrentHashMap<String, BaseTool> tools;
   private ChatView boundChatView;
 
   protected CopilotLanguageServerConnection lsConnection;
+  private volatile boolean terminalToolsRegistered = false;
 
   /**
    * Constructor for AgentToolService.
@@ -45,7 +48,24 @@ public class AgentToolService implements ToolInvocationListener {
   public AgentToolService(CopilotLanguageServerConnection lsConnection) {
     this.tools = new ConcurrentHashMap<>();
     this.lsConnection = lsConnection;
+    TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
+    if (terminalManager != null) {
+      terminalManager.addListener(this);
+    }
     registerDefaultTools();
+  }
+
+  @Override
+  public void onServiceAvailable(IRunInTerminalTool service) {
+    if (!terminalToolsRegistered) {
+      synchronized (this) {
+        if (!terminalToolsRegistered) {
+          registerTerminalTools();
+          registerToolWithServer();
+          terminalToolsRegistered = true;
+        }
+      }
+    }
   }
 
   /**
@@ -55,10 +75,6 @@ public class AgentToolService implements ToolInvocationListener {
     // File operations
     registerTool(new CreateFileTool());
     registerTool(new EditFileTool());
-
-    // Terminal operations
-    registerTool(new RunInTerminalTool());
-    registerTool(new GetTerminalOutputTool());
 
     // Diagnostic tools
     registerTool(new GetErrorsTool());
@@ -93,6 +109,11 @@ public class AgentToolService implements ToolInvocationListener {
       CopilotCore.LOGGER.error("Error registering tools with the server", e);
       return null;
     });
+  }
+
+  private void registerTerminalTools() {
+    registerTool(new RunInTerminalToolAdapter());
+    registerTool(new GetTerminalOutputTool());
   }
 
   /**
@@ -215,6 +236,12 @@ public class AgentToolService implements ToolInvocationListener {
    * Dispose the service.
    */
   public void dispose() {
+    // Remove listener from terminal service manager
+    TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
+    if (terminalManager != null) {
+      terminalManager.removeListener(this);
+    }
+
     this.tools.clear();
     unbindChatView();
   }

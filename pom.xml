@@ -12,11 +12,16 @@
 
 	<properties>
 		<base.name>GitHub Copilot</base.name>
-		<tycho-version>4.0.10</tycho-version>
+		<tycho-version>4.0.13</tycho-version>
 		<checkstyle-version>3.6.0</checkstyle-version>
 	</properties>
 
 	<modules>
+        <!-- terminal bundles must be built before ui bundle as ui bundle depends on terminal bundle artifacts -->
+		<module>com.microsoft.copilot.eclipse.terminal.api</module>
+		<module>com.microsoft.copilot.eclipse.ui.terminal</module>
+		<module>com.microsoft.copilot.eclipse.ui.terminal.tm</module>
+
 		<module>com.microsoft.copilot.eclipse.core</module>
 		<module>com.microsoft.copilot.eclipse.ui</module>
 
@@ -72,8 +77,9 @@
 				<version>${tycho-version}</version>
 				<configuration>
 					<target>
-						<file>../target-platform.target</file>
+						<file>../base.target</file>
 					</target>
+					<executionEnvironment>JavaSE-21</executionEnvironment>
 					<environments>
 						<environment>
 							<os>macosx</os>
