@@ -6,6 +6,10 @@
       provider-name="GitHub Copilot"
       plugin="com.microsoft.copilot.eclipse.branding">
 
+   <copyright>
+      %copyright
+   </copyright>
+
    <license url="">
       GitHub Copilot 
 
