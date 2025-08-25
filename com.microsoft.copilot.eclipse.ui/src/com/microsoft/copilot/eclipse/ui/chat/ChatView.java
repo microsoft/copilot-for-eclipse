@@ -72,6 +72,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private String conversationId = "";
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+  private DragReferenceManager dragReferenceManager;
 
   @Override
   public void createPartControl(Composite parent) {
@@ -186,6 +187,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private void createChatPage(ChatMode chatMode) {
     disposeComposite(topBanner);
     disposeComposite(contentWrapper);
+
+    getDragReferenceManager().attach(parent);
 
     switch (chatMode) {
       case Ask:
@@ -588,6 +591,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
     this.topBanner.registerNewConversationListener(listener);
   }
+  
+  /**
+   * create or return the existing DragReferenceManager.
+   */
+  private DragReferenceManager getDragReferenceManager() {
+    if (dragReferenceManager == null) {
+      dragReferenceManager = new DragReferenceManager(this, this.chatServiceManager.getReferencedFileService());
+    }
+    return dragReferenceManager;
+  }
 
   /**
    * Dispose the view.
@@ -623,6 +636,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
     if (this.agentModeViewer != null) {
       this.agentModeViewer.dispose();
+    }
+    if (dragReferenceManager != null) {
+      dragReferenceManager.dispose();
+      dragReferenceManager = null;
     }
     super.dispose();
   }
