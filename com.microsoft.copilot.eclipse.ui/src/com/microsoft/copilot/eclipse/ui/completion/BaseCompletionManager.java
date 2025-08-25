@@ -334,9 +334,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
           break;
       }
       this.document.removePosition(this.triggerPosition);
-    } catch (
-
-    BadLocationException e) {
+    } catch (BadLocationException e) {
       CopilotCore.LOGGER.error(e);
       return;
     }
