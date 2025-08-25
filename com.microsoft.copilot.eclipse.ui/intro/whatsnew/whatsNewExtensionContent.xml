@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <introContent>
   <extensionContent id="com.microsoft.copilot.eclipse.ui"
-                    name="GitHub Cipilot for Eclipse Release Notes"
+                    name="GitHub Copilot for Eclipse Release Notes"
                     style="../../css/whatisnew.css"
                     alt-style="../../css/whatisnew.properties"
                     path="whatsnew/@">
     <group style-id="content-group" id="content-group">
       <link style-id="content-link"
-            label="GitHub Cipilot Release Notes"
+            label="GitHub Copilot Release Notes"
             url="http://org.eclipse.ui.intro/runAction?pluginId=com.microsoft.copilot.eclipse.ui&amp;class=com.microsoft.copilot.eclipse.ui.actions.WhatsNewAction"
             id="copilot-releasenotes">
         <text>Show GitHub Copilot for Eclipse Release Notes</text>
