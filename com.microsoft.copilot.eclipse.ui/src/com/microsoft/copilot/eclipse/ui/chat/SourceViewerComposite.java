@@ -94,7 +94,6 @@ class SourceViewerComposite extends Composite {
     // use null layout here,as for other layout, it will re-sort the components when call layout()
     // which will break the hover behavior of the action buttons (copy)
     this.setLayout(null);
-    this.setBackground(this.getParent().getBackground());
 
     this.sourceViewer = createSourceViewer();
     this.actionsComposite = createActionsComposite();
@@ -180,7 +179,6 @@ class SourceViewerComposite extends Composite {
     layout.spacing = 3;
     layout.pack = true; // Pack the composite tightly
     result.setLayout(layout);
-    result.setBackground(getBackground());
 
     this.copyIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_COPY);
     Button copyButton = createActionButton(result, SWT.PUSH | SWT.FLAT, copyIcon, "Copy", "Copy to clipboard");
@@ -210,7 +208,6 @@ class SourceViewerComposite extends Composite {
     Button result = new Button(parent, style);
     result.setToolTipText(tooltip);
     result.setVisible(true);
-    result.setBackground(getBackground());
     if (image == null) {
       result.setText(text);
     } else {
@@ -218,8 +215,7 @@ class SourceViewerComposite extends Composite {
     }
 
     // Compute size based on icon
-    Point size = Optional.ofNullable(image)
-        .map(icon -> new Point(icon.getBounds().width, icon.getBounds().height))
+    Point size = Optional.ofNullable(image).map(icon -> new Point(icon.getBounds().width, icon.getBounds().height))
         .map(iconSize -> new Point(iconSize.x + 4, iconSize.y + 4)) // Add minimal padding
         .orElseGet(() -> result.computeSize(SWT.DEFAULT, SWT.DEFAULT));
     result.setSize(size);

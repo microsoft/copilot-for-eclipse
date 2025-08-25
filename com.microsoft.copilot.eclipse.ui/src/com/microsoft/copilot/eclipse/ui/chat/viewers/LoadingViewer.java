@@ -18,8 +18,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A widget that displays a loading view.
  */
 public class LoadingViewer extends BaseViewer {
-  private Image mainIcon;
-  private Font mainLabelFont;
 
   /**
    * Create the composite.
@@ -43,36 +41,30 @@ public class LoadingViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_loading.png");
+    Image mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_loading.png");
     Label icon = new Label(iconLabelComposite, SWT.CENTER);
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_loadingView_title);
-    label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
     fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
-    if (this.mainLabelFont != null && !this.mainLabelFont.isDisposed()) {
-      this.mainLabelFont.dispose();
-    }
-    this.mainLabelFont = new Font(Display.getCurrent(), fontData);
+    Font mainLabelFont = new Font(Display.getCurrent(), fontData);
     label.setFont(mainLabelFont);
 
     WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_loadingView_description);
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-  }
 
-  @Override
-  public void dispose() {
-    if (this.mainIcon != null) {
-      this.mainIcon.dispose();
-    }
-    if (this.mainLabelFont != null) {
-      this.mainLabelFont.dispose();
-    }
-    super.dispose();
+    this.addDisposeListener(e -> {
+      if (mainIcon != null && !mainIcon.isDisposed()) {
+        mainIcon.dispose();
+      }
+      if (mainLabelFont != null && !mainLabelFont.isDisposed()) {
+        mainLabelFont.dispose();
+      }
+    });
   }
 }

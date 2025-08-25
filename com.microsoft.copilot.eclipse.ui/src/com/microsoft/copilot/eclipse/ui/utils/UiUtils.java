@@ -68,6 +68,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolBase.EditableFileCompareInput;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 
 /**
  * Utilities for Eclipse UI.
@@ -387,10 +388,7 @@ public class UiUtils {
    */
   public static Button createIconButton(Composite parent, int style) {
     Button result = new Button(parent, style);
-    result.setBackground(parent.getBackground());
     result.addPaintListener(e -> {
-      // Prevent the default border from being drawn
-      e.gc.setBackground(result.getBackground());
       Rectangle bounds = result.getBounds();
       e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
 
@@ -411,11 +409,12 @@ public class UiUtils {
 
     result.addFocusListener(new org.eclipse.swt.events.FocusAdapter() {
       private Color background = result.getBackground();
+      private Color focusBackground = CssConstants.getButtonFocusBgColor(result.getDisplay());
 
       @Override
       public void focusGained(org.eclipse.swt.events.FocusEvent e) {
         background = result.getBackground();
-        result.setBackground(getThemeColor(UiConstants.HOVER_BACKGROUND));
+        result.setBackground(focusBackground);
       }
 
       @Override
@@ -426,11 +425,14 @@ public class UiUtils {
 
     result.addMouseTrackListener(new org.eclipse.swt.events.MouseTrackAdapter() {
       private Color background = result.getBackground();
+      private Color hoverBackground = CssConstants.getButtonFocusBgColor(result.getDisplay());
 
       @Override
       public void mouseEnter(org.eclipse.swt.events.MouseEvent e) {
+        // The above background initialization will not take the css color, so here we need to re-fetch
+        // the color when the mouse enters.
         background = result.getBackground();
-        result.setBackground(getThemeColor(UiConstants.HOVER_BACKGROUND));
+        result.setBackground(hoverBackground);
       }
 
       @Override
@@ -450,49 +452,6 @@ public class UiUtils {
       fontData[i].setStyle(SWT.BOLD);
     }
     return new Font(display, fontData);
-  }
-
-  /**
-   * Sets the background of the given composite to the background of its parent. As eclipse css may overwrite the result
-   * of setBackground, this method will also add a paint listener to keep the background color consistent.
-   */
-  public static void useParentBackground(Control control) {
-    if (control.getParent() == null) {
-      return;
-    }
-    control.setData(UiConstants.USE_PARENT_BACKGROUND, true);
-    control.setBackground(getParentColor(control));
-
-    control.addPaintListener(e -> {
-      Color currentParentColor = getParentColor(control);
-      if (!currentParentColor.equals(control.getBackground())) {
-        if (control instanceof Composite) {
-          e.gc.setBackground(currentParentColor);
-          Rectangle bounds = control.getBounds();
-          e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
-        } else {
-          control.getDisplay().asyncExec(() -> {
-            if (!control.isDisposed()) {
-              control.setBackground(currentParentColor);
-              control.redraw();
-            }
-          });
-        }
-      }
-    });
-  }
-
-  private static Color getParentColor(Control control) {
-    Composite parent = control.getParent();
-    while (parent != null) {
-      // get the nearest parent that did not use parent background
-      Object data = parent.getData(UiConstants.USE_PARENT_BACKGROUND);
-      if (!Objects.equals(data, Boolean.TRUE)) {
-        return parent.getBackground();
-      }
-      parent = parent.getParent();
-    }
-    return control.getBackground();
   }
 
   /**

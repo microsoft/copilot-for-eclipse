@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -59,10 +60,10 @@ public class TopBanner extends Composite {
     GridData layoutData = new GridData(SWT.FILL, SWT.TOP, true, false);
     layoutData.minimumHeight = 40;
     setLayoutData(layoutData);
+    setData(CssConstants.CSS_ID_KEY, "chat-top-banner");
 
     this.chatTitle = new CLabel(this, SWT.NONE);
     this.chatTitle.setText(Messages.chat_topBanner_defaultChatTitle);
-    this.chatTitle.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
 
     GridData labelGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     labelGridData.horizontalIndent = 10;
@@ -114,7 +115,7 @@ public class TopBanner extends Composite {
       public void paintControl(PaintEvent e) {
         GC gc = e.gc;
         int borderWidth = 1;
-        Color borderColor = getDisplay().getSystemColor(SWT.COLOR_GRAY);
+        Color borderColor = CssConstants.getTopBannerBorderColor(getDisplay());
         gc.setForeground(borderColor);
         gc.setLineWidth(borderWidth);
         Rectangle bounds = parent.getClientArea();

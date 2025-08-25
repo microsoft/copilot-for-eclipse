@@ -45,7 +45,6 @@ public abstract class BaseViewer extends Composite {
     Label label = new Label(composite, SWT.LEFT);
     label.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
     label.setText(text);
-    label.setForeground((parent.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY)));
   }
 
   /**
@@ -76,7 +75,6 @@ public abstract class BaseViewer extends Composite {
   protected void buildTextWithLinkAndListener(Composite parent, String text, GridData gridData, Listener listener) {
     Link link = new Link(parent, SWT.CENTER);
     link.setText(text);
-    link.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     link.setLayoutData(gridData != null ? gridData : new GridData(SWT.CENTER, SWT.CENTER, true, false));
     link.addListener(SWT.Selection, listener);
   }

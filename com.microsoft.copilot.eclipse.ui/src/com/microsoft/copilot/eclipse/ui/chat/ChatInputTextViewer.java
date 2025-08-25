@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -48,11 +49,6 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   private boolean caretLineOffsetChanged = false;
   private int lastCursorLineOffset = 0;
 
-  /**
-   * Whether the color resource should be disposed. When the color is fetched from the jface registry, it should not be
-   * disposed.
-   */
-  private boolean needDisposeColorResource;
   private Color placeholderColor;
 
   /**
@@ -102,7 +98,6 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
     this.addTextListener(this::onTextChanged);
 
     StyledText tvw = this.getTextWidget();
-    tvw.setBackground(tvw.getParent().getBackground());
     tvw.setLayout(new GridLayout(1, false));
     tvw.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     tvw.setAlwaysShowScrollBars(false);
@@ -129,23 +124,12 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
       }
     });
 
-    initializePlaceHolderColor();
+    this.placeholderColor = CssConstants.getInputPlaceHolderColor(tvw.getDisplay());
     tvw.addPaintListener(this);
     SwtUtils.invokeOnDisplayThread(tvw::redraw, tvw);
 
     // new document after styled text redraw to avoid a redundant line being added to the document.
     this.setDocument(new Document());
-  }
-
-  private void initializePlaceHolderColor() {
-    Color color = SwtUtils.getRegisteredInlineAnnotationColor(this.getTextWidget().getDisplay());
-    if (color == null) {
-      needDisposeColorResource = true;
-      placeholderColor = SwtUtils.getDefaultGhostTextColor(this.getTextWidget().getDisplay());
-    } else {
-      needDisposeColorResource = false;
-      placeholderColor = color;
-    }
   }
 
   private void clearFormat(int start, int end) {
@@ -173,7 +157,7 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
     gd.heightHint = Math.min(tvw.getLineHeight() * MAX_INPUT_ROWS, size.y);
     // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
     // The width of welcome view will become shorter and shorter, may investigate it later
-    ChatInputTextViewer.this.parent.getParent().layout(true, false);
+    ChatInputTextViewer.this.parent.getParent().getParent().layout(true, false);
   }
 
   private void onKeyPressed(KeyEvent e) {
@@ -332,15 +316,6 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   private void resetCaretLineOffsetStatus() {
     lastCursorLineOffset = 0;
     caretLineOffsetChanged = false;
-  }
-
-  /**
-   * Disposes the resources used by this viewer, including the placeholder color if it was created.
-   */
-  public void dispose() {
-    if (needDisposeColorResource && placeholderColor != null && !placeholderColor.isDisposed()) {
-      placeholderColor.dispose();
-    }
   }
 
   public void setContentAssistProcessor(ContentAssistant ca) {

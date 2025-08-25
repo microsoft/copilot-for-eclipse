@@ -35,9 +35,7 @@ public class CopilotTurnWidget extends BaseTurnWidget {
 
   @Override
   protected Label createAvatarLabel(Composite parent) {
-    Label lblAvatar = new Label(parent, SWT.NONE);
-    lblAvatar.setBackground(parent.getBackground());
-    return lblAvatar;
+    return new Label(parent, SWT.NONE);
   }
 
   @Override
@@ -46,6 +44,5 @@ public class CopilotTurnWidget extends BaseTurnWidget {
     StyledText styledText = this.currentTextBlock.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
-    styledText.setBackground(this.getBackground());
   }
 }

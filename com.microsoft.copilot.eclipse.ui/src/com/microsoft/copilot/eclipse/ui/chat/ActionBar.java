@@ -57,6 +57,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -93,19 +94,27 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Creates a new InputArea.
    */
   public ActionBar(Composite parent, int style, ChatServiceManager chatServiceManager) {
-    super(parent, style | SWT.BORDER);
+    super(parent, SWT.NONE);
+    GridLayout glContainer = new GridLayout(1, false);
+    glContainer.marginWidth = 10;
+    glContainer.marginHeight = 0;
+    glContainer.verticalSpacing = 0;
+    this.setLayout(glContainer);
+    this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    this.setData(CssConstants.CSS_ID_KEY, "chat-action-bar-wrapper");
     this.chatServiceManager = chatServiceManager;
     this.updateSendButtonToCancelButtonHandler = event -> {
       updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     };
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, updateSendButtonToCancelButtonHandler);
-    this.setBackground(UiUtils.getThemeColor(UiConstants.EDITOR_BACKGROUND));
+    Composite actionBar = new Composite(this, style | SWT.BORDER);
     GridLayout gl = new GridLayout(1, false);
     gl.marginHeight = 5;
     gl.verticalSpacing = 0;
-    setLayout(gl);
-    setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    actionBar.setLayout(gl);
+    actionBar.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    actionBar.setData(CssConstants.CSS_ID_KEY, "chat-action-bar");
 
     RowLayout rowLayout = new RowLayout();
     rowLayout.wrap = true;
@@ -120,10 +129,9 @@ public class ActionBar extends Composite implements NewConversationListener {
     rowLayout.marginLeft = 0;
     rowLayout.marginTop = 0;
     rowLayout.marginBottom = 10;
-    this.cmpFileRef = new Composite(this, SWT.NONE);
+    this.cmpFileRef = new Composite(actionBar, SWT.NONE);
     this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.cmpFileRef.setLayout(rowLayout);
-    UiUtils.useParentBackground(this.cmpFileRef);
     new AddContextButton(this.cmpFileRef);
     this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
     ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
@@ -133,7 +141,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
     userPreferenceService.bindActionBarForSupportVisionChange(this);
 
-    ChatInputTextViewer tv = new ChatInputTextViewer(this, chatServiceManager);
+    ChatInputTextViewer tv = new ChatInputTextViewer(actionBar, chatServiceManager);
     tv.setEditable(true);
     tv.addTextListener(new ITextListener() {
       @Override
@@ -180,7 +188,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         Object proposalPopup = PlatformUtils.getPropertyWithReflection(ca, "fProposalPopup");
         Object popupTable = PlatformUtils.getPropertyWithReflection(proposalPopup, "fProposalTable");
         // get ca.fProposalPopup.fProposalTable using reflection
-        if (popupTable != null && popupTable instanceof Table table && table.getLayoutData() instanceof GridData gd) {
+        if (popupTable != null && popupTable instanceof Table table && table.getLayoutData() instanceof GridData) {
           updateTableLayout(table);
           // when selection changed, table did not fill data in mac, which will make the size incorrect
           // use listener to track the set data event, and update layout when data is filled
@@ -214,10 +222,9 @@ public class ActionBar extends Composite implements NewConversationListener {
     glActionArea.marginLeft = 0;
     glActionArea.marginTop = 5;
     glActionArea.marginBottom = -5;
-    this.cmpActionArea = new Composite(this, SWT.NONE);
+    this.cmpActionArea = new Composite(actionBar, SWT.NONE);
     this.cmpActionArea.setLayout(glActionArea);
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    UiUtils.useParentBackground(this.cmpActionArea);
 
     Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
     GridLayout glControlBar = new GridLayout(2, false);
@@ -225,7 +232,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     glControlBar.marginLeft = 0;
     cmpControlBar.setLayout(glControlBar);
     cmpControlBar.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, true, false));
-    UiUtils.useParentBackground(cmpControlBar);
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
 
@@ -236,7 +242,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.bottomRightButtonsComposite = new Composite(this.cmpActionArea, SWT.NONE);
     this.bottomRightButtonsComposite.setLayout(buttonsLayout);
     this.bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
-    UiUtils.useParentBackground(this.bottomRightButtonsComposite);
 
     // Update both MCP button and send button together
     updateButtonsLayout();
@@ -281,7 +286,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     // Get parent composite and disable redraw to avoid flickering when references files are updated
     Composite actionBarParent = this.getParent();
     actionBarParent.setRedraw(false);
-    
+
     try {
       for (Control child : cmpFileRef.getChildren()) {
         if (child instanceof ReferencedFile && !(child instanceof CurrentReferencedFile)) {
@@ -297,7 +302,7 @@ public class ActionBar extends Composite implements NewConversationListener {
           new ReferencedFile(this.cmpFileRef, file, false);
         }
       }
-      
+
     } finally {
       actionBarParent.setRedraw(true);
       refreshLayout();
@@ -468,18 +473,6 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   /**
-   * Get the content of the input text viewer.
-   *
-   * @return the current content of the input text viewer
-   */
-  public String getInputTextViewerContent() {
-    if (inputTextViewer != null) {
-      return inputTextViewer.getContent();
-    }
-    return StringUtils.EMPTY;
-  }
-
-  /**
    * Set the content of the input text viewer.
    *
    * @param content the content to set
@@ -626,9 +619,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     }
     if (currentFileRef != null) {
       currentFileRef.dispose();
-    }
-    if (inputTextViewer != null) {
-      inputTextViewer.dispose();
     }
     if (eventBroker != null && updateSendButtonToCancelButtonHandler != null) {
       eventBroker.unsubscribe(updateSendButtonToCancelButtonHandler);

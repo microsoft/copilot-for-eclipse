@@ -72,7 +72,6 @@ public abstract class BaseTurnWidget extends Composite {
     this.turnId = turnId;
     this.codeBlockIndex = 1;
     this.statusLabels = new HashMap<>();
-    this.setBackground(parent.getBackground());
     // editor group
     // align all children vertically
     GridLayout gl = new GridLayout(1, true);
@@ -102,16 +101,13 @@ public abstract class BaseTurnWidget extends Composite {
     titleLayout.marginLeft = -5;
     cmpTitle.setLayout(titleLayout);
     cmpTitle.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
-    cmpTitle.setBackground(this.getBackground());
 
     AvatarService avatarService = serviceManager.getAvatarService();
     icon = getAvatar(avatarService);
     Label lblAvatar = createAvatarLabel(cmpTitle);
-    lblAvatar.setBackground(this.getBackground());
     lblAvatar.setImage(icon);
 
     Label lblRoleName = new Label(cmpTitle, SWT.NONE);
-    lblRoleName.setBackground(this.getBackground());
     String name = getRoleName();
     lblRoleName.setText(name);
     if (this.boldFont == null) {

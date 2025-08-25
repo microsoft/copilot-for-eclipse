@@ -27,3 +27,72 @@
 	color: #aaaaaa;
 	background-color: #2f2f2f;
 }
+
+#chat-top-banner,
+#chat-top-banner * {
+	color: #A4A4A4;
+	background-color: #1E1F22;
+}
+
+#chat-container > BeforeLoginWelcomeViewer .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-container,
+#chat-container > LoadingViewer,
+#chat-container > LoadingViewer *,
+#chat-container > BeforeLoginWelcomeViewer,
+#chat-container > BeforeLoginWelcomeViewer *,
+#chat-content-wrapper,
+#chat-content-wrapper > AfterLoginWelcomeViewer,
+#chat-content-wrapper > AfterLoginWelcomeViewer *,
+#chat-content-wrapper > AgentModeViewer,
+#chat-content-wrapper  > AgentModeViewer *{
+	color: #DEE1E5;
+	background-color: #1E1F22;
+}
+
+#chat-action-bar-wrapper {
+	background-color: #1E1F22;
+}
+
+#chat-action-bar CurrentReferencedFile > Label.text-secondary {
+	color: #A4A4A4;
+}
+
+#chat-action-bar,
+#chat-action-bar * {
+	color: #DEE1E5;
+	background-color: #48484C; 
+}
+
+#chat-content-viewer .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
+	background-color: #48484C;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary {
+	color: #A4A4A4;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > AgentToolCancelLabel > Label.text-secondary {
+	color: #A4A4A4;
+}
+
+#chat-content-viewer,
+#chat-content-viewer > Composite,
+#chat-content-viewer > Composite * {
+    color: #DEE1E5;
+    background-color: #1E1F22;
+}
+
+#chat-content-viewer > Composite > UserTurnWidget,
+#chat-content-viewer > Composite > UserTurnWidget * {
+	color: #DEE1E5;
+	background-color: #26282B;
+}

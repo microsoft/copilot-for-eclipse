@@ -53,7 +53,6 @@ public class NoSubscriptionViewer extends BaseViewer {
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_noAuthView_title);
-    label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
     fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
@@ -65,7 +64,6 @@ public class NoSubscriptionViewer extends BaseViewer {
 
     WrapLabel subLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_noAuthView_description);
-    subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
 
   private void buildcheckSubButton() {

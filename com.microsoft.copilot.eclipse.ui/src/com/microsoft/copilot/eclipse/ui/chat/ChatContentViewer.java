@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -54,21 +55,20 @@ public class ChatContentViewer extends ScrolledComposite {
    */
   public ChatContentViewer(Composite parent, int style, ChatServiceManager serviceManager) {
     super(parent, style | SWT.V_SCROLL);
-    this.setBackground(this.getParent().getBackground());
-    this.cmpContent = new Composite(this, SWT.NONE);
-    this.cmpContent.setBackground(this.getBackground());
-    GridLayout gl = new GridLayout(1, true);
-    gl.marginHeight = 0;
-    gl.marginWidth = 0;
-    gl.marginLeft = -10;
-    this.cmpContent.setLayout(gl);
-    this.cmpContent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-    this.setContent(this.cmpContent);
-
     this.setExpandHorizontal(true);
     this.setExpandVertical(true);
     this.setLayout(new GridLayout(1, true));
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    this.setData(CssConstants.CSS_ID_KEY, "chat-content-viewer");
+
+    this.cmpContent = new Composite(this, SWT.NONE);
+    GridLayout gl = new GridLayout(1, true);
+    gl.marginHeight = 0;
+    gl.marginWidth = 0;
+    this.cmpContent.setLayout(gl);
+    this.cmpContent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    this.setContent(this.cmpContent);
+
     this.addControlListener(new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {

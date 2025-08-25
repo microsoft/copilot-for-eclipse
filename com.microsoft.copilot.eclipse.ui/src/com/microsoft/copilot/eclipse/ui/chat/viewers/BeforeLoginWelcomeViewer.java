@@ -15,7 +15,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.IHandlerService;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -115,7 +117,6 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
     label.setText(Messages.chat_welcomeView_title);
-    label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
     fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
@@ -127,7 +128,6 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
 
     this.welcomeSubLabel = new WrapLabel(iconLabelComposite, SWT.CENTER);
     this.welcomeSubLabel.setText(Messages.chat_welcomeView_description);
-    this.welcomeSubLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
 
   private void buildSubComposite(Composite parent) {
@@ -185,14 +185,15 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     GridData buttonGridData = new GridData(SWT.FILL, SWT.CENTER, true, true);
     buttonGridData.widthHint = 200;
     signInButton.setLayoutData(buttonGridData);
+    signInButton.setData(CssConstants.CSS_CLASS_NAME_KEY, "btn-primary");
     signInButton.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(org.eclipse.swt.events.SelectionEvent event) {
-        IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench().getService(IHandlerService.class);
+        IHandlerService handlerService = PlatformUI.getWorkbench().getService(IHandlerService.class);
         try {
           handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.signIn", null);
         } catch (Exception e) {
-          e.printStackTrace();
+          CopilotCore.LOGGER.error("Error executing sign-in command", e);
         }
       }
     });

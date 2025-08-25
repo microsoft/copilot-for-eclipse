@@ -56,12 +56,10 @@ public class AddContextButton extends Composite {
         attachImage.dispose();
       }
     });
-    UiUtils.useParentBackground(this.lblAttachIcon);
 
     lblButtonText = new Label(this, SWT.NONE);
     lblButtonText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
     lblButtonText.setText("Add Context...");
-    UiUtils.useParentBackground(this.lblButtonText);
 
     MouseAdapter clickListener = new MouseAdapter() {
       @Override
@@ -77,7 +75,6 @@ public class AddContextButton extends Composite {
     lblButtonText.addMouseListener(clickListener);
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
 
-    UiUtils.useParentBackground(this);
   }
 
   /**

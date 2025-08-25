@@ -53,10 +53,8 @@ public class ReferencedFile extends Composite {
 
     lblfileIcon = new Label(this, SWT.NONE);
     lblfileIcon.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
-    UiUtils.useParentBackground(this.lblfileIcon);
     lblFileName = new Label(this, SWT.NONE);
     lblFileName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
-    UiUtils.useParentBackground(this.lblFileName);
 
     MouseAdapter mouseAdapter = new MouseAdapter() {
       @Override
@@ -77,10 +75,8 @@ public class ReferencedFile extends Composite {
     setCloseClickAction();
 
     lblImage = UiUtils.buildImageFromPngPath("/icons/close.png");
-    UiUtils.useParentBackground(this.lblClose);
 
     setFile(file);
-    UiUtils.useParentBackground(this);
 
     this.addDisposeListener(e -> {
       if (lblImage != null && !lblImage.isDisposed()) {
@@ -182,7 +178,7 @@ public class ReferencedFile extends Composite {
     lblFileName.addPaintListener(e -> {
       String text = lblFileName.getText();
       Point textSize = e.gc.textExtent(text);
-      
+
       int y = textSize.y / 2;
       e.gc.setLineWidth(1);
       e.gc.drawLine(0, y, textSize.x, y);

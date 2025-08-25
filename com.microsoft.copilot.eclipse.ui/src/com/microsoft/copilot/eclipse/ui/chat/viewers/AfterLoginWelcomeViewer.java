@@ -19,9 +19,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A widget that displays a initial chat introduction.
  */
 public class AfterLoginWelcomeViewer extends BaseViewer {
-  private Image mainIcon;
   private Font mainLabelFont;
-  private Image attachContextIcon;
 
   private Label copilotIconLabel;
   private Composite subComposite;
@@ -81,11 +79,11 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
+    Image mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
     this.copilotIconLabel = new Label(iconLabelComposite, SWT.NONE);
     this.copilotIconLabel.addDisposeListener(e -> {
-      if (this.mainIcon != null && !this.mainIcon.isDisposed()) {
-        this.mainIcon.dispose();
+      if (mainIcon != null && !mainIcon.isDisposed()) {
+        mainIcon.dispose();
       }
     });
     this.copilotIconLabel.setImage(mainIcon);
@@ -93,7 +91,6 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER | SWT.WRAP);
     label.setText(Messages.chat_initialChatView_title);
-    label.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     FontData fontData = new FontData();
     fontData.setHeight(ALIGNED_TITLE_HEIGHT);
     fontData.setStyle(SWT.BOLD);
@@ -123,7 +120,6 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
 
     WrapLabel subLabel = new WrapLabel(this.subComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_aiWarn_description);
-    subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
     GridData subLabelGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     subLabelGridData.widthHint = ALIGNED_LABEL_WIDTH;
     subLabel.setLayoutData(subLabelGridData);
@@ -138,16 +134,15 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     gridData.minimumHeight = 70;
     instructionComposite.setLayoutData(gridData);
 
-    this.attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
+    Image attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
     instructionComposite.addDisposeListener(e -> {
-      if (this.attachContextIcon != null && !this.attachContextIcon.isDisposed()) {
-        this.attachContextIcon.dispose();
+      if (attachContextIcon != null && !attachContextIcon.isDisposed()) {
+        attachContextIcon.dispose();
       }
     });
-    buildLabelWithIcon(instructionComposite, this.attachContextIcon, Messages.chat_initialChatView_attachContextSuffix);
+    buildLabelWithIcon(instructionComposite, attachContextIcon, Messages.chat_initialChatView_attachContextSuffix);
 
     WrapLabel subLabel = new WrapLabel(instructionComposite, SWT.CENTER);
     subLabel.setText(Messages.chat_initialChatView_useCommandsIntro);
-    subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
   }
 }

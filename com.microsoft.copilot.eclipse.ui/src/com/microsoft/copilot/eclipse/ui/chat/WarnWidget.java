@@ -12,6 +12,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -50,7 +51,6 @@ public class WarnWidget extends Composite {
     Composite composite = new Composite(this, SWT.NONE);
     composite.setLayout(new GridLayout(2, false));
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
-    UiUtils.useParentBackground(composite);
 
     Label iconLabel = new Label(composite, SWT.TOP);
     warnImage = UiUtils.buildImageFromPngPath("/icons/message_warning.png");
@@ -59,7 +59,6 @@ public class WarnWidget extends Composite {
     iconGd.verticalIndent = 4;
     iconLabel.setLayoutData(iconGd);
     buttonLeftMargin = warnImage.getBounds().width + iconGd.verticalIndent;
-    UiUtils.useParentBackground(iconLabel);
     iconLabel.addDisposeListener(e -> {
       if (warnImage != null && !warnImage.isDisposed()) {
         warnImage.dispose();
@@ -70,7 +69,6 @@ public class WarnWidget extends Composite {
     StyledText styledText = textLabel.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
     styledText.setEditable(false);
-    UiUtils.useParentBackground(styledText);
     textLabel.setMarkup(message);
 
     requestLayout();
@@ -92,5 +90,6 @@ public class WarnWidget extends Composite {
         UiUtils.openLink(Messages.chat_noQuotaView_updatePlanLink);
       }
     });
+    updatePlanButton.setData(CssConstants.CSS_CLASS_NAME_KEY, "btn-primary");
   }
 }

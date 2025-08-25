@@ -48,6 +48,7 @@ import com.microsoft.copilot.eclipse.ui.chat.viewers.BeforeLoginWelcomeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.LoadingViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.NoSubscriptionViewer;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -60,7 +61,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private Composite parent;
   private TopBanner topBanner;
   private Composite contentWrapper;
-  private Composite mainSection;
   private ActionBar actionBar;
   private ChatContentViewer chatContentViewer;
   private Composite loadingViewer;
@@ -80,8 +80,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     layout.verticalSpacing = 0;
     layout.marginWidth = 0;
     layout.marginHeight = 0;
+    layout.marginBottom = 10;
     parent.setLayout(layout);
     parent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    parent.setData(CssConstants.CSS_ID_KEY, "chat-container");
 
     this.chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
     if (this.chatServiceManager == null) {
@@ -183,7 +185,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void createChatPage(ChatMode chatMode) {
     disposeComposite(topBanner);
-    disposeComposite(mainSection);
+    disposeComposite(contentWrapper);
 
     switch (chatMode) {
       case Ask:
@@ -203,9 +205,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     createOrReuseContentWrapper();
 
-    // main section
-    createMainSection();
-
     if (hasHistory) {
       createConversationPage();
     } else {
@@ -222,8 +221,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // This is a necessary step since we use actionBar cache when switching
       // chat modes and the topBanner & mainSection will on the bottom of the
       // actionBar if we use cache.
-      if (this.mainSection != null && !this.mainSection.isDisposed()) {
-        this.actionBar.moveBelow(this.mainSection);
+      if (this.contentWrapper != null && !this.contentWrapper.isDisposed()) {
+        this.actionBar.moveBelow(this.contentWrapper);
       }
     }
   }
@@ -234,9 +233,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.topBanner.registerNewConversationListener(this);
 
     createOrReuseContentWrapper();
-
-    // main section
-    createMainSection();
 
     if (hasHistory) {
       createConversationPage();
@@ -254,8 +250,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // This is a necessary step since we use actionBar cache when switching
       // chat modes and the topBanner & mainSection will on the bottom of the
       // actionBar if we use cache.
-      if (this.mainSection != null && !this.mainSection.isDisposed()) {
-        this.actionBar.moveBelow(this.mainSection);
+      if (this.contentWrapper != null && !this.contentWrapper.isDisposed()) {
+        this.actionBar.moveBelow(this.contentWrapper);
       }
     }
   }
@@ -295,33 +291,25 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // contentWrapper if we use cache.
       this.topBanner.moveAbove(this.contentWrapper);
     } else {
-      createNewContentWrapper();
+      createContentWrapper();
     }
   }
 
-  private void createNewContentWrapper() {
+  private void createContentWrapper() {
     this.contentWrapper = new Composite(parent, SWT.NONE);
     GridLayout layout = new GridLayout(1, true);
-    layout.marginWidth = 10;
+    layout.marginWidth = 0;
+    layout.marginRight = 10;
     layout.marginHeight = 0;
     layout.marginBottom = 10;
     layout.verticalSpacing = 0;
     this.contentWrapper.setLayout(layout);
     this.contentWrapper.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-  }
-
-  private void createMainSection() {
-    this.mainSection = new Composite(this.contentWrapper, SWT.NONE);
-    GridLayout gl = new GridLayout(1, true);
-    gl.marginLeft = 0;
-    gl.marginRight = 0;
-    gl.marginWidth = 0;
-    this.mainSection.setLayout(gl);
-    this.mainSection.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    this.contentWrapper.setData(CssConstants.CSS_ID_KEY, "chat-content-wrapper");
   }
 
   private void createActionBar() {
-    this.actionBar = new ActionBar(this.contentWrapper, SWT.NONE, chatServiceManager);
+    this.actionBar = new ActionBar(parent, SWT.NONE, chatServiceManager);
     this.actionBar.registerMessageListener(this);
     this.topBanner.registerNewConversationListener(this.actionBar);
   }
@@ -336,8 +324,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * Create a conversation page.
    */
   private void createConversationPage() {
-    clearChatView(this.mainSection);
-    this.chatContentViewer = new ChatContentViewer(this.mainSection, SWT.NONE, this.chatServiceManager);
+    clearChatView(this.contentWrapper);
+    this.chatContentViewer = new ChatContentViewer(this.contentWrapper, SWT.NONE, this.chatServiceManager);
     this.chatContentViewer.requestLayout();
   }
 
@@ -345,8 +333,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * Create a welcome page.
    */
   private void createAfterLoginWelcomePage() {
-    clearChatView(this.mainSection);
-    this.afterLoginWelcomeViewer = new AfterLoginWelcomeViewer(this.mainSection, SWT.NONE);
+    clearChatView(this.contentWrapper);
+    this.afterLoginWelcomeViewer = new AfterLoginWelcomeViewer(this.contentWrapper, SWT.NONE);
     this.afterLoginWelcomeViewer.requestLayout();
   }
 
@@ -363,8 +351,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   private void createAgentModePage() {
-    clearChatView(this.mainSection);
-    this.agentModeViewer = new AgentModeViewer(this.mainSection, SWT.NONE);
+    clearChatView(this.contentWrapper);
+    this.agentModeViewer = new AgentModeViewer(this.contentWrapper, SWT.NONE);
     this.agentModeViewer.requestLayout();
   }
 
@@ -475,7 +463,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     ReferencedFileService fileService = chatServiceManager.getReferencedFileService();
     // Clean up any non-existent files before sending the message
     fileService.cleanupNonExistentFiles();
-    
+
     IFile currentFile = fileService.getCurrentFile();
     List<IResource> references = fileService.getReferencedFiles();
 
@@ -543,7 +531,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     SwtUtils.invokeOnDisplayThread(() -> {
       chatContentViewer.renderErrorMessage(content);
       actionBar.resetSendButton();
-    }, mainSection);
+    }, parent);
   }
 
   @Override

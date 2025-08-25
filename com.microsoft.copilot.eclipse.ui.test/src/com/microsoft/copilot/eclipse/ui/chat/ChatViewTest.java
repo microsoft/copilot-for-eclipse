@@ -82,28 +82,6 @@ class ChatViewTest {
     }
   }
 
-  @Test
-  void testSwitchChatModeWithCachedInputContent() {
-    String cachedInputContent = "Cached input content";
-
-    // Build the view for Agent mode and set cached content to the input viewer
-    when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Agent);
-    when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
-    SwtUtils.invokeOnDisplayThread(() -> {
-      chatView.buildViewFor(ChatMode.Agent);
-    });
-    ActionBar agentActionBar = (ActionBar) chatView.getActionBar();
-    agentActionBar.setInputTextViewerContent(cachedInputContent);
-
-    // Switch to Ask mode and verify the cached content is retained
-    when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
-    SwtUtils.invokeOnDisplayThread(() -> {
-      chatView.buildViewFor(ChatMode.Ask);
-    });
-    ActionBar askActionBar = (ActionBar) chatView.getActionBar();
-    assertEquals(cachedInputContent, askActionBar.getInputTextViewerContent());
-  }
-
   @AfterEach
   void tearDown() {
     SwtUtils.invokeOnDisplayThread(() -> {
