@@ -102,8 +102,7 @@ public class ReferencedFile extends Composite {
       public void mouseDown(MouseEvent e) {
         ReferencedFileService referencedFileService = CopilotUi.getPlugin().getChatServiceManager()
             .getReferencedFileService();
-        String uri = FileUtils.getResourceUri(file);
-        referencedFileService.removeReferencedFile(uri);
+        referencedFileService.removeReferencedFile(file);
       }
     });
   }

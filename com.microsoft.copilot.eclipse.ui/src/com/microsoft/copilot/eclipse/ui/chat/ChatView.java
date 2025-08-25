@@ -474,6 +474,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     ReferencedFileService fileService = chatServiceManager.getReferencedFileService();
+    // Clean up any non-existent files before sending the message
+    fileService.cleanupNonExistentFiles();
+    
     IFile currentFile = fileService.getCurrentFile();
     List<IResource> references = fileService.getReferencedFiles();
 

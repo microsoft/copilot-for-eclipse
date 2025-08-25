@@ -203,16 +203,34 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   }
 
   /**
-   * Remove the uri from the referenced files observable.
+   * Remove a specific resource from the referenced files observable.
    */
-  public void removeReferencedFile(String uri) {
+  public void removeReferencedFile(IResource targetResource) {
     ensureRealm(() -> {
-      Map<String, IResource> fileMap = referencedFilesObservable.getValue();
-      IResource removedFile = fileMap.remove(uri);
-      if (removedFile == null) {
+      if (targetResource == null) {
         return;
       }
-      referencedFilesObservable.setValue(new LinkedHashMap<>(fileMap));
+
+      Map<String, IResource> fileMap = new LinkedHashMap<>(referencedFilesObservable.getValue());
+      String uri = FileUtils.getResourceUri(targetResource);
+      boolean hasChanges = fileMap.remove(uri) != null
+          || fileMap.values().removeIf(resource -> resource == targetResource);
+      if (hasChanges) {
+        referencedFilesObservable.setValue(fileMap);
+      }
+    });
+  }
+
+  /**
+   * Clean up all non-existent resources from the referenced files list.
+   */
+  public void cleanupNonExistentFiles() {
+    ensureRealm(() -> {
+      Map<String, IResource> fileMap = new LinkedHashMap<>(referencedFilesObservable.getValue());
+      boolean hasChanges = fileMap.values().removeIf(resource -> resource == null || !resource.exists());
+      if (hasChanges) {
+        referencedFilesObservable.setValue(fileMap);
+      }
     });
   }
 
