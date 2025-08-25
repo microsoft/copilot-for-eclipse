@@ -27,6 +27,7 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
+import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
@@ -199,23 +200,17 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     }
 
     Path executable = null;
-    if (PlatformUtils.isLinux()) {
-      executable = binDir.resolve("linux-x64/copilot-language-server");
-    } else if (PlatformUtils.isWindows()) {
-      executable = binDir.resolve("win32-x64/copilot-language-server.exe");
-    } else if (PlatformUtils.isMac()) {
-      if (PlatformUtils.isArm64()) {
-        executable = binDir.resolve("darwin-arm64/copilot-language-server");
-      } else {
-        executable = binDir.resolve("darwin-x64/copilot-language-server");
-      }
+    if (PlatformUtils.isWindows()) {
+      executable = binDir.resolve("copilot-language-server.exe");
+    } else {
+      executable = binDir.resolve("copilot-language-server");
     }
-
     return executable != null && Files.exists(executable) ? executable : null;
   }
 
   private @Nullable Path findAgentBinaryDirectoryPath() throws IOException {
-    URL url = CopilotCore.getPlugin().getBundle().getEntry("copilot-agent/native");
+    URL url = findBinaryFromFragment();
+  
     if (url == null) {
       return null;
     }
@@ -226,6 +221,59 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       CopilotCore.LOGGER.error(e);
       return null;
     }
+  }
+  
+  /**
+   * Find binary from platform-specific fragment bundles.
+   * This method attempts to locate the native binary from the appropriate fragment bundle
+   * based on the current platform (OS and architecture).
+   */
+  private @Nullable URL findBinaryFromFragment() {
+    String fragmentBundleId = getPlatformSpecificFragmentBundleId();
+    if (fragmentBundleId == null) {
+      CopilotCore.LOGGER.info("No platform-specific fragment bundle ID found for current platform");
+      return null;
+    }
+    
+    try {
+      Bundle[] bundles = Platform.getBundles(fragmentBundleId, null);
+      if (bundles == null || bundles.length == 0) {
+        CopilotCore.LOGGER.info("Fragment bundle not found: " + fragmentBundleId);
+        return null;
+      }
+      
+      Bundle fragmentBundle = bundles[0];
+      URL url = fragmentBundle.getEntry("copilot-agent");
+      
+      if (url != null) {
+        CopilotCore.LOGGER.info("Found native binary in fragment bundle: " + fragmentBundleId);
+      } else {
+        CopilotCore.LOGGER.info("Fragment bundle found but no native directory: " + fragmentBundleId);
+      }
+      
+      return url;
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Error finding fragment bundle: " + fragmentBundleId, e);
+      return null;
+    }
+  }
+  
+  /**
+   * Get the bundle ID of the platform-specific fragment based on current OS and architecture.
+   */
+  private @Nullable String getPlatformSpecificFragmentBundleId() {
+    if (PlatformUtils.isLinux()) {
+      return "com.microsoft.copilot.eclipse.core.agent.linux";
+    } else if (PlatformUtils.isWindows()) {
+      return "com.microsoft.copilot.eclipse.core.agent.win32";
+    } else if (PlatformUtils.isMac()) {
+      if (PlatformUtils.isArm64()) {
+        return "com.microsoft.copilot.eclipse.core.agent.macosx.aarch64";
+      } else {
+        return "com.microsoft.copilot.eclipse.core.agent.macosx.x64";
+      }
+    }
+    return null;
   }
 
   /**

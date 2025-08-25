@@ -31,7 +31,6 @@ replay_pid*
 
 # Copilot agent
 **/node_modules/
-**/copilot-agent/native/
 **/copilot-agent/dist/
 
 # whatisnew html file in runtime
@@ -39,3 +38,9 @@ replay_pid*
 
 # Terminal bundles
 **/terminal-bundles/*.jar
+
+# Fragment bundle copilot-agent directories
+com.microsoft.copilot.eclipse.core.agent.linux/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.win32/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.macosx.x64/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.macosx.aarch64/copilot-agent/
