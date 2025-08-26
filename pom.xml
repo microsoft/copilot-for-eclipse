@@ -29,7 +29,8 @@
 		<module>com.microsoft.copilot.eclipse.branding</module>
 
 		<!-- agent modules for different os and arch-->
-	    <module>com.microsoft.copilot.eclipse.core.agent.linux</module>
+	    <module>com.microsoft.copilot.eclipse.core.agent.linux.x64</module>
+	    <module>com.microsoft.copilot.eclipse.core.agent.linux.aarch64</module>
 	    <module>com.microsoft.copilot.eclipse.core.agent.win32</module>
 	    <module>com.microsoft.copilot.eclipse.core.agent.macosx.x64</module>
 	    <module>com.microsoft.copilot.eclipse.core.agent.macosx.aarch64</module>

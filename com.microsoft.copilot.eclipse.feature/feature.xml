@@ -52,9 +52,12 @@ For the purpose of improving GitHub Copilot, Microsoft and GitHub may share with
          id="com.microsoft.copilot.eclipse.terminal.api"
          version="0.0.0"/> 
 
-   <plugin id="com.microsoft.copilot.eclipse.core.agent.linux"
+   <plugin id="com.microsoft.copilot.eclipse.core.agent.linux.x64"
            version="0.0.0"
-           os="linux" fragment="true"/>
+           os="linux" arch="x86_64" fragment="true"/>
+   <plugin id="com.microsoft.copilot.eclipse.core.agent.linux.aarch64"
+           version="0.0.0"
+           os="linux" arch="aarch64" fragment="true"/>
    <plugin id="com.microsoft.copilot.eclipse.core.agent.win32"
            version="0.0.0"
            os="win32" fragment="true"/>

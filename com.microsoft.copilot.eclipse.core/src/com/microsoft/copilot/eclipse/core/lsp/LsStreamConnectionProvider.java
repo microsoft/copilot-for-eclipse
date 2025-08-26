@@ -187,8 +187,8 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   private @Nullable Path findBinary() throws IOException {
-    // the binary is only supported on macOS and Intel x86_64 with Linux and Windows
-    if (!PlatformUtils.isMac() && !PlatformUtils.isIntel64()) {
+    String fragmentBundleId = getPlatformSpecificFragmentBundleId();
+    if (fragmentBundleId == null) {
       CopilotCore.LOGGER.error(
           new IllegalStateException("Unsupport platform for CLS: " + Platform.getOS() + ", " + Platform.getOSArch()));
       return null;
@@ -259,17 +259,24 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
   
   /**
-   * Get the bundle ID of the platform-specific fragment based on current OS and architecture.
+   * Get the bundle ID of the platform-specific fragment based on current OS and architecture. Returns null if the
+   * current platform is not supported. Supported platforms: darwin-arm64, darwin-x64, linux-arm64, linux-x64, win32-x64
    */
   private @Nullable String getPlatformSpecificFragmentBundleId() {
     if (PlatformUtils.isLinux()) {
-      return "com.microsoft.copilot.eclipse.core.agent.linux";
+      if (PlatformUtils.isArm64()) {
+        return "com.microsoft.copilot.eclipse.core.agent.linux.aarch64";
+      } else if (PlatformUtils.isIntel64()) {
+        return "com.microsoft.copilot.eclipse.core.agent.linux.x64";
+      }
     } else if (PlatformUtils.isWindows()) {
-      return "com.microsoft.copilot.eclipse.core.agent.win32";
+      if (PlatformUtils.isIntel64()) {
+        return "com.microsoft.copilot.eclipse.core.agent.win32";
+      }
     } else if (PlatformUtils.isMac()) {
       if (PlatformUtils.isArm64()) {
         return "com.microsoft.copilot.eclipse.core.agent.macosx.aarch64";
-      } else {
+      } else if (PlatformUtils.isIntel64()) {
         return "com.microsoft.copilot.eclipse.core.agent.macosx.x64";
       }
     }

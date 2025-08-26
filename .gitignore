@@ -40,7 +40,8 @@ replay_pid*
 **/terminal-bundles/*.jar
 
 # Fragment bundle copilot-agent directories
-com.microsoft.copilot.eclipse.core.agent.linux/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.linux.x64/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.linux.aarch64/copilot-agent/
 com.microsoft.copilot.eclipse.core.agent.win32/copilot-agent/
 com.microsoft.copilot.eclipse.core.agent.macosx.x64/copilot-agent/
 com.microsoft.copilot.eclipse.core.agent.macosx.aarch64/copilot-agent/

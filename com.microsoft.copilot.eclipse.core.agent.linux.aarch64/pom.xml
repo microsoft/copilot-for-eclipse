@@ -7,9 +7,9 @@
 		<artifactId>github-copilot-for-eclipse</artifactId>
 		<version>0.10.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>com.microsoft.copilot.eclipse.core.agent.linux</artifactId>
+	<artifactId>com.microsoft.copilot.eclipse.core.agent.linux.aarch64</artifactId>
 	<packaging>eclipse-plugin</packaging>
-	<name>${base.name} :: Agent(Linux)</name>
+	<name>${base.name} :: Agent(Linux Aarch64)</name>
 	<build>
 		<plugins>
 			<plugin>
