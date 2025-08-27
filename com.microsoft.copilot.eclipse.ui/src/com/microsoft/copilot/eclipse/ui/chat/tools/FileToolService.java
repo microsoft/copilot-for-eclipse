@@ -15,6 +15,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -75,7 +76,10 @@ public class FileToolService extends ChatBaseService {
           disposeFileChangeSummaryBar();
         } else {
           if (this.fileChangeSummaryBar == null) {
-            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getContentWrapper(), SWT.NONE);
+            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getActionBar(), SWT.NONE);
+            if (chatView.getActionBar().getChildren().length > 0) {
+              this.fileChangeSummaryBar.moveAbove(chatView.getActionBar().getChildren()[0]);
+            }
           }
           this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
           this.fileChangeSummaryBar.moveAbove(chatView.getActionBar());
@@ -251,7 +255,7 @@ public class FileToolService extends ChatBaseService {
           totalFileCount);
       lsConnection.notifyCodeAcceptance(acceptance);
     } else {
-      CopilotCore.LOGGER.error("Latest Copilot turn ID is not set, cannot notify code acceptance.", null);      
+      CopilotCore.LOGGER.error("Latest Copilot turn ID is not set, cannot notify code acceptance.", null);
     }
   }
 
@@ -344,8 +348,10 @@ public class FileToolService extends ChatBaseService {
 
   private void disposeFileChangeSummaryBar() {
     if (fileChangeSummaryBar != null) {
+      Composite control = fileChangeSummaryBar.getParent();
       fileChangeSummaryBar.dispose();
       fileChangeSummaryBar = null;
+      control.requestLayout();
     }
   }
 
