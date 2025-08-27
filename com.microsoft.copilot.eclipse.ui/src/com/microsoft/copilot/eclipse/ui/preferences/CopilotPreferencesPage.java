@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -21,6 +23,7 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PreferencesUtil;
+import org.eclipse.ui.preferences.ScopedPreferenceStore;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -37,6 +40,8 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
   private ProxyConfigLinkListener proxyConfigLinkListener;
   private Link link;
   private ControlListener controlListener;
+  // Use a dedicated config-scope store for fields that must persist in configuration scope
+  private ScopedPreferenceStore configScopeStore;
 
   /**
    * Constructor.
@@ -128,6 +133,28 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
     new WrappableNoteLabel(chatGroup, Messages.preferences_page_note_prefix,
         Messages.preferences_page_watched_files_note_content);
 
+    // What's new group
+    Group whatsNewGroup = new Group(parent, SWT.NONE);
+    whatsNewGroup.setLayout(gl);
+    gdf.applyTo(whatsNewGroup);
+    whatsNewGroup.setText(Messages.preferences_page_whats_new_settings);
+
+    // auto show "What is new" field
+    Composite whatsNewComposite = new Composite(whatsNewGroup, SWT.NONE);
+    whatsNewComposite.setLayout(gl);
+    whatsNewComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    // Use configuration scope store for this specific field
+    this.configScopeStore = new ScopedPreferenceStore(ConfigurationScope.INSTANCE, Constants.PLUGIN_ID);
+    BooleanFieldEditor showWhatsNewField = new BooleanFieldEditor(Constants.AUTO_SHOW_WHAT_IS_NEW,
+        Messages.preferences_page_enable_whats_new, whatsNewComposite);
+    showWhatsNewField.getDescriptionControl(whatsNewComposite)
+        .setToolTipText(Messages.preferences_page_enable_whats_new_tooltip);
+    // Ensure the preference page manages this field (Apply/Defaults/OK),
+    // but keep it stored in configuration scope.
+    addField(showWhatsNewField);
+    showWhatsNewField.setPreferenceStore(this.configScopeStore);
+    showWhatsNewField.load();
+
     // Add control listener to handle workspace context field resizing
     controlListener = new ControlAdapter() {
       @Override
@@ -163,9 +190,10 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
   @Override
   public boolean performOk() {
     boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
+    boolean oldWhatsNewValue = this.configScopeStore.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW);
+
     boolean result = super.performOk();
     boolean newWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
-
     if (oldWorkspaceContextValue ^ newWorkspaceContextValue) {
       boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
           Messages.preferences_page_watched_files_restart_question);
@@ -184,6 +212,17 @@ public class CopilotPreferencesPage extends FieldEditorPreferencePage implements
           // Using asyncExec ensures the preference dialog completes its current operations
           PlatformUI.getWorkbench().restart();
         });
+      }
+    }
+
+    boolean newWhatsNewValue = this.configScopeStore.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW);
+    if (oldWhatsNewValue ^ newWhatsNewValue) {
+      try {
+        IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
+        configPrefs.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, newWhatsNewValue);
+        configPrefs.flush();
+      } catch (BackingStoreException ex) {
+        CopilotCore.LOGGER.error("Failed to persist 'Auto show What's New' preference in ConfigurationScope", ex);
       }
     }
 

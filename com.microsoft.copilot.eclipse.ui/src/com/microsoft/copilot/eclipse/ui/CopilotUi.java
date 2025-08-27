@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui;
 
-import java.io.IOException;
 import java.util.Objects;
 
 import org.eclipse.core.net.proxy.IProxyService;
@@ -13,7 +12,6 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.jface.preference.IPersistentPreferenceStore;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchWindow;
@@ -138,29 +136,23 @@ public class CopilotUi extends AbstractUIPlugin {
       needToFlush = true;
     }
 
+    if (configPrefs.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true)) {
+      String lastUsedVersion = configPrefs.get(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, "0.0");
+      Version bundleVersion = context.getBundle().getVersion();
+      String currentVersion = bundleVersion.getMajor() + "." + bundleVersion.getMinor();
+      if (!Objects.equals(lastUsedVersion, currentVersion)) {
+        SwtUtils.invokeOnDisplayThreadAsync(
+            () -> UiUtils.executeCommandWithParameters(UiConstants.OPEN_WHATS_NEW_COMMAND_ID, null));
+        configPrefs.put(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, currentVersion);
+        needToFlush = true;
+      }
+    }
+
     if (needToFlush) {
       try {
         configPrefs.flush();
       } catch (BackingStoreException e) {
-        CopilotCore.LOGGER.error("Failed to flush configuration preference store during preference update.", e);
-      }
-    }
-
-    String lastUsedVersion = preferenceStore.getString(Constants.LAST_USED_PLUGIN_VERSION);
-    Version bundleVersion = context.getBundle().getVersion();
-    String currentVersion = bundleVersion.getMajor() + "." + bundleVersion.getMinor();
-    if (!Objects.equals(lastUsedVersion, currentVersion)) {
-      SwtUtils.invokeOnDisplayThreadAsync(
-          () -> UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.showWhatIsNew", null));
-      preferenceStore.setValue(Constants.LAST_USED_PLUGIN_VERSION, currentVersion);
-    }
-
-    IPersistentPreferenceStore ps = (IPersistentPreferenceStore) preferenceStore;
-    if (ps.needsSaving()) {
-      try {
-        ps.save();
-      } catch (IOException e) {
-        CopilotCore.LOGGER.error("Failed to save preference store during preference update.", e);
+        CopilotCore.LOGGER.error("Failed to persist hint in ConfigurationScope", e);
       }
     }
   }

@@ -30,9 +30,11 @@ public class Constants {
   @Deprecated
   public static final String QUICK_START_VERSION = "quickStartVersion";
   public static final String COPILOT_QUICK_START_VERSION = "copilotQuickStartVersion";
-  public static final String LAST_USED_PLUGIN_VERSION = "lastUsedPluginVersion";
+  public static final String LAST_USED_COPILOT_PLUGIN_VERSION = "lastUsedCopilotPluginVersion";
   public static final String CHAT_VIEW_ID = "com.microsoft.copilot.eclipse.ui.chat.ChatView";
   public static final String CHAT_CHANNEL = "chatProgress";
+  public static final String AUTO_SHOW_WHAT_IS_NEW = "autoShowWhatsNew";
+
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list
   // https://github.com/microsoft/copilot-intellij/blob/main/core/src/main/kotlin/com/github/copilot/chat/references/FileSearchService.kt

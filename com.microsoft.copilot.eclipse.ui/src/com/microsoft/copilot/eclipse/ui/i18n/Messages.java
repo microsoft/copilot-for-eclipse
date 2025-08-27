@@ -63,6 +63,9 @@ public final class Messages extends NLS {
   public static String preferences_page_restart_required;
   public static String preferencesPage_autoShowCompletion;
   public static String preferences_page_enable_strict_ssl;
+  public static String preferences_page_whats_new_settings;
+  public static String preferences_page_enable_whats_new;
+  public static String preferences_page_enable_whats_new_tooltip;
   public static String preferences_page_proxy_kerberos_sp;
   public static String preferences_page_github_enterprise;
   public static String preferences_page_watched_files;
