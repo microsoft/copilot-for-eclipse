@@ -51,6 +51,7 @@ public class InputNavigation {
    */
   public void add(String input) {
     if (StringUtils.isBlank(input) || Objects.equals(input, getLatestInput())) {
+      currentPosition = inputHistory.size();
       return;
     }
     if (inputHistory.size() == MAX_HISTORY_SIZE) {
