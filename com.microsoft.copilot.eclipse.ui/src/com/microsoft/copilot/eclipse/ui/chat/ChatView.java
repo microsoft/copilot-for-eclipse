@@ -182,6 +182,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
     refreshActionBarTextViewerAndButtons();
     this.parent.requestLayout();
+    setFocus();
   }
 
   private void createChatPage(ChatMode chatMode) {
@@ -444,7 +445,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   @Override
   public void setFocus() {
     ChatEventsManager p = CopilotCore.getPlugin().getChatEventsManager();
-    if (p != null && p.chatProgressListeners.size() == 0) {
+    if (p != null && p.chatProgressListeners.isEmpty()) {
       p.addChatProgressListener(this);
     }
     if (actionBar != null) {
@@ -591,7 +592,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
     this.topBanner.registerNewConversationListener(listener);
   }
-  
+
   /**
    * create or return the existing DragReferenceManager.
    */

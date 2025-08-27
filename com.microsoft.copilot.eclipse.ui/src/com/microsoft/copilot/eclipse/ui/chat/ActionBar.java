@@ -29,6 +29,7 @@ import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContentAssistant;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
@@ -465,9 +466,14 @@ public class ActionBar extends Composite implements NewConversationListener {
    * @return true if the focus was set, false otherwise
    */
   public boolean setFocusToInputTextViewer() {
-    if (inputTextViewer != null && inputTextViewer.getTextWidget() != null
-        && !inputTextViewer.getTextWidget().isDisposed()) {
-      return inputTextViewer.getTextWidget().setFocus();
+    if (inputTextViewer == null) {
+      return false;
+    }
+
+    StyledText textWidget = inputTextViewer.getTextWidget();
+    if (textWidget != null && !textWidget.isDisposed()) {
+      textWidget.setSelection(inputTextViewer.getContent().length());
+      return textWidget.setFocus();
     }
     return false;
   }
