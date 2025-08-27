@@ -78,7 +78,7 @@ public class OpenChatViewHandler extends CopilotHandler {
     }
 
     // Force chat mode to Ask if auto-send is enabled
-    Boolean autoSend = Boolean.parseBoolean(event.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND));
+    boolean autoSend = Boolean.parseBoolean(event.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND));
     if (autoSend) {
       userPreferenceService.setActiveChatMode(ChatMode.Ask.toString());
     }

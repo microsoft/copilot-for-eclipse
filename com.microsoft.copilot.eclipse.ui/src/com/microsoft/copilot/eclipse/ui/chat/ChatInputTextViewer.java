@@ -80,6 +80,7 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
    */
   public void setContent(String content) {
     this.getDocument().set(content);
+    this.getTextWidget().setSelection(content.length());
   }
 
   @Override
@@ -151,8 +152,11 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   }
 
   private void refreshHeightLayout() {
-    StyledText tvw = ChatInputTextViewer.this.getTextWidget();
-    Point size = tvw.computeSize(tvw.getSize().x, SWT.DEFAULT);
+    StyledText tvw = this.getTextWidget();
+    // If the width is not initialized, use SWT.DEFAULT to compute the size
+    // otherwise, swt will think that each line can only have one character.
+    int widthHint = tvw.getSize().x == 0 ? SWT.DEFAULT : tvw.getSize().x;
+    Point size = tvw.computeSize(widthHint, SWT.DEFAULT);
     GridData gd = (GridData) tvw.getLayoutData();
     gd.heightHint = Math.min(tvw.getLineHeight() * MAX_INPUT_ROWS, size.y);
     // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
@@ -232,14 +236,12 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
       String lastInput = userPreferenceService.getPreviousInput(text);
       if (StringUtils.isNotBlank(lastInput)) {
         this.setContent(lastInput);
-        this.getTextWidget().setSelection(lastInput.length());
       }
       return true;
     } else if (e.keyCode == SWT.ARROW_DOWN) {
       String nextInput = userPreferenceService.getNextInput();
       if (StringUtils.isNotBlank(nextInput)) {
         this.setContent(nextInput);
-        this.getTextWidget().setSelection(nextInput.length());
         return true;
       }
     } else {
