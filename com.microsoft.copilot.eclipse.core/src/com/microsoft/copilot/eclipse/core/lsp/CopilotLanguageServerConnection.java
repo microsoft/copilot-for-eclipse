@@ -322,8 +322,8 @@ public class CopilotLanguageServerConnection {
   /**
    * Used to register the tools for the language server.
    */
-  public CompletableFuture<String> registerTools(RegisterToolsParams params) {
-    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+  public CompletableFuture<Object> registerTools(RegisterToolsParams params) {
+    Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
         .registerTools(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);

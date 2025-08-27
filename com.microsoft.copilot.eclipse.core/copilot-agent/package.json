@@ -12,6 +12,6 @@
     "postinstall": "node copy-binaries.js"
   },
   "dependencies": {
-    "@github/copilot-language-server": "1.353.0"
+    "@github/copilot-language-server": "1.363.0"
   }
 }

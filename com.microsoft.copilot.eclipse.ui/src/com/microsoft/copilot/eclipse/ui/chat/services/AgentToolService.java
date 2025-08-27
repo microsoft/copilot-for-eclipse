@@ -100,15 +100,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       registerToolsParams.addTool(tool.getToolInformation());
     }
 
-    lsConnection.registerTools(registerToolsParams).thenAccept(registrationResult -> {
-      if (!Objects.equals("OK", registrationResult)) {
-        CopilotCore.LOGGER
-            .error(new IllegalStateException("Tool registration failed with result: " + registrationResult));
-      }
-    }).exceptionally(e -> {
-      CopilotCore.LOGGER.error("Error registering tools with the server", e);
-      return null;
-    });
+    lsConnection.registerTools(registerToolsParams);
   }
 
   private void registerTerminalTools() {
