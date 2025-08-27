@@ -11,6 +11,8 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.preference.IPersistentPreferenceStore;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.IEditorPart;
@@ -20,6 +22,7 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
+import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -123,17 +126,24 @@ public class CopilotUi extends AbstractUIPlugin {
 
   private void showHintIfNecessary(BundleContext context) {
     IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
-    if (!(preferenceStore instanceof IPersistentPreferenceStore)) {
-      // to make sure the updated preference store is saved, we will only show the quick start
-      // if the preference store is IPersistentPreferenceStore.
-      return;
+    IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
+    boolean needToFlush = false;
+    int storedQuickStartVersion = Math.max(configPrefs.getInt(Constants.COPILOT_QUICK_START_VERSION, 0),
+        preferenceStore.getInt(Constants.QUICK_START_VERSION));
+
+    if (storedQuickStartVersion < Constants.CURRENT_COPILOT_QUICK_START_VERSION) {
+      SwtUtils.invokeOnDisplayThreadAsync(
+          () -> UiUtils.executeCommandWithParameters(UiConstants.OPEN_QUICK_START_COMMAND_ID, null));
+      configPrefs.putInt(Constants.COPILOT_QUICK_START_VERSION, Constants.CURRENT_COPILOT_QUICK_START_VERSION);
+      needToFlush = true;
     }
 
-    int storedVersion = preferenceStore.getInt(Constants.QUICK_START_VERSION);
-    if (storedVersion < Constants.CURRENT_QUICK_START_VERSION) {
-      SwtUtils.invokeOnDisplayThreadAsync(
-          () -> UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openQuickStart", null));
-      preferenceStore.setValue(Constants.QUICK_START_VERSION, Constants.CURRENT_QUICK_START_VERSION);
+    if (needToFlush) {
+      try {
+        configPrefs.flush();
+      } catch (BackingStoreException e) {
+        CopilotCore.LOGGER.error("Failed to flush configuration preference store during preference update.", e);
+      }
     }
 
     String lastUsedVersion = preferenceStore.getString(Constants.LAST_USED_PLUGIN_VERSION);

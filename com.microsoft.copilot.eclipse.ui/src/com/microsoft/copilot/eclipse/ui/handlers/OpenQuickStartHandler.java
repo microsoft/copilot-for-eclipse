@@ -16,20 +16,14 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.IPerspectiveDescriptor;
-import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.WorkbenchException;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.intro.IIntroPart;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.quickstart.FeaturePage;
 
@@ -56,7 +50,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
 
     public QuickStartDialog(Shell parentShell) {
       super(parentShell);
-      setShellStyle(SWT.RESIZE | SWT.APPLICATION_MODAL | SWT.NO_TRIM);
+      setShellStyle(SWT.RESIZE | SWT.APPLICATION_MODAL | SWT.NO_TRIM | SWT.ON_TOP);
     }
 
     @Override
@@ -122,7 +116,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
             IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()
                 .getService(IHandlerService.class);
             try {
-              handlerService.executeCommand("com.microsoft.copilot.eclipse.commands.openChatView", null);
+              handlerService.executeCommand(UiConstants.OPEN_CHAT_VIEW_COMMAND_ID, null);
             } catch (Exception ex) {
               CopilotCore.LOGGER.error("Failed to open chat view", ex);
             }

@@ -13,8 +13,8 @@ public class Constants {
     // prevent instantiation
   }
 
-  // Increment CURRENT_QUICK_START_VERSION will force the quick start to be shown once again
-  public static final int CURRENT_QUICK_START_VERSION = 1;
+  // Increment CURRENT_COPILOT_QUICK_START_VERSION will force the quick start to be shown once again
+  public static final int CURRENT_COPILOT_QUICK_START_VERSION = 1;
 
   public static final String PLUGIN_ID = "com.microsoft.copilot.eclipse";
   public static final String AUTO_SHOW_COMPLETION = "enableAutoCompletions";
@@ -27,7 +27,9 @@ public class Constants {
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE = "customInstructionsWorkspace";
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED = "customInstructionsWorkspaceEnabled";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
+  @Deprecated
   public static final String QUICK_START_VERSION = "quickStartVersion";
+  public static final String COPILOT_QUICK_START_VERSION = "copilotQuickStartVersion";
   public static final String LAST_USED_PLUGIN_VERSION = "lastUsedPluginVersion";
   public static final String CHAT_VIEW_ID = "com.microsoft.copilot.eclipse.ui.chat.ChatView";
   public static final String CHAT_CHANNEL = "chatProgress";
