@@ -1,3 +1,53 @@
+# GitHub Copilot 0.11.0 Release Notes
+### More Convenient Ways to Add Chat Context
+Adding context to your chats just got easier and more intuitive!
+You now have multiple ways to include context files:
+
+#### Drag and Drop
+
+![Drag and Drop](./0.11.0/dnd_1.gif)
+
+#### Right-Click from Explorer
+
+![Right-Click from Explorer](./0.11.0/context_menu_1.gif)
+
+---
+
+### Enhanced Colors and Layout for Chat View
+We’ve given the chat view a fresh coat of paint — and it looks better than ever!
+
+#### Dark Theme Improvements
+
+![Dark Theme Improvements](./0.11.0/dark_1.jpg)
+
+#### Light Theme Improvements
+
+![Light Theme Improvements](./0.11.0/light_1.jpg)
+
+---
+
+### Reduced Plugin Size
+By splitting platform-specific binaries into separate fragments, the overall plugin size has been greatly reduced, which means faster downloads and updates.
+
+---
+
+### New Public API to Start a Chat Session Programmatically
+
+We’ve introduced a new public API that allows other plugins to seamlessly start a new ask session in the Copilot chat view. Plug-ins can now invoke the command: `com.microsoft.copilot.eclipse.commands.openChatView` with two optional parameters:
+
+- `com.microsoft.copilot.eclipse.commands.openChatView.inputValue`: A string representing the initial content of the chat.
+- `com.microsoft.copilot.eclipse.commands.openChatView.autoSend`: A boolean indicating whether to automatically submit the content.
+
+This opens up exciting possibilities for plugin developers to trigger contextual Copilot interactions directly from their tools.
+
+#### Example: Spring Tools Plug-in Integration
+
+Here’s how the Spring Tools plug-in leverages the new API to launch a chat session:
+
+![STS Integration](./0.11.0/api_1.gif)
+
+---
+
 # GitHub Copilot 0.10.0 Release Notes
 ### Custom Instructions Now Supported in Copilot
 You can now use custom instructions to provide Copilot with additional context tailored to your work. This helps Copilot deliver more relevant and personalized assistance.
@@ -111,33 +161,6 @@ We’ve reimagined the onboarding journey to make it easier than ever to get sta
 3. **Refined Chat View**: The Copilot Chat interface has been polished with a cleaner layout and a more intuitive default placement across commonly used Eclipse perspectives.
 
 ---
-
-### Bug Fixes & Improvements
-This release also includes bug fixes and enhancements to improve overall stability and user experience.
-
----
-
-# GitHub Copilot 0.8.0 Release Notes
-
-### Remote MCP Server support
-Now user can configure remote MCP server in the MCP preference page, below is an example of remote GitHub MCP Server with PAT:
-
-```javascript
-{
-  "servers": {
-    "github": {
-      "url": "https://api.githubcopilot.com/mcp/",
-      "requestInit": {
-        "headers": {
-          "Authorization": "Bearer <yourToken>"
-        }
-      }
-    }
-  }
-}
-```
-
-_Note: OAuth authorization is not supported right now._
 
 ### Bug Fixes & Improvements
 This release also includes bug fixes and enhancements to improve overall stability and user experience.

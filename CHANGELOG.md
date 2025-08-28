@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.11.0
+### Added
+- Support drag and drop resources to referenced files. [PR#1059](https://github.com/microsoft/copilot-eclipse/pull/1059)
+- Support adding resources to referenced files via context menu in Package Explorer and Project Explorer. [PR#1040](https://github.com/microsoft/copilot-eclipse/pull/1040)
+- Enhance the color design of chat view. [PR#1081](https://github.com/microsoft/copilot-eclipse/pull/1081)
+- Use fragment bundle to split Copilot Language Server binaries. [PR#1083](https://github.com/microsoft/copilot-eclipse/pull/1083), [PR#1085](https://github.com/microsoft/copilot-eclipse/pull/1085)
+- Add public API to start a new ask session. [PR#1031](https://github.com/microsoft/copilot-eclipse/pull/1031)
+- Add Copilot chat view to JEE related perspectives. [PR#1076](https://github.com/microsoft/copilot-eclipse/pull/1076)
+- Use configuration scope to control whether to show what's new page and expose to preference dialog. [PR#1100](https://github.com/microsoft/copilot-eclipse/pull/1100)
+- Add copyright info and branding plugin. [PR#1079](https://github.com/microsoft/copilot-eclipse/pull/1079), [PR#1074](https://github.com/microsoft/copilot-eclipse/pull/1074)
+
+### Fixed
+- Input history in chat is wrong in a new conversation. [#902](https://github.com/microsoft/copilot-eclipse/issues/902)
+- Use configuration scope to control getting started walkthrough page display. [PR#1084](https://github.com/microsoft/copilot-eclipse/pull/1084)
+- Fix compatibility issue for terminal across different Eclipse platform versions. [PR#1080](https://github.com/microsoft/copilot-eclipse/pull/1080)
+- Typo in release note entry. [PR#1082](https://github.com/microsoft/copilot-eclipse/pull/1082)
+- Referenced files cannot be closed if the project is deleted. [#1053](https://github.com/microsoft/copilot-eclipse/issues/1053)
+- NPE when calling InputNavigation. [PR#1075](https://github.com/microsoft/copilot-eclipse/pull/1075)
+- Shift+Tab move from inputText to chatContent. [PR#1077](https://github.com/microsoft/copilot-eclipse/pull/1077)
+
 ## 0.10.0
 ### Added
 - Support custom instructions. [#576](https://github.com/microsoft/copilot-eclipse/issues/576)

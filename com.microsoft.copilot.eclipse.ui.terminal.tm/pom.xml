@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.microsoft.copilot.eclipse</groupId>
 		<artifactId>github-copilot-for-eclipse</artifactId>
-		<version>0.10.0-SNAPSHOT</version>
+		<version>${copilot-plugin-version}</version>
 	</parent>
 	<artifactId>com.microsoft.copilot.eclipse.ui.terminal.tm</artifactId>
 	<packaging>eclipse-plugin</packaging>

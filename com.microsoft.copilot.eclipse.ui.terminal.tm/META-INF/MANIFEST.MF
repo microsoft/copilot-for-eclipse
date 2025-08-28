@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.ui.terminal.tm
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.terminal.tm;singleton:=true
-Bundle-Version: 0.10.0.qualifier
+Bundle-Version: 0.11.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.terminal.tm
@@ -10,7 +10,7 @@ Bundle-ActivationPolicy: lazy
 Service-Component: OSGI-INF/component.xml
 Import-Package: org.osgi.framework;version="[1.10.0,2.0.0)",
  org.osgi.service.component
-Require-Bundle: com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.10.0",
+Require-Bundle: com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.11.0",
  org.eclipse.tm.terminal.view.core,
  org.eclipse.tm.terminal.view.ui,
  org.eclipse.tm.terminal.control,
