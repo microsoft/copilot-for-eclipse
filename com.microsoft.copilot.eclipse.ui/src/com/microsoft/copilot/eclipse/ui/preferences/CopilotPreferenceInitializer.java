@@ -1,6 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.preference.IPreferenceStore;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -44,5 +46,8 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
         }
          """);
     pref.setDefault(Constants.MCP_TOOLS_STATUS, "{}");
+
+    IEclipsePreferences configPref = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
+    configPref.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
   }
 }
