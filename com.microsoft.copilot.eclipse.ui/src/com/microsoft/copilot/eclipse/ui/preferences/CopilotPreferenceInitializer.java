@@ -47,7 +47,10 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
          """);
     pref.setDefault(Constants.MCP_TOOLS_STATUS, "{}");
 
-    IEclipsePreferences configPref = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
-    configPref.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
+    IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
+    String autoShowWhatsNew = configPrefs.get(Constants.AUTO_SHOW_WHAT_IS_NEW, null);
+    if (autoShowWhatsNew == null) {
+      configPrefs.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
+    }
   }
 }
