@@ -178,7 +178,7 @@ public class ChatContentViewer extends ScrolledComposite {
         // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.
         if (value.getCode() == 402) {
           CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan();
-          CopilotModel fallbackModel = this.serviceManager.getUserPreferenceService().getFallbackModel();
+          CopilotModel fallbackModel = this.serviceManager.getModelService().getFallbackModel();
           String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
               : Messages.chat_noQuotaView_fallbackModel;
 
@@ -195,7 +195,7 @@ public class ChatContentViewer extends ScrolledComposite {
 
         if (value.getCode() == 402
             && this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan() != CopilotPlan.free) {
-          this.serviceManager.getUserPreferenceService().setFallBackModelAsActiveModel();
+          this.serviceManager.getModelService().setFallBackModelAsActiveModel();
           this.serviceManager.getAuthStatusManager().checkQuota();
 
           String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);

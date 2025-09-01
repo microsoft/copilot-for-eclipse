@@ -167,7 +167,7 @@ public class ReferencedFile extends Composite {
     }
     lblfileIcon.setImage(warningImage);
     // Set tooltip with model name
-    String modelName = CopilotUi.getPlugin().getChatServiceManager().getUserPreferenceService().getActiveModel()
+    String modelName = CopilotUi.getPlugin().getChatServiceManager().getModelService().getActiveModel()
         .getModelName();
     String tooltipText = String.format(Messages.chat_referencedFile_noVision_tooltip, modelName);
     lblfileIcon.setToolTipText(tooltipText);

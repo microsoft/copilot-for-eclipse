@@ -15,6 +15,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private AuthStatusManager authStatusManager;
 
   private ChatCompletionService chatCompletionService;
+  private ModelService modelService;
   private UserPreferenceService userPreferenceService;
   private AvatarService avatarService;
   private AgentToolService agentToolService;
@@ -30,6 +31,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.lsConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
     chatCompletionService = new ChatCompletionService(this.lsConnection, this.authStatusManager);
+    modelService = new ModelService(this.lsConnection, this.authStatusManager);
     userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager);
     avatarService = new AvatarService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
@@ -78,6 +80,15 @@ public class ChatServiceManager implements IChatServiceManager {
   }
 
   /**
+   * Get the model service.
+   *
+   * @return the model service
+   */
+  public ModelService getModelService() {
+    return modelService;
+  }
+
+  /**
    * Get the agent tool service.
    *
    * @return the agent tool service
@@ -111,10 +122,10 @@ public class ChatServiceManager implements IChatServiceManager {
   public void dispose() {
     this.avatarService.dispose();
     this.chatCompletionService.dispose();
+    this.modelService.dispose();
     this.userPreferenceService.dispose();
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpConfigService.dispose();
   }
-
 }

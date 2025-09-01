@@ -54,4 +54,9 @@ public class CopilotEventConstants {
    * Event when the chat feature flag are updated.
    */
   public static final String TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS = TOPIC_CHAT + "DID_CHANGE_FEATURE_FLAGS";
+  
+  /**
+   * Event when the chat mode is changed.
+   */
+  public static final String TOPIC_CHAT_MODE_CHANGED = TOPIC_CHAT + "MODE_CHANGED";
 }

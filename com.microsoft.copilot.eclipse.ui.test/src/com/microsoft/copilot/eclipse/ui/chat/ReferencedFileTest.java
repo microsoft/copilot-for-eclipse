@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -39,6 +40,8 @@ class ReferencedFileTest {
 
   @Mock
   private UserPreferenceService mockUserPreferenceService;
+  @Mock
+  private ModelService mockModelService;
   @Mock
   private ChatServiceManager mockChatServiceManager;
   @Mock
@@ -62,7 +65,6 @@ class ReferencedFileTest {
       setupSwtComponents();
       setupMockFiles();
       setupMockServices();
-      setupActionBar();
     });
   }
 
@@ -98,15 +100,12 @@ class ReferencedFileTest {
     mockedCopilotUi.when(CopilotUi::getPlugin).thenReturn(mockCopilotUi);
 
     when(mockModel.getModelName()).thenReturn("test-model");
-    when(mockUserPreferenceService.getActiveModel()).thenReturn(mockModel);
+    when(mockModelService.getActiveModel()).thenReturn(mockModel);
     when(mockChatServiceManager.getUserPreferenceService()).thenReturn(mockUserPreferenceService);
-    when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
-  }
-
-  private void setupActionBar() {
+    when(mockChatServiceManager.getModelService()).thenReturn(mockModelService);
     when(mockChatServiceManager.getReferencedFileService()).thenReturn(mockReferencedFileService);
     when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
-    when(mockChatServiceManager.getUserPreferenceService()).thenReturn(mockUserPreferenceService);
+    when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
     actionBar = spy(new ActionBar(shell, SWT.NONE, mockChatServiceManager));
   }
 

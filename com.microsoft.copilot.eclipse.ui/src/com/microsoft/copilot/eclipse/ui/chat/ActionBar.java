@@ -54,6 +54,7 @@ import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
@@ -139,8 +140,8 @@ public class ActionBar extends Composite implements NewConversationListener {
     referencedFileService.bindCurrentFileWidget(currentFileRef);
     referencedFileService.bindReferencedFilesWidget(this);
 
-    UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
-    userPreferenceService.bindActionBarForSupportVisionChange(this);
+    ModelService modelService = chatServiceManager.getModelService();
+    modelService.bindActionBarForSupportVisionChange(this);
 
     ChatInputTextViewer tv = new ChatInputTextViewer(actionBar, chatServiceManager);
     tv.setEditable(true);
@@ -267,7 +268,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    */
   public void updateReferencedWidgetsWithFiles(List<IResource> files) {
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
-      boolean supportVision = chatServiceManager.getUserPreferenceService().isVisionSupported();
+      boolean supportVision = chatServiceManager.getModelService().isVisionSupported();
       updateReferencedFilesInternal(files, supportVision);
     }, this);
   }
@@ -425,8 +426,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpModelPicker(Composite parent) {
     this.cmbModelPicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
-    userPreferenceService.bindModelPicker(cmbModelPicker);
+    ModelService modelService = chatServiceManager.getModelService();
+    modelService.bindModelPicker(cmbModelPicker);
   }
 
   private void setUpChatModePicker(Composite parent) {

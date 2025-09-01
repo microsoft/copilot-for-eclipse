@@ -457,7 +457,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   public void onSend(String workDoneToken, String message, boolean createNewTurn) {
     String processedMessage = replaceWorkspaceCommand(message);
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
-    CopilotModel activeModel = chatServiceManager.getUserPreferenceService().getActiveModel();
+    CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
     String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
     if (!(this.hasHistory)) {
       this.hasHistory = true;
