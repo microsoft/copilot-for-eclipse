@@ -60,4 +60,11 @@ public class CssConstants {
     return new Color(display, 216, 216, 216);
   }
 
+  /**
+   * Get the button border color.
+   */
+  public static Color getButtonBorderColor(Display display) {
+    return new Color(display, 55, 134, 246);
+  }
+
 }

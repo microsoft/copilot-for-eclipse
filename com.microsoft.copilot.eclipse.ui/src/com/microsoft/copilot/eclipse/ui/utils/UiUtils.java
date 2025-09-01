@@ -388,9 +388,18 @@ public class UiUtils {
    */
   public static Button createIconButton(Composite parent, int style) {
     Button result = new Button(parent, style);
+    final boolean[] mouseEntered = new boolean[1];
     result.addPaintListener(e -> {
       Rectangle bounds = result.getBounds();
       e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
+
+      // Draw focus indicator border for accessibility
+      if (result.isFocusControl() && !mouseEntered[0]) {
+        Color focusIndicatorColor = CssConstants.getButtonBorderColor(result.getDisplay());
+        e.gc.setForeground(focusIndicatorColor);
+        e.gc.setLineWidth(1);
+        e.gc.drawRectangle(0, 0, bounds.width - 1, bounds.height - 1);
+      }
 
       // Draw the button's image if it has one
       Image image = result.getImage();
@@ -415,11 +424,13 @@ public class UiUtils {
       public void focusGained(org.eclipse.swt.events.FocusEvent e) {
         background = result.getBackground();
         result.setBackground(focusBackground);
+        result.redraw(); // Ensure the focus border is drawn
       }
 
       @Override
       public void focusLost(org.eclipse.swt.events.FocusEvent e) {
         result.setBackground(background);
+        result.redraw(); // Ensure the focus border is removed
       }
     });
 
@@ -433,11 +444,13 @@ public class UiUtils {
         // the color when the mouse enters.
         background = result.getBackground();
         result.setBackground(hoverBackground);
+        mouseEntered[0] = true;
       }
 
       @Override
       public void mouseExit(org.eclipse.swt.events.MouseEvent e) {
         result.setBackground(background);
+        mouseEntered[0] = false;
       }
     });
     return result;
