@@ -41,6 +41,16 @@
 				id="com.microsoft.copilot.egit.generateCommitMessage"
 				label="%command.generateCommitMessage.name"
 				style="push">
+				<visibleWhen checkEnabled="true"/>
+			</command>
+		</menuContribution>
+		<menuContribution locationURI="toolbar:org.eclipse.egit.ui.commitMsgToolBar?after=additions">
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage.toolBar"
+				icon="icons/github_copilot.png"
+				id="com.microsoft.copilot.egit.generateCommitMessage"
+				label="%command.generateCommitMessage.name"
+				style="push">
 			</command>
 		</menuContribution>
 		<menuContribution
@@ -201,6 +211,11 @@
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.generateCommitMessage.toolBar"
+			name="%command.generateCommitMessage.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.enabledDoNothing"
 			name="%command.enabledDoNothing.name">
 		</command>
@@ -293,6 +308,13 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.GenerateCommitMessageHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage">
+			<enabledWhen>
+				<test property="com.microsoft.copilot.eclipse.ui.testers.platformVersion" args="le:4.36"/>
+			</enabledWhen>
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.GenerateCommitMessageHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage.toolBar">
 		</handler>
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.EnabledDoNothingHandler"
@@ -666,5 +688,14 @@
 				refid="org.eclipse.e4.ui.css.theme.e4_classic">
 			</themeid>
 		</stylesheet>
+	</extension>
+	<extension point="org.eclipse.core.expressions.propertyTesters">
+		<propertyTester
+			id="com.microsoft.copilot.eclipse.ui.testers.PlatformCompare"
+			namespace="com.microsoft.copilot.eclipse.ui.testers"
+			properties="platformVersion"
+			type="java.lang.Object"
+			class="com.microsoft.copilot.eclipse.ui.testers.PlatformVersionTester">
+		</propertyTester>
 	</extension>
 </plugin>

@@ -15,6 +15,7 @@ Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.handlers,
  com.microsoft.copilot.eclipse.ui.i18n,
  com.microsoft.copilot.eclipse.ui.preferences,
+ com.microsoft.copilot.eclipse.ui.testers,
  com.microsoft.copilot.eclipse.ui.utils
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
 Bundle-RequiredExecutionEnvironment: JavaSE-17
@@ -29,6 +30,7 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.11.0",
  org.eclipse.ui.navigator;bundle-version="3.12.300",
  org.eclipse.jface.text;bundle-version="3.25.0",
  org.eclipse.core.runtime;bundle-version="[3.31.0,4.0.0)",
+ org.eclipse.core.expressions,
  org.eclipse.jdt.annotation;resolution:=optional,
  org.eclipse.core.resources;bundle-version="3.20.100",
  org.eclipse.lsp4e;bundle-version="0.18.6",
