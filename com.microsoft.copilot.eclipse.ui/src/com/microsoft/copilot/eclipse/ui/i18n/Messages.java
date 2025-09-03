@@ -91,10 +91,8 @@ public final class Messages extends NLS {
   public static String preferences_page_custom_instructions_copilot_instructions_note;
   public static String preferences_page_custom_instructions_workspace;
   public static String preferences_page_custom_instructions_workspace_enable;
-  public static String preferences_page_custom_instructions_workspace_tooltip;
   public static String preferences_page_custom_instructions_project;
   public static String preferences_page_custom_instructions_project_enable;
-  public static String preferences_page_custom_instructions_project_tooltip;
   public static String preferences_page_custom_instructions_project_intro;
   public static String preferences_page_custom_instructions_project_table_projectName;
   public static String preferences_page_custom_instructions_project_table_fileLocation;

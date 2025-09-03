@@ -1,5 +1,7 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.net.URL;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -17,6 +19,8 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
@@ -25,6 +29,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -34,6 +39,7 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPreferencePage;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.EditorPart;
 
@@ -138,12 +144,13 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
         Messages.preferences_page_custom_instructions_workspace_enable, workspaceInstrFieldContainer);
     addField(enableWorkspaceInstrField);
 
-    workspaceInstrField = new StringFieldEditor(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE,
-        Messages.preferences_page_custom_instructions_copilot_instructions_desc, StringFieldEditor.UNLIMITED, 4,
-        StringFieldEditor.VALIDATE_ON_KEY_STROKE, workspaceInstrFieldContainer);
-    Label workspaceInstrFieldDefaultLabel = workspaceInstrField.getLabelControl(workspaceInstrFieldContainer);
-    GridData workspaceInstrFieldDefaultLabelData = new GridData(SWT.LEFT, SWT.TOP, false, false, 2, 1);
-    workspaceInstrFieldDefaultLabel.setLayoutData(workspaceInstrFieldDefaultLabelData);
+    createPreferencePageLink(workspaceInstrFieldContainer,
+        Messages.preferences_page_custom_instructions_copilot_instructions_desc);
+    workspaceInstrField = new StringFieldEditor(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE, "",
+        StringFieldEditor.UNLIMITED, 4, StringFieldEditor.VALIDATE_ON_KEY_STROKE, workspaceInstrFieldContainer);
+    // disable the label of the input field, so that the input box can be positioned at the beginning
+    // of the container.
+    workspaceInstrField.getLabelControl(workspaceInstrFieldContainer).dispose();
     addField(workspaceInstrField);
 
     // Add note using WrappableNoteLabel
@@ -167,12 +174,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     projectInstrFieldContainer.setLayout(projectInstrFieldLayout);
     projectInstrFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
-    // Add get more info link to replace the default label since a link is needed
-    WrappableIconLink instructionFileLink = new WrappableIconLink(projectInstrFieldContainer,
-        Messages.preferences_page_custom_instructions_project_intro);
-    instructionFileLink.setToolTipText(Messages.preferences_page_custom_instructions_workspace_tooltip);
-    GridLayout linkGridLayout = (GridLayout) instructionFileLink.getLayout();
-    linkGridLayout.marginLeft = -8;
+    createPreferencePageLink(projectInstrFieldContainer, Messages.preferences_page_custom_instructions_project_intro);
 
     // Create a container for the table and buttons
     Composite tableContainer = new Composite(projectInstrFieldContainer, SWT.NONE);
@@ -413,5 +415,21 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
         }
       }
     }
+  }
+
+  private void createPreferencePageLink(Composite composite, String label) {
+    final Link link = new Link(composite, SWT.NONE);
+    link.setText(label);
+    link.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, true, false, 2, 1));
+    link.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        try {
+          PlatformUI.getWorkbench().getBrowserSupport().getExternalBrowser().openURL(new URL(e.text));
+        } catch (Exception ex) {
+          CopilotCore.LOGGER.error("Failed to open URL: " + e.text, ex);
+        }
+      }
+    });
   }
 }
