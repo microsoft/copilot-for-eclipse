@@ -117,7 +117,8 @@ public class RunInTerminalToolAdapter extends BaseTool {
     } else if (isBackgroundObj instanceof String) {
       isBackground = Boolean.parseBoolean((String) isBackgroundObj);
     }
-    impl.setTerminalIcon(UiUtils.buildImageFromPngPath("/icons/github_copilot.png"));
+
+    impl.setTerminalIconDescriptor(UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png"));
 
     return impl.executeCommand(command, isBackground)
         .thenApply(result -> new LanguageModelToolResult[] { new LanguageModelToolResult(result) })

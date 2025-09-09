@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.DisposeListener;
@@ -50,6 +51,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   private CTabFolder tabFolder;
   private CTabItem copilotTabItem;
   private Image terminalIcon;
+  private ImageDescriptor terminalIconDescriptor;
 
   // Output and command state
   private StringBuilder sb;
@@ -185,7 +187,10 @@ public class RunInTerminalTool implements IRunInTerminalTool {
             if (tabFolder != null) {
               for (CTabItem item : tabFolder.getItems()) {
                 if (terminalTitle.equals(item.getText())) {
-                  if (terminalIcon != null) {
+                  if (terminalIconDescriptor != null) {
+                    if (terminalIcon == null || terminalIcon.isDisposed()) {
+                      terminalIcon = terminalIconDescriptor.createImage();
+                    }
                     item.setImage(terminalIcon);
                   }
                   item.addDisposeListener(
@@ -321,7 +326,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   }
 
   @Override
-  public void setTerminalIcon(Image terminalIcon) {
-    this.terminalIcon = terminalIcon;
+  public void setTerminalIconDescriptor(ImageDescriptor iconDescriptor) {
+    this.terminalIconDescriptor = iconDescriptor;
   }
 }

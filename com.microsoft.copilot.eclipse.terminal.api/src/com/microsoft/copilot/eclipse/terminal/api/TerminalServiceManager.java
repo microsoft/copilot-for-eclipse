@@ -249,7 +249,15 @@ public class TerminalServiceManager {
     }
     monitor.worked(20);
     monitor.subTask("Installing bundle");
-    Bundle installedBundle = bundleContext.installBundle(bundleLocation);
+    Bundle installedBundle;
+    try {
+      installedBundle = bundleContext.installBundle(bundleLocation);
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to install terminal bundle from location: " + bundleLocation, e);
+      monitor.done();
+      return new Status(IStatus.ERROR, bundleContext.getBundle().getSymbolicName(),
+          "Failed to install terminal bundle: " + e.getMessage(), e);
+    }
     Set<Bundle> bundlesToStart = new HashSet<>();
     Set<Bundle> toRefresh = new HashSet<>();
     bundlesToStart.add(installedBundle);
@@ -327,7 +335,7 @@ public class TerminalServiceManager {
         if ("com.microsoft.copilot.eclipse.ui".equals(bundle.getSymbolicName())) {
           URL bundleUrl = FileLocator.find(bundle, new Path(TERMINAL_BUNDLES_PATH + bundleJarName));
           if (bundleUrl != null) {
-            return FileLocator.resolve(bundleUrl);
+            return FileLocator.toFileURL(bundleUrl);
           }
         }
       }

@@ -3,7 +3,8 @@ package com.microsoft.copilot.eclipse.terminal.api;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.swt.graphics.Image;
+import org.eclipse.jface.resource.ImageDescriptor;
+
 
 /**
  * Interface for terminal tool implementations that can execute commands in a terminal. This interface is used by the
@@ -38,7 +39,7 @@ public interface IRunInTerminalTool {
   public StringBuilder getBackgroundCommandOutput(String executionId);
   
   /**
-   * Sets the terminal icon for the tool.
+   * Sets the terminal icon descriptor for the tool.
    */
-  public void setTerminalIcon(Image terminalIcon);
+  public void setTerminalIconDescriptor(ImageDescriptor terminalIconDescriptor);
 }
