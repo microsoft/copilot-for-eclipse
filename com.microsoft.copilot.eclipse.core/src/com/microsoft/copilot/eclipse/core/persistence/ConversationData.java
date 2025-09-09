@@ -16,7 +16,7 @@ public class ConversationData {
   private String title;
   private String requesterUsername;
   private String responderUsername;
-  private List<TurnData> turns;
+  private List<AbstractTurnData> turns;
   private Map<String, Object> data;
   private Instant creationDate;
   private Instant lastMessageDate;
@@ -61,11 +61,11 @@ public class ConversationData {
     this.responderUsername = responderUsername;
   }
 
-  public List<TurnData> getTurns() {
+  public List<AbstractTurnData> getTurns() {
     return turns;
   }
 
-  public void setTurns(List<TurnData> turns) {
+  public void setTurns(List<AbstractTurnData> turns) {
     this.turns = turns;
   }
 

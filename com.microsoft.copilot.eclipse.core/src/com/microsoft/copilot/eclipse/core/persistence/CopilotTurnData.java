@@ -7,159 +7,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.core.resources.IResource;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
- * Turn data that defines the Turn JSON schema for persistence (updated schema).
+ * Represents the Copilot (assistant) side of a turn. Split from original TurnData. Contains only reply related
+ * information.
  */
-public class TurnData {
-  private String turnId;
-  private String conversationId;
-  private String role;
-  private MessageData message;
-  private TextDocument currentDocument;
-  private List<TextDocument> references;
-  private List<Object> ignoredSkills;
-  private String userLanguage;
-  private String source;
-  private String model;
-  private String chatMode;
-  private boolean needToolCallConfirmation;
-  private Instant timestamp;
+public class CopilotTurnData extends AbstractTurnData {
   private ReplyData reply;
-  private Map<String, Object> data;
+  private String suggestedTitle;
 
   /**
    * Default constructor initializing default values.
    */
-  public TurnData() {
-    this.needToolCallConfirmation = true;
-    this.references = new ArrayList<>();
-  }
-
-  public String getTurnId() {
-    return turnId;
-  }
-
-  public void setTurnId(String turnId) {
-    this.turnId = turnId;
-  }
-
-  public String getConversationId() {
-    return conversationId;
-  }
-
-  public void setConversationId(String conversationId) {
-    this.conversationId = conversationId;
-  }
-
-  public String getRole() {
-    return role;
-  }
-
-  public void setRole(String role) {
-    this.role = role;
-  }
-
-  public MessageData getMessage() {
-    return message;
-  }
-
-  public void setMessage(MessageData message) {
-    this.message = message;
-  }
-
-  public TextDocument getCurrentDocument() {
-    return currentDocument;
-  }
-
-  /**
-   * Sets the current document from an IResource.
-   *
-   * @param currentDocument The IResource representing the text document.
-   */
-  public void setCurrentDocument(IResource currentDocument) {
-    if (currentDocument == null) {
-      return;
-    }
-    this.currentDocument = new TextDocument(currentDocument);
-  }
-
-  public List<TextDocument> getReferences() {
-    return references;
-  }
-
-  /**
-   * Sets the references from a list of IResource objects.
-   *
-   * @param references The list of IResource representing the references.
-   */
-  public void setReferences(List<IResource> references) {
-    if (references == null) {
-      return;
-    }
-    references.stream().forEach(ref -> {
-      if (ref != null) {
-        this.references.add(new TextDocument(ref));
-      }
-    });
-  }
-
-  public List<Object> getIgnoredSkills() {
-    return ignoredSkills;
-  }
-
-  public void setIgnoredSkills(List<Object> ignoredSkills) {
-    this.ignoredSkills = ignoredSkills;
-  }
-
-  public String getUserLanguage() {
-    return userLanguage;
-  }
-
-  public void setUserLanguage(String userLanguage) {
-    this.userLanguage = userLanguage;
-  }
-
-  public String getSource() {
-    return source;
-  }
-
-  public void setSource(String source) {
-    this.source = source;
-  }
-
-  public String getModel() {
-    return model;
-  }
-
-  public void setModel(String model) {
-    this.model = model;
-  }
-
-  public String getChatMode() {
-    return chatMode;
-  }
-
-  public void setChatMode(String chatMode) {
-    this.chatMode = chatMode;
-  }
-
-  public boolean isNeedToolCallConfirmation() {
-    return needToolCallConfirmation;
-  }
-
-  public void setNeedToolCallConfirmation(boolean needToolCallConfirmation) {
-    this.needToolCallConfirmation = needToolCallConfirmation;
-  }
-
-  public Instant getTimestamp() {
-    return timestamp;
-  }
-
-  public void setTimestamp(Instant timestamp) {
-    this.timestamp = timestamp;
+  public CopilotTurnData() {
+    this.reply = new ReplyData();
   }
 
   public ReplyData getReply() {
@@ -170,68 +32,129 @@ public class TurnData {
     this.reply = reply;
   }
 
-  public Map<String, Object> getData() {
-    return data;
+  public String getSuggestedTitle() {
+    return suggestedTitle;
   }
 
-  public void setData(Map<String, Object> data) {
-    this.data = data;
+  public void setSuggestedTitle(String suggestedTitle) {
+    this.suggestedTitle = suggestedTitle;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + Objects.hash(reply, suggestedTitle);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!super.equals(obj)) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CopilotTurnData other = (CopilotTurnData) obj;
+    return Objects.equals(reply, other.reply) && Objects.equals(suggestedTitle, other.suggestedTitle);
+  }
+
+  @Override
+  public String toString() {
+    ToStringBuilder builder = new ToStringBuilder(this);
+    // Include AbstractTurnData properties
+    builder.add("turnId", getTurnId());
+    builder.add("role", getRole());
+    builder.add("timestamp", getTimestamp());
+    builder.add("data", getData());
+    // Include CopilotTurnData specific properties
+    builder.add("reply", reply);
+    builder.add("suggestedTitle", suggestedTitle);
+    return builder.toString();
   }
 
   /**
-   * Message data that defines the structure of user messages in the turn data.
+   * Creates a new builder to build a CopilotTurnData instance.
+   *
+   * @return builder instance
    */
-  public static class MessageData {
-    private String text;
+  public static class Builder {
+    private final CopilotTurnData target = new CopilotTurnData();
 
     /**
-     * Default constructor initializing an empty message.
+     * Sets the unique identifier of this turn.
+     *
+     * @param turnId turn id
+     * @return this builder
      */
-    public MessageData(String messageText) {
-      this.text = messageText;
+    public Builder turnId(String turnId) {
+      target.setTurnId(turnId);
+      return this;
     }
 
-    public String getText() {
-      return text;
+    /**
+     * Sets the role.
+     *
+     * @param role role value
+     * @return this builder
+     */
+    public Builder role(String role) {
+      target.setRole(role);
+      return this;
     }
 
-    public void setText(String text) {
-      this.text = text;
+    /**
+     * Sets the reply data object.
+     *
+     * @param reply reply data
+     * @return this builder
+     */
+    public Builder reply(ReplyData reply) {
+      target.setReply(reply);
+      return this;
     }
 
-    @Override
-    public int hashCode() {
-      return Objects.hash(text);
+    /**
+     * Sets the timestamp when this reply was received.
+     *
+     * @param timestamp instant timestamp
+     * @return this builder
+     */
+    public Builder timestamp(Instant timestamp) {
+      target.setTimestamp(timestamp);
+      return this;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      MessageData other = (MessageData) obj;
-      return Objects.equals(text, other.text);
+    /**
+     * Sets the suggested title derived from this turn.
+     *
+     * @param suggestedTitle suggested title string
+     * @return this builder
+     */
+    public Builder suggestedTitle(String suggestedTitle) {
+      target.setSuggestedTitle(suggestedTitle);
+      return this;
     }
 
-    @Override
-    public String toString() {
-      ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("text", text);
-      return builder.toString();
+    /**
+     * Builds the configured CopilotTurnData instance.
+     *
+     * @return CopilotTurnData
+     */
+    public CopilotTurnData build() {
+      return target;
     }
-
   }
 
   /**
-   * Reply data that defines the structure of Copilot replies in the turn data.
+   * Data class representing the reply details of a Copilot turn.
    */
   public static class ReplyData {
+    private String text;
     private List<Object> annotations;
     private List<Object> references;
     private boolean hideText;
@@ -245,10 +168,9 @@ public class TurnData {
     private Map<String, Object> data;
 
     /**
-     * Constructor for ReplyData initializes all lists to avoid null checks.
+     * Default constructor initializing lists and data maps.
      */
     public ReplyData() {
-      this.hideText = false;
       this.annotations = new ArrayList<>();
       this.references = new ArrayList<>();
       this.notifications = new ArrayList<>();
@@ -258,6 +180,14 @@ public class TurnData {
       this.panelMessages = new ArrayList<>();
       this.steps = new ArrayList<>();
       this.data = new HashMap<>();
+    }
+
+    public String getText() {
+      return text;
+    }
+
+    public void setText(String text) {
+      this.text = text;
     }
 
     public List<Object> getAnnotations() {
@@ -351,7 +281,7 @@ public class TurnData {
     @Override
     public int hashCode() {
       return Objects.hash(annotations, data, editAgentRounds, errorMessages, followups, hideText, notifications,
-          panelMessages, rating, references, steps);
+          panelMessages, rating, references, steps, text);
     }
 
     @Override
@@ -371,12 +301,14 @@ public class TurnData {
           && Objects.equals(errorMessages, other.errorMessages) && Objects.equals(followups, other.followups)
           && hideText == other.hideText && Objects.equals(notifications, other.notifications)
           && Objects.equals(panelMessages, other.panelMessages) && Objects.equals(rating, other.rating)
-          && Objects.equals(references, other.references) && Objects.equals(steps, other.steps);
+          && Objects.equals(references, other.references) && Objects.equals(steps, other.steps)
+          && Objects.equals(text, other.text);
     }
 
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
+      builder.add("text", text);
       builder.add("annotations", annotations);
       builder.add("references", references);
       builder.add("hideText", hideText);
@@ -393,7 +325,7 @@ public class TurnData {
   }
 
   /**
-   * Error message data that defines the structure of error messages in the turn data.
+   * Data class representing an error message in the reply.
    */
   public static class ErrorMessageData {
     private ErrorData error;
@@ -442,11 +374,10 @@ public class TurnData {
       builder.add("data", data);
       return builder.toString();
     }
-
   }
 
   /**
-   * Error data that defines the structure of error messages in the turn data.
+   * Data class representing the details of an error.
    */
   public static class ErrorData {
     private String message;
@@ -505,11 +436,10 @@ public class TurnData {
       builder.add("data", data);
       return builder.toString();
     }
-
   }
 
   /**
-   * Edit agent round data that defines the structure of edit agent rounds in the turn data.
+   * Data class representing a round of an edit agent's activity.
    */
   public static class EditAgentRoundData {
     private int roundId;
@@ -579,11 +509,10 @@ public class TurnData {
       builder.add("data", data);
       return builder.toString();
     }
-
   }
 
   /**
-   * Tool call data that defines the structure of tool calls in the turn data.
+   * Data class representing a tool call made by Copilot agent.
    */
   public static class ToolCallData {
     private String id;
@@ -672,56 +601,6 @@ public class TurnData {
       builder.add("status", status);
       builder.add("result", result);
       builder.add("data", data);
-      return builder.toString();
-    }
-
-  }
-
-  /**
-   * Text document data that defines current file in this turn.
-   */
-  public static class TextDocument {
-    private String uri;
-
-    /**
-     * Default constructor initializing the TextDocument with the file's URI.
-     */
-    public TextDocument(IResource file) {
-      this.uri = file.getFullPath().toString();
-    }
-
-    public String getUri() {
-      return uri;
-    }
-
-    public void setUri(String uri) {
-      this.uri = uri;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(uri);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      TextDocument other = (TextDocument) obj;
-      return Objects.equals(uri, other.uri);
-    }
-
-    @Override
-    public String toString() {
-      ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("uri", uri);
       return builder.toString();
     }
   }

@@ -86,5 +86,4 @@ public class ConversationXmlData {
     builder.add("lastMessageDate", lastMessageDate);
     return builder.toString();
   }
-
 }
