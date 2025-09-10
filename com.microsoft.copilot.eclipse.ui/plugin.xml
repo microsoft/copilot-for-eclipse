@@ -75,14 +75,32 @@
 			class="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage">
 		</page>
 		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage"
+			name="%page.preferencesPage.general.name"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage">
+		</page>
+		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage"
+			name="%page.preferencesPage.chat.name"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage">
+		</page>
+		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage"
+			name="%page.preferencesPage.completions.name"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage">
+		</page>
+		<page
 			id="com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage"
-			name="MCP"
+			name="%page.preferencesPage.mcp.name"
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			class="com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage">
 		</page>
 		<page
 			id="com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage"
-			name="Custom Instructions"
+			name="%page.preferencesPage.customInstructions.name"
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			class="com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage">
 		</page>

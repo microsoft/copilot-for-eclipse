@@ -26,8 +26,13 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
-import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -100,11 +105,11 @@ public class TopBanner extends Composite {
         Map<String, Object> parameters = new HashMap<>();
 
         parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
-            OpenPreferencesHandler.copilotPreferencesPage);
+            CopilotPreferencesPage.ID);
 
         parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-            String.join(",", OpenPreferencesHandler.copilotPreferencesPage,
-                OpenPreferencesHandler.customInstructionsPreferencePage, OpenPreferencesHandler.mcpPreferencePage));
+            String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
+                CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID));
 
         UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
       }

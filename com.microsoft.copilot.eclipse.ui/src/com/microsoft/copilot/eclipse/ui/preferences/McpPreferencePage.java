@@ -49,6 +49,7 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
  * Preference page for GitHub Copilot MCP settings.
  */
 public class McpPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
+  public static final String ID = "com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage";
 
   private static final int GROUP_HEIGHT_HINT = 300;
   private static final Gson GSON = new Gson();
@@ -91,13 +92,9 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Create a simple note for the feature disabled case
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isMcpEnabled()) {
-      return new WrappableIconLink(
-          parent, 
-          "/icons/message_warning.png",
-          Messages.preferences_page_mcp_disabled_tip
-      );
+      return new WrappableIconLink(parent, "/icons/message_warning.png", Messages.preferences_page_mcp_disabled_tip);
     }
-    
+
     // Call the default implementation for enabled case
     return super.createContents(parent);
   }
@@ -109,10 +106,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       // Don't create field editors when MCP is disabled - handled in createContents
       return;
     }
-    
+
     Composite parent = getFieldEditorParent();
     parent.setLayout(new GridLayout(1, true));
-    var gl = new GridLayout(1, true);
+    GridLayout gl = new GridLayout(1, true);
     gl.marginTop = 2;
     gl.marginLeft = 2;
 
@@ -122,7 +119,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     gdf.applyTo(mcpGroup);
     mcpGroup.setText(Messages.preferences_page_mcp_settings);
     // add mcp field
-    var mcpFieldContainer = new Composite(mcpGroup, SWT.NONE);
+    Composite mcpFieldContainer = new Composite(mcpGroup, SWT.NONE);
     mcpFieldContainer.setLayout(gl);
     mcpFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     mcpField = new StringFieldEditor(Constants.MCP, Messages.preferences_page_mcp, StringFieldEditor.UNLIMITED, 20,
@@ -150,10 +147,9 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         1));
     // @formatter:on
     addField(mcpField);
-    
+
     // add note to mcp field using WrappableNoteLabel
-    new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix, 
-        Messages.preferences_page_mcp_note_content);
+    new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix, Messages.preferences_page_mcp_note_content);
 
     toolsGroup = new Group(parent, SWT.WRAP);
     toolsGroup.setLayout(gl);
@@ -287,13 +283,13 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       mcpGroup.dispose();
       mcpGroup = null;
     }
-    
+
     if (toolsGroup != null && !toolsGroup.isDisposed()) {
       toolsGroup.dispose();
       toolsGroup = null;
     }
   }
-  
+
   /**
    * Displays the server names and tool names in the tools group using a tree view.
    */
@@ -448,12 +444,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   }
 
   /**
-   * Resynchronizes MCP servers when there are failed server instances.
-   *
-   * <p>This method is specifically designed to handle cases where the MCP field value remains unchanged
-   * but server synchronization is still required. When the field value doesn't change, the normal
-   * property change event mechanism is not triggered, so this method provides an alternative way
-   * to force server resynchronization.</p>
+   * Resynchronizes MCP servers when there are failed server instances. This method is specifically designed to handle
+   * cases where the MCP field value remains unchanged but server synchronization is still required. When the field
+   * value doesn't change, the normal property change event mechanism is not triggered, so this method provides an
+   * alternative way to force server re-synchronization.
    */
   private void resyncMcpServers() {
     if (!hasFailedMcpServer) {

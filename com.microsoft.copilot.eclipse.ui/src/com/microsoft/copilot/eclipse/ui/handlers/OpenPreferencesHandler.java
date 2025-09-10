@@ -8,19 +8,18 @@ import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 
+import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Handler for opening the preferences dialog.
  */
 public class OpenPreferencesHandler extends AbstractHandler {
-
-  public static final String copilotPreferencesPage = 
-      "com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage";
-
-  public static final String mcpPreferencePage = "com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage";
-  public static final String customInstructionsPreferencePage = 
-      "com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage";
 
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -33,8 +32,10 @@ public class OpenPreferencesHandler extends AbstractHandler {
           .split(",");
       dialog = PreferencesUtil.createPreferenceDialogOn(shell, activePageId, pageIds, null);
     } else {
-      dialog = PreferencesUtil.createPreferenceDialogOn(shell, copilotPreferencesPage,
-          new String[] { customInstructionsPreferencePage, mcpPreferencePage }, null);
+      dialog = PreferencesUtil.createPreferenceDialogOn(shell, CopilotPreferencesPage.ID,
+          new String[] { GeneralPreferencesPage.ID, ChatPreferencesPage.ID, CompletionsPreferencesPage.ID,
+              CustomInstructionPreferencePage.ID, McpPreferencePage.ID },
+          null);
     }
 
     dialog.open();
