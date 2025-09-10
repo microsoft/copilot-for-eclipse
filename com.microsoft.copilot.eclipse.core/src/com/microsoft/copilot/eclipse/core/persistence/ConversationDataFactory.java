@@ -201,8 +201,10 @@ public class ConversationDataFactory {
     if (turnDataList == null || turnDataList.isEmpty()) {
       return new ArrayList<>();
     }
-    List<Turn> result = new ArrayList<>(turnDataList.size());
-    for (AbstractTurnData turnData : turnDataList) {
+    // Defensive copy to avoid ConcurrentModificationException if another thread mutates the list while iterating.
+    List<AbstractTurnData> snapshot = new ArrayList<>(turnDataList);
+    List<Turn> result = new ArrayList<>(snapshot.size());
+    for (AbstractTurnData turnData : snapshot) {
       if (turnData == null) {
         continue;
       }
@@ -379,5 +381,53 @@ public class ConversationDataFactory {
     if (reply.getSteps() == null) {
       reply.setSteps(new ArrayList<>());
     }
+  }
+
+  /**
+   * Converts persisted ToolCallData to AgentToolCall for use with UI components. This is the reverse operation of
+   * convertAgentToolCallToToolCallData.
+   *
+   * @param toolCallData the persisted tool call data
+   * @return AgentToolCall instance for use with UI components
+   */
+  public AgentToolCall convertToolCallDataToAgentToolCall(ToolCallData toolCallData) {
+    if (toolCallData == null) {
+      return null;
+    }
+
+    return new AgentToolCall() {
+      @Override
+      public String getId() {
+        return toolCallData.getId();
+      }
+
+      @Override
+      public String getName() {
+        return toolCallData.getName();
+      }
+
+      @Override
+      public String getProgressMessage() {
+        return toolCallData.getProgressMessage();
+      }
+
+      @Override
+      public String getStatus() {
+        return toolCallData.getStatus();
+      }
+
+      @Override
+      public String getError() {
+        // Extract error from result if present
+        if (toolCallData.getResult() != null && !toolCallData.getResult().isEmpty()) {
+          for (Map<String, Object> result : toolCallData.getResult()) {
+            if (result.containsKey("error")) {
+              return result.get("error").toString();
+            }
+          }
+        }
+        return null;
+      }
+    };
   }
 }

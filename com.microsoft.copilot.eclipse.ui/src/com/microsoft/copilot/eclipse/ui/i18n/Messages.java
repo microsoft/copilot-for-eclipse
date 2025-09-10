@@ -109,6 +109,11 @@ public final class Messages extends NLS {
   public static String preferences_page_mcpOAuth_confirmMessage;
   public static String chat_topBanner_newConversationButton_Tooltip;
   public static String chat_topBanner_defaultChatTitle;
+  public static String chat_topBanner_chatHistoryButton_Tooltip;
+  public static String chat_topBanner_chatHistoryItem_newChat;
+  public static String chat_topBanner_chatHistoryItem_newChatTime_Now;
+  public static String chat_topBanner_chatHistoryItem_untitledConversation_placeholder;
+  public static String chat_topBanner_chatHistoryItem_currentConversation_label;
   public static String chat_actionBar_initialContent;
   public static String chat_actionBar_initialContentForAgent;
   public static String chat_actionBar_attachContextButton_Tooltip;
@@ -202,6 +207,13 @@ public final class Messages extends NLS {
   public static String newChat_cancelButton;
   public static String addToReference_addFile_title;
   public static String addToReference_addFolder_title;
+  public static String chat_historyView_backButton;
+  public static String chat_historyView_dateFormat_today;
+  public static String chat_historyView_dateFormat_yesterday;
+  public static String chat_historyView_dateFormat_daysAgo;
+  public static String chat_historyView_dateFormat_oneWeekAgo;
+  public static String chat_historyView_dateFormat_weeksAgo;
+  public static String chat_historyView_textTruncation_ellipsis;
 
   static {
     // initialize resource bundle

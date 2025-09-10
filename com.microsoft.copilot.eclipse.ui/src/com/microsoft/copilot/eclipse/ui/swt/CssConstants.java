@@ -67,4 +67,15 @@ public class CssConstants {
     return new Color(display, 55, 134, 246);
   }
 
+  /**
+   * Get the Windows Chat History current item border color based on the current theme: #306B98 (light) or #366D91
+   * (dark).
+   */
+  public static Color getWindowsChatHistoryCurrentItemBorderColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 54, 109, 145);
+    }
+    return new Color(display, 48, 107, 152);
+  }
+
 }

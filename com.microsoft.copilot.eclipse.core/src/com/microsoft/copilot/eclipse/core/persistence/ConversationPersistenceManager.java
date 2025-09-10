@@ -257,6 +257,8 @@ public class ConversationPersistenceManager {
     }
 
     ConversationData newConversation = dataFactory.createConversationData(conversationId);
+
+    // must persist conversation and index here to make sure conversation title and last message date is up to date.
     persistAndCacheConversation(newConversation);
     return newConversation;
   }
@@ -264,5 +266,14 @@ public class ConversationPersistenceManager {
   private void persistAndCacheConversation(ConversationData conversation) throws IOException {
     persistenceService.saveConversation(conversation);
     conversationCache.put(conversation.getConversationId(), conversation);
+  }
+
+  /**
+   * Gets the data factory for data transformation operations.
+   *
+   * @return the ConversationDataFactory instance
+   */
+  public ConversationDataFactory getDataFactory() {
+    return dataFactory;
   }
 }

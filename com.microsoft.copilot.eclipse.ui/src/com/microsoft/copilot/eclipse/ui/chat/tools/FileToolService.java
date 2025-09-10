@@ -120,6 +120,13 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
+   * Get the FileChangeSummaryBar instance.
+   */
+  public FileChangeSummaryBar getFileChangeSummaryBar() {
+    return fileChangeSummaryBar;
+  }
+
+  /**
    * Add a newly created file to the file change summary bar.
    */
   public void addChangedFile(IFile file, FileChangeType fileChangeType) {

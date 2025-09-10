@@ -45,6 +45,8 @@
 #chat-container > BeforeLoginWelcomeViewer,
 #chat-container > BeforeLoginWelcomeViewer *,
 #chat-content-wrapper,
+#chat-content-wrapper > ChatHistoryViewer,
+#chat-content-wrapper > ChatHistoryViewer *,
 #chat-content-wrapper > AfterLoginWelcomeViewer,
 #chat-content-wrapper > AfterLoginWelcomeViewer *,
 #chat-content-wrapper > AgentModeViewer,
@@ -95,4 +97,29 @@
 #chat-content-viewer > Composite > UserTurnWidget * {
 	color: #000000;
 	background-color: #EFEFEE;
+}
+
+/* Chat history list items - light theme */
+#chat-history-viewer Composite.chat-history-item,
+#chat-history-viewer Composite.chat-history-item * {
+	color: #000000;           /* default/hover exit foreground */
+	background-color: #F8F8F8;/* default/hover exit background */
+}
+
+#chat-history-viewer Composite.chat-history-item-current,
+#chat-history-viewer Composite.chat-history-item-current * {
+	color: #000000;           /* current item foreground */
+	background-color: #E4F5FF;/* current item background */
+}
+
+/* Hover state should override default/current */
+#chat-history-viewer Composite.chat-history-item-hover,
+#chat-history-viewer Composite.chat-history-item-hover * {
+	color: #000000;           /* hover foreground */
+	background-color: #D8D8D8;/* hover background */
+}
+
+#chat-history-viewer Label.chat-history-item-current-label,
+#chat-history-viewer Label.chat-history-item-date-label {
+	color: #808080;
 }

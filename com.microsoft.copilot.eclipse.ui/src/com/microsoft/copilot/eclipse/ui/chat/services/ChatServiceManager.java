@@ -4,6 +4,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 
 /**
@@ -23,6 +24,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private ReferencedFileService referencedFileService;
   private McpConfigService mcpConfigService;
   private McpRuntimeLogger mcpRuntimeLogger;
+  private ConversationPersistenceManager persistenceManager;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -39,6 +41,7 @@ public class ChatServiceManager implements IChatServiceManager {
     referencedFileService = new ReferencedFileService();
     mcpConfigService = new McpConfigService();
     mcpRuntimeLogger = new McpRuntimeLogger();
+    persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
   }
 
   /**
@@ -109,6 +112,15 @@ public class ChatServiceManager implements IChatServiceManager {
   @Override
   public McpConfigService getMcpConfigService() {
     return mcpConfigService;
+  }
+
+  /**
+   * Get the persistence manager.
+   *
+   * @return the persistence manager
+   */
+  public ConversationPersistenceManager getPersistenceManager() {
+    return persistenceManager;
   }
 
   @Override

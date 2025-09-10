@@ -49,14 +49,34 @@ public class CopilotEventConstants {
    * Event when MCP runtime log is received.
    */
   public static final String TOPIC_CHAT_MCP_RUNTIME_LOG = TOPIC_CHAT + "MCP_RUNTIME_LOG";
-  
+
   /**
    * Event when the chat feature flag are updated.
    */
   public static final String TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS = TOPIC_CHAT + "DID_CHANGE_FEATURE_FLAGS";
-  
+
   /**
    * Event when the chat mode is changed.
    */
   public static final String TOPIC_CHAT_MODE_CHANGED = TOPIC_CHAT + "MODE_CHANGED";
+
+  /**
+   * Event when the chat history visibility is toggled to hide chat history.
+   */
+  public static final String TOPIC_CHAT_HIDE_CHAT_HISTORY = TOPIC_CHAT + "HIDE_CHAT_HISTORY";
+
+  /**
+   * Event when the chat history visibility is toggled to show chat history.
+   */
+  public static final String TOPIC_CHAT_SHOW_CHAT_HISTORY = TOPIC_CHAT + "SHOW_CHAT_HISTORY";
+
+  /**
+   * Event when the back button is clicked in chat history view.
+   */
+  public static final String TOPIC_CHAT_HISTORY_BACK_CLICKED = TOPIC_CHAT + "BACK_TO_CHAT_CLICKED";
+
+  /**
+   * Event when a conversation is selected in chat history view.
+   */
+  public static final String TOPIC_CHAT_HISTORY_CONVERSATION_SELECTED = TOPIC_CHAT + "HISTORY_CONVERSATION_SELECTED";
 }

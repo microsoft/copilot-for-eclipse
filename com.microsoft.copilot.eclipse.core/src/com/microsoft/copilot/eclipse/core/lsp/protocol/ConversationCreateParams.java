@@ -15,7 +15,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
  */
 public class ConversationCreateParams {
   private String workDoneToken;
-  private Turn[] turns;
+  private List<Turn> turns;
   private ConversationCapabilities capabilities;
   private boolean computeSuggestions;
   private TextDocumentIdentifier textDocument;
@@ -37,7 +37,7 @@ public class ConversationCreateParams {
    */
   public ConversationCreateParams(Either<String, List<ChatCompletionContentPart>> prompt, String workDoneToken) {
     this.workDoneToken = workDoneToken;
-    this.turns = new Turn[] { new Turn(prompt, null, null) };
+    this.turns = new ArrayList<>(List.of(new Turn(prompt, null, null)));
     this.capabilities = new ConversationCapabilities();
     this.capabilities.setSkills(List.of(ConversationCapabilities.CURRENT_EDITOR_SKILL));
     this.computeSuggestions = true;
@@ -54,11 +54,11 @@ public class ConversationCreateParams {
     this.workDoneToken = workDoneToken;
   }
 
-  public Turn[] getTurns() {
+  public List<Turn> getTurns() {
     return turns;
   }
 
-  public void setTurns(Turn[] turns) {
+  public void setTurns(List<Turn> turns) {
     this.turns = turns;
   }
 
@@ -163,7 +163,7 @@ public class ConversationCreateParams {
     final int prime = 31;
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
-    result = prime * result + Arrays.hashCode(turns);
+    result = prime * result + Objects.hashCode(turns);
     result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, needToolCallConfirmation,
         references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
     return result;
@@ -185,7 +185,7 @@ public class ConversationCreateParams {
         && computeSuggestions == other.computeSuggestions && Arrays.equals(ignoredSkills, other.ignoredSkills)
         && Objects.equals(model, other.model) && needToolCallConfirmation == other.needToolCallConfirmation
         && Objects.equals(references, other.references) && Objects.equals(source, other.source)
-        && Objects.equals(textDocument, other.textDocument) && Arrays.equals(turns, other.turns)
+        && Objects.equals(textDocument, other.textDocument) && Objects.equals(turns, other.turns)
         && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
         && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders);
@@ -195,7 +195,7 @@ public class ConversationCreateParams {
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.add("workDoneToken", workDoneToken);
-    builder.add("turns", Arrays.toString(turns));
+    builder.add("turns", turns);
     builder.add("capabilities", capabilities);
     builder.add("computeSuggestions", computeSuggestions);
     builder.add("textDocument", textDocument);

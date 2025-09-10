@@ -46,8 +46,11 @@ public class TopBanner extends Composite {
   private Image newChatIcon;
   private CLabel chatTitle;
   private LinkedHashSet<NewConversationListener> newConversationListeners = new LinkedHashSet<>();
+  private Button chatHistoryButton;
+  private Image chatHistoryIcon;
   private Button openPreferenceButton;
   private Image openPreferenceIcon;
+  private IEventBroker eventBroker;
 
   /**
    * Create the widget.
@@ -57,6 +60,8 @@ public class TopBanner extends Composite {
    */
   public TopBanner(Composite parent, int style) {
     super(parent, style);
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+
     GridLayout gl = new GridLayout(2, false);
     gl.marginWidth = 0;
     gl.marginHeight = 4;
@@ -91,6 +96,22 @@ public class TopBanner extends Composite {
         if (confirmedNewChat()) {
           notifyNewConversationListeners();
           updateTitle(Messages.chat_topBanner_defaultChatTitle);
+          if (eventBroker != null) {
+            eventBroker.post(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, null);
+          }
+        }
+      }
+    });
+
+    this.chatHistoryIcon = UiUtils.buildImageFromPngPath("/icons/chat/chat_history.png");
+    this.chatHistoryButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
+    this.chatHistoryButton.setImage(this.chatHistoryIcon);
+    this.chatHistoryButton.setToolTipText(Messages.chat_topBanner_chatHistoryButton_Tooltip);
+    this.chatHistoryButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        if (eventBroker != null) {
+          eventBroker.post(CopilotEventConstants.TOPIC_CHAT_SHOW_CHAT_HISTORY, null);
         }
       }
     });
@@ -136,6 +157,9 @@ public class TopBanner extends Composite {
       if (this.newChatIcon != null && !this.newChatIcon.isDisposed()) {
         this.newChatIcon.dispose();
       }
+      if (this.chatHistoryIcon != null && !this.chatHistoryIcon.isDisposed()) {
+        this.chatHistoryIcon.dispose();
+      }
       if (this.openPreferenceIcon != null && !this.openPreferenceIcon.isDisposed()) {
         this.openPreferenceIcon.dispose();
       }
@@ -159,6 +183,18 @@ public class TopBanner extends Composite {
       }
       this.chatTitle.requestLayout();
     }, this.chatTitle);
+  }
+
+  /**
+   * Get the current chat title text.
+   *
+   * @return the current chat title text, or null if chatTitle is not available
+   */
+  public String getChatTitle() {
+    if (chatTitle != null && !chatTitle.isDisposed()) {
+      return chatTitle.getText();
+    }
+    return null;
   }
 
   /**

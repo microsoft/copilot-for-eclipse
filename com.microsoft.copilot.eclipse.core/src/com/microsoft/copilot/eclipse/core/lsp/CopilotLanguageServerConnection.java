@@ -42,6 +42,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
@@ -221,7 +222,7 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
-      List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName) {
+      List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -232,6 +233,11 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setChatMode(chatModeName);
+
+      // Set historical turns if provided.
+      if (turns != null && turns.size() > 0) {
+        param.setTurns(turns);
+      }
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
       param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {

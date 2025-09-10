@@ -82,7 +82,7 @@ public class ConversationPersistenceService {
 
   /**
    * Saves the conversation data to conversation JSON file and updates the index if it's a new conversation or the
-   * conversation title should be updated.
+   * conversation title / lastMessageDate should be updated.
    */
   public void saveConversation(ConversationData conversationData) throws IOException {
     String username = authStatusManager.getUserName();
@@ -91,38 +91,8 @@ public class ConversationPersistenceService {
       return;
     }
 
-    boolean shouldUpdateIndexConversationId = saveConversationJson(conversationData, username);
-    boolean shouldUpdateIndexTitle = StringUtils.isNotBlank(conversationData.getTitle())
-        && isIndexTitleMissing(conversationData.getConversationId(), username);
-
-    if (shouldUpdateIndexConversationId || shouldUpdateIndexTitle) {
-      updateConversationIndex(conversationData, username);
-    }
-  }
-
-  /**
-   * Checks if the conversation title is missing or empty in the XML index.
-   */
-  private boolean isIndexTitleMissing(String conversationId, String username) {
-    try {
-      Document doc = loadOrCreateIndexDocument(username);
-      Element userElement = getUserElement(doc, username, false);
-
-      if (userElement != null) {
-        Element conversationsElement = findChildElement(userElement, ELEMENT_CONVERSATIONS);
-        if (conversationsElement != null) {
-          Element conversationElement = findConversationElement(conversationsElement, conversationId);
-          if (conversationElement != null) {
-            String existingTitle = conversationElement.getAttribute(ATTR_TITLE);
-            return StringUtils.isBlank(existingTitle);
-          }
-        }
-      }
-      return true;
-    } catch (ParserConfigurationException | SAXException | IOException e) {
-      CopilotCore.LOGGER.error("Failed to check index title for conversation: " + conversationId, e);
-      return true;
-    }
+    saveConversationJson(conversationData, username);
+    updateConversationIndex(conversationData, username);
   }
 
   /** Gets the plugin state location path for the current workspace. */

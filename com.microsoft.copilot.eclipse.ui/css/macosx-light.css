@@ -1,0 +1,14 @@
+/* macOS Light theme overrides */
+#chat-history-viewer Label.chat-history-item-current-label {
+	color: #FFFFFF;
+}
+#chat-history-viewer Label.chat-history-item-date-label {
+	color: #A4A4A4;
+}
+
+#chat-history-viewer Composite.chat-history-item-current,
+#chat-history-viewer Composite.chat-history-item-current * {
+	color: #FFFFFF;
+	background-color: #3786F6;
+}
+
