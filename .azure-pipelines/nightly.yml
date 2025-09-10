@@ -75,7 +75,7 @@ extends:
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
-              - bash: npm i
+              - bash: npm i -f
                 workingDirectory: com.microsoft.copilot.eclipse.core/copilot-agent
                 displayName: Install Copilot LS
 

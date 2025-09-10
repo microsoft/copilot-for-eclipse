@@ -7,27 +7,27 @@ const { execSync } = require('child_process');
 const platforms = [
   {
     name: 'Linux x64',
-    source: 'node_modules/@github/copilot-language-server/native/linux-x64/copilot-language-server',
+    source: 'node_modules/@github/copilot-language-server-linux-x64/copilot-language-server',
     target: '../../com.microsoft.copilot.eclipse.core.agent.linux.x64/copilot-agent/copilot-language-server'
   },
   {
     name: 'Linux ARM64',
-    source: 'node_modules/@github/copilot-language-server/native/linux-arm64/copilot-language-server',
+    source: 'node_modules/@github/copilot-language-server-linux-arm64/copilot-language-server',
     target: '../../com.microsoft.copilot.eclipse.core.agent.linux.aarch64/copilot-agent/copilot-language-server'
   },
   {
     name: 'Windows x64',
-    source: 'node_modules/@github/copilot-language-server/native/win32-x64/copilot-language-server.exe',
+    source: 'node_modules/@github/copilot-language-server-win32-x64/copilot-language-server.exe',
     target: '../../com.microsoft.copilot.eclipse.core.agent.win32/copilot-agent/copilot-language-server.exe'
   },
   {
     name: 'macOS x64',
-    source: 'node_modules/@github/copilot-language-server/native/darwin-x64/copilot-language-server',
+    source: 'node_modules/@github/copilot-language-server-darwin-x64/copilot-language-server',
     target: '../../com.microsoft.copilot.eclipse.core.agent.macosx.x64/copilot-agent/copilot-language-server'
   },
   {
     name: 'macOS ARM64',
-    source: 'node_modules/@github/copilot-language-server/native/darwin-arm64/copilot-language-server',
+    source: 'node_modules/@github/copilot-language-server-darwin-arm64/copilot-language-server',
     target: '../../com.microsoft.copilot.eclipse.core.agent.macosx.aarch64/copilot-agent/copilot-language-server'
   }
 ];

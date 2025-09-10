@@ -24,7 +24,7 @@ jobs:
 
     - name: Install Copilot agent
       working-directory: com.microsoft.copilot.eclipse.core/copilot-agent
-      run: npm i
+      run: npm i -f
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
