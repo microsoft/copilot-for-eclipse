@@ -13,7 +13,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.preferences.ScopedPreferenceStore;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -27,9 +26,6 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
   public static final String ID = "com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage";
-
-  // Use a dedicated config-scope store for fields that must persist in configuration scope
-  private ScopedPreferenceStore configScopeStore;
 
   /**
    * Constructor.
@@ -97,17 +93,11 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     Composite whatsNewComposite = new Composite(whatsNewGroup, SWT.NONE);
     whatsNewComposite.setLayout(gl);
     whatsNewComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-    // Use configuration scope store for this specific field
-    this.configScopeStore = new ScopedPreferenceStore(ConfigurationScope.INSTANCE, Constants.PLUGIN_ID);
     BooleanFieldEditor showWhatsNewField = new BooleanFieldEditor(Constants.AUTO_SHOW_WHAT_IS_NEW,
         Messages.preferences_page_enable_whats_new, whatsNewComposite);
     showWhatsNewField.getDescriptionControl(whatsNewComposite)
         .setToolTipText(Messages.preferences_page_enable_whats_new_tooltip);
-    // Ensure the preference page manages this field (Apply/Defaults/OK),
-    // but keep it stored in configuration scope.
     addField(showWhatsNewField);
-    showWhatsNewField.setPreferenceStore(this.configScopeStore);
-    showWhatsNewField.load();
   }
 
   @Override
@@ -117,13 +107,17 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 
   @Override
   public boolean performOk() {
-    boolean oldWhatsNewValue = this.configScopeStore.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW);
     boolean result = super.performOk();
+    boolean newWhatsNewValue = getPreferenceStore().getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW);
 
-    boolean newWhatsNewValue = this.configScopeStore.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW);
+    // Update the new value for fields that must persist in configuration scope
+    IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
+        .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
+    boolean oldWhatsNewValue = configPrefs.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
+
+    // Ensure the preference change is updated in configuration scope too
     if (oldWhatsNewValue ^ newWhatsNewValue) {
       try {
-        IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
         configPrefs.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, newWhatsNewValue);
         configPrefs.flush();
       } catch (BackingStoreException ex) {
