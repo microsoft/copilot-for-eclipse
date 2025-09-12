@@ -172,7 +172,6 @@ public final class Messages extends NLS {
   public static String chat_noQuotaView_proProplusWarnMsg;
   public static String chat_noQuotaView_cbCeWarnMsg;
   public static String chat_currentReferencedFile_description;
-  public static String chat_chatContentView_errorTemplate;
   public static String chat_turnWidget_copilot;
   public static String chat_turnWidget_user;
   public static String chat_model_unsupported_message;
@@ -202,10 +201,6 @@ public final class Messages extends NLS {
   public static String generateCommitMessage_noRepo_message;
   public static String generateCommitMessage_noStagedFiles_title;
   public static String generateCommitMessage_noStagedFiles_message;
-  public static String newChat_confirmationTitle;
-  public static String newChat_confirmationMessage;
-  public static String newChat_keepChangesButton;
-  public static String newChat_undoChangesButton;
   public static String newChat_cancelButton;
   public static String addToReference_addFile_title;
   public static String addToReference_addFolder_title;

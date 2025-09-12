@@ -31,6 +31,7 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.chat.ConversationUtils;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -349,6 +350,10 @@ public class ChatHistoryViewer extends Composite {
   private void addConversationClickListeners(Composite conversationItem, Composite leftStack, Label titleLabel,
       Label currentLabel, Label dateLabel, ConversationXmlData conversation) {
     Listener clickListener = event -> {
+      // Confirm switching conversations (may prompt about unhandled file changes)
+      if (!ConversationUtils.confirmSwitchChat()) {
+        return; // user cancelled
+      }
       if (eventBroker != null) {
         eventBroker.post(CopilotEventConstants.TOPIC_CHAT_HISTORY_CONVERSATION_SELECTED, conversation);
       }

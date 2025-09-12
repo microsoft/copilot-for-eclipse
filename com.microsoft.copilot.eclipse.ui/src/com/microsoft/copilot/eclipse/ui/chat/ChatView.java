@@ -58,7 +58,6 @@ import com.microsoft.copilot.eclipse.ui.chat.viewers.BeforeLoginWelcomeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.ChatHistoryViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.LoadingViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.NoSubscriptionViewer;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
