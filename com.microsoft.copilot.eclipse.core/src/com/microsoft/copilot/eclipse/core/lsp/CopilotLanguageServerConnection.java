@@ -44,6 +44,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
@@ -232,6 +238,7 @@ public class CopilotLanguageServerConnection {
       param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
+      param.setModelProviderName(activeModel.getProviderName());
       param.setChatMode(chatModeName);
 
       // Set historical turns if provided.
@@ -260,6 +267,7 @@ public class CopilotLanguageServerConnection {
       ConversationTurnParams param = new ConversationTurnParams(workDoneToken, conversationId, messageWithImages);
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
+      param.setModelProviderName(activeModel.getProviderName());
       param.setChatMode(chatModeName);
       param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
       param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
@@ -392,6 +400,66 @@ public class CopilotLanguageServerConnection {
       CopilotCore.LOGGER.error(ex);
       return null;
     });
+  }
+  
+  /**
+   * List BYOK models.
+   */
+  public CompletableFuture<ByokListModelResponse> listByokModels(ByokListModelParams params) {
+    Function<LanguageServer, CompletableFuture<ByokListModelResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).listByokModels(params);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Save a BYOK model.
+   */
+  public CompletableFuture<ByokStatusResponse> saveByokModel(ByokModel model) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).saveByokModel(model);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Delete a BYOK model.
+   */
+  public CompletableFuture<ByokStatusResponse> deleteByokModel(ByokModel model) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).deleteByokModel(model);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List all BYOK Api keys.
+   */
+  public CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey) {
+    Function<LanguageServer, CompletableFuture<ByokListApiKeyResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).listByokApiKeys(apiKey);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Save a BYOK API key.
+   */
+  public CompletableFuture<ByokStatusResponse> saveByokApiKey(ByokApiKey apiKey) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).saveByokApiKey(apiKey);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Delete a BYOK API key.
+   */
+  public CompletableFuture<ByokStatusResponse> deleteByokApiKey(ByokApiKey apiKey) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).deleteByokApiKey(apiKey);
+    };
+    return this.languageServerWrapper.execute(fn);
   }
 
   /**

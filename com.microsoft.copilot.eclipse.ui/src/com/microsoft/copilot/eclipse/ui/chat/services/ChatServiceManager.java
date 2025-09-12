@@ -17,6 +17,7 @@ public class ChatServiceManager implements IChatServiceManager {
 
   private ChatCompletionService chatCompletionService;
   private ModelService modelService;
+  private ByokService byokService;
   private UserPreferenceService userPreferenceService;
   private AvatarService avatarService;
   private AgentToolService agentToolService;
@@ -62,6 +63,19 @@ public class ChatServiceManager implements IChatServiceManager {
 
   public CopilotLanguageServerConnection getLanguageServerConnection() {
     return lsConnection;
+  }
+
+  /**
+   * Lazy load the BYOK service. This service only needed by byokPreferencePage. So it should not be initialized in
+   * activation step.
+   *
+   * @return the BYOK service
+   */
+  public ByokService getByokService() {
+    if (byokService == null && this.lsConnection != null) {
+      byokService = new ByokService(this.lsConnection);
+    }
+    return byokService;
   }
 
   /**
@@ -139,5 +153,8 @@ public class ChatServiceManager implements IChatServiceManager {
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpConfigService.dispose();
+    if (this.byokService != null) {
+      this.byokService.dispose();
+    }
   }
 }

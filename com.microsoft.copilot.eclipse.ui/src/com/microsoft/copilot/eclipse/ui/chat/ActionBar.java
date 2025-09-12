@@ -58,6 +58,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
@@ -376,7 +377,8 @@ public class ActionBar extends Composite implements NewConversationListener {
 
           parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
               String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                  CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID));
+                  CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
+                  ByokPreferencePage.ID));
 
           UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
         }

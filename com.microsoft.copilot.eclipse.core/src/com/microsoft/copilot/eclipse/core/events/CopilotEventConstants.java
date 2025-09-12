@@ -79,4 +79,9 @@ public class CopilotEventConstants {
    * Event when a conversation is selected in chat history view.
    */
   public static final String TOPIC_CHAT_HISTORY_CONVERSATION_SELECTED = TOPIC_CHAT + "HISTORY_CONVERSATION_SELECTED";
+
+  /**
+   * Event when BYOK models are updated.
+   */
+  public static final String TOPIC_CHAT_BYOK_MODELS_UPDATED = TOPIC_CHAT + "BYOK_MODELS_UPDATED";
 }

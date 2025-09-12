@@ -31,6 +31,8 @@ public class CopilotPreferencesPage extends PreferencePage implements IWorkbench
         CustomInstructionPreferencePage.ID);
     PreferencePageUtils.createPreferenceLink(getShell(), container, "<a>Model Context Protocol (MCP)</a>", null,
         McpPreferencePage.ID);
+    PreferencePageUtils.createPreferenceLink(getShell(), container, "<a>Model Management</a>", null,
+        ByokPreferencePage.ID);
     return container;
   }
 

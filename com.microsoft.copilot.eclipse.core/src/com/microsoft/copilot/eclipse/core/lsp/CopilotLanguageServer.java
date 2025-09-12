@@ -30,6 +30,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
@@ -164,4 +170,40 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("git/commitGenerate")
   CompletableFuture<GenerateCommitMessageResult> generateCommitMessage(GenerateCommitMessageParams params);
+  
+  /**
+   * List BYOK models.
+   */
+  @JsonRequest("copilot/byok/listModels")
+  CompletableFuture<ByokListModelResponse> listByokModels(ByokListModelParams params);
+
+  /**
+   * Save BYOK model.
+   */
+  @JsonRequest("copilot/byok/saveModel")
+  CompletableFuture<ByokStatusResponse> saveByokModel(ByokModel model);
+
+  /**
+   * Delete BYOK model.
+   */
+  @JsonRequest("copilot/byok/deleteModel")
+  CompletableFuture<ByokStatusResponse> deleteByokModel(ByokModel model);
+
+  /**
+   * Save BYOK API key.
+   */
+  @JsonRequest("copilot/byok/saveApiKey")
+  CompletableFuture<ByokStatusResponse> saveByokApiKey(ByokApiKey apiKey);
+
+  /**
+   * Delete BYOK API key.
+   */
+  @JsonRequest("copilot/byok/deleteApiKey")
+  CompletableFuture<ByokStatusResponse> deleteByokApiKey(ByokApiKey apiKey);
+
+  /**
+   * List All BYOK API keys.
+   */
+  @JsonRequest("copilot/byok/listApiKeys")
+  CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey);
 }

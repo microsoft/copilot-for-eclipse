@@ -35,10 +35,22 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
+import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
+import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -60,6 +72,7 @@ public class ModelService extends ChatBaseService {
   private IObservableValue<CopilotModel> activeModelObservable;
   // Used to update modelObservable
   private Map<String, CopilotModel> copilotModels = new HashMap<>();
+  private Map<String, CopilotModel> registeredByokModels = new HashMap<>();
   private CopilotModel defaultModel;
   private CopilotModel fallbackModel;
 
@@ -73,6 +86,7 @@ public class ModelService extends ChatBaseService {
   private IEventBroker eventBroker;
   private EventHandler authStatusChangedEventHandler;
   private EventHandler chatModeChangedEventHandler;
+  private EventHandler byokModelsUpdatedEventHandler;
 
   /**
    * Constructor for the ModelService.
@@ -105,6 +119,16 @@ public class ModelService extends ChatBaseService {
         updateModelsForChatMode(chatMode);
       }
     };
+
+    byokModelsUpdatedEventHandler = event -> {
+      Object property = event.getProperty(IEventBroker.DATA);
+      if (property instanceof Map<?, ?> modelsMap) {
+        @SuppressWarnings("unchecked")
+        Map<String, List<ByokModel>> byokModels = (Map<String, List<ByokModel>>) modelsMap;
+        saveRegisteredByokModels(byokModels);
+        ensureRealm(() -> updateModelsForChatMode(currentChatMode));
+      }
+    };
   }
 
   private void subscribeToEvents() {
@@ -112,6 +136,7 @@ public class ModelService extends ChatBaseService {
     if (eventBroker != null) {
       eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, authStatusChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, chatModeChangedEventHandler);
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_BYOK_MODELS_UPDATED, byokModelsUpdatedEventHandler);
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
     }
@@ -124,6 +149,7 @@ public class ModelService extends ChatBaseService {
         protected IStatus run(IProgressMonitor monitor) {
           try {
             fetchCopilotModels();
+            fetchByokModels();
             ensureRealm(() -> {
               updateModelsForChatMode(currentChatMode);
             });
@@ -160,6 +186,28 @@ public class ModelService extends ChatBaseService {
     copilotModels = newModels;
   }
 
+  private void fetchByokModels() throws InterruptedException, ExecutionException {
+    ByokListModelResponse response = lsConnection.listByokModels(new ByokListModelParams(null, false)).get();
+    if (response != null && response.getModels() != null) {
+      Map<String, List<ByokModel>> modelsByProvider = response.getModels().stream()
+          .collect(java.util.stream.Collectors.groupingBy(ByokModel::getProviderName));
+      saveRegisteredByokModels(modelsByProvider);
+    }
+  }
+
+  private void saveRegisteredByokModels(Map<String, List<ByokModel>> byokModels) {
+    Map<String, CopilotModel> newByokModels = new HashMap<>();
+    for (List<ByokModel> providerModels : byokModels.values()) {
+      for (ByokModel model : providerModels) {
+        if (model.isRegistered()) {
+          CopilotModel converted = ModelUtils.convertByokModelToCopilotModel(model);
+          newByokModels.put(model.getModelKey(), converted);
+        }
+      }
+    }
+    registeredByokModels = newByokModels;
+  }
+
   private String restoreActiveModel() {
     UserPreference preference = getUserPreference();
     if (preference != null && preference.getChatModel() != null) {
@@ -176,6 +224,7 @@ public class ModelService extends ChatBaseService {
     final Map<String, CopilotModel> modelsForCurrentMode = new HashMap<>();
     Map<String, CopilotModel> allModels = new HashMap<>();
     allModels.putAll(copilotModels);
+    allModels.putAll(registeredByokModels);
 
     for (Map.Entry<String, CopilotModel> entry : allModels.entrySet()) {
       CopilotModel model = entry.getValue();
@@ -199,7 +248,10 @@ public class ModelService extends ChatBaseService {
     CopilotModel currentActive = getActiveModel();
     boolean isCurrentModelAvailable = false;
     if (currentActive != null) {
-      isCurrentModelAvailable = modelsForCurrentMode.containsKey(currentActive.getId());
+      String keyToFind = currentActive.getProviderName() != null
+          ? currentActive.getProviderName() + "_" + currentActive.getId()
+          : currentActive.getId();
+      isCurrentModelAvailable = modelsForCurrentMode.containsKey(keyToFind);
     }
     if (currentActive == null || !isCurrentModelAvailable) {
       // Try to restore user's preferred model if it's available in current mode
@@ -337,11 +389,25 @@ public class ModelService extends ChatBaseService {
           if (trimmedModelNameWithMultiplier.equals(Messages.chat_standardModels)
               || trimmedModelNameWithMultiplier.equals(Messages.chat_premiumModels)
               || trimmedModelNameWithMultiplier.equals(Messages.chat_copilotModels)
+              || trimmedModelNameWithMultiplier.equals(Messages.chat_customModels)
               || StringUtils.isBlank(trimmedModelNameWithMultiplier)) {
             dismissComboSelection(e, combo);
           } else if (trimmedModelNameWithMultiplier.equals(Messages.chat_addPremiumModels)) {
             dismissComboSelection(e, combo);
             UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan", null);
+          } else if (trimmedModelNameWithMultiplier.equals(Messages.chat_actionBar_modelPicker_manageModels)) {
+            dismissComboSelection(e, combo);
+            Map<String, Object> parameters = new HashMap<>();
+
+            parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
+                ByokPreferencePage.ID);
+
+            parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
+                String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
+                    CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
+                    ByokPreferencePage.ID));
+
+            UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
           } else {
             setActiveModel(getModelNameFromModelWithMultiplier(modelNameWithMultiplier));
           }
@@ -440,14 +506,24 @@ public class ModelService extends ChatBaseService {
       // Create properly aligned model names
       List<String> standardModels = new ArrayList<>();
       List<String> premiumModels = new ArrayList<>();
+      List<String> customModels = new ArrayList<>();
 
       for (CopilotModel model : modelMap.values()) {
         String formattedModel = formatModelWithAlignment(gc, model, formattedModelWidths, maxWidth, spaceWidth);
+
+        if (model.getProviderName() != null) {
+          customModels.add(formattedModel);
+          continue;
+        }
         if (model.getBilling().isPremium()) {
           premiumModels.add(formattedModel);
         } else {
           standardModels.add(formattedModel);
         }
+      }
+      if (!customModels.isEmpty()) {
+        customModels.sort(String.CASE_INSENSITIVE_ORDER);
+        customModels.add(0, addDashesAroundModelHeader(Messages.chat_customModels, maxWidth, gc));
       }
 
       if (!standardModels.isEmpty()) {
@@ -465,10 +541,13 @@ public class ModelService extends ChatBaseService {
 
       List<String> allModels = new ArrayList<>(standardModels);
       allModels.addAll(premiumModels);
+      allModels.addAll(customModels);
       if (this.authStatusManager.getQuotaStatus().getCopilotPlan() == CopilotPlan.free) {
         allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
         allModels.add(Messages.chat_addPremiumModels);
       }
+      allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
+      allModels.add(Messages.chat_actionBar_modelPicker_manageModels);
       return allModels.toArray(new String[0]);
     } finally {
       gc.dispose();
@@ -485,7 +564,9 @@ public class ModelService extends ChatBaseService {
     int spacesToAdd = (int) Math.round((maxWidth - currentWidth) / (double) spaceWidth) + 1;
 
     String suffix = "";
-    if (model.getBilling() != null) {
+    if (model.getProviderName() != null) {
+      suffix = model.getProviderName();
+    } else if (model.getBilling() != null) {
       BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
       if (multiplier.toPlainString().equals("0")) {
         suffix = DEFAULT_MODEL_MULTIPLIER;
@@ -515,7 +596,10 @@ public class ModelService extends ChatBaseService {
   private int calculateModelDisplayWidth(GC gc, CopilotModel model) {
     String multiplierText;
 
-    if (model.getBilling() != null) {
+    // Handle BYOK models (which have providerName but no billing)
+    if (model.getProviderName() != null) {
+      multiplierText = model.getProviderName();
+    } else if (model.getBilling() != null) {
       BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
       if (multiplier.toPlainString().equals("0")) {
         multiplierText = DEFAULT_MODEL_MULTIPLIER;
@@ -622,6 +706,7 @@ public class ModelService extends ChatBaseService {
     if (eventBroker != null) {
       eventBroker.unsubscribe(authStatusChangedEventHandler);
       eventBroker.unsubscribe(chatModeChangedEventHandler);
+      eventBroker.unsubscribe(byokModelsUpdatedEventHandler);
       eventBroker = null;
     }
 

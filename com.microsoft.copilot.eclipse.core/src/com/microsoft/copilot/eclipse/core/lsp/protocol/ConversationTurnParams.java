@@ -29,6 +29,7 @@ public class ConversationTurnParams {
   private List<WorkspaceFolder> workspaceFolders;
   private String[] ignoredSkills;
   private String model;
+  private String modelProviderName;
   private String chatMode;
 
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
@@ -142,13 +143,22 @@ public class ConversationTurnParams {
     this.needToolCallConfirmation = needToolCallConfirmation;
   }
 
+  public String getModelProviderName() {
+    return modelProviderName;
+  }
+
+  public void setModelProviderName(String modelProviderName) {
+    this.modelProviderName = modelProviderName;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
-    result = prime * result + Objects.hash(chatMode, computeSuggestions, conversationId, message, model,
-        needToolCallConfirmation, references, textDocument, workDoneToken, workspaceFolder, workspaceFolders);
+    result = prime * result
+        + Objects.hash(chatMode, computeSuggestions, conversationId, message, model, needToolCallConfirmation,
+            references, textDocument, workDoneToken, workspaceFolder, workspaceFolders, modelProviderName);
     return result;
   }
 
@@ -170,7 +180,8 @@ public class ConversationTurnParams {
         && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
         && Objects.equals(textDocument, other.textDocument) && Objects.equals(workDoneToken, other.workDoneToken)
         && Objects.equals(workspaceFolder, other.workspaceFolder)
-        && Objects.equals(workspaceFolders, other.workspaceFolders);
+        && Objects.equals(workspaceFolders, other.workspaceFolders)
+        && Objects.equals(modelProviderName, other.modelProviderName);
   }
 
   @Override
@@ -188,6 +199,7 @@ public class ConversationTurnParams {
     builder.add("model", model);
     builder.add("chatMode", chatMode);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
+    builder.add("modelProviderName", modelProviderName);
     return builder.toString();
   }
 }

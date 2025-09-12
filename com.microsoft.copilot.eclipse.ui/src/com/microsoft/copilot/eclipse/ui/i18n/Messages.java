@@ -121,6 +121,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_cancelButton_Tooltip;
   public static String chat_actionBar_toolButton_toolTip;
   public static String chat_actionBar_toolButton_disabled_toolTip;
+  public static String chat_actionBar_modelPicker_manageModels;
   public static String chat_welcomeView_title;
   public static String chat_welcomeView_description;
   public static String chat_welcomeView_agentSuffix;
@@ -178,6 +179,7 @@ public final class Messages extends NLS {
   public static String chat_copilotModels;
   public static String chat_standardModels;
   public static String chat_premiumModels;
+  public static String chat_customModels;
   public static String chat_addPremiumModels;
   public static String chat_referencedFile_noVision_tooltip;
   public static String agent_tool_terminal_copilotTerminalTitle;

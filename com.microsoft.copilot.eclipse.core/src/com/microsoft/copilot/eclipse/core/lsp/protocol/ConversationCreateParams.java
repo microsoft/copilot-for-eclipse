@@ -27,6 +27,7 @@ public class ConversationCreateParams {
   private String[] ignoredSkills;
   private String userLanguage;
   private String model;
+  private String modelProviderName;
   private String chatMode;
 
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
@@ -158,14 +159,23 @@ public class ConversationCreateParams {
     this.needToolCallConfirmation = needToolCallConfirmation;
   }
 
+  public String getModelProviderName() {
+    return modelProviderName;
+  }
+
+  public void setModelProviderName(String modelProviderName) {
+    this.modelProviderName = modelProviderName;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Objects.hashCode(turns);
-    result = prime * result + Objects.hash(capabilities, chatMode, computeSuggestions, model, needToolCallConfirmation,
-        references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders);
+    result = prime * result
+        + Objects.hash(capabilities, chatMode, computeSuggestions, model, needToolCallConfirmation, references, source,
+            textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders, modelProviderName);
     return result;
   }
 
@@ -188,7 +198,8 @@ public class ConversationCreateParams {
         && Objects.equals(textDocument, other.textDocument) && Objects.equals(turns, other.turns)
         && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
         && Objects.equals(workspaceFolder, other.workspaceFolder)
-        && Objects.equals(workspaceFolders, other.workspaceFolders);
+        && Objects.equals(workspaceFolders, other.workspaceFolders)
+        && Objects.equals(modelProviderName, other.modelProviderName);
   }
 
   @Override
@@ -206,6 +217,7 @@ public class ConversationCreateParams {
     builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
     builder.add("userLanguage", userLanguage);
     builder.add("model", model);
+    builder.add("modelProviderName", modelProviderName);
     builder.add("chatMode", chatMode);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     return builder.toString();

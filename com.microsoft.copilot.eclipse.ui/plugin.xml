@@ -104,6 +104,12 @@
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			class="com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage">
 		</page>
+		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage"
+			name="%page.preferencesPage.byok.name"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage">
+		</page>
 	</extension>
 	<extension
 		point="org.eclipse.core.runtime.preferences">
@@ -730,4 +736,7 @@
 			class="com.microsoft.copilot.eclipse.ui.testers.PlatformVersionTester">
 		</propertyTester>
 	</extension>
+	 <extension point="org.eclipse.help.contexts">
+        <contexts file="contexts.xml" />
+    </extension>
 </plugin>

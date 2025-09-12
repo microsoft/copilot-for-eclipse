@@ -20,6 +20,7 @@ public class CopilotModel {
   private boolean isChatFallback;
   private CopilotModelCapabilities capabilities;
   private CopilotModelBilling billing;
+  private String providerName;
 
   /**
    * Policy for the model.
@@ -151,6 +152,14 @@ public class CopilotModel {
     this.billing = billing;
   }
 
+  public String getProviderName() {
+    return providerName;
+  }
+
+  public void setProviderName(String providerName) {
+    this.providerName = providerName;
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -167,13 +176,14 @@ public class CopilotModel {
         && Objects.equals(id, other.id) && isChatDefault == other.isChatDefault
         && isChatFallback == other.isChatFallback && Objects.equals(modelFamily, other.modelFamily)
         && Objects.equals(modelName, other.modelName) && Objects.equals(modelPolicy, other.modelPolicy)
-        && preview == other.preview && Objects.equals(scopes, other.scopes);
+        && preview == other.preview && Objects.equals(scopes, other.scopes)
+        && Objects.equals(providerName, other.providerName);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(billing, capabilities, id, isChatDefault, isChatFallback, modelFamily, modelName, modelPolicy,
-        preview, scopes);
+        preview, scopes, providerName);
   }
 
   @Override
@@ -189,6 +199,7 @@ public class CopilotModel {
     builder.add("isChatFallback", isChatFallback);
     builder.add("capabilities", capabilities);
     builder.add("billing", billing);
+    builder.add("providerName", providerName);
     return builder.toString();
   }
 }
