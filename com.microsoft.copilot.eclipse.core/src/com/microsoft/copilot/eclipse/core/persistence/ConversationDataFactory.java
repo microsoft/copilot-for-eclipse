@@ -235,13 +235,13 @@ public class ConversationDataFactory {
   private String extractResponseFromCopilotTurnData(CopilotTurnData copilotTurnData) {
     ReplyData reply = copilotTurnData.getReply();
     if (reply == null) {
-      return null;
+      return "";
     }
 
     List<EditAgentRoundData> rounds = reply.getEditAgentRounds();
     if (rounds == null || rounds.isEmpty()) {
       // If no agent rounds, check for plain text reply
-      return StringUtils.isBlank(reply.getText()) ? null : reply.getText();
+      return StringUtils.isBlank(reply.getText()) ? "" : reply.getText();
     }
 
     StringBuilder sb = new StringBuilder();
@@ -251,7 +251,7 @@ public class ConversationDataFactory {
       }
     }
     String response = sb.toString();
-    return response.isBlank() ? null : response;
+    return response.isBlank() ? "" : response;
   }
 
   // Private helper methods for data transformation

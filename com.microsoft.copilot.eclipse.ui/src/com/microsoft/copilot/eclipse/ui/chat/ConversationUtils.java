@@ -1,5 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.ui.PlatformUI;
@@ -144,5 +147,17 @@ public class ConversationUtils {
       default:
         return false; // Close / Cancel
     }
+  }
+  
+  /**
+   * Checks if the given throwable is an instance of cancellation exception, either directly or wrapped in a
+   * CompletionException.
+   *
+   * @param th the exception to check
+   * @return true if it's a cancellation exception; false otherwise
+   */
+  public static boolean isConversationCancellationThrowable(Throwable th) {
+    return th instanceof CancellationException
+        || (th instanceof CompletionException && th.getCause() instanceof CancellationException);
   }
 }

@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
@@ -45,6 +46,8 @@ import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceMan
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessageData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
@@ -600,12 +603,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           processedMessage, references, currentFile, activeModel, chatModeName);
       conversationFutures.add(addConversationFuture);
 
-      addConversationFuture.exceptionally(ex -> {
-        if (ex instanceof CancellationException) {
-          return null;
+      addConversationFuture.exceptionally(th -> {
+        if (!ConversationUtils.isConversationCancellationThrowable(th)) {
+          CopilotCore.LOGGER.error("Error sending message to existing conversation with exception: ", th);
+          displayErrorAndResetSendButton(workDoneToken, th.getMessage());
         }
-        CopilotCore.LOGGER.error("Error sending message to existing conversation with exception: ", ex);
-        displayErrorAndResetSendButton(workDoneToken, ex.getMessage());
         return null;
       });
     } else {
@@ -632,12 +634,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Update the temporary conversation ID to the real conversation ID returned by the server
         String newConversationId = result.getConversationId();
         persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId);
-      }).exceptionally(ex -> {
-        if (ex instanceof CancellationException) {
-          return null;
+      }).exceptionally(th -> {
+        if (!ConversationUtils.isConversationCancellationThrowable(th)) {
+          CopilotCore.LOGGER.error("Error creating new conversation with exception: ", th);
+          displayErrorAndResetSendButton(workDoneToken, th.getMessage());
         }
-        CopilotCore.LOGGER.error("Error creating new conversation with exception: ", ex);
-        displayErrorAndResetSendButton(workDoneToken, ex.getMessage());
         return null;
       });
     }
@@ -670,7 +671,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {
     if (message == null) {
-      message = "Unknown error";
+      message = Messages.chat_warnWidget_defaultErrorMsg;
     }
     String content = String.format(Messages.chat_chatContentView_errorTemplate, message, workDoneToken);
     SwtUtils.invokeOnDisplayThread(() -> {
@@ -688,6 +689,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onCancel() {
+    if (persistenceManager != null && StringUtils.isNotBlank(this.conversationId)) {
+      persistenceManager.persistCachedConversation(this.conversationId);
+    }
     conversationFutures.forEach(future -> {
       future.cancel(false);
     });
@@ -936,6 +940,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
               copilotTurnWidget.appendToolCallStatus(agentToolCall);
             }
           }
+        }
+      }
+
+      // Restore any error messages widgets from the reply data
+      if (replyData.getErrorMessages() != null && !replyData.getErrorMessages().isEmpty()) {
+        for (ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
+          ErrorData errorData = errorMessageData.getError();
+          SwtUtils.invokeOnDisplayThread(() -> {
+            String errorMessage = errorData != null ? errorData.getMessage() : Messages.chat_warnWidget_defaultErrorMsg;
+            int errorCode = errorData != null ? errorData.getCode() : 0;
+
+            copilotTurnWidget.createWarnDialog(errorMessage, errorCode);
+          }, parent);
         }
       }
 

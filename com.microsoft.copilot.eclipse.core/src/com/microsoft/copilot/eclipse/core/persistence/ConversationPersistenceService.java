@@ -74,7 +74,7 @@ public class ConversationPersistenceService {
    *
    * @param authStatusManager the authentication status manager
    */
-  public ConversationPersistenceService(AuthStatusManager authStatusManager) {
+  protected ConversationPersistenceService(AuthStatusManager authStatusManager) {
     this.authStatusManager = authStatusManager;
     this.gson = new GsonBuilder().registerTypeAdapter(Instant.class, new InstantTypeAdapter())
         .registerTypeAdapter(AbstractTurnData.class, new AbstractTurnDataDeserializer()).setPrettyPrinting().create();
@@ -84,7 +84,7 @@ public class ConversationPersistenceService {
    * Saves the conversation data to conversation JSON file and updates the index if it's a new conversation or the
    * conversation title / lastMessageDate should be updated.
    */
-  public void saveConversation(ConversationData conversationData) throws IOException {
+  protected void saveConversation(ConversationData conversationData) throws IOException {
     String username = authStatusManager.getUserName();
     if (StringUtils.isBlank(username)) {
       CopilotCore.LOGGER.info("Cannot persist conversation: username is blank");
@@ -176,7 +176,7 @@ public class ConversationPersistenceService {
   /**
    * Updates the conversation ID in cache and persist it to both the index and the JSON file.
    */
-  public void updatePersistedConversationId(String oldConversationId, String newConversationId) throws IOException {
+  protected void updatePersistedConversationId(String oldConversationId, String newConversationId) throws IOException {
     if (!isValidConversationIdUpdate(oldConversationId, newConversationId)) {
       return;
     }
@@ -312,7 +312,7 @@ public class ConversationPersistenceService {
   }
 
   /** Lists all conversations for the current user. */
-  public List<ConversationXmlData> listConversations() {
+  protected List<ConversationXmlData> listConversations() {
     String username = authStatusManager.getUserName();
     if (StringUtils.isBlank(username)) {
       return new ArrayList<>();
@@ -321,7 +321,7 @@ public class ConversationPersistenceService {
   }
 
   /** Lists all conversations for a specific user. */
-  public List<ConversationXmlData> listConversationsForUser(String username) {
+  protected List<ConversationXmlData> listConversationsForUser(String username) {
     List<ConversationXmlData> conversations = new ArrayList<>();
 
     Path indexPath = getXmlIndexFilePath(username);
@@ -432,7 +432,7 @@ public class ConversationPersistenceService {
   /**
    * Loads a conversation by ID.
    */
-  public ConversationData loadConversationFromPersistedJsonFile(String conversationId)
+  protected ConversationData loadConversationFromPersistedJsonFile(String conversationId)
       throws IOException, JsonSyntaxException {
     Path conversationFile = getConversationFilePath(conversationId, authStatusManager.getUserName());
     if (!Files.exists(conversationFile)) {

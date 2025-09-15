@@ -109,7 +109,7 @@
 #chat-history-viewer Composite.chat-history-item-current,
 #chat-history-viewer Composite.chat-history-item-current * {
 	color: #000000;           /* current item foreground */
-	background-color: #E4F5FF;/* current item background */
+	background-color: #C6E2F9;/* current item background */
 }
 
 /* Hover state should override default/current */

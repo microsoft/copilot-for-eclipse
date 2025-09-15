@@ -74,7 +74,6 @@ public class ChatHistoryViewer extends Composite {
    * Create the chat history composite with scrollable list.
    */
   private void createChatHistoryComposite(List<ConversationXmlData> conversations, String currentConversationId) {
-    // Create back label
     createBackLabel(this);
 
     // Create scrollable composite for chat history list only
@@ -170,65 +169,58 @@ public class ChatHistoryViewer extends Composite {
   private void createChatHistoryList(Composite parent, List<ConversationXmlData> conversations,
       String currentConversationId) {
     boolean hasValidCurrentId = StringUtils.isNotBlank(currentConversationId);
+    boolean hasCurrentConversation = hasValidCurrentId && conversations.stream()
+        .anyMatch(conversation -> StringUtils.equals(conversation.getConversationId(), currentConversationId));
 
-    boolean hasCurrentConversation = false;
+    // Add "New Chat" item at the top if no current conversation exists
+    if (!hasCurrentConversation) {
+      createConversationItem(parent, Messages.chat_topBanner_chatHistoryItem_newChat, true,
+          Messages.chat_topBanner_chatHistoryItem_newChatTime_Now, null, false, false);
+    }
 
-    // Group conversations by date string for proper date label handling
     String previousDateStr = null;
-    boolean isFirstInDateGroup = true;
+    boolean isFirstDateStrInList = true;
 
     for (int i = 0; i < conversations.size(); i++) {
       ConversationXmlData conversation = conversations.get(i);
       boolean isCurrentConversation = hasValidCurrentId
           && StringUtils.equals(conversation.getConversationId(), currentConversationId);
-      if (isCurrentConversation) {
-        hasCurrentConversation = true;
-      }
 
-      // Prepare display title
-      String title = conversation.getTitle();
-      if (title == null || title.trim().isEmpty()) {
-        title = Messages.chat_topBanner_chatHistoryItem_untitledConversation_placeholder;
-      }
-
-      // Format date string using relative time format
-      String dateStr = "";
-      if (conversation.getLastMessageDate() != null) {
-        dateStr = formatRelativeDateTime(conversation.getLastMessageDate());
-      } else if (conversation.getCreationDate() != null) {
-        dateStr = formatRelativeDateTime(conversation.getCreationDate());
-      }
-
-      // Determine if this is the first item in a date group
-      isFirstInDateGroup = !dateStr.equals(previousDateStr);
-
-      // Only show date for first item in each date group
+      String title = getDisplayTitle(conversation);
+      String dateStr = getDateString(conversation);
+      boolean isFirstInDateGroup = !dateStr.equals(previousDateStr);
       String displayDateStr = isFirstInDateGroup ? dateStr : "";
 
-      // Determine if we need an upper border (first item in non-Today groups)
-      boolean needsUpperBorder = isFirstInDateGroup && !dateStr.equals(Messages.chat_historyView_dateFormat_today)
-          && !dateStr.isEmpty();
+      // Calculate border and margin requirements
+      boolean needsUpperBorder = isFirstInDateGroup && !isFirstDateStrInList && !dateStr.isEmpty();
+      boolean needsTopMargin = needsUpperBorder;
+      createConversationItem(parent, title, isCurrentConversation, displayDateStr, conversation, needsUpperBorder,
+          needsTopMargin);
 
-      createConversationItem(parent, title, isCurrentConversation, displayDateStr, conversation, needsUpperBorder);
-
+      if (isFirstInDateGroup && !dateStr.isEmpty()) {
+        isFirstDateStrInList = false;
+      }
       previousDateStr = dateStr;
-    }
-
-    // Add "New Chat" item at the top if there's no current conversation
-    // We need to move existing items down, so we'll create this after checking all conversations
-    if (!hasCurrentConversation) {
-      createConversationItem(parent, Messages.chat_topBanner_chatHistoryItem_newChat, true,
-          Messages.chat_topBanner_chatHistoryItem_newChatTime_Now, null, false);
-      // Move the "New Chat" item to the top
-      parent.getChildren()[parent.getChildren().length - 1].moveAbove(null);
     }
   }
 
+  private String getDisplayTitle(ConversationXmlData conversation) {
+    String title = conversation.getTitle();
+    return StringUtils.isNotBlank(title) ? title
+        : Messages.chat_topBanner_chatHistoryItem_untitledConversation_placeholder;
+  }
+
+  private String getDateString(ConversationXmlData conversation) {
+    Instant dateToFormat = conversation.getLastMessageDate() != null ? conversation.getLastMessageDate()
+        : conversation.getCreationDate();
+    return dateToFormat != null ? formatRelativeDateTime(dateToFormat) : "";
+  }
+
   /**
-   * Create a conversation item in the chat history list, with optional upper border.
+   * Create a conversation item in the chat history list, with optional upper border and margins.
    */
   private void createConversationItem(Composite parent, String title, boolean isCurrent, String dateStr,
-      ConversationXmlData conversation, boolean needsUpperBorder) {
+      ConversationXmlData conversation, boolean needsUpperBorder, boolean needsTopMargin) {
     // Two columns: [leftStack(title + optional "(Current)")] [date]
     GridLayout conversationLayout = new GridLayout(2, false);
     conversationLayout.marginWidth = 5;
@@ -236,12 +228,16 @@ public class ChatHistoryViewer extends Composite {
     conversationLayout.horizontalSpacing = 5;
     Composite conversationItem = new Composite(parent, SWT.NONE);
     conversationItem.setLayout(conversationLayout);
-
-    // Tag for CSS styling
     setConversationItemCssClass(conversationItem, isCurrent, false);
 
     GridData conversationItemData = new GridData(SWT.FILL, SWT.TOP, true, false);
     conversationItemData.horizontalIndent = 5;
+
+    // Add margins above border for better visual spacing
+    if (needsTopMargin) {
+      conversationItemData.verticalIndent = 6;
+    }
+
     conversationItem.setLayoutData(conversationItemData);
     conversationItem.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));
     // Let children inherit background from this row for uniform color
@@ -410,8 +406,7 @@ public class ChatHistoryViewer extends Composite {
   }
 
   /**
-   * Converts an Instant to a relative date string with time. Examples: "Today 14:30", "Yesterday 09:15", "2 days ago
-   * 16:45", "1 week ago"
+   * Converts an Instant to a relative date string with time. Examples: "Today", "Yesterday", "2 days ago", "1 week ago"
    *
    * @param instant the instant to format
    * @return formatted relative date string with time, or empty string if instant is null
@@ -432,12 +427,12 @@ public class ChatHistoryViewer extends Composite {
     } else if (daysDifference == 1) {
       return Messages.chat_historyView_dateFormat_yesterday;
     } else if (daysDifference < 7) {
-      return daysDifference + Messages.chat_historyView_dateFormat_daysAgo;
+      return Messages.chat_historyView_dateFormat_daysAgo.replace("{0}", Long.toString(daysDifference));
     } else if (daysDifference < 14) {
       return Messages.chat_historyView_dateFormat_oneWeekAgo;
     } else {
       long weeksDifference = daysDifference / 7;
-      return weeksDifference + Messages.chat_historyView_dateFormat_weeksAgo;
+      return Messages.chat_historyView_dateFormat_weeksAgo.replace("{0}", Long.toString(weeksDifference));
     }
   }
 

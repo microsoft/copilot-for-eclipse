@@ -127,9 +127,9 @@ public class ConversationPersistenceManager {
       CopilotModel model, String chatMode, IFile currentFile, List<IResource> references) {
     return CompletableFuture.supplyAsync(() -> {
       try {
-        ConversationData conversation = getOrCreateNewConversationById(conversationId);
+        ConversationData conversationData = getOrCreateNewConversationById(conversationId);
 
-        UserTurnData userTurnData = findOrCreateUserTurn(conversation, turnId);
+        UserTurnData userTurnData = findOrCreateUserTurn(conversationData, turnId);
 
         if (userTurnData != null) {
           userTurnData.setMessage(new MessageData(message));
@@ -145,9 +145,14 @@ public class ConversationPersistenceManager {
           if (references != null) {
             userTurnData.setReferences(references);
           }
-          persistAndCacheConversation(conversation);
+          if (StringUtils.isBlank(conversationData.getTitle()) && StringUtils.isNotBlank(message)) {
+            // Set a temporary title if the conversation does not have one yet
+            String tempTitle = message.length() <= 50 ? message : message.substring(0, 50) + "...";
+            conversationData.setTitle(tempTitle);
+          }
+          persistAndCacheConversation(conversationData);
         }
-        return conversation;
+        return conversationData;
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to update user turn info for conversation: " + conversationId, e);
         throw new RuntimeException("Failed to update turn user info", e);
@@ -179,6 +184,22 @@ public class ConversationPersistenceManager {
         persistAndCacheConversation(conversationData);
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to persist conversation progress: " + conversationId, e);
+      }
+    });
+  }
+
+  /**
+   * Persists a cached conversation to disk if it exists in the cache.
+   */
+  public CompletableFuture<Void> persistCachedConversation(String conversationId) {
+    return CompletableFuture.runAsync(() -> {
+      try {
+        ConversationData conversationData = conversationCache.get(conversationId);
+        if (conversationData != null) {
+          persistAndCacheConversation(conversationData);
+        }
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to persist cached conversation: " + conversationId, e);
       }
     });
   }

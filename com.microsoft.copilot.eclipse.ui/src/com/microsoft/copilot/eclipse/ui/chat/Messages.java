@@ -15,6 +15,7 @@ public final class Messages extends NLS {
   public static String switchChat_confirmationMessage;
   public static String confirmDialog_keepChangesButton;
   public static String confirmDialog_undoChangesButton;
+  public static String chat_warnWidget_defaultErrorMsg;
 
   static {
     // initialize resource bundle

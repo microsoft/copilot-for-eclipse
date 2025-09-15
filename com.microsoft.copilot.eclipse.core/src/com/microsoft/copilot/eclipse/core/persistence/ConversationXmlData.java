@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.core.persistence;
 import java.time.Instant;
 import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
@@ -32,7 +33,15 @@ public class ConversationXmlData {
     this.conversationId = conversationId;
   }
 
+  /**
+   * Get the title of the conversation. If the title is blank, return the conversation ID instead.
+   *
+   * @return The title of the conversation or the conversation ID if the title is blank.
+   */
   public String getTitle() {
+    if (StringUtils.isBlank(title)) {
+      return this.conversationId;
+    }
     return title;
   }
 
