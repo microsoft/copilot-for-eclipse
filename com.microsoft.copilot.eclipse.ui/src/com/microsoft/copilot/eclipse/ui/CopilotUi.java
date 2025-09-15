@@ -6,6 +6,7 @@ import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
@@ -124,9 +125,10 @@ public class CopilotUi extends AbstractUIPlugin {
 
   private void showHintIfNecessary(BundleContext context) {
     IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
-    IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE.getNode(Constants.PLUGIN_ID);
+    IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
+        .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
     boolean needToFlush = false;
-    int storedQuickStartVersion = Math.max(configPrefs.getInt(Constants.COPILOT_QUICK_START_VERSION, 0),
+    int storedQuickStartVersion = Math.max(getIntPreference(Constants.COPILOT_QUICK_START_VERSION, 0),
         preferenceStore.getInt(Constants.QUICK_START_VERSION));
 
     if (storedQuickStartVersion < Constants.CURRENT_COPILOT_QUICK_START_VERSION) {
@@ -136,8 +138,8 @@ public class CopilotUi extends AbstractUIPlugin {
       needToFlush = true;
     }
 
-    if (configPrefs.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true)) {
-      String lastUsedVersion = configPrefs.get(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, "0.0");
+    if (getBooleanPreference(Constants.AUTO_SHOW_WHAT_IS_NEW, true)) {
+      String lastUsedVersion = getStringPreference(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, "");
       Version bundleVersion = context.getBundle().getVersion();
       String currentVersion = bundleVersion.getMajor() + "." + bundleVersion.getMinor();
       if (!Objects.equals(lastUsedVersion, currentVersion)) {
@@ -155,6 +157,36 @@ public class CopilotUi extends AbstractUIPlugin {
         CopilotCore.LOGGER.error("Failed to persist hint in ConfigurationScope", e);
       }
     }
+  }
+
+  /**
+   * Reads the boolean preference from all scopes.
+   *
+   * @return preference value considering all scopes (config, instance and product)
+   */
+  public static boolean getBooleanPreference(String key, boolean defaultValue) {
+    String bundleId = CopilotUi.getPlugin().getBundle().getSymbolicName();
+    return Platform.getPreferencesService().getBoolean(bundleId, key, defaultValue, null);
+  }
+
+  /**
+   * Reads the int preference from all scopes.
+   *
+   * @return preference value considering all scopes (config, instance and product)
+   */
+  public static int getIntPreference(String key, int defaultValue) {
+    String bundleId = CopilotUi.getPlugin().getBundle().getSymbolicName();
+    return Platform.getPreferencesService().getInt(bundleId, key, defaultValue, null);
+  }
+
+  /**
+   * Read the String preference from all scopes.
+   *
+   * @return preference value considering all scopes (config, instance and product)
+   */
+  public static String getStringPreference(String key, String defaultValue) {
+    String bundleId = CopilotUi.getPlugin().getBundle().getSymbolicName();
+    return Platform.getPreferencesService().getString(bundleId, key, defaultValue, null);
   }
 
   public LanguageServerSettingManager getLanguageServerSettingManager() {
