@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.events.PaintEvent;
@@ -24,8 +23,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
@@ -94,7 +91,7 @@ public class TopBanner extends Composite {
     this.btnNewConversation.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        if (confirmedNewChat()) {
+        if (ConversationUtils.confirmNewChat()) { // use shared utility
           notifyNewConversationListeners();
           updateTitle(Messages.chat_topBanner_defaultChatTitle);
           if (eventBroker != null) {
@@ -215,36 +212,6 @@ public class TopBanner extends Composite {
    */
   public void unregisterNewConversationListener(NewConversationListener listener) {
     this.newConversationListeners.remove(listener);
-  }
-
-  /**
-   * Show a confirmation dialog when starting a new chat if there are unsaved changes.
-   */
-  private boolean confirmedNewChat() {
-    // Check if all file changes are handled
-    FileToolService fileToolService = CopilotUi.getPlugin().getChatServiceManager().getFileToolService();
-    boolean hasUnhandledChanges = fileToolService.getChangedFiles().values().stream()
-        .anyMatch(property -> !property.isHandled());
-
-    if (!hasUnhandledChanges) {
-      return true;
-    }
-
-    // Pop up a MessageDialog for confirmation
-    int result = MessageDialog.open(MessageDialog.QUESTION,
-        PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), Messages.newChat_confirmationTitle,
-        Messages.newChat_confirmationMessage, SWT.NONE, Messages.newChat_keepChangesButton,
-        Messages.newChat_undoChangesButton);
-
-    if (result == 0) { // Keep
-      fileToolService.onKeepAllChanges();
-      return true;
-    } else if (result == 1) { // Undo
-      fileToolService.onUndoAllChanges();
-      return true;
-    }
-
-    return false; // Close
   }
 
   /**
