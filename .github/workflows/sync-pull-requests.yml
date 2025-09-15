@@ -42,13 +42,19 @@ jobs:
               id: pr-details
               run: |
                   echo "Fetching PR details for PR #${{ env.PR_NUMBER }}"
-                  PR_DATA=$(gh pr view ${{ env.PR_NUMBER }} --json headRefName,title,body,url --jq '{headRefName: .headRefName, title: .title, body: .body, html_url: .url}')
-                  echo "PR Data: $PR_DATA"
-                  echo "data=$PR_DATA" >> $GITHUB_OUTPUT
+                  gh pr view ${{ env.PR_NUMBER }} --json headRefName,title,body,url --jq '{headRefName: .headRefName, title: .title, body: .body, html_url: .url}' > pr_data.json
+                  echo "PR Data: $(cat pr_data.json)"
+                  {
+                    echo "data<<EOF"
+                    cat pr_data.json
+                    echo "EOF"
+                  } >> $GITHUB_OUTPUT
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Configure git and push to target
+              env:
+                  BRANCH_NAME: ${{ fromJSON(steps.pr-details.outputs.data).headRefName }}
               run: |
                   echo "Configuring git..."
                   git config user.email "actions@github.com"
@@ -60,11 +66,10 @@ jobs:
                   git remote add target 'https://github.com/${{ env.TARGET_REPO }}.git'
 
                   echo "Getting branch name from PR details..."
-                  BRANCH_NAME=$(echo '${{ steps.pr-details.outputs.data }}' | jq -r .headRefName)
                   echo "Branch name: $BRANCH_NAME"
 
                   echo "Pushing to target repository..."
-                  git push target HEAD:$BRANCH_NAME
+                  git push target "HEAD:$BRANCH_NAME"
                   echo "Push completed"
 
             - name: Check and create PR if needed
@@ -72,15 +77,13 @@ jobs:
               if: success()
               env:
                   GH_TOKEN: ${{ secrets.GH_COPILOT_ECLIPSE_ORIGIN }}
+                  BRANCH_NAME: ${{ fromJSON(steps.pr-details.outputs.data).headRefName }}
+                  PR_TITLE: ${{ fromJSON(steps.pr-details.outputs.data).title }}
+                  PR_BODY_RAW: ${{ fromJSON(steps.pr-details.outputs.data).body }}
               run: |
                   echo "Processing PR data..."
-                  PR_DATA='${{ steps.pr-details.outputs.data }}'
-                  BRANCH_NAME=$(echo "$PR_DATA" | jq -r .headRefName)
-                  TITLE=$(echo "$PR_DATA" | jq -r .title)
-                  BODY=$(echo "$PR_DATA" | jq -r .body)
-
                   echo "Branch name: $BRANCH_NAME"
-                  echo "PR title: $TITLE"
+                  echo "PR title: $PR_TITLE"
 
                   echo "Checking for existing PR..."
                   EXISTING_PR=$(gh api repos/${{ env.TARGET_REPO }}/pulls --jq ".[] | select(.head.ref == \"$BRANCH_NAME\") | .number")
@@ -89,15 +92,17 @@ jobs:
                   if [ -z "$EXISTING_PR" ]; then
                     echo "No existing PR found. Creating new PR..."
                     echo "Preparing PR body..."
+                    
+                    # Create PR body with proper escaping
                     PR_BODY="Synced from original PR: ${{ github.event.pull_request.html_url || format('https://github.com/{0}/pull/{1}', github.repository, env.PR_NUMBER) }}
 
                     Original Description:
                     -------------------
-                    $BODY"
+                    $PR_BODY_RAW"
                     
                     # Create PR and capture URL
                     PR_URL=$(gh pr create --repo ${{ env.TARGET_REPO }} \
-                      --title "$TITLE" \
+                      --title "$PR_TITLE" \
                       --body "$PR_BODY" \
                       --head "$BRANCH_NAME" \
                       --base ${{ env.TARGET_BRANCH }})
@@ -109,9 +114,10 @@ jobs:
 
             - name: Comment sync status
               if: success() && steps.pr-creation.outputs.pr_url != ''
-              run: |
-                  echo "Adding comment to original PR #${{ env.PR_NUMBER }}"
-                  gh pr comment ${{ env.PR_NUMBER }} --body "✅ PR and commits synced to target repository: ${{ steps.pr-creation.outputs.pr_url }}"
-                  echo "Comment added"
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR_URL: ${{ steps.pr-creation.outputs.pr_url }}
+              run: |
+                  echo "Adding comment to original PR #${{ env.PR_NUMBER }}"
+                  gh pr comment ${{ env.PR_NUMBER }} --body "✅ PR and commits synced to target repository: $PR_URL"
+                  echo "Comment added"

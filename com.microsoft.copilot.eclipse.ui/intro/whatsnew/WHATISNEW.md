@@ -5,11 +5,11 @@ You now have multiple ways to include context files:
 
 #### Drag and Drop
 
-<video controls src="./0.11.0/dnd.mp4" title="Drag and Drop"></video>
+<video controls="true" src="./0.11.0/dnd.mp4" title="Drag and Drop"></video>
 
 #### Right-Click from Explorer
 
-<video controls src="./0.11.0/context_menu.mp4" title="Right-Click from Explorer"></video>
+<video controls="true" src="./0.11.0/context_menu.mp4" title="Right-Click from Explorer"></video>
 
 ---
 
@@ -44,7 +44,7 @@ This opens up exciting possibilities for plugin developers to trigger contextual
 
 Here’s how the Spring Tools plug-in leverages the new API to launch a chat session:
 
-<video controls src="./0.11.0/api.mp4" title="Spring Tools Plug-in Integration"></video>
+<video controls="true" src="./0.11.0/api.mp4" title="Spring Tools Plug-in Integration"></video>
 
 ---
 
