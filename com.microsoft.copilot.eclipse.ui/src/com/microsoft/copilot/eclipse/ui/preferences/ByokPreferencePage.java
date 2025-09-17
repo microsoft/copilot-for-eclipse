@@ -6,7 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
@@ -61,6 +63,11 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
   private Map<String, List<ByokModel>> byProviderModels = new HashMap<>();
 
+  private Map<String, String> byProviderApiKeys = new HashMap<>();
+
+  // used to determine whether remote models are fetched
+  private Set<String> remotelyLoadedProviders = new HashSet<>();
+
   // Track loading providers for provider-specific UI feedback
   private Set<String> loadingProviders = new HashSet<>();
 
@@ -108,6 +115,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     };
     job.setUser(true);
     job.schedule();
+    initializeProviderStates();
   }
 
   /**
@@ -115,7 +123,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
    */
   private void refreshPageData() {
     if (byokService != null) {
-      byokService.loadLocalModels().whenComplete((result, throwable) -> {
+      byokService.refreshData().whenComplete((result, throwable) -> {
         SwtUtils.invokeOnDisplayThreadAsync(() -> {
           setPageLoading(false);
           if (throwable != null) {
@@ -124,6 +132,15 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
           }
         });
       });
+    }
+  }
+
+  private void initializeProviderStates() {
+    for (ByokModelProvider provider : ByokModelProvider.values()) {
+      String providerName = provider.getDisplayName();
+      if (provider == ByokModelProvider.AZURE) {
+        remotelyLoadedProviders.add(providerName);
+      }
     }
   }
 
@@ -303,12 +320,14 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
       updateToggleButtonText();
     });
 
+    // Add tree expansion listener for lazy loading
     viewer.addTreeListener(new ITreeViewerListener() {
       @Override
       public void treeExpanded(TreeExpansionEvent event) {
         Object element = event.getElement();
         if (element instanceof String providerName && byokService != null) {
           expandedProviders.add(providerName);
+          onProviderExpanded(providerName);
         }
       }
 
@@ -472,7 +491,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     String providerName = getSelectedProviderName();
     if (providerName != null) {
       boolean isAzureProvider = ByokModelProvider.isAzure(providerName);
-      canManageApiKey = !isAzureProvider;
+      boolean hasApiKeyForProvider = byProviderApiKeys.containsKey(providerName);
+      canManageApiKey = !isAzureProvider && hasApiKeyForProvider;
     }
     // Change API: enabled when provider is not Azure and has API key
     changeApiButton.setEnabled(canManageApiKey);
@@ -489,30 +509,48 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
     if (viewer != null && !viewer.getControl().isDisposed()) {
       viewer.setInput(byProviderModels);
-      viewer.refresh();
       refreshButtonsEnabled();
     }
   }
 
   // ========================= Data Binding Update Entry Points =========================
   /**
-   * Called by model service to update models display.
+   * Called by service to update models display.
    */
-  public void updateModelsDisplay(List<ByokModel> models) {
+  public void updateModelsDisplay(Map<String, List<ByokModel>> modelsByProvider) {
     if (viewer != null && !viewer.getControl().isDisposed()) {
       byProviderModels.clear();
+      // Prevent UI flicker during bulk update
+      viewer.getControl().setRedraw(false);
       for (ByokModelProvider provider : ByokModelProvider.values()) {
         byProviderModels.put(provider.getDisplayName(), new ArrayList<>());
       }
-      if (models != null) {
-        for (ByokModel model : models) {
-          byProviderModels.computeIfAbsent(model.getProviderName(), k -> new ArrayList<>()).add(model);
+      if (modelsByProvider != null) {
+        for (Map.Entry<String, List<ByokModel>> entry : modelsByProvider.entrySet()) {
+          String providerName = entry.getKey();
+          List<ByokModel> models = entry.getValue();
+          if (models != null) {
+            byProviderModels.computeIfAbsent(providerName, k -> new ArrayList<>()).addAll(models);
+          }
         }
       }
       viewer.setInput(byProviderModels);
-      viewer.refresh();
-      // Restore expansion state after refresh
       restoreExpansionState();
+      // Re-enable drawing after update
+      viewer.getControl().setRedraw(true);
+      refreshButtonsEnabled();
+    }
+  }
+
+  /**
+   * Called by service to update API keys display.
+   */
+  public void updateApiKeysDisplay(Map<String, String> apiKeys) {
+    if (viewer != null && !viewer.getControl().isDisposed()) {
+      byProviderApiKeys.clear();
+      if (apiKeys != null) {
+        byProviderApiKeys.putAll(apiKeys);
+      }
       refreshButtonsEnabled();
     }
   }
@@ -558,7 +596,6 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     }
     if (viewer != null && !viewer.getControl().isDisposed()) {
       viewer.refresh(providerName, true);
-      // Restore expansion state after refresh
       restoreExpansionState();
     }
   }
@@ -641,7 +678,18 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     String providerName = getSelectedProviderName();
 
     if (providerName != null) {
-      if (ByokModelProvider.isAzure(providerName)) {
+      final String finalProviderName = providerName;
+      boolean hasApiKey = byProviderApiKeys.containsKey(providerName);
+      if (!hasApiKey && !ByokModelProvider.isAzure(providerName)) {
+        AddApiKeyDialog apiKeyDialog = new AddApiKeyDialog(getShell(), providerName, apiKey -> {
+          if (apiKey != null && StringUtils.isNotBlank(apiKey) && byokService != null) {
+            executeAsyncProviderOperation(finalProviderName, 
+                byokService.addApiKey(finalProviderName, apiKey), 
+                "Failed to save API key");
+          }
+        });
+        apiKeyDialog.open();
+      } else {
         AddByokModelDialog dialog = new AddByokModelDialog(getShell(), providerName, model -> {
           if (model != null && byokService != null) {
             byokService.saveModel(model).whenComplete((result, throwable) -> {
@@ -751,11 +799,89 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   }
 
   private void onChangeProviderApi() {
-    // TODO: implement change API key logic
+    String providerName = getSelectedProviderName();
+    String apiKey = byProviderApiKeys.get(providerName);
+    if (!ByokModelProvider.isAzure(providerName)) {
+      final String finalProviderName = providerName;
+      if (!showChangeApiConfirmationDialog(finalProviderName)) {
+        return;
+      }
+      AddApiKeyDialog apiKeyDialog = new AddApiKeyDialog(getShell(), providerName, apiKey, newApiKey -> {
+        if (newApiKey != null && !newApiKey.trim().isEmpty() && byokService != null) {
+          executeAsyncProviderOperation(finalProviderName, 
+              byokService.changeApiKey(finalProviderName, newApiKey), 
+              "Failed to update API key");
+        }
+      });
+      apiKeyDialog.open();
+    }
+  }
+
+  private boolean showChangeApiConfirmationDialog(String providerName) {
+    MessageDialog dialog = new MessageDialog(getShell(),
+        String.format(Messages.preferences_page_byok_changeApi_dialog_title, providerName), null,
+        Messages.preferences_page_byok_changeApi_dialog_description, MessageDialog.QUESTION,
+        new String[] { Messages.preferences_page_byok_dialog_yes, Messages.preferences_page_byok_dialog_cancel }, 0);
+    return dialog.open() == 0;
   }
 
   private void onDeleteProviderApi() {
-    // TODO: implement delete API key logic
+    String providerName = getSelectedProviderName();
+
+    final String finalProviderName = providerName;
+
+    if (!ByokModelProvider.isAzure(providerName)) {
+      if (showDeleteApiKeyConfirmationDialog(providerName)) {
+        executeAsyncProviderOperation(finalProviderName, 
+            byokService.deleteApiKey(providerName), 
+            "Failed to delete API key");
+      }
+    }
+  }
+
+  /**
+   * Show confirmation dialog for deleting API key.
+   */
+  private boolean showDeleteApiKeyConfirmationDialog(String providerName) {
+    MessageDialog dialog = new MessageDialog(getShell(),
+        String.format(Messages.preferences_page_byok_deleteApi_dialog_title, providerName), null,
+        Messages.preferences_page_byok_deleteApi_dialog_description, MessageDialog.QUESTION,
+        new String[] { Messages.preferences_page_byok_dialog_delete, Messages.preferences_page_byok_dialog_cancel }, 0);
+    return dialog.open() == 0;
+  }
+
+  private void onProviderExpanded(String providerName) {
+    // If provider is first expanded, need to fetch models for this provider from remote site
+    if (!remotelyLoadedProviders.contains(providerName)) {
+      if (byProviderApiKeys == null || !byProviderApiKeys.containsKey(providerName)) {
+        // No API key for provider, skip loading
+        remotelyLoadedProviders.add(providerName);
+        return;
+      }
+      byokService.reloadProvider(providerName).whenComplete((result, throwable) -> {
+        if (throwable != null) {
+          handleError(throwable.getMessage());
+        }
+      });
+      remotelyLoadedProviders.add(providerName);
+    }
+  }
+
+  /**
+   * Execute an async operation with provider loading state management.
+   */
+  private void executeAsyncProviderOperation(String providerName, 
+      CompletableFuture<Void> operation, String errorMessagePrefix) {
+    setProviderLoading(providerName, true);
+    operation.whenComplete((result, throwable) -> {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        setProviderLoading(providerName, false);
+        if (throwable != null) {
+          CopilotCore.LOGGER.error(errorMessagePrefix + " for " + providerName, throwable);
+          handleError(errorMessagePrefix + ": " + throwable.getMessage());
+        }
+      });
+    });
   }
 
   // ========================= Content Provider =========================
@@ -807,6 +933,11 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
           List<ByokModel> models = page.byProviderModels.get(providerName);
           return models != null && !models.isEmpty();
         }
+        if (!page.remotelyLoadedProviders.contains(providerName)) {
+          return true;
+        }
+        List<ByokModel> models = page.byProviderModels.get(providerName);
+        return models != null && !models.isEmpty();
       }
       return false;
     }

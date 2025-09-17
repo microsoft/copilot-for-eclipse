@@ -41,7 +41,6 @@ public class Messages extends NLS {
   public static String preferences_page_byok_dialog_remove;
   public static String preferences_page_byok_customModels;
   public static String preferences_page_byok_enabledCount;
-  public static String preferences_page_byok_azure_helpLink;
  
   static {
     // initialize resource bundle

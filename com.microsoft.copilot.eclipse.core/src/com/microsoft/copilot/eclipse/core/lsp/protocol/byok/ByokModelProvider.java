@@ -4,7 +4,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
  * Enum representing BYOK model providers.
  */
 public enum ByokModelProvider {
-  AZURE("Azure");
+  AZURE("Azure"),
+  OPENAI("OpenAI");
 
   private final String displayName;
 

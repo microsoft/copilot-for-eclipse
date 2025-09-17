@@ -58,7 +58,7 @@ public class AddByokModelDialog extends TrayDialog {
   @Override
   protected void configureShell(Shell newShell) {
     super.configureShell(newShell);
-    newShell.setText(Messages.preferences_page_byok_addModel_dialog_title);
+    newShell.setText(String.format(Messages.preferences_page_byok_addModel_dialog_title, providerName));
   }
 
   @Override
@@ -112,7 +112,7 @@ public class AddByokModelDialog extends TrayDialog {
   }
 
   private void createAzureSpecificFields(Composite container) {
-    // Deployment URL * (only for Azure)
+    // Deployment URL *
     new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_deploymentUrl);
     deploymentUrlText = new Text(container, SWT.BORDER);
     deploymentUrlText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -139,13 +139,21 @@ public class AddByokModelDialog extends TrayDialog {
     toggleEyeBtn.setImage(eyeClosedImg);
     toggleEyeBtn.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
     toggleEyeBtn.addListener(SWT.Selection, e -> togglePasswordVisibility());
+    toggleEyeBtn.addDisposeListener(e -> {
+      if (eyeOpenImg != null && !eyeOpenImg.isDisposed()) {
+        eyeOpenImg.dispose();
+      }
+      if (eyeClosedImg != null && !eyeClosedImg.isDisposed()) {
+        eyeClosedImg.dispose();
+      }
+    });
   }
 
   /**
    * Get the appropriate help context ID based on the provider.
    */
   private String getHelpContextId() {
-    return "com.microsoft.copilot.eclipse.ui.add_byok_model_dialog_azure";
+    return "com.microsoft.copilot.eclipse.ui.add_byok_model_dialog_" + providerName.toLowerCase();
   }
 
   @Override
@@ -231,17 +239,5 @@ public class AddByokModelDialog extends TrayDialog {
     model.setModelCapabilities(capabilities);
 
     return model;
-  }
-
-  @Override
-  public boolean close() {
-    // Dispose images
-    if (eyeOpenImg != null && !eyeOpenImg.isDisposed()) {
-      eyeOpenImg.dispose();
-    }
-    if (eyeClosedImg != null && !eyeClosedImg.isDisposed()) {
-      eyeClosedImg.dispose();
-    }
-    return super.close();
   }
 }
