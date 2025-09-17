@@ -7,9 +7,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.lsp4e.LSPEclipseUtils;
@@ -142,4 +145,21 @@ public class PlatformUtils {
     return uri != null ? uri.toASCIIString() : "";
   }
 
+  /**
+   * Get the charset name from an IFile, defaulting to UTF-8 if empty or on error.
+   *
+   * @param file the IFile to get charset from
+   * @return the charset name, never null
+   */
+  public static String getFileCharset(IFile file) {
+    try {
+      String charsetName = file.getCharset(true);
+      if (StringUtils.isNotEmpty(charsetName)) {
+        return charsetName;
+      }
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Failed to get charset for file: " + file.getFullPath(), e);
+    }
+    return ResourcesPlugin.getEncoding();
+  }
 }

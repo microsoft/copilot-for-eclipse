@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -30,6 +31,7 @@ import org.eclipse.ui.IWorkbenchPage;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeAction;
@@ -70,7 +72,7 @@ public abstract class FileToolBase extends BaseTool {
       return;
     }
     try (InputStream inputStream = file.getContents()) {
-      String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+      String content = new String(inputStream.readAllBytes(), PlatformUtils.getFileCharset(file));
       fileContentCache.put(file, content);
     } catch (IOException | CoreException e) {
       CopilotCore.LOGGER.error("Error caching original file content", e);
@@ -215,7 +217,7 @@ public abstract class FileToolBase extends BaseTool {
         setTitle(Messages.agent_tool_compareEditor_titlePrefix + file.getName());
         // Keep proposedChanges virtual file's name and type same as the originalFile original file's name and type
         EditableStringCompareInput proposedChanges = new EditableStringCompareInput(comparedContent, file.getName(),
-            file.getFileExtension());
+            file.getFileExtension(), PlatformUtils.getFileCharset(file));
         EditableFileCompareInput originalFile = new EditableFileCompareInput(file);
 
         // Create a diff node with proper configuration for text comparison
@@ -343,6 +345,7 @@ public abstract class FileToolBase extends BaseTool {
     private String content;
     private String name;
     private String type;
+    private String charset;
 
     /**
      * Constructor for EditableStringCompareInput.
@@ -351,10 +354,11 @@ public abstract class FileToolBase extends BaseTool {
      * @param name The name of the string.
      * @param type The type of the file, should be same as the compared file type.
      */
-    public EditableStringCompareInput(String content, String name, String type) {
+    public EditableStringCompareInput(String content, String name, String type, String charset) {
       this.content = content;
       this.name = name;
       this.type = type;
+      this.charset = charset;
     }
 
     @Override
@@ -374,7 +378,14 @@ public abstract class FileToolBase extends BaseTool {
 
     @Override
     public InputStream getContents() throws CoreException {
-      return new ByteArrayInputStream(content == null ? new byte[0] : content.getBytes(StandardCharsets.UTF_8));
+      if (content == null) {
+        return new ByteArrayInputStream(new byte[0]);
+      }
+      try {
+        return new ByteArrayInputStream(content.getBytes(charset));
+      } catch (UnsupportedEncodingException e) {
+        return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+      }
     }
 
     @Override
@@ -384,14 +395,23 @@ public abstract class FileToolBase extends BaseTool {
 
     @Override
     public void setContent(byte[] newContent) {
-      content = new String(newContent, StandardCharsets.UTF_8);
+      try {
+        content = new String(newContent, charset);
+      } catch (UnsupportedEncodingException e) {
+        content = new String(newContent, StandardCharsets.UTF_8);
+      }
     }
 
     @Override
     public ITypedElement replace(ITypedElement dest, ITypedElement src) {
       if (src instanceof IStreamContentAccessor sca) {
         try (InputStream is = sca.getContents()) {
-          content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+          try {
+            content = new String(is.readAllBytes(), charset);
+          } catch (UnsupportedEncodingException e) {
+            // Fallback to UTF-8 if charset is invalid
+            content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+          }
         } catch (IOException | CoreException e) {
           CopilotCore.LOGGER.error("Error occurred while replacing string content", e);
         }

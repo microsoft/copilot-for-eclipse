@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
@@ -147,9 +149,7 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
 
   private void applyChangesToFile(String changedContent, IFile file) {
     try {
-
-      // Convert the string content to an input stream
-      ByteArrayInputStream inputStream = new ByteArrayInputStream(changedContent.getBytes(StandardCharsets.UTF_8));
+      ByteArrayInputStream inputStream = getInputStream(changedContent, file);
 
       // Set the file contents
       file.setContents(inputStream, true, true, new NullProgressMonitor());
@@ -162,6 +162,18 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
     } catch (CoreException | IOException e) {
       CopilotCore.LOGGER.error("Error replacing file content", e);
     }
+  }
+
+  private ByteArrayInputStream getInputStream(String changedContent, IFile file) {
+    ByteArrayInputStream inputStream;
+    try {
+      inputStream = new ByteArrayInputStream(changedContent.getBytes(PlatformUtils.getFileCharset(file)));
+    } catch (UnsupportedEncodingException e) {
+      // Fallback to UTF-8 if the file charset is not supported
+      CopilotCore.LOGGER.error("Unsupported encoding for file " + file.getFullPath() + ", falling back to UTF-8", e);
+      inputStream = new ByteArrayInputStream(changedContent.getBytes(StandardCharsets.UTF_8));
+    }
+    return inputStream;
   }
 
   @Override
