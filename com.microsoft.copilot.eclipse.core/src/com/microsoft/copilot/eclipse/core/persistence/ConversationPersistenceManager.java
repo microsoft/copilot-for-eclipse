@@ -27,6 +27,9 @@ public class ConversationPersistenceManager {
   private final ConversationDataFactory dataFactory;
   private final Map<String, ConversationData> conversationCache;
 
+  // Maximum number of conversations to keep persisted
+  private static final int MAX_PERSISTED_CONVERSATIONS = 256;
+
   /**
    * Constructor for ConversationPersistenceManager.
    *
@@ -90,19 +93,22 @@ public class ConversationPersistenceManager {
    * @param newConversationId the new conversation ID to assign
    * @param historyConversationId the ID of the history record to update
    */
-  public void updateConversationIdToHistoryRecord(String newConversationId, String historyConversationId) {
-    ConversationData conversation = conversationCache.get(historyConversationId);
-    if (conversation == null) {
-      return;
-    }
-    conversationCache.remove(historyConversationId);
-    conversation.setConversationId(newConversationId);
-    conversationCache.put(newConversationId, conversation);
-    try {
-      persistenceService.updatePersistedConversationId(historyConversationId, newConversationId);
-    } catch (IOException e) {
-      CopilotCore.LOGGER.error("Failed to update conversation ID for history record: " + historyConversationId, e);
-    }
+  public CompletableFuture<Void> updateConversationIdToHistoryRecord(String newConversationId,
+      String historyConversationId) {
+    return CompletableFuture.runAsync(() -> {
+      ConversationData conversation = conversationCache.get(historyConversationId);
+      if (conversation == null) {
+        return;
+      }
+      conversationCache.remove(historyConversationId);
+      conversation.setConversationId(newConversationId);
+      conversationCache.put(newConversationId, conversation);
+      try {
+        persistenceService.updatePersistedConversationId(historyConversationId, newConversationId);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to update conversation ID for history record: " + historyConversationId, e);
+      }
+    });
   }
 
   /**
@@ -166,9 +172,12 @@ public class ConversationPersistenceManager {
   public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress) {
     return CompletableFuture.runAsync(() -> {
       try {
-        ConversationData conversationData = updateConversationProgress(conversationId, progress);
+        ConversationData conversationData = updateConversationProgress(conversationId, progress).get();
         conversationCache.put(conversationId, conversationData);
-      } catch (IOException e) {
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        CopilotCore.LOGGER.error("Thread was interrupted while caching conversation progress: " + conversationId, e);
+      } catch (Exception e) {
         CopilotCore.LOGGER.error("Failed to cache conversation progress: " + conversationId, e);
       }
     });
@@ -180,9 +189,11 @@ public class ConversationPersistenceManager {
   public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress) {
     return CompletableFuture.runAsync(() -> {
       try {
-        ConversationData conversationData = updateConversationProgress(conversationId, progress);
+        ConversationData conversationData = updateConversationProgress(conversationId, progress).get();
         persistAndCacheConversation(conversationData);
       } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to persist conversation progress: " + conversationId, e);
+      } catch (Exception e) {
         CopilotCore.LOGGER.error("Failed to persist conversation progress: " + conversationId, e);
       }
     });
@@ -207,23 +218,30 @@ public class ConversationPersistenceManager {
   /**
    * Updates a conversation with progress data. This method is synchronous and handles all IO operations internally.
    */
-  public ConversationData updateConversationProgress(String conversationId, ChatProgressValue progress)
-      throws IOException {
-    ConversationData conversationData = getOrCreateNewConversationById(conversationId);
+  public CompletableFuture<ConversationData> updateConversationProgress(String conversationId,
+      ChatProgressValue progress) {
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        ConversationData conversationData = getOrCreateNewConversationById(conversationId);
 
-    // Update conversation metadata using factory
-    dataFactory.updateConversationMetadata(conversationData, progress);
+        // Update conversation metadata using factory
+        dataFactory.updateConversationMetadata(conversationData, progress);
 
-    // Find or create turn and update it
-    CopilotTurnData copilotTurnData = findOrCreateCopilotTurn(conversationData, progress.getTurnId());
-    dataFactory.updateReplyFromProgress(copilotTurnData.getReply(), progress);
+        // Find or create turn and update it
+        CopilotTurnData copilotTurnData = findOrCreateCopilotTurn(conversationData, progress.getTurnId());
+        dataFactory.updateReplyFromProgress(copilotTurnData.getReply(), progress);
 
-    // Update suggested title in CopilotTurnData if present
-    if (StringUtils.isNotBlank(progress.getSuggestedTitle())) {
-      copilotTurnData.setSuggestedTitle(progress.getSuggestedTitle());
-    }
+        // Update suggested title in CopilotTurnData if present
+        if (StringUtils.isNotBlank(progress.getSuggestedTitle())) {
+          copilotTurnData.setSuggestedTitle(progress.getSuggestedTitle());
+        }
 
-    return conversationData;
+        return conversationData;
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to update conversation progress: " + conversationId, e);
+        throw new RuntimeException("Failed to update conversation progress", e);
+      }
+    });
   }
 
   private UserTurnData findOrCreateUserTurn(ConversationData conversation, String turnId) {
@@ -277,6 +295,9 @@ public class ConversationPersistenceManager {
       // treat as missing and create below
     }
 
+    // Check conversation count and remove oldest if needed before creating new one
+    enforceConversationHistoryLimit();
+
     ConversationData newConversation = dataFactory.createConversationData(conversationId);
 
     // must persist conversation and index here to make sure conversation title and last message date is up to date.
@@ -284,9 +305,87 @@ public class ConversationPersistenceManager {
     return newConversation;
   }
 
+  /**
+   * Enforces the conversation history limit by removing the oldest conversations when the count exceeds
+   * MAX_PERSISTED_CONVERSATIONS.
+   */
+  private void enforceConversationHistoryLimit() {
+    try {
+      List<ConversationXmlData> allConversations = persistenceService.listConversations();
+
+      if (allConversations.size() >= MAX_PERSISTED_CONVERSATIONS) {
+        allConversations.sort((a, b) -> {
+          if (a.getLastMessageDate() == null && b.getLastMessageDate() == null) {
+            return 0;
+          }
+          if (a.getLastMessageDate() == null) {
+            return -1; // null dates are considered oldest
+          }
+          if (b.getLastMessageDate() == null) {
+            return 1;
+          }
+          return a.getLastMessageDate().compareTo(b.getLastMessageDate());
+        });
+
+        int conversationsToRemove = allConversations.size() - MAX_PERSISTED_CONVERSATIONS + 1;
+
+        for (int i = 0; i < conversationsToRemove && i < allConversations.size(); i++) {
+          ConversationXmlData oldestConversation = allConversations.get(i);
+          String conversationIdToRemove = oldestConversation.getConversationId();
+
+          try {
+            persistenceService.deleteConversation(conversationIdToRemove);
+            conversationCache.remove(conversationIdToRemove);
+            CopilotCore.LOGGER.info("Removed oldest conversation to maintain history limit: " + conversationIdToRemove);
+          } catch (IOException e) {
+            CopilotCore.LOGGER.error("Failed to delete oldest conversation: " + conversationIdToRemove, e);
+          }
+        }
+      }
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to enforce conversation history limit", e);
+    }
+  }
+
   private void persistAndCacheConversation(ConversationData conversation) throws IOException {
     persistenceService.saveConversation(conversation);
     conversationCache.put(conversation.getConversationId(), conversation);
+  }
+
+  /**
+   * Removes a conversation by ID from both disk and in-memory cache.
+   *
+   * @param conversationId the ID of the conversation to remove
+   */
+  public CompletableFuture<Void> removeConversationById(String conversationId) {
+    return CompletableFuture.runAsync(() -> {
+      try {
+        persistenceService.deleteConversation(conversationId);
+        conversationCache.remove(conversationId);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to delete conversation: " + conversationId, e);
+      }
+    });
+  }
+
+  /**
+   * Updates the title of a conversation and persists the change to disk.
+   *
+   * @param conversationId the ID of the conversation to update
+   * @param newTitle the new title to set
+   */
+  public CompletableFuture<Void> updateConversationTitle(String conversationId, String newTitle) {
+    return CompletableFuture.runAsync(() -> {
+      try {
+        ConversationData conversation = getConversationFromCacheOrLoadFromDisk(conversationId);
+        if (conversation != null) {
+          conversation.setTitle(newTitle);
+          persistAndCacheConversation(conversation);
+        }
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to update conversation title: " + conversationId, e);
+      }
+    });
   }
 
   /**

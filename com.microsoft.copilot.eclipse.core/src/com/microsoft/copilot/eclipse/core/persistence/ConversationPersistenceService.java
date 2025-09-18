@@ -225,27 +225,45 @@ public class ConversationPersistenceService {
   /** Loads the existing index document or creates a new one for the given user. */
   private Document loadOrCreateIndexDocument(String username)
       throws ParserConfigurationException, SAXException, IOException {
+    Path indexPath = getXmlIndexFilePath(username);
+    if (Files.exists(indexPath)) {
+      return loadIndexDocument(username);
+    } else {
+      return createIndexDocument(username);
+    }
+  }
+
+  /** Loads an existing index document for the given user. */
+  private Document loadIndexDocument(String username) throws ParserConfigurationException, SAXException, IOException {
+    DocumentBuilder builder = createSecureDocumentBuilder();
+
+    Path indexPath = getXmlIndexFilePath(username);
+    try (FileInputStream fis = new FileInputStream(indexPath.toFile())) {
+      Document doc = builder.parse(fis);
+      doc.normalize();
+      return doc;
+    }
+  }
+
+  /** Creates a new index document for the given user. */
+  private Document createIndexDocument(String username) throws ParserConfigurationException {
+    DocumentBuilder builder = createSecureDocumentBuilder();
+
+    Document doc = builder.newDocument();
+    Element root = doc.createElement(ELEMENT_USER);
+    if (StringUtils.isNotBlank(username)) {
+      root.setAttribute(ATTR_USERNAME, username);
+    }
+    doc.appendChild(root);
+    return doc;
+  }
+
+  /** Creates a DocumentBuilder with secure configuration. */
+  private DocumentBuilder createSecureDocumentBuilder() throws ParserConfigurationException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setIgnoringElementContentWhitespace(true);
     factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-    DocumentBuilder builder = factory.newDocumentBuilder();
-
-    Path indexPath = getXmlIndexFilePath(username);
-    if (Files.exists(indexPath)) {
-      try (FileInputStream fis = new FileInputStream(indexPath.toFile())) {
-        Document doc = builder.parse(fis);
-        doc.normalize();
-        return doc;
-      }
-    } else {
-      Document doc = builder.newDocument();
-      Element root = doc.createElement(ELEMENT_USER);
-      if (StringUtils.isNotBlank(username)) {
-        root.setAttribute(ATTR_USERNAME, username);
-      }
-      doc.appendChild(root);
-      return doc;
-    }
+    return factory.newDocumentBuilder();
   }
 
   /** Saves the index document to file for the given user. */
@@ -443,6 +461,51 @@ public class ConversationPersistenceService {
       return gson.fromJson(json, ConversationData.class);
     } catch (JsonSyntaxException e) {
       throw new JsonSyntaxException("Failed to load conversation: " + conversationId, e);
+    }
+  }
+
+  /**
+   * Deletes a conversation by ID, removing both the JSON file and its entry in the index.
+   */
+  protected void deleteConversation(String conversationId) throws IOException {
+    String username = authStatusManager.getUserName();
+    if (StringUtils.isBlank(username) || StringUtils.isBlank(conversationId)) {
+      return;
+    }
+
+    // Delete the conversation JSON file
+    Path conversationFilePath = getConversationFilePath(conversationId, username);
+    if (Files.exists(conversationFilePath)) {
+      Files.delete(conversationFilePath);
+    }
+
+    // Update the index XML file
+    Path indexPath = getXmlIndexFilePath(username);
+    if (!Files.exists(indexPath)) {
+      return;
+    }
+
+    try {
+      Document doc = loadIndexDocument(username);
+      if (doc == null) {
+        return;
+      }
+
+      Element userElement = getUserElement(doc, username, false);
+      if (userElement != null) {
+        Element conversationsElement = findChildElement(userElement, ELEMENT_CONVERSATIONS);
+        if (conversationsElement != null) {
+          Element conversationElement = findConversationElement(conversationsElement, conversationId);
+          if (conversationElement != null) {
+            conversationsElement.removeChild(conversationElement);
+            saveIndexDocument(doc, username);
+          }
+        }
+      }
+    } catch (ParserConfigurationException | SAXException | IOException e) {
+      throw new IOException("Failed to delete conversation from index", e);
+    } catch (TransformerException e) {
+      throw new IOException("Failed to save updated conversation index document", e);
     }
   }
 

@@ -81,6 +81,11 @@ public class CopilotEventConstants {
   public static final String TOPIC_CHAT_HISTORY_CONVERSATION_SELECTED = TOPIC_CHAT + "HISTORY_CONVERSATION_SELECTED";
 
   /**
+   * Event when a conversation title is updated.
+   */
+  public static final String TOPIC_CHAT_CONVERSATION_TITLE_UPDATED = TOPIC_CHAT + "CONVERSATION_TITLE_UPDATED";
+
+  /**
    * Event when BYOK models are updated.
    */
   public static final String TOPIC_CHAT_BYOK_MODELS_UPDATED = TOPIC_CHAT + "BYOK_MODELS_UPDATED";

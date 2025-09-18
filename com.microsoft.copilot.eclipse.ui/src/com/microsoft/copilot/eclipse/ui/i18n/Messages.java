@@ -210,7 +210,12 @@ public final class Messages extends NLS {
   public static String chat_historyView_dateFormat_daysAgo;
   public static String chat_historyView_dateFormat_oneWeekAgo;
   public static String chat_historyView_dateFormat_weeksAgo;
+  public static String chat_historyView_dateFormat_oneMonthAgo;
+  public static String chat_historyView_dateFormat_monthsAgo;
   public static String chat_historyView_textTruncation_ellipsis;
+  public static String chat_historyView_enterIcon_tooltip;
+  public static String chat_historyView_editIcon_tooltip;
+  public static String chat_historyView_deleteIcon_tooltip;
 
   static {
     // initialize resource bundle

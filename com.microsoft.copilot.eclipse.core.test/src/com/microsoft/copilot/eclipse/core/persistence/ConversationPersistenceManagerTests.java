@@ -117,7 +117,7 @@ class ConversationPersistenceManagerTests {
     var cache = (Map<String, ConversationData>) cacheField.get(persistenceManager);
     cache.put(historyConversationId, conversationData);
 
-    persistenceManager.updateConversationIdToHistoryRecord(newConversationId, historyConversationId);
+    persistenceManager.updateConversationIdToHistoryRecord(newConversationId, historyConversationId).get();
 
     assertNull(cache.get(historyConversationId));
     assertNotNull(cache.get(newConversationId));
@@ -215,13 +215,13 @@ class ConversationPersistenceManagerTests {
     String conversationId = "00000000-0000-0000-0000-000000000001";
     ChatProgressValue progress = createTestChatProgressValue();
     ConversationData newConversationData = createTestConversationData(conversationId);
-    CopilotTurnData copilotTurnData = createTestCopilotTurnData(progress.getTurnId());
+    createTestCopilotTurnData(progress.getTurnId());
 
     when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId))
         .thenThrow(new IOException("File not found"));
     when(mockDataFactory.createConversationData(conversationId)).thenReturn(newConversationData);
 
-    ConversationData result = persistenceManager.updateConversationProgress(conversationId, progress);
+    ConversationData result = persistenceManager.updateConversationProgress(conversationId, progress).get();
 
     assertNotNull(result);
     assertEquals(conversationId, result.getConversationId());

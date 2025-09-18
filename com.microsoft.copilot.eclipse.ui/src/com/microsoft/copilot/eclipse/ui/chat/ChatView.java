@@ -5,9 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
@@ -231,6 +230,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }, contentWrapper);
         return null;
       });
+    });
+
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CONVERSATION_TITLE_UPDATED, event -> {
+      Object titleData = event.getProperty(IEventBroker.DATA);
+      if (titleData instanceof String newTitle && StringUtils.isNotEmpty(newTitle) && topBanner != null
+          && !topBanner.isDisposed()) {
+        topBanner.updateTitle(newTitle);
+      }
     });
   }
 
@@ -509,7 +516,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         String newConversationId = value.getConversationId();
 
         // Update persistence based on conversation state
-        persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId);
+        try {
+          persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId).get();
+        } catch (InterruptedException | ExecutionException e) {
+          CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
+        }
 
         // Set the new conversation ID and update state
         this.conversationId = newConversationId;
@@ -633,7 +644,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createConversationFuture.thenAccept(result -> {
         // Update the temporary conversation ID to the real conversation ID returned by the server
         String newConversationId = result.getConversationId();
-        persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId);
+        try {
+          persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId).get();
+        } catch (InterruptedException | ExecutionException e) {
+          CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
+        }
       }).exceptionally(th -> {
         if (!ConversationUtils.isConversationCancellationThrowable(th)) {
           CopilotCore.LOGGER.error("Error creating new conversation with exception: ", th);
