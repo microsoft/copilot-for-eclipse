@@ -24,9 +24,17 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class InvokeToolConfirmationDialog extends Composite {
 
+  /**
+   * The key for the explanation in the input map.
+   */
+  private static final String EXPLANATION_KEY = "explanation";
+
+  /**
+   * The key for the command in the input map.
+   */
+  private static final String COMMAND_KEY = "command";
   private CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture;
   private String cancelMessage;
-  private Font boldFont;
 
   /**
    * Create a new confirmation dialog for tool execution.
@@ -51,7 +59,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     Label titleLbl = new Label(this, SWT.LEFT | SWT.WRAP);
     titleLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     titleLbl.setText(title);
-    this.boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
+    Font boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
     titleLbl.setFont(boldFont);
     titleLbl.addDisposeListener(e -> {
       boldFont.dispose();
@@ -67,18 +75,22 @@ public class InvokeToolConfirmationDialog extends Composite {
       // TODO: Improve the logic to show more information about the tool invocation when confirm with users. The
       // following code only works for the run in terminal tool.
       Map<String, Object> inputMap = (Map<String, Object>) input;
-      if (inputMap.containsKey("command")) {
+      if (inputMap.containsKey(COMMAND_KEY)) {
         Label commandLbl = new Label(this, SWT.LEFT | SWT.WRAP);
         commandLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
-        commandLbl.setText((String) inputMap.get("command"));
+        String command = (String) inputMap.get(COMMAND_KEY);
+        // Escape & characters that are followed by non-space characters, needed for SWT labels where & is used as a
+        // mnemonic character
+        String escapedCommand = command.replace("&", "&&");
+        commandLbl.setText(escapedCommand);
         commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
-        this.cancelMessage = (String) inputMap.get("command");
+        this.cancelMessage = escapedCommand;
       }
 
-      if (inputMap.containsKey("explanation")) {
+      if (inputMap.containsKey(EXPLANATION_KEY)) {
         Label explanationLbl = new Label(this, SWT.LEFT | SWT.WRAP);
         explanationLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        explanationLbl.setText((String) inputMap.get("explanation"));
+        explanationLbl.setText((String) inputMap.get(EXPLANATION_KEY));
       }
     }
 
