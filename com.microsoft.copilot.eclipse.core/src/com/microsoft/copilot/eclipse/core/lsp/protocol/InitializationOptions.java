@@ -17,6 +17,8 @@ public class InitializationOptions {
 
   private CopilotCapabilities copilotCapabilities;
 
+  private String githubAppId = "Ov23liV9UpD7Rnfnskm3"; // OAuth app ID for Copilot plugin, this should not be changed.
+
   /**
    * Creates a new InitializationOptions.
    */
@@ -67,12 +69,13 @@ public class InitializationOptions {
     builder.add("editorInfo", editorInfo);
     builder.add("editorPluginInfo", editorPluginInfo);
     builder.add("copilotCapabilities", copilotCapabilities);
+    builder.add("githubAppId", githubAppId);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(copilotCapabilities, editorInfo, editorPluginInfo);
+    return Objects.hash(copilotCapabilities, editorInfo, editorPluginInfo, githubAppId);
   }
 
   @Override
@@ -88,6 +91,7 @@ public class InitializationOptions {
     }
     InitializationOptions other = (InitializationOptions) obj;
     return Objects.equals(copilotCapabilities, other.copilotCapabilities)
-        && Objects.equals(editorInfo, other.editorInfo) && Objects.equals(editorPluginInfo, other.editorPluginInfo);
+        && Objects.equals(editorInfo, other.editorInfo) && Objects.equals(editorPluginInfo, other.editorPluginInfo)
+        && Objects.equals(githubAppId, other.githubAppId);
   }
 }
