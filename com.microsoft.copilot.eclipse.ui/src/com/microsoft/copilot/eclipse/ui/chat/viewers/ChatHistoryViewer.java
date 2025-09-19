@@ -12,6 +12,7 @@ import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
@@ -53,7 +54,6 @@ public class ChatHistoryViewer extends Composite {
   private String currentConversationId;
   private IStylingEngine stylingEngine;
   private final Cursor handCursor;
-  private int labelAvaliableWidthWithoutCurrentAndDateLabel;
 
   /**
    * Create the chat history viewer.
@@ -72,7 +72,6 @@ public class ChatHistoryViewer extends Composite {
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
     this.currentConversationId = currentConversationId;
-    this.labelAvaliableWidthWithoutCurrentAndDateLabel = 0;
 
     // Assign CSS id for styling
     this.setData(CssConstants.CSS_ID_KEY, "chat-history-viewer");
@@ -239,7 +238,7 @@ public class ChatHistoryViewer extends Composite {
     // Three columns: [leftStack(title + optional "(Current)")] [date] [actionsComposite]
     GridLayout conversationLayout = new GridLayout(3, false);
     conversationLayout.marginWidth = 5;
-    conversationLayout.marginHeight = 5;
+    conversationLayout.marginHeight = 2;
     conversationLayout.horizontalSpacing = 5;
     Composite conversationItem = new Composite(parent, SWT.NONE);
     conversationItem.setLayout(conversationLayout);
@@ -272,34 +271,40 @@ public class ChatHistoryViewer extends Composite {
       });
     }
 
-    // Left stack: [title][(Current)]
+    // Left stack: [title][(Current) (actions)]
     GridLayout leftLayout = new GridLayout(2, false);
     leftLayout.marginHeight = 0;
     leftLayout.marginWidth = 0;
     leftLayout.horizontalSpacing = 5;
     Composite leftStack = new Composite(conversationItem, SWT.NONE);
     leftStack.setLayout(leftLayout);
-    leftStack.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    leftStack.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
-    // Title label/editor composite - this will switch between label and text editor with enter icon
-    GridLayout titleLayout = new GridLayout(2, false); // 2 columns for text editor + enter icon
+    GridLayout titleLayout = new GridLayout(2, false);
     titleLayout.marginHeight = 0;
     titleLayout.marginWidth = 0;
+    titleLayout.horizontalSpacing = 5;
     Composite titleComposite = new Composite(leftStack, SWT.NONE);
     titleComposite.setLayout(titleLayout);
-    titleComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+    titleComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
     // Title label (initially visible)
-    Label titleLabel = new Label(titleComposite, SWT.NONE);
+    CLabel titleLabel = new CLabel(titleComposite, SWT.NONE);
     titleLabel.setText(title);
-    // Store original title for truncation restoration
-    titleLabel.setData("originalTitle", title);
-    GridData titleLabelData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-    titleLabelData.horizontalSpan = 2; // Span both columns when label is visible
+    GridData titleLabelData = new GridData(SWT.LEFT, SWT.CENTER, true, false);
     titleLabel.setLayoutData(titleLabelData);
 
+    // Optional "(Current)" label
+    Label currentLabel = null;
+    if (isCurrent) {
+      currentLabel = new Label(titleComposite, SWT.NONE);
+      currentLabel.setText(Messages.chat_topBanner_chatHistoryItem_currentConversation_label);
+      currentLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+      applyCssClass(currentLabel, "chat-history-item-current-label");
+    }
+
     // Title text editor (initially hidden)
-    Text titleEditor = new Text(titleComposite, SWT.SINGLE | SWT.BORDER);
+    Text titleEditor = new Text(leftStack, SWT.SINGLE | SWT.BORDER);
     titleEditor.setText(title);
     GridData editorData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     editorData.exclude = true;
@@ -307,7 +312,7 @@ public class ChatHistoryViewer extends Composite {
     titleEditor.setVisible(false);
 
     // Enter icon (initially hidden, shown only when editor is visible)
-    Label enterIcon = new Label(titleComposite, SWT.NONE);
+    Label enterIcon = new Label(leftStack, SWT.NONE);
     Image enterImage = UiUtils.buildImageFromPngPath("/icons/chat/enter.png");
     enterIcon.setImage(enterImage);
     enterIcon.setToolTipText(Messages.chat_historyView_enterIcon_tooltip);
@@ -316,23 +321,10 @@ public class ChatHistoryViewer extends Composite {
     enterIcon.setLayoutData(enterIconData);
     enterIcon.setVisible(false);
 
-    // Optional "(Current)" label
-    Label currentLabel = new Label(leftStack, SWT.NONE);
-    if (isCurrent) {
-      currentLabel.setText(Messages.chat_topBanner_chatHistoryItem_currentConversation_label);
-      applyCssClass(currentLabel, "chat-history-item-current-label");
-      currentLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
-    } else {
-      GridData gd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-      gd.exclude = true;
-      currentLabel.setLayoutData(gd);
-      currentLabel.setVisible(false);
-    }
-
     // Date label (right-aligned)
     Label dateLabel = new Label(conversationItem, SWT.NONE);
     dateLabel.setText(dateStr);
-    GridData dateData = new GridData(SWT.END, SWT.CENTER, false, false);
+    GridData dateData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
     dateLabel.setLayoutData(dateData);
     applyCssClass(dateLabel, "chat-history-item-date-label");
 
@@ -340,19 +332,18 @@ public class ChatHistoryViewer extends Composite {
     Composite actionsComposite = createActionsComposite(conversationItem, conversation, titleLabel, titleEditor,
         titleComposite, enterIcon);
 
-    // Add resize listener to handle title text truncation
-    addTitleTruncationListener(conversationItem, titleLabel, currentLabel, dateLabel, isCurrent);
-
     Listener sharedClickListener = createConversationClickListener(conversation);
     HoverListeners hoverListeners = createConversationHoverListeners(conversationItem, isCurrent, actionsComposite,
-        titleComposite, conversation);
+        leftStack, conversation);
 
     // Apply listeners to all relevant controls at once
-    Control[] clickableControls = { conversationItem, leftStack, titleLabel, currentLabel, dateLabel };
+    Control[] clickableControls = { conversationItem, leftStack, titleComposite, titleLabel, currentLabel, dateLabel };
     for (Control control : clickableControls) {
-      control.addListener(SWT.MouseDown, sharedClickListener);
-      control.addListener(SWT.MouseEnter, hoverListeners.enterListener);
-      control.addListener(SWT.MouseExit, hoverListeners.exitListener);
+      if (control != null) {
+        control.addListener(SWT.MouseDown, sharedClickListener);
+        control.addListener(SWT.MouseEnter, hoverListeners.enterListener);
+        control.addListener(SWT.MouseExit, hoverListeners.exitListener);
+      }
     }
 
     // Add hover listeners to actions composite and its children
@@ -456,10 +447,13 @@ public class ChatHistoryViewer extends Composite {
 
   // Extract edit mode check to reduce code duplication
   private boolean isInEditMode(Composite titleComposite) {
-    Control[] titleChildren = titleComposite.getChildren();
-    if (titleChildren.length > 1) {
-      Text titleEditor = (Text) titleChildren[1];
-      return titleEditor.getVisible();
+    for (Control child : titleComposite.getChildren()) {
+      if (child.isDisposed()) {
+        continue;
+      }
+      if (child instanceof Text titleEditor) {
+        return titleEditor.getVisible();
+      }
     }
     return false;
   }
@@ -502,175 +496,9 @@ public class ChatHistoryViewer extends Composite {
   }
 
   /**
-   * Add a resize listener to handle title text truncation when the avaiLabel width is insufficient.
-   */
-  private void addTitleTruncationListener(Composite conversationItem, Label titleLabel, Label currentLabel,
-      Label dateLabel, boolean isCurrent) {
-    conversationItem.addControlListener(new ControlAdapter() {
-      @Override
-      public void controlResized(ControlEvent e) {
-        if (conversationItem.isDisposed() || titleLabel.isDisposed()) {
-          return;
-        }
-
-        updateTitleText(conversationItem, titleLabel, currentLabel, dateLabel, isCurrent);
-      }
-    });
-
-    // Initial call to set the text properly on creation
-    conversationItem.getDisplay().asyncExec(() -> {
-      if (!conversationItem.isDisposed() && !titleLabel.isDisposed()) {
-        updateTitleText(conversationItem, titleLabel, currentLabel, dateLabel, isCurrent);
-      }
-    });
-  }
-
-  // Optimize title truncation by caching measurements
-  private void updateTitleText(Composite conversationItem, Label titleLabel, Label currentLabel, Label dateLabel,
-      boolean isCurrent) {
-
-    if (conversationItem.isDisposed() || titleLabel.isDisposed()) {
-      return;
-    }
-
-    GC gc = new GC(titleLabel);
-    try {
-      int avaiLabelWidth = calculateAvaiLabelWidth(conversationItem, dateLabel, currentLabel, isCurrent, gc);
-
-      if (avaiLabelWidth <= 0) {
-        titleLabel.setText(Messages.chat_historyView_textTruncation_ellipsis);
-        return;
-      }
-
-      String originalTitle = (String) titleLabel.getData("originalTitle");
-      if (originalTitle == null) {
-        originalTitle = titleLabel.getText();
-        titleLabel.setData("originalTitle", originalTitle); // Cache for future use
-      }
-
-      // Early return if title fits
-      int originalWidth = gc.textExtent(originalTitle).x;
-      if (originalWidth <= avaiLabelWidth) {
-        if (!titleLabel.getText().equals(originalTitle)) {
-          titleLabel.setText(originalTitle);
-        }
-        return;
-      }
-
-      // Optimize truncation logic
-      String ellipsis = Messages.chat_historyView_textTruncation_ellipsis;
-      int ellipsisWidth = gc.textExtent(ellipsis).x;
-      int maxTextWidth = avaiLabelWidth - ellipsisWidth;
-
-      if (maxTextWidth <= 0) {
-        titleLabel.setText(ellipsis);
-        return;
-      }
-
-      // Use more efficient character-by-character approach for short titles
-      if (originalTitle.length() < 16) {
-        String truncated = truncateByCharacter(gc, originalTitle, maxTextWidth);
-        titleLabel.setText(truncated + ellipsis);
-      } else {
-        // Use binary search for longer titles
-        String truncated = truncateByBinarySearch(gc, originalTitle, maxTextWidth);
-        titleLabel.setText(truncated + ellipsis);
-      }
-
-    } finally {
-      gc.dispose();
-    }
-  }
-
-  /**
-   * Calculate the avaiLabel width for the title text based on the conversation item layout.
-   */
-  private int calculateAvaiLabelWidth(Composite conversationItem, Label dateLabel, Label currentLabel,
-      boolean isCurrent, GC gc) {
-
-    boolean isEmptyDateLabel = gc.textExtent(dateLabel.getText()).x == 0;
-
-    // For non-current conversations with empty date labels, use cached or calculate basic width
-    if (!isCurrent && isEmptyDateLabel) {
-      if (labelAvaliableWidthWithoutCurrentAndDateLabel == 0) {
-        return calculateBasicAvaiLabelWidth(conversationItem);
-      } else {
-        return labelAvaliableWidthWithoutCurrentAndDateLabel;
-      }
-    }
-
-    // Calculate avaiLabel width considering all elements
-    return calculateFullAvaiLabelWidth(conversationItem, dateLabel, currentLabel, isCurrent, gc);
-  }
-
-  /**
-   * Calculate basic avaiLabel width without considering date and current labels.
-   */
-  private int calculateBasicAvaiLabelWidth(Composite conversationItem) {
-    int conversationItemWidth = conversationItem.getClientArea().width;
-    int margins = 10;
-    int extraPadding = 20;
-    return conversationItemWidth - margins - extraPadding;
-  }
-
-  /**
-   * Calculate avaiLabel width considering date label and current label.
-   */
-  private int calculateFullAvaiLabelWidth(Composite conversationItem, Label dateLabel, Label currentLabel,
-      boolean isCurrent, GC gc) {
-
-    int conversationItemWidth = conversationItem.getClientArea().width;
-    int margins = 10;
-    int horizontalSpacing = 5;
-    int extraPadding = 20;
-
-    // Measure date label width
-    int dateWidth = gc.textExtent(dateLabel.getText()).x;
-
-    // Measure current label width if applicable
-    int currentLabelWidth = 0;
-    if (isCurrent && !currentLabel.isDisposed() && currentLabel.getVisible()) {
-      currentLabelWidth = gc.textExtent(currentLabel.getText()).x + horizontalSpacing;
-    }
-
-    return conversationItemWidth - margins - dateWidth - currentLabelWidth - extraPadding;
-  }
-
-  // Helper methods for text truncation
-  private String truncateByCharacter(GC gc, String text, int maxWidth) {
-    for (int i = text.length(); i > 0; i--) {
-      String substring = text.substring(0, i);
-      if (gc.textExtent(substring).x <= maxWidth) {
-        return substring;
-      }
-    }
-    return "";
-  }
-
-  private String truncateByBinarySearch(GC gc, String text, int maxWidth) {
-    int left = 0;
-    int right = text.length();
-    String bestFit = "";
-
-    while (left <= right) {
-      int mid = (left + right) / 2;
-      String testText = text.substring(0, mid);
-      int testWidth = gc.textExtent(testText).x;
-
-      if (testWidth <= maxWidth) {
-        bestFit = testText;
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
-    }
-    return bestFit;
-  }
-
-  /**
    * Create the actions composite with edit and delete icons for a conversation item.
    */
-  private Composite createActionsComposite(Composite parent, ConversationXmlData conversation, Label titleLabel,
+  private Composite createActionsComposite(Composite parent, ConversationXmlData conversation, CLabel titleLabel,
       Text titleEditor, Composite titleComposite, Label enterIcon) {
     GridLayout actionsLayout = new GridLayout(2, false);
     actionsLayout.marginHeight = 0;
@@ -721,7 +549,7 @@ public class ChatHistoryViewer extends Composite {
       event.doit = false; // Prevent event propagation
 
       // Switch to title editor mode
-      switchTitleLabelModes(titleLabel, titleEditor, titleComposite, actionsComposite, parent, true);
+      switchTitleLabelModes(titleComposite, titleEditor, actionsComposite, true);
     });
 
     // Delete icon click listener (only if delete icon exists)
@@ -745,11 +573,11 @@ public class ChatHistoryViewer extends Composite {
       }
 
       // Apply title changes using the common method
-      applyTitleChanges(titleEditor, titleLabel, titleComposite, actionsComposite, parent, conversation);
+      applyTitleChanges(titleEditor, titleLabel, titleComposite, actionsComposite, conversation);
     });
 
     // Title editor listeners for handling edit completion
-    setupTitleEditor(titleEditor, titleLabel, titleComposite, actionsComposite, parent, conversation);
+    setupTitleEditor(titleEditor, titleLabel, titleComposite, actionsComposite, conversation);
 
     actionsComposite.addDisposeListener(e -> {
       if (editImage != null && !editImage.isDisposed()) {
@@ -764,8 +592,8 @@ public class ChatHistoryViewer extends Composite {
    * Common method to apply title changes from the editor to the label and persistence. Used by both Enter key handler
    * and enter icon click handler.
    */
-  private void applyTitleChanges(Text titleEditor, Label titleLabel, Composite titleComposite,
-      Composite actionsComposite, Composite parent, ConversationXmlData conversation) {
+  private void applyTitleChanges(Text titleEditor, CLabel titleLabel, Composite titleComposite,
+      Composite actionsComposite, ConversationXmlData conversation) {
     String newTitle = titleEditor.getText().trim();
     if (!newTitle.isEmpty() && conversation != null) {
       // Update title in persistence
@@ -776,7 +604,6 @@ public class ChatHistoryViewer extends Composite {
 
         // Update the label text and stored original title
         titleLabel.setText(newTitle);
-        titleLabel.setData("originalTitle", newTitle);
         titleLabel.requestLayout();
 
         // Update the conversation object for consistency
@@ -788,44 +615,45 @@ public class ChatHistoryViewer extends Composite {
         }
 
         // Switch back to view mode
-        switchTitleLabelModes(titleLabel, titleEditor, titleComposite, actionsComposite, parent, false);
+        switchTitleLabelModes(titleComposite, titleEditor, actionsComposite, false);
 
       } catch (Exception e) {
         // On error, revert to original title
         titleEditor.setText(titleLabel.getText());
-        switchTitleLabelModes(titleLabel, titleEditor, titleComposite, actionsComposite, parent, false);
+        switchTitleLabelModes(titleComposite, titleEditor, actionsComposite, false);
       }
     } else {
       // Invalid title, revert
       titleEditor.setText(titleLabel.getText());
-      switchTitleLabelModes(titleLabel, titleEditor, titleComposite, actionsComposite, parent, false);
+      switchTitleLabelModes(titleComposite, titleEditor, actionsComposite, false);
     }
   }
 
   /**
    * Switch from title label to title editor mode.
    */
-  private void switchTitleLabelModes(Label titleLabel, Text titleEditor, Composite titleComposite,
-      Composite actionsComposite, Composite parent, boolean isEditMode) {
-    // Hide title label, show editor
-    GridData labelData = (GridData) titleLabel.getLayoutData();
-    labelData.exclude = isEditMode ? true : false;
-    titleLabel.setVisible(isEditMode ? false : true);
+  private void switchTitleLabelModes(Composite titleComposite, Text titleEditor, Composite actionsComposite,
+      boolean isEditMode) {
+    GridData labelData = (GridData) titleComposite.getLayoutData();
+    labelData.exclude = isEditMode;
+    titleComposite.setVisible(!isEditMode);
 
     GridData editorData = (GridData) titleEditor.getLayoutData();
-    editorData.exclude = isEditMode ? false : true;
-    titleEditor.setVisible(isEditMode ? true : false);
+    editorData.exclude = !isEditMode;
+    titleEditor.setVisible(isEditMode);
 
-    // Show enter icon when editor is visible
-    Label enterIcon = (Label) titleComposite.getChildren()[2]; // Enter icon is the third child
-    GridData enterIconData = (GridData) enterIcon.getLayoutData();
-    enterIconData.exclude = isEditMode ? false : true;
-    enterIcon.setVisible(isEditMode ? true : false);
+    // Show enter icon when editor is visible. Enter icon is the last child
+    Composite leftStack = titleComposite.getParent();
+    if (leftStack != null && !leftStack.isDisposed()) {
+      Label enterIcon = (Label) leftStack.getChildren()[leftStack.getChildren().length - 1];
+      GridData enterIconData = (GridData) enterIcon.getLayoutData();
+      enterIconData.exclude = !isEditMode;
+      enterIcon.setVisible(isEditMode);
 
-    // Change titleComposite layout to grab horizontal space when editor is visible
-    GridData titleCompositeData = (GridData) titleComposite.getLayoutData();
-    titleCompositeData.horizontalAlignment = SWT.FILL;
-    titleCompositeData.grabExcessHorizontalSpace = isEditMode ? true : false;
+      // Change leftStack layout to grab horizontal space when editor is visible
+      GridData leftStackData = (GridData) leftStack.getLayoutData();
+      leftStackData.horizontalAlignment = isEditMode ? SWT.FILL : SWT.LEFT;
+    }
 
     // Hide actions composite and exclude it from layout
     GridData actionsData = (GridData) actionsComposite.getLayoutData();
@@ -843,24 +671,24 @@ public class ChatHistoryViewer extends Composite {
   /**
    * Setup title editor listeners for handling edit completion.
    */
-  private void setupTitleEditor(Text titleEditor, Label titleLabel, Composite titleComposite,
-      Composite actionsComposite, Composite parent, ConversationXmlData conversation) {
+  private void setupTitleEditor(Text titleEditor, CLabel titleLabel, Composite titleComposite,
+      Composite actionsComposite, ConversationXmlData conversation) {
     // Handle Enter key to save changes
     titleEditor.addListener(SWT.KeyDown, event -> {
       if (event.keyCode == SWT.CR || event.keyCode == SWT.KEYPAD_CR) {
         // Apply title changes using the common method
-        applyTitleChanges(titleEditor, titleLabel, titleComposite, actionsComposite, parent, conversation);
+        applyTitleChanges(titleEditor, titleLabel, titleComposite, actionsComposite, conversation);
       } else if (event.keyCode == SWT.ESC) {
         // Cancel editing on Escape
         titleEditor.setText(titleLabel.getText());
-        switchTitleLabelModes(titleLabel, titleEditor, titleComposite, actionsComposite, parent, false);
+        switchTitleLabelModes(titleComposite, titleEditor, actionsComposite, false);
       }
     });
 
     // Handle focus lost to save changes
     titleEditor.addListener(SWT.FocusOut, event -> {
       titleEditor.setText(titleLabel.getText());
-      switchTitleLabelModes(titleLabel, titleEditor, titleComposite, actionsComposite, parent, false);
+      switchTitleLabelModes(titleComposite, titleEditor, actionsComposite, false);
     });
   }
 
