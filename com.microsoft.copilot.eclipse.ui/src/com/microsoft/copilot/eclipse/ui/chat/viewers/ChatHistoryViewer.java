@@ -49,7 +49,9 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class ChatHistoryViewer extends Composite {
   private ScrolledComposite chatHistoryComposite;
   private Composite chatHistoryListContent;
-  private Image chatHistoryBackIcon;
+  private Image backImage;
+  private Image enterImage;
+  private Image editImage;
   private IEventBroker eventBroker;
   private String currentConversationId;
   private IStylingEngine stylingEngine;
@@ -72,6 +74,10 @@ public class ChatHistoryViewer extends Composite {
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
     this.currentConversationId = currentConversationId;
+    this.backImage = UiUtils.buildImageFromPngPath(
+        UiUtils.isDarkTheme() ? "/icons/chat/back_arrow_grey.png" : "/icons/chat/back_arrow.png");
+    this.enterImage = UiUtils.buildImageFromPngPath("/icons/chat/enter.png");
+    this.editImage = UiUtils.buildImageFromPngPath("/icons/chat/chat_history_edit.png");
 
     // Assign CSS id for styling
     this.setData(CssConstants.CSS_ID_KEY, "chat-history-viewer");
@@ -83,6 +89,17 @@ public class ChatHistoryViewer extends Composite {
     setLayout(layout);
 
     createChatHistoryComposite(conversations, currentConversationId);
+    this.addDisposeListener(e -> {
+      if (backImage != null && !backImage.isDisposed()) {
+        backImage.dispose();
+      }
+      if (enterImage != null && !enterImage.isDisposed()) {
+        enterImage.dispose();
+      }
+      if (editImage != null && !editImage.isDisposed()) {
+        editImage.dispose();
+      }
+    });
   }
 
   /**
@@ -139,16 +156,9 @@ public class ChatHistoryViewer extends Composite {
     // Ensure proper vertical centering
     GridData backLabelData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     backLabelComposite.setLayoutData(backLabelData);
-    backLabelComposite.addDisposeListener(e -> {
-      if (chatHistoryBackIcon != null && !chatHistoryBackIcon.isDisposed()) {
-        chatHistoryBackIcon.dispose();
-      }
-    });
 
     Label icon = new Label(backLabelComposite, SWT.NONE);
-    this.chatHistoryBackIcon = UiUtils.buildImageFromPngPath(
-        UiUtils.isDarkTheme() ? "/icons/chat/back_arrow_grey.png" : "/icons/chat/back_arrow.png");
-    icon.setImage(chatHistoryBackIcon);
+    icon.setImage(backImage);
     icon.setCursor(handCursor);
     // Center the icon vertically
     icon.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
@@ -313,7 +323,6 @@ public class ChatHistoryViewer extends Composite {
 
     // Enter icon (initially hidden, shown only when editor is visible)
     Label enterIcon = new Label(leftStack, SWT.NONE);
-    Image enterImage = UiUtils.buildImageFromPngPath("/icons/chat/enter.png");
     enterIcon.setImage(enterImage);
     enterIcon.setToolTipText(Messages.chat_historyView_enterIcon_tooltip);
     GridData enterIconData = new GridData(SWT.CENTER, SWT.CENTER, false, false);
@@ -359,11 +368,6 @@ public class ChatHistoryViewer extends Composite {
       addCurrentItemBorder(conversationItem);
     }
 
-    conversationItem.addDisposeListener(e -> {
-      if (enterImage != null && !enterImage.isDisposed()) {
-        enterImage.dispose();
-      }
-    });
   }
 
   private void setConversationItemCssClass(Composite conversationItem, boolean isCurrent, boolean isHover) {
@@ -514,7 +518,6 @@ public class ChatHistoryViewer extends Composite {
 
     // Edit icon
     Label editIcon = new Label(actionsComposite, SWT.NONE);
-    Image editImage = UiUtils.buildImageFromPngPath("/icons/chat/chat_history_edit.png");
     editIcon.setImage(editImage);
     editIcon.setToolTipText(Messages.chat_historyView_editIcon_tooltip);
     editIcon.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));
@@ -529,7 +532,7 @@ public class ChatHistoryViewer extends Composite {
 
     if (!isCurrentConversation) {
       deleteIcon = new Label(actionsComposite, SWT.NONE);
-      deleteImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ETOOL_DELETE);
+      deleteImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
       deleteIcon.setImage(deleteImage);
       deleteIcon.setToolTipText(Messages.chat_historyView_deleteIcon_tooltip);
       deleteIcon.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));
@@ -578,12 +581,6 @@ public class ChatHistoryViewer extends Composite {
 
     // Title editor listeners for handling edit completion
     setupTitleEditor(titleEditor, titleLabel, titleComposite, actionsComposite, conversation);
-
-    actionsComposite.addDisposeListener(e -> {
-      if (editImage != null && !editImage.isDisposed()) {
-        editImage.dispose();
-      }
-    });
 
     return actionsComposite;
   }
@@ -725,12 +722,6 @@ public class ChatHistoryViewer extends Composite {
   // Draw a 1px border around the current conversation item on Windows using SWT painting
   private void addCurrentItemBorder(Composite conversationItem) {
     final Color borderColor = CssConstants.getWindowsChatHistoryCurrentItemBorderColor(conversationItem.getDisplay());
-
-    conversationItem.addDisposeListener(e -> {
-      if (borderColor != null && !borderColor.isDisposed()) {
-        borderColor.dispose();
-      }
-    });
 
     conversationItem.addPaintListener(new PaintListener() {
       @Override
