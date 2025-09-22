@@ -118,7 +118,6 @@ public class ChatHistoryViewer extends Composite {
     GridLayout layout = new GridLayout(1, false);
     layout.marginWidth = 0;
     layout.marginHeight = 0;
-    layout.verticalSpacing = 0;
     chatHistoryListContent.setLayout(layout);
 
     createChatHistoryList(chatHistoryListContent, conversations, currentConversationId);
@@ -143,9 +142,8 @@ public class ChatHistoryViewer extends Composite {
 
   private void createBackLabel(Composite parent) {
     GridLayout gl = new GridLayout(2, false);
-    gl.horizontalSpacing = 2;
     gl.marginWidth = 0;
-    gl.marginTop = 3;
+    gl.marginHeight = 5;
     Composite backLabelComposite = new Composite(parent, SWT.NONE);
     backLabelComposite.setLayout(gl);
     backLabelComposite.setCursor(handCursor);
@@ -171,23 +169,15 @@ public class ChatHistoryViewer extends Composite {
     label.setCursor(handCursor);
     addBackClickListener(label);
 
-    // Create a separator composite with border
-    Composite separator = new Composite(parent, SWT.NONE);
-    separator.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-    final Color borderColor = CssConstants.getTopBannerBorderColor(Display.getCurrent());
-    separator.addPaintListener(new PaintListener() {
+    backLabelComposite.addPaintListener(new PaintListener() {
       @Override
       public void paintControl(PaintEvent e) {
         GC gc = e.gc;
-        gc.setForeground(borderColor);
+        gc.setForeground(CssConstants.getTopBannerBorderColor(getDisplay()));
         gc.setLineWidth(1);
-        int width = separator.getClientArea().width;
-        gc.drawLine(0, 1, Math.max(0, width - 1), 1);
+        gc.drawLine(0, e.height - 1, e.width, e.height - 1);
       }
     });
-    GridData separatorData = new GridData(SWT.FILL, SWT.TOP, true, false);
-    separatorData.heightHint = 2;
-    separator.setLayoutData(separatorData);
   }
 
   private void createChatHistoryList(Composite parent, List<ConversationXmlData> conversations,
@@ -199,7 +189,7 @@ public class ChatHistoryViewer extends Composite {
     // Add "New Chat" item at the top if no current conversation exists
     if (!hasCurrentConversation) {
       createConversationItem(parent, Messages.chat_topBanner_chatHistoryItem_newChat, true,
-          Messages.chat_topBanner_chatHistoryItem_newChatTime_Now, null, false, false);
+          Messages.chat_topBanner_chatHistoryItem_newChatTime_Now, null, false);
     }
 
     String previousDateStr = null;
@@ -217,9 +207,7 @@ public class ChatHistoryViewer extends Composite {
 
       // Calculate border and margin requirements
       boolean needsUpperBorder = isFirstInDateGroup && !isFirstDateStrInList && !dateStr.isEmpty();
-      boolean needsTopMargin = needsUpperBorder;
-      createConversationItem(parent, title, isCurrentConversation, displayDateStr, conversation, needsUpperBorder,
-          needsTopMargin);
+      createConversationItem(parent, title, isCurrentConversation, displayDateStr, conversation, needsUpperBorder);
 
       if (isFirstInDateGroup && !dateStr.isEmpty()) {
         isFirstDateStrInList = false;
@@ -244,12 +232,15 @@ public class ChatHistoryViewer extends Composite {
    * Create a conversation item in the chat history list, with optional upper border and margins.
    */
   private void createConversationItem(Composite parent, String title, boolean isCurrent, String dateStr,
-      ConversationXmlData conversation, boolean needsUpperBorder, boolean needsTopMargin) {
+      ConversationXmlData conversation, boolean needsUpperBorder) {
     // Three columns: [leftStack(title + optional "(Current)")] [date] [actionsComposite]
+    if (needsUpperBorder) {
+      Label separator = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
+      separator.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    }
     GridLayout conversationLayout = new GridLayout(3, false);
     conversationLayout.marginWidth = 5;
-    conversationLayout.marginHeight = 2;
-    conversationLayout.horizontalSpacing = 5;
+    conversationLayout.marginHeight = 1;
     Composite conversationItem = new Composite(parent, SWT.NONE);
     conversationItem.setLayout(conversationLayout);
     setConversationItemCssClass(conversationItem, isCurrent, false);
@@ -257,35 +248,13 @@ public class ChatHistoryViewer extends Composite {
     GridData conversationItemData = new GridData(SWT.FILL, SWT.TOP, true, false);
     conversationItemData.horizontalIndent = 5;
 
-    // Add margins above border for better visual spacing
-    if (needsTopMargin) {
-      conversationItemData.verticalIndent = 6;
-    }
-
     conversationItem.setLayoutData(conversationItemData);
     conversationItem.setCursor(handCursor);
-
-    final Color borderColor = needsUpperBorder ? CssConstants.getTopBannerBorderColor(Display.getCurrent()) : null;
-
-    // Add upper border line for non-Today groups
-    if (needsUpperBorder && borderColor != null) {
-      conversationItem.addPaintListener(new PaintListener() {
-        @Override
-        public void paintControl(PaintEvent e) {
-          GC gc = e.gc;
-          gc.setForeground(borderColor);
-          gc.setLineWidth(1);
-          int width = conversationItem.getClientArea().width;
-          gc.drawLine(0, 0, width, 0);
-        }
-      });
-    }
 
     // Left stack: [title][(Current) (actions)]
     GridLayout leftLayout = new GridLayout(2, false);
     leftLayout.marginHeight = 0;
     leftLayout.marginWidth = 0;
-    leftLayout.horizontalSpacing = 5;
     Composite leftStack = new Composite(conversationItem, SWT.NONE);
     leftStack.setLayout(leftLayout);
     leftStack.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
@@ -293,7 +262,6 @@ public class ChatHistoryViewer extends Composite {
     GridLayout titleLayout = new GridLayout(2, false);
     titleLayout.marginHeight = 0;
     titleLayout.marginWidth = 0;
-    titleLayout.horizontalSpacing = 5;
     Composite titleComposite = new Composite(leftStack, SWT.NONE);
     titleComposite.setLayout(titleLayout);
     titleComposite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
@@ -507,7 +475,6 @@ public class ChatHistoryViewer extends Composite {
     GridLayout actionsLayout = new GridLayout(2, false);
     actionsLayout.marginHeight = 0;
     actionsLayout.marginWidth = 0;
-    actionsLayout.horizontalSpacing = 5;
     Composite actionsComposite = new Composite(parent, SWT.NONE);
     actionsComposite.setLayout(actionsLayout);
 
