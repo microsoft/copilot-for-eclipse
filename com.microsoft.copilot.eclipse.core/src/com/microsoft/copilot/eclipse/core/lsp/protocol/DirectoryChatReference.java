@@ -1,11 +1,11 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
-import java.net.URI;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
 /**
  * Represents a directory chat reference.
@@ -13,17 +13,14 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 public class DirectoryChatReference implements ChatReference {
   private final String type = ReferenceType.directory.toString();
   private String uri;
-  
+
   /**
    * Constructs a DirectoryChatReference with the specified URI.
    *
    * @param folder The folder for which the reference is created.
    */
   public DirectoryChatReference(IFolder folder) {
-    URI uri = folder.getLocationURI();
-    if (uri != null) {
-      this.uri = uri.toString();
-    }
+    this.uri = FileUtils.getResourceUri(folder);
   }
 
   public String getType() {
@@ -37,7 +34,6 @@ public class DirectoryChatReference implements ChatReference {
   public void setUri(String uri) {
     this.uri = uri;
   }
-  
 
   @Override
   public int hashCode() {

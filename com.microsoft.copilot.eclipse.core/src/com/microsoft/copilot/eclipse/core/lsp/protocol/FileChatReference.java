@@ -1,12 +1,13 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
-import java.net.URI;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
 /**
  * Parameters for a file reference request.
@@ -28,10 +29,7 @@ public class FileChatReference implements ChatReference {
    * @param file The file for which the reference is created.
    */
   public FileChatReference(IFile file) {
-    URI uri = file.getLocationURI();
-    if (uri != null) {
-      this.uri = uri.toString();
-    }
+    this.uri = FileUtils.getResourceUri(file);
   }
 
   public String getType() {
