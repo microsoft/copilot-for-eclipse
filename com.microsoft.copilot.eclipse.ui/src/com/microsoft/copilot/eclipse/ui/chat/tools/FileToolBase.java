@@ -20,8 +20,10 @@ import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffNode;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorPart;
@@ -76,6 +78,16 @@ public abstract class FileToolBase extends BaseTool {
       fileContentCache.put(file, content);
     } catch (IOException | CoreException e) {
       CopilotCore.LOGGER.error("Error caching original file content", e);
+    }
+  }
+
+  /**
+   * Validate the edit to ensure the files are writable.
+   */
+  protected void validateEdit(IFile[] files) {
+    IStatus status = ResourcesPlugin.getWorkspace().validateEdit(files, null /* no ui prompts during validation */);
+    if (!status.isOK()) {
+      CopilotCore.LOGGER.error("File edit validation failed: " + status.getMessage(), null);
     }
   }
 

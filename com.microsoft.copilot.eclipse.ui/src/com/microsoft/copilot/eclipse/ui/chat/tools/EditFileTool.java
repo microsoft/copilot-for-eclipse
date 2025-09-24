@@ -149,6 +149,8 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
 
   private void applyChangesToFile(String changedContent, IFile file) {
     try {
+      validateEdit(new IFile[] { file });
+
       ByteArrayInputStream inputStream = getInputStream(changedContent, file);
 
       // Set the file contents
