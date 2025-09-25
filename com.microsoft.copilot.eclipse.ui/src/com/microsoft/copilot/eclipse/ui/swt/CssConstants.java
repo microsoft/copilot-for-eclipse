@@ -45,7 +45,7 @@ public class CssConstants {
    */
   public static Color getTopBannerBorderColor(Display display) {
     if (UiUtils.isDarkTheme()) {
-      return new Color(display, 100, 100, 100);
+      return new Color(display, 68, 68, 68);
     }
     return new Color(display, 216, 216, 216);
   }
