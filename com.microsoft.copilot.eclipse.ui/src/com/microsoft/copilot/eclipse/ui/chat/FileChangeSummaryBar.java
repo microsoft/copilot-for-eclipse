@@ -13,12 +13,11 @@ import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -410,28 +409,22 @@ public class FileChangeSummaryBar extends Composite {
       // Hide actions initially
       actionsArea.setVisible(false);
 
-      // Handle hover events
-      addMouseTrackListener(new MouseTrackAdapter() {
+      MouseTrackAdapter hoverAdapter = new MouseTrackAdapter() {
         @Override
         public void mouseEnter(MouseEvent e) {
           actionsArea.setVisible(true);
-          layout(true, true);
+          requestLayout();
         }
 
         @Override
         public void mouseExit(MouseEvent e) {
-          // Check if mouse is still in our bounds before hiding
-          Point cursorPos = getDisplay().getCursorLocation();
-          Point widgetPos = toDisplay(0, 0);
-          Rectangle bounds = getBounds();
-
-          if (cursorPos.x <= widgetPos.x || cursorPos.x >= widgetPos.x + bounds.width || cursorPos.y <= widgetPos.y
-              || cursorPos.y >= widgetPos.y + bounds.height) {
-            actionsArea.setVisible(false);
-            layout(true, true);
-          }
+          actionsArea.setVisible(false);
+          requestLayout();
         }
-      });
+      };
+
+      // Handle hover events
+      addHoverAdapterRecursively(this, hoverAdapter);
 
       addMouseListener(new MouseAdapter() {
         @Override
@@ -439,6 +432,21 @@ public class FileChangeSummaryBar extends Composite {
           fileToolService.onViewDiff(file);
         }
       });
+    }
+
+    /**
+     * Recursively adds the hover adapter to all child controls.
+     */
+    private void addHoverAdapterRecursively(Control control, MouseTrackAdapter hoverAdapter) {
+      // Add listener to the control itself first
+      control.addMouseTrackListener(hoverAdapter);
+
+      // Then recursively add to all children if it's a composite
+      if (control instanceof Composite composite) {
+        for (Control child : composite.getChildren()) {
+          addHoverAdapterRecursively(child, hoverAdapter);
+        }
+      }
     }
 
     private void setButtonStatus(boolean enable) {

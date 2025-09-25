@@ -55,7 +55,8 @@
 	background-color: #F8F8F8;
 }
 
-#chat-action-bar-wrapper {
+#chat-action-bar-wrapper,
+#chat-action-bar-wrapper * {
 	background-color: #F8F8F8;
 }
 

@@ -55,7 +55,8 @@
 	background-color: #1E1F22;
 }
 
-#chat-action-bar-wrapper {
+#chat-action-bar-wrapper 
+#chat-action-bar-wrapper * {
 	background-color: #1E1F22;
 }
 
