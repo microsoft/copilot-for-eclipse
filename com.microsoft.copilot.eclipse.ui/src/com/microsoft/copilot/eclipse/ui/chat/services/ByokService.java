@@ -228,6 +228,19 @@ public class ByokService extends ChatBaseService {
     if (ByokModelProvider.isAzure(providerName)) {
       return loadLocalModels();
     }
+
+    final AtomicBoolean hasApiKey = new AtomicBoolean(false);
+    ensureRealm(() -> {
+      Map<String, String> currentKeys = apiKeysObservable != null ? apiKeysObservable.getValue() : null;
+      if (currentKeys != null && currentKeys.containsKey(providerName)) {
+        hasApiKey.set(true);
+      }
+    });
+    // if there is no API key for this non-Azure provider, skip remote fetch.
+    if (!hasApiKey.get()) {
+      return CompletableFuture.completedFuture(null);
+    }
+
     return fetchProviderModels(providerName).thenCompose(changed -> loadLocalModels());
   }
 
