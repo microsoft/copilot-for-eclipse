@@ -29,6 +29,7 @@ extends:
       - stage: Build
         jobs:
           - job: Build
+            timeoutInMinutes: 120
             displayName: GitHub-Copilot-Eclipse-Nightly
             templateContext:
               outputs:
