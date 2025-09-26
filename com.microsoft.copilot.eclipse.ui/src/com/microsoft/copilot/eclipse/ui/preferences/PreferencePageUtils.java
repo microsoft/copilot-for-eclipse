@@ -64,7 +64,7 @@ public final class PreferencePageUtils {
     final Link link = new Link(composite, SWT.NONE);
     link.setText(label);
     link.setToolTipText(tooltip);
-    link.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, true, false, 2, 1));
+    link.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false, 2, 1));
     link.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {

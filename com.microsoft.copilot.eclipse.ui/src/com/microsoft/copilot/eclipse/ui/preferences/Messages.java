@@ -7,6 +7,8 @@ import org.eclipse.osgi.util.NLS;
  */
 public class Messages extends NLS {
   private static final String BUNDLE_NAME = "com.microsoft.copilot.eclipse.ui.preferences.messages"; //$NON-NLS-1$
+
+  public static String preferences_page_completions_autoShowCompletion;
   public static String preferences_page_byok_title;
   public static String preferences_page_byok_description;
   public static String preferences_page_byok_signin_description;
@@ -41,7 +43,8 @@ public class Messages extends NLS {
   public static String preferences_page_byok_dialog_remove;
   public static String preferences_page_byok_customModels;
   public static String preferences_page_byok_enabledCount;
- 
+  public static String preferences_page_completions_codeMiningNote;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);
