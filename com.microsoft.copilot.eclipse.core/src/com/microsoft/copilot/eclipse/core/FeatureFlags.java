@@ -12,6 +12,8 @@ public class FeatureFlags {
 
   private boolean mcpEnabled = true;
 
+  private boolean byokEnabled = true;
+
   public boolean isAgentModeEnabled() {
     return agentModeEnabled;
   }
@@ -26,6 +28,14 @@ public class FeatureFlags {
   
   public void setMcpEnabled(boolean mcpEnabled) {
     this.mcpEnabled = mcpEnabled;
+  }
+
+  public boolean isByokEnabled() {
+    return byokEnabled;
+  }
+
+  public void setByokEnabled(boolean byokEnabled) {
+    this.byokEnabled = byokEnabled;
   }
   
   /**

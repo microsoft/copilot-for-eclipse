@@ -43,6 +43,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -78,8 +79,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   private Composite pageStateStack;
   private StackLayout pageStateStackLayout;
   private Composite emptyStateComposite;
+  private Composite disabledComposite;
   private Composite contentComposite;
-  private Label pageDescription;
   // UI Components in contentComposite
   private Composite viewerStack;
   private Composite treeComposite;
@@ -153,9 +154,6 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     root.setLayout(rootLayout);
     root.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
-    pageDescription = new Label(root, SWT.WRAP);
-    pageDescription.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-
     // Build a page-level stack with two states: empty and full content
     pageStateStack = new Composite(root, SWT.NONE);
     pageStateStackLayout = new StackLayout();
@@ -163,30 +161,48 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     pageStateStack.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
     emptyStateComposite = new Composite(pageStateStack, SWT.NONE);
+    GridLayout emptyLayout = new GridLayout(1, false);
+    emptyLayout.marginWidth = 0;
+    emptyLayout.marginHeight = 0;
+    emptyStateComposite.setLayout(emptyLayout);
+    Label signinLabel = new Label(emptyStateComposite, SWT.WRAP);
+    signinLabel.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+    signinLabel.setText(Messages.preferences_page_byok_signin_description);
+    // composite for preview disabled tip (user signed in but feature off)
+    disabledComposite = new Composite(pageStateStack, SWT.NONE);
+    GridLayout disabledCompositeLayout = new GridLayout(1, false);
+    disabledCompositeLayout.marginWidth = 0;
+    disabledCompositeLayout.marginHeight = 0;
+    disabledComposite.setLayout(disabledCompositeLayout);
+    WrappableIconLink.createWithSharedImage(disabledComposite,
+        PlatformUI.getWorkbench().getSharedImages().getImage(org.eclipse.ui.ISharedImages.IMG_OBJS_INFO_TSK),
+        com.microsoft.copilot.eclipse.ui.preferences.Messages.preferences_page_byok_preview_disabled_tip);
     contentComposite = createByokView(pageStateStack);
     updatePageState();
-    
     root.addDisposeListener(e -> {
       if (byokService != null) {
         byokService.unbindByokPreferencePage();
       }
     });
-    
     return root;
   }
 
-  private void updatePageState() {
+  /**
+   * Update the state of the preference page based on the current authentication and feature flag status.
+   */
+  public void updatePageState() {
     if (pageStateStack == null || pageStateStack.isDisposed()) {
       return;
     }
+    // TODO: need to remove this logic after group policy is available
+    FeatureFlags featureFlags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean byokEnabled = featureFlags != null && featureFlags.isByokEnabled();
     AuthStatusManager auth = CopilotCore.getPlugin().getAuthStatusManager();
-    if (auth == null) {
+    if (auth == null || !auth.isSignedIn()) {
       pageStateStackLayout.topControl = emptyStateComposite;
-    } else if (!auth.isSignedIn()) {
-      pageDescription.setText(Messages.preferences_page_byok_signin_description);
-      pageStateStackLayout.topControl = emptyStateComposite;
+    } else if (!byokEnabled) {
+      pageStateStackLayout.topControl = disabledComposite;
     } else {
-      pageDescription.setText(Messages.preferences_page_byok_description);
       pageStateStackLayout.topControl = contentComposite;
     }
     pageStateStack.requestLayout();
@@ -200,6 +216,11 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   private Composite createByokView(Composite parent) {
     Composite root = new Composite(parent, SWT.NONE);
     root.setLayout(new GridLayout(1, false));
+
+    // Page description (normal enabled state)
+    Label desc = new Label(root, SWT.WRAP);
+    desc.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+    desc.setText(Messages.preferences_page_byok_description);
 
     // Provider group
     Group providerGroup = new Group(root, SWT.NONE);
@@ -683,8 +704,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
       if (!hasApiKey && !ByokModelProvider.isAzure(providerName)) {
         AddApiKeyDialog apiKeyDialog = new AddApiKeyDialog(getShell(), providerName, apiKey -> {
           if (apiKey != null && StringUtils.isNotBlank(apiKey) && byokService != null) {
-            executeAsyncProviderOperation(finalProviderName, 
-                byokService.addApiKey(finalProviderName, apiKey), 
+            executeAsyncProviderOperation(finalProviderName, byokService.addApiKey(finalProviderName, apiKey),
                 "Failed to save API key");
           }
         });
@@ -808,8 +828,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
       }
       AddApiKeyDialog apiKeyDialog = new AddApiKeyDialog(getShell(), providerName, apiKey, newApiKey -> {
         if (newApiKey != null && !newApiKey.trim().isEmpty() && byokService != null) {
-          executeAsyncProviderOperation(finalProviderName, 
-              byokService.changeApiKey(finalProviderName, newApiKey), 
+          executeAsyncProviderOperation(finalProviderName, byokService.changeApiKey(finalProviderName, newApiKey),
               "Failed to update API key");
         }
       });
@@ -832,8 +851,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
     if (!ByokModelProvider.isAzure(providerName)) {
       if (showDeleteApiKeyConfirmationDialog(providerName)) {
-        executeAsyncProviderOperation(finalProviderName, 
-            byokService.deleteApiKey(providerName), 
+        executeAsyncProviderOperation(finalProviderName, byokService.deleteApiKey(providerName),
             "Failed to delete API key");
       }
     }
@@ -870,8 +888,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   /**
    * Execute an async operation with provider loading state management.
    */
-  private void executeAsyncProviderOperation(String providerName, 
-      CompletableFuture<Void> operation, String errorMessagePrefix) {
+  private void executeAsyncProviderOperation(String providerName, CompletableFuture<Void> operation,
+      String errorMessagePrefix) {
     setProviderLoading(providerName, true);
     operation.whenComplete((result, throwable) -> {
       SwtUtils.invokeOnDisplayThreadAsync(() -> {

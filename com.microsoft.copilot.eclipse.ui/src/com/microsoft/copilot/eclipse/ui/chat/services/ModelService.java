@@ -28,6 +28,7 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -35,6 +36,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
@@ -87,6 +89,7 @@ public class ModelService extends ChatBaseService {
   private EventHandler authStatusChangedEventHandler;
   private EventHandler chatModeChangedEventHandler;
   private EventHandler byokModelsUpdatedEventHandler;
+  private EventHandler featureFlagsChangedEventHandler;
 
   /**
    * Constructor for the ModelService.
@@ -129,6 +132,16 @@ public class ModelService extends ChatBaseService {
         ensureRealm(() -> updateModelsForChatMode(currentChatMode));
       }
     };
+
+    // TODO: need to remove this logic after group policy is available
+    featureFlagsChangedEventHandler = event -> {
+      Object property = event.getProperty(IEventBroker.DATA);
+      if (property instanceof DidChangeFeatureFlagsParams params) {
+        ensureRealm(() -> {
+          updateModelsForChatMode(currentChatMode);
+        });
+      }
+    };
   }
 
   private void subscribeToEvents() {
@@ -137,6 +150,7 @@ public class ModelService extends ChatBaseService {
       eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, authStatusChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, chatModeChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_BYOK_MODELS_UPDATED, byokModelsUpdatedEventHandler);
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagsChangedEventHandler);
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
     }
@@ -224,7 +238,11 @@ public class ModelService extends ChatBaseService {
     final Map<String, CopilotModel> modelsForCurrentMode = new HashMap<>();
     Map<String, CopilotModel> allModels = new HashMap<>();
     allModels.putAll(copilotModels);
-    allModels.putAll(registeredByokModels);
+    // TODO: need to remove this logic after group policy is available
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags == null || flags.isByokEnabled()) {
+      allModels.putAll(registeredByokModels);
+    }
 
     for (Map.Entry<String, CopilotModel> entry : allModels.entrySet()) {
       CopilotModel model = entry.getValue();
@@ -546,8 +564,12 @@ public class ModelService extends ChatBaseService {
         allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
         allModels.add(Messages.chat_addPremiumModels);
       }
-      allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
-      allModels.add(Messages.chat_actionBar_modelPicker_manageModels);
+      // TODO: need to remove this logic after group policy is available
+      FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+      if (flags == null || flags.isByokEnabled()) {
+        allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
+        allModels.add(Messages.chat_actionBar_modelPicker_manageModels);
+      }
       return allModels.toArray(new String[0]);
     } finally {
       gc.dispose();
@@ -707,6 +729,7 @@ public class ModelService extends ChatBaseService {
       eventBroker.unsubscribe(authStatusChangedEventHandler);
       eventBroker.unsubscribe(chatModeChangedEventHandler);
       eventBroker.unsubscribe(byokModelsUpdatedEventHandler);
+      eventBroker.unsubscribe(featureFlagsChangedEventHandler);
       eventBroker = null;
     }
 

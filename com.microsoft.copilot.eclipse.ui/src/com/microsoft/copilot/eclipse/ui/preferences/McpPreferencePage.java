@@ -35,6 +35,7 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -92,7 +93,9 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Create a simple note for the feature disabled case
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isMcpEnabled()) {
-      return new WrappableIconLink(parent, "/icons/message_warning.png", Messages.preferences_page_mcp_disabled_tip);
+      return WrappableIconLink.createWithSharedImage(parent,
+          PlatformUI.getWorkbench().getSharedImages().getImage(org.eclipse.ui.ISharedImages.IMG_OBJS_INFO_TSK),
+          Messages.preferences_page_mcp_disabled_tip);
     }
 
     // Call the default implementation for enabled case

@@ -32,8 +32,9 @@ public class WrappableIconLink extends Composite {
 
   // Icon
   private Label iconLabel;
-  private String iconPath;
-  private Image icon;
+  private String iconPath; // only used for customized image case
+  private Image icon; // holds the created (non-shared) image if any
+  private boolean isSharedImage; // true when using shared workbench image
 
   // Link
   private Link linkControl;
@@ -45,34 +46,47 @@ public class WrappableIconLink extends Composite {
    * @param parent the parent composite
    * @param linkText the text for the link (may contain HTML link tags)
    */
-  public WrappableIconLink(Composite parent, String linkText) {
-    this(parent, null, linkText, DEFAULT_MARGIN);
-  }
-
-  /**
-   * Creates a new WrappableIconLink with default layout settings.
-   */
-  public WrappableIconLink(Composite parent, String iconPath, String linkText) {
-    this(parent, iconPath, linkText, DEFAULT_MARGIN);
-  }
-
-  /**
-   * Creates a new WrappableIconLink with custom width margin.
-   *
-   * @param parent the parent composite
-   * @param iconPath the path to the icon image
-   * @param linkText the text for the link (may contain HTML link tags)
-   * @param widthMargin the margin to subtract from parent width when resizing
-   */
-  public WrappableIconLink(Composite parent, String iconPath, String linkText, int widthMargin) {
+  private WrappableIconLink(Composite parent, String iconPath, Image sharedImage, String linkText, int widthMargin) {
     super(parent, SWT.NONE);
     this.widthMargin = widthMargin;
     this.parent = parent;
     this.linkText = linkText;
     this.iconPath = iconPath;
-
+    this.isSharedImage = sharedImage != null;
+    this.icon = sharedImage;
     createControls();
     setupResizeListener();
+  }
+
+  // ------------- Factory methods -------------
+  /**
+   * Creates a WrappableIconLink with a shared workbench image.
+   */
+  public static WrappableIconLink createWithSharedImage(Composite parent, Image sharedImage, String linkText) {
+    return new WrappableIconLink(parent, null, sharedImage, linkText, DEFAULT_MARGIN);
+  }
+
+  /**
+   * Creates a WrappableIconLink with a shared workbench image and custom width margin.
+   */
+  public static WrappableIconLink createWithSharedImage(Composite parent, Image sharedImage, String linkText,
+      int widthMargin) {
+    return new WrappableIconLink(parent, null, sharedImage, linkText, widthMargin);
+  }
+
+  /**
+   * Creates a WrappableIconLink with a customized image from the given path.
+   */
+  public static WrappableIconLink createWithCustomizedImage(Composite parent, String iconPath, String linkText) {
+    return new WrappableIconLink(parent, iconPath, null, linkText, DEFAULT_MARGIN);
+  }
+
+  /**
+   * Creates a WrappableIconLink with a customized image from the given path and custom width margin.
+   */
+  public static WrappableIconLink createWithCustomizedImage(Composite parent, String iconPath, String linkText,
+      int widthMargin) {
+    return new WrappableIconLink(parent, iconPath, null, linkText, widthMargin);
   }
 
   /**
@@ -86,7 +100,9 @@ public class WrappableIconLink extends Composite {
     // Create icon label
     iconLabel = new Label(this, SWT.NONE);
     iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
-    if (iconPath != null) {
+    if (isSharedImage && icon != null) {
+      iconLabel.setImage(icon); // shared image
+    } else if (iconPath != null) {
       ImageDescriptor imageDescriptor = UiUtils.buildImageDescriptorFromPngPath(iconPath);
       if (imageDescriptor != null) {
         icon = imageDescriptor.createImage();
@@ -114,7 +130,7 @@ public class WrappableIconLink extends Composite {
 
     // Dispose image when composite is disposed
     addDisposeListener(e -> {
-      if (icon != null && !icon.isDisposed()) {
+      if (!isSharedImage && icon != null && !icon.isDisposed()) {
         icon.dispose();
       }
     });

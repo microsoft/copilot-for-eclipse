@@ -220,6 +220,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     if (flags != null) {
       flags.setAgentModeEnabled(params.isAgentModeEnabled());
       flags.setMcpEnabled(params.isMcpEnabled());
+      flags.setByokEnabled(params.isByokEnabled());
     }
 
     if (eventBroker != null) {

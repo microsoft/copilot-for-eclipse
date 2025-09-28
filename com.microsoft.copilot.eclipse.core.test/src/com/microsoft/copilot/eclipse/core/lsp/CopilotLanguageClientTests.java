@@ -88,6 +88,7 @@ class CopilotLanguageClientTests {
     featureFlags.put("agent_mode", "1");
     featureFlags.put("mcp", "0");
     params.setFeatureFlags(featureFlags);
+    params.setByokEnabled(false);
 
     FeatureFlags mockFeatureFlags = mock(FeatureFlags.class);
 
@@ -101,6 +102,7 @@ class CopilotLanguageClientTests {
       // Assert
       verify(mockFeatureFlags).setAgentModeEnabled(true);
       verify(mockFeatureFlags).setMcpEnabled(false);
+      verify(mockFeatureFlags).setByokEnabled(false);
     }
   }
 
@@ -120,9 +122,10 @@ class CopilotLanguageClientTests {
       // Act
       client.onDidChangeFeatureFlags(params);
 
-      // Assert - should by default enable agent mode and MCP
+      // Assert - should by default enable agent mode, MCP and editor preview
       verify(mockFeatureFlags).setAgentModeEnabled(true);
       verify(mockFeatureFlags).setMcpEnabled(true);
+      verify(mockFeatureFlags).setByokEnabled(true);
     }
   }
 }

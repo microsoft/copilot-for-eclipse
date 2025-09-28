@@ -43,8 +43,9 @@ public class Messages extends NLS {
   public static String preferences_page_byok_dialog_remove;
   public static String preferences_page_byok_customModels;
   public static String preferences_page_byok_enabledCount;
+  public static String preferences_page_byok_preview_disabled_tip;
   public static String preferences_page_completions_codeMiningNote;
-
+ 
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

@@ -28,12 +28,23 @@ public class DidChangeFeatureFlagsParams {
   private Object envelope;
   private Object activeExps;
 
+  @SerializedName("byok")
+  private boolean byokEnabled = true;
+
   public Map<String, String> getFeatureFlags() {
     return featureFlags;
   }
 
   public void setFeatureFlags(Map<String, String> featureFlags) {
     this.featureFlags = featureFlags;
+  }
+
+  public boolean isByokEnabled() {
+    return byokEnabled;
+  }
+
+  public void setByokEnabled(boolean byokEnabled) {
+    this.byokEnabled = byokEnabled;
   }
 
   /**
@@ -54,9 +65,10 @@ public class DidChangeFeatureFlagsParams {
     return !disabled;
   }
 
+
   @Override
   public int hashCode() {
-    return Objects.hash(activeExps, featureFlags, envelope);
+    return Objects.hash(activeExps, featureFlags, envelope, byokEnabled);
   }
 
   @Override
@@ -72,7 +84,7 @@ public class DidChangeFeatureFlagsParams {
     }
     DidChangeFeatureFlagsParams other = (DidChangeFeatureFlagsParams) obj;
     return Objects.equals(activeExps, other.activeExps) && Objects.equals(featureFlags, other.featureFlags)
-        && Objects.equals(envelope, other.envelope);
+        && Objects.equals(envelope, other.envelope) && byokEnabled == other.byokEnabled;
   }
 
   @Override
@@ -81,6 +93,7 @@ public class DidChangeFeatureFlagsParams {
     builder.add("configurations", featureFlags);
     builder.add("envelope", envelope);
     builder.add("activeExps", activeExps);
+    builder.add("byokEnabled", byokEnabled);
     return builder.toString();
   }
 }

@@ -16,10 +16,12 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
@@ -35,13 +37,17 @@ public class ByokService extends ChatBaseService {
   // Observable data for UI binding
   private IObservableValue<Map<String, List<ByokModel>>> byokModelsByProviderObservable;
   private IObservableValue<Map<String, String>> apiKeysObservable;
+  // Feature flag observable (byokEnabled)
+  private IObservableValue<Boolean> byokEnabledObservable;
 
   // Event broker for publishing model updates
   private IEventBroker eventBroker;
+  private EventHandler featureFlagEventHandler;
 
   // UI binding
   private ISideEffect modelsSideEffect;
   private ISideEffect apiKeysSideEffect;
+  private ISideEffect byokFlagSideEffect;
 
   /**
    * Constructor.
@@ -54,7 +60,20 @@ public class ByokService extends ChatBaseService {
     ensureRealm(() -> {
       byokModelsByProviderObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       apiKeysObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
+      byokEnabledObservable = new WritableValue<>(
+          CopilotCore.getPlugin().getFeatureFlags().isByokEnabled(), Boolean.class);
     });
+
+    // Subscribe to feature flag changes for BYOK
+    if (eventBroker != null) {
+      featureFlagEventHandler = event -> {
+        Object params = event.getProperty(IEventBroker.DATA);
+        if (params instanceof DidChangeFeatureFlagsParams featureFlagsParams) {
+          ensureRealm(() -> byokEnabledObservable.setValue(featureFlagsParams.isByokEnabled()));
+        }
+      };
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagEventHandler);
+    }
   }
 
   /**
@@ -73,6 +92,10 @@ public class ByokService extends ChatBaseService {
       apiKeysSideEffect = ISideEffect.create(() -> {
         return apiKeysObservable.getValue();
       }, page::updateApiKeysDisplay);
+
+      // Create side effect for byok flag updates
+      byokFlagSideEffect = ISideEffect.create(() -> byokEnabledObservable.getValue(),
+          flagValue -> page.updatePageState());
     });
   }
 
@@ -88,6 +111,11 @@ public class ByokService extends ChatBaseService {
     if (apiKeysSideEffect != null) {
       apiKeysSideEffect.dispose();
       apiKeysSideEffect = null;
+    }
+
+    if (byokFlagSideEffect != null) {
+      byokFlagSideEffect.dispose();
+      byokFlagSideEffect = null;
     }
   }
 
@@ -201,8 +229,7 @@ public class ByokService extends ChatBaseService {
         return refreshData();
       }
       // Only add newly discovered models (unregistered). Existing model states preserved.
-      return mergeRemoteModelsWithLocal(providerName, listResp.getModels())
-          .thenCompose(changed -> refreshData());
+      return mergeRemoteModelsWithLocal(providerName, listResp.getModels()).thenCompose(changed -> refreshData());
     });
   }
 
@@ -268,7 +295,7 @@ public class ByokService extends ChatBaseService {
 
     CompletableFuture<Void> result = CompletableFuture.completedFuture(null);
 
-    //need to save models sequentially to avoid file write conflicts from cls
+    // need to save models sequentially to avoid file write conflicts from cls
     for (ByokModel model : validModels) {
       result = result.thenCompose(unused -> lsConnection.saveByokModel(model).thenAccept(response -> {
         if (!response.isSuccess()) {
@@ -367,5 +394,9 @@ public class ByokService extends ChatBaseService {
    */
   public void dispose() {
     unbindByokPreferencePage();
+    if (eventBroker != null && featureFlagEventHandler != null) {
+      eventBroker.unsubscribe(featureFlagEventHandler);
+      featureFlagEventHandler = null;
+    }
   }
 }
