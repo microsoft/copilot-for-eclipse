@@ -12,6 +12,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.lsp4e.LSPEclipseUtils;
@@ -20,6 +21,7 @@ import org.eclipse.lsp4j.Position;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.IdeCapabilities;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionDocument;
@@ -39,10 +41,21 @@ public class CompletionProvider {
    */
   public static final String COMPLETION_JOB_FAMILY = "com.microsoft.copilot.eclipse.completionJobFamily";
 
+  /**
+   * The preference key for code mining enabled setting in JDT UI plugin.
+   */
+  private static final String CODE_MINING_ENABLED_PREF_KEY = "editor_codemining_enabled";
+
+  /**
+   * The plugin ID for JDT UI plugin.
+   */
+  private static final String JDT_UI_PLUGIN_ID = "org.eclipse.jdt.ui";
+
   private CompletionJob completionJob;
   private Set<CompletionListener> completionListeners;
   private FormatOptionProvider formatOptionProvider;
   private AuthStatusManager statusManager;
+  private boolean usingCodeMining;
 
   /**
    * Creates a new completion provider.
@@ -52,6 +65,7 @@ public class CompletionProvider {
     this.completionJob = new CompletionJob(lsConnection);
     this.completionListeners = new LinkedHashSet<>();
     this.formatOptionProvider = CopilotCore.getPlugin().getFormatOptionProvider();
+    this.usingCodeMining = IdeCapabilities.canUseCodeMining();
   }
 
   /**
@@ -62,6 +76,13 @@ public class CompletionProvider {
    */
   public void triggerCompletion(IFile file, Position position, int documentVersion) {
     if (statusManager.isNotSignedInOrNotAuthorized()) {
+      return;
+    }
+    if (this.usingCodeMining
+        && !Platform.getPreferencesService().getBoolean(JDT_UI_PLUGIN_ID, CODE_MINING_ENABLED_PREF_KEY, true, null)) {
+      // Code mining is disabled, do not trigger completion to save the quota.
+      // we are not caching and listening the preference change event, because we cannot get access to the
+      // JDT UI plugin preference store.
       return;
     }
     this.completionJob.cancel();
