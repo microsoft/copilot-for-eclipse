@@ -204,9 +204,11 @@ public class ByokService extends ChatBaseService {
         if (listResp == null || listResp.getModels() == null || listResp.getModels().isEmpty()) {
           return refreshData();
         }
-        List<ByokModel> toRegister = listResp.getModels();
-        toRegister.forEach(m -> m.setRegistered(true));
-        return batchSaveByokModels(toRegister).thenCompose(v -> refreshData());
+        // Special Case: OpenRouter has too many default models(about 180) so skip registration.
+        List<ByokModel> fetched = listResp.getModels();
+        boolean needRegister = !ByokModelProvider.OPENROUTER.getDisplayName().equals(providerName);
+        fetched.forEach(m -> m.setRegistered(needRegister));
+        return batchSaveByokModels(fetched).thenCompose(v -> refreshData());
       });
     });
   }

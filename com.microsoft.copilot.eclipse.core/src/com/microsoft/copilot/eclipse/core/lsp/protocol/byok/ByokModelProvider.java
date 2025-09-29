@@ -5,7 +5,12 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
  */
 public enum ByokModelProvider {
   AZURE("Azure"),
-  OPENAI("OpenAI");
+  OPENAI("OpenAI"),
+  GEMINI("Gemini"),
+  GROQ("Groq"),
+  OPENROUTER("OpenRouter"),
+  ANTHROPIC("Anthropic");
+
 
   private final String displayName;
 

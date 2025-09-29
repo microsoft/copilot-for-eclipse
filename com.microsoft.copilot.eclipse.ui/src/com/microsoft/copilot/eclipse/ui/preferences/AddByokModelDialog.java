@@ -132,8 +132,10 @@ public class AddByokModelDialog extends TrayDialog {
     apiKeyText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     apiKeyText.addModifyListener(this::onFieldChanged);
 
-    eyeOpenImg = UiUtils.buildImageFromPngPath("/icons/chat/eye.png");
-    eyeClosedImg = UiUtils.buildImageFromPngPath("/icons/chat/eye_closed.png");
+    eyeOpenImg = UiUtils
+        .buildImageFromPngPath(UiUtils.isDarkTheme() ? "/icons/chat/eye_dark.png" : "/icons/chat/eye.png");
+    eyeClosedImg = UiUtils.buildImageFromPngPath(
+        UiUtils.isDarkTheme() ? "/icons/chat/eye_closed_dark.png" : "/icons/chat/eye_closed.png");
 
     toggleEyeBtn = new Button(apiKeyRow, SWT.FLAT);
     toggleEyeBtn.setImage(eyeClosedImg);
@@ -153,7 +155,11 @@ public class AddByokModelDialog extends TrayDialog {
    * Get the appropriate help context ID based on the provider.
    */
   private String getHelpContextId() {
-    return "com.microsoft.copilot.eclipse.ui.add_byok_model_dialog_" + providerName.toLowerCase();
+    String base = "com.microsoft.copilot.eclipse.ui.add_byok_model_dialog_";
+    if (ByokModelProvider.isAzure(providerName)) {
+      return base + "azure";
+    }
+    return base + "openaiCompatible";
   }
 
   @Override

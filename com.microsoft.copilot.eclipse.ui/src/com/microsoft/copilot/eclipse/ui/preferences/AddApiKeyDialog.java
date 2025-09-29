@@ -18,6 +18,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -89,8 +90,10 @@ public class AddApiKeyDialog extends TrayDialog {
     apiKeyText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     apiKeyText.addModifyListener(this::onFieldChanged);
 
-    eyeOpenImg = UiUtils.buildImageFromPngPath("/icons/chat/eye.png");
-    eyeClosedImg = UiUtils.buildImageFromPngPath("/icons/chat/eye_closed.png");
+    eyeOpenImg = UiUtils
+        .buildImageFromPngPath(UiUtils.isDarkTheme() ? "/icons/chat/eye_dark.png" : "/icons/chat/eye.png");
+    eyeClosedImg = UiUtils.buildImageFromPngPath(
+        UiUtils.isDarkTheme() ? "/icons/chat/eye_closed_dark.png" : "/icons/chat/eye_closed.png");
     toggleEyeBtn = new Button(apiKeyRow, SWT.PUSH);
     toggleEyeBtn.setImage(eyeClosedImg);
     toggleEyeBtn.addListener(SWT.Selection, e -> togglePasswordVisibility());
@@ -123,14 +126,17 @@ public class AddApiKeyDialog extends TrayDialog {
     onSave.accept(apiKey);
     super.okPressed();
   }
-  
+
   /**
    * Get the appropriate help context ID based on the provider.
    */
   private String getHelpContextId() {
-    return "com.microsoft.copilot.eclipse.ui.add_byok_model_dialog_" + providerName.toLowerCase();
+    String base = "com.microsoft.copilot.eclipse.ui.add_byok_model_dialog_";
+    if (ByokModelProvider.isAzure(providerName)) {
+      return base + "azure";
+    }
+    return base + "openaiCompatible";
   }
-
 
   private void onFieldChanged(ModifyEvent e) {
     validateAll();
