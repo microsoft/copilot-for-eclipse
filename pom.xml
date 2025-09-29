@@ -133,5 +133,26 @@
 				<tycho.testArgLine>-XstartOnFirstThread</tycho.testArgLine>
 			</properties>
 		</profile>
+		<profile>
+			<id>nightly</id>
+			<activation>
+				<property>
+					<name>env.BUILD_TYPE</name>
+					<value>nightly</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>tycho-packaging-plugin</artifactId>
+						<version>${tycho-version}</version>
+						<configuration>
+							<format>yyyyMMddHHmm'_nightly'</format>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 </project>
