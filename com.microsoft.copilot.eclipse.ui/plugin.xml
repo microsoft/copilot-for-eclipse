@@ -8,6 +8,12 @@
 		</startup>
 	</extension>
 
+	<!-- Extension Points Definition -->
+	<extension-point
+		id="mcpRegistration"
+		name="MCP Registration"
+		schema="schema/mcpRegistration.exsd"/>
+
 	<!-- Menus registration -->
 	<extension
 		point="org.eclipse.ui.menus">
@@ -736,7 +742,7 @@
 			class="com.microsoft.copilot.eclipse.ui.testers.PlatformVersionTester">
 		</propertyTester>
 	</extension>
-	 <extension point="org.eclipse.help.contexts">
-        <contexts file="contexts.xml" />
-    </extension>
+	<extension point="org.eclipse.help.contexts">
+		<contexts file="contexts.xml" />
+	</extension>
 </plugin>

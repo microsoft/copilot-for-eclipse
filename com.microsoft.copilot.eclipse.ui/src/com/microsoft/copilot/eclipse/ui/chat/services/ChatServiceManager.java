@@ -24,6 +24,8 @@ public class ChatServiceManager implements IChatServiceManager {
   private FileToolService fileToolService;
   private ReferencedFileService referencedFileService;
   private McpConfigService mcpConfigService;
+  private McpExtensionPointManager mcpExtensionPointManager;
+
   private McpRuntimeLogger mcpRuntimeLogger;
   private ConversationPersistenceManager persistenceManager;
 
@@ -41,6 +43,7 @@ public class ChatServiceManager implements IChatServiceManager {
     fileToolService = new FileToolService(this.lsConnection);
     referencedFileService = new ReferencedFileService();
     mcpConfigService = new McpConfigService();
+    mcpExtensionPointManager = new McpExtensionPointManager(mcpConfigService);
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
   }
@@ -140,6 +143,13 @@ public class ChatServiceManager implements IChatServiceManager {
   @Override
   public ReferencedFileService getReferencedFileService() {
     return referencedFileService;
+  }
+
+  /**
+   * Get the MCP extension point manager.
+   */
+  public McpExtensionPointManager getMcpExtensionPointManager() {
+    return mcpExtensionPointManager;
   }
 
   /**

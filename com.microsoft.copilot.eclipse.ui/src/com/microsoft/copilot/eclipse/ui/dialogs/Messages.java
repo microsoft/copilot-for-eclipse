@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.ui.dialogs;
 import org.eclipse.osgi.util.NLS;
 
 /**
- * Dialog message class for the i18n.
+ * Message class for the i18n.
  */
 public final class Messages extends NLS {
   public static String mcpRegistryDialog_title;
@@ -42,6 +42,30 @@ public final class Messages extends NLS {
   public static String mcpServerDetailDialog_installation_options;
   public static String mcpServerDetailDialog_configuration_preview;
   public static String mcpServerDetailDialog_remote_prefix;
+
+  public static String mcpApprovalDialog_title;
+  public static String mcpApprovalDialog_description;
+  public static String mcpApprovalDialog_column_status;
+  public static String mcpApprovalDialog_column_pluginId;
+  public static String mcpApprovalDialog_column_displayName;
+  public static String mcpApprovalDialog_column_signedStatus;
+  public static String mcpApprovalDialog_button_approve;
+  public static String mcpApprovalDialog_button_deny;
+  public static String mcpApprovalDialog_button_approveAll;
+  public static String mcpApprovalDialog_button_denyAll;
+  public static String mcpApprovalDialog_note_prefix;
+  public static String mcpApprovalDialog_note_content;
+  public static String mcpApprovalDialog_preview_label;
+  public static String mcpApprovalDialog_preview_empty;
+  public static String mcpApprovalDialog_status_approved;
+  public static String mcpApprovalDialog_status_denied;
+  public static String mcpApprovalDialog_signed_signed;
+  public static String mcpApprovalDialog_signed_unsigned;
+  public static String mcpApprovalDialog_warning_title;
+  public static String mcpApprovalDialog_warning_message;
+  public static String mcpApprovalDialog_warning_button_approve;
+  public static String mcpApprovalDialog_warning_button_cancel;
+  public static String mcpApprovalDialog_close_button;
 
   static {
     // initialize resource bundle

@@ -39,8 +39,12 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
   // MCP feature flag
   private EventHandler featureFlagNotifiedEventHandler;
   private IObservableValue<Boolean> mcpEnabledObservableValue;
+  private IObservableValue<Boolean> newExtMcpRegFoundObservableValue;
+
   private ISideEffect mcpPreferenceSideEffect;
-  private ISideEffect mcpToolButtonSideEffect;
+  private ISideEffect mcpToolButtonEnableSideEffect;
+  private ISideEffect mcpToolsButtonRedNoticeSideEffect;
+  private ISideEffect mcpPrefencePageExtMcpTitleRedNoticeSideEffect;
 
   private IEventBroker eventBroker;
 
@@ -58,6 +62,7 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
 
     initializeMcpToolUpdateEvent();
     initializeMcpFeatureFlagUpdateEvent();
+    ensureRealm(() -> newExtMcpRegFoundObservableValue = new WritableValue<>(false, Boolean.class));
   }
 
   private void initializeMcpToolUpdateEvent() {
@@ -106,6 +111,12 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
       unbindWithMcpPreferencePage();
       mcpToolsSideEffect = ISideEffect.create(mcpToolsObservableValue::getValue, page::displayServerToolsInfo);
       mcpPreferenceSideEffect = ISideEffect.create(mcpEnabledObservableValue::getValue, page::updateMcpPreferencePage);
+      mcpPrefencePageExtMcpTitleRedNoticeSideEffect = ISideEffect.create(newExtMcpRegFoundObservableValue::getValue,
+          hasNew -> {
+            if (Boolean.FALSE.equals(hasNew)) {
+              page.disposeNoticeIcon();
+            }
+          });
     });
   }
 
@@ -114,39 +125,68 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
       mcpToolsSideEffect.dispose();
       mcpToolsSideEffect = null;
     }
-
     if (mcpPreferenceSideEffect != null) {
       mcpPreferenceSideEffect.dispose();
       mcpPreferenceSideEffect = null;
+    }
+    if (mcpPrefencePageExtMcpTitleRedNoticeSideEffect != null) {
+      mcpPrefencePageExtMcpTitleRedNoticeSideEffect.dispose();
+      mcpPrefencePageExtMcpTitleRedNoticeSideEffect = null;
     }
   }
 
   /**
    * Bind the observable with mcpToolButton in ActionBar.
    */
-  public void bindWithMcpToolButton(Button mcpToolButton, Image mcpToolImage, Image mcpToolDisabledImage) {
+  public void bindWithMcpToolButton(Button mcpToolButton, Image mcpToolImage, Image mcpToolDisabledImage,
+      Image mcpToolDetectedImage) {
     unbindWithMcpToolButton();
-    ensureRealm(
-        () -> mcpToolButtonSideEffect = ISideEffect.create(mcpEnabledObservableValue::getValue, (Boolean isEnabled) -> {
-          if (mcpToolButton != null && !mcpToolButton.isDisposed()) {
-            if (Boolean.TRUE.equals(isEnabled)) {
+    ensureRealm(() -> {
+      mcpToolButtonEnableSideEffect = ISideEffect.create(mcpEnabledObservableValue::getValue, (Boolean isEnabled) -> {
+        if (mcpToolButton != null && !mcpToolButton.isDisposed()) {
+          if (Boolean.TRUE.equals(isEnabled)) {
+            if (isNewExtMcpRegFound()) {
+              mcpToolButton.setImage(mcpToolDetectedImage);
+              mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_detected_toolTip);
+            } else {
               mcpToolButton.setImage(mcpToolImage);
               mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_toolTip);
-            } else {
-              mcpToolButton.setImage(mcpToolDisabledImage);
-              mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_disabled_toolTip);
             }
+          } else {
+            mcpToolButton.setImage(mcpToolDisabledImage);
+            mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_disabled_toolTip);
           }
-        }));
+        }
+      });
+
+      mcpToolsButtonRedNoticeSideEffect = ISideEffect.create(newExtMcpRegFoundObservableValue::getValue,
+          (Boolean newFound) -> {
+            if (mcpToolButton != null && !mcpToolButton.isDisposed()) {
+              if (Boolean.TRUE.equals(mcpEnabledObservableValue.getValue())) {
+                if (Boolean.TRUE.equals(newFound)) {
+                  mcpToolButton.setImage(mcpToolDetectedImage);
+                  mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_detected_toolTip);
+                } else {
+                  mcpToolButton.setImage(mcpToolImage);
+                  mcpToolButton.setToolTipText(Messages.chat_actionBar_toolButton_toolTip);
+                }
+              }
+            }
+          });
+    });
   }
 
   /**
    * Unbind the observable with mcpToolButton in ActionBar.
    */
   public void unbindWithMcpToolButton() {
-    if (mcpToolButtonSideEffect != null) {
-      mcpToolButtonSideEffect.dispose();
-      mcpToolButtonSideEffect = null;
+    if (mcpToolButtonEnableSideEffect != null) {
+      mcpToolButtonEnableSideEffect.dispose();
+      mcpToolButtonEnableSideEffect = null;
+    }
+    if (mcpToolsButtonRedNoticeSideEffect != null) {
+      mcpToolsButtonRedNoticeSideEffect.dispose();
+      mcpToolsButtonRedNoticeSideEffect = null;
     }
   }
 
@@ -173,6 +213,22 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
       CopilotCore.LOGGER.error("Error during MCP OAuth confirmation", e);
       return false;
     }
+  }
+
+  /**
+   * Check if there is any new MCP registration from extension point.
+   */
+  public boolean isNewExtMcpRegFound() {
+    Boolean[] result = new Boolean[1];
+    newExtMcpRegFoundObservableValue.getRealm().exec(() -> result[0] = newExtMcpRegFoundObservableValue.getValue());
+    return Boolean.TRUE.equals(result[0]);
+  }
+
+  /**
+   * Set the newExtMcpRegFound flag.
+   */
+  public void setNewExtMcpRegFound(boolean value) {
+    ensureRealm(() -> newExtMcpRegFoundObservableValue.setValue(value));
   }
 
   /**

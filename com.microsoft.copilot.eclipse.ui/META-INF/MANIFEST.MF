@@ -16,7 +16,8 @@ Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.i18n,
  com.microsoft.copilot.eclipse.ui.preferences,
  com.microsoft.copilot.eclipse.ui.testers,
- com.microsoft.copilot.eclipse.ui.utils
+ com.microsoft.copilot.eclipse.ui.utils,
+ com.microsoft.copilot.eclipse.ui.extensions
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui

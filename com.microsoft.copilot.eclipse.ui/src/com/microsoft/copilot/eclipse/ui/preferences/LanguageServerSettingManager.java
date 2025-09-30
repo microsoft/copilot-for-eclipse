@@ -26,6 +26,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsStatusColle
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpToolStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpToolsStatusCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
 
 /**
  * A class to manage the proxy service for the Copilot Language Server.
@@ -62,7 +64,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     updateProxySettings();
     getSettings().setEnableAutoCompletions(preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION));
     getSettings().getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
-    getSettings().setMcpServers(preferenceStore.getString(Constants.MCP));
     getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
     getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
 
@@ -111,9 +112,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         singleSetting = new CopilotLanguageServerSettings(null, null, settings.getGithubEnterprise(), null);
         break;
       case Constants.MCP:
-        settings.setMcpServers(preferenceStore.getString(Constants.MCP));
-        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
-        break;
+        syncMcpRegistrationConfiguration();
+        return;
       case Constants.MCP_TOOLS_STATUS:
         updateMcpToolsStatus(preferenceStore.getString(Constants.MCP_TOOLS_STATUS));
         return;
@@ -163,6 +163,20 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       copilotCore.getGithubPanicErrorReport().setProxyStrictSsl(settings.getHttp().isProxyStrictSsl());
       copilotCore.getGithubPanicErrorReport().setProxyData(proxyData);
     }
+  }
+
+  /**
+   * Sync MCP registration from both extension points and preference store.
+   */
+  public void syncMcpRegistrationConfiguration() {
+    // From manual configuration
+    settings.setMcpServers(preferenceStore.getString(Constants.MCP));
+
+    // From McpRegistration extension point
+    McpExtensionPointManager mgr = CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager();
+    settings.addMcpServers(mgr.getApprovedExtMcpServers());
+
+    syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));
   }
 
   /**
@@ -287,7 +301,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * @param isEnabled true to enable workspace instructions and load the stored content, false to disable them and clear
    *        the content.
    * @return the CopilotLanguageServerSettings to sync with the language server if workspace instructions are being
-   *         changed.
+   *        changed.
    */
   private CopilotLanguageServerSettings updateWorkspaceInstructionEnabled(boolean isEnabled) {
     GitHubSettings githubSettings = new GitHubSettings();

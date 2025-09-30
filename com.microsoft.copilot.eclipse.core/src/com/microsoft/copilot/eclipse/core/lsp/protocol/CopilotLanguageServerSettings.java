@@ -410,6 +410,35 @@ public class CopilotLanguageServerSettings {
     this.getGithubSettings().getCopilotSettings().setMcpServers(mcpServers);
   }
 
+  /**
+   * add mcp servers.
+   */
+  public void addMcpServers(String mcpServersJson) {
+    String mcpServers = parseMcpServers(mcpServersJson);
+    if (StringUtils.isNotBlank(mcpServers)) {
+      String existingMcpServers = this.getGithubSettings().getCopilotSettings().getMcpServers();
+      if (StringUtils.isBlank(existingMcpServers)) {
+        this.getGithubSettings().getCopilotSettings().setMcpServers(mcpServers);
+      } else {
+        // merge the existing and new MCP servers
+        try {
+          Gson gson = new Gson();
+          Map<String, Object> existingMap = gson.fromJson(existingMcpServers, new TypeToken<Map<String, Object>>() {
+          }.getType());
+          Map<String, Object> newMap = gson.fromJson(mcpServers, new TypeToken<Map<String, Object>>() {
+          }.getType());
+          if (existingMap != null && newMap != null) {
+            existingMap.putAll(newMap);
+            String mergedMcpServers = gson.toJson(existingMap);
+            this.getGithubSettings().getCopilotSettings().setMcpServers(mergedMcpServers);
+          }
+        } catch (JsonParseException e) {
+          CopilotCore.LOGGER.error("Failed to parse MCP servers JSON during merge", e);
+        }
+      }
+    }
+  }
+
   private String parseMcpServers(String mcpServersPreference) {
     if (StringUtils.isBlank(mcpServersPreference)) {
       return mcpServersPreference;

@@ -26,7 +26,9 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
@@ -97,6 +99,7 @@ public class CopilotUi extends AbstractUIPlugin {
         CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
         // sync to language server on load
         mgr.syncConfiguration();
+        mgr.syncMcpRegistrationConfiguration();
 
         registerPartListener();
         // Initialize the completion handler for the active editor in case we miss the event

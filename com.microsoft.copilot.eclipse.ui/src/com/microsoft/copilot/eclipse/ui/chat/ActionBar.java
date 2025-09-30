@@ -42,6 +42,8 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.PlatformUI;
@@ -52,6 +54,7 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
@@ -89,6 +92,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Button mcpToolButton;
   private Image mcpToolImage;
   private Image mcpToolDisabledImage;
+  private Image mcpToolDetectedImage;
+  private Image redNoticeImage;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
@@ -253,6 +258,21 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Update both MCP button and send button together
     updateButtonsLayout();
+
+    this.addDisposeListener(e -> {
+      if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
+        mcpToolImage.dispose();
+      }
+      if (mcpToolDisabledImage != null && !mcpToolDisabledImage.isDisposed()) {
+        mcpToolDisabledImage.dispose();
+      }
+      if (mcpToolDetectedImage != null && !mcpToolDetectedImage.isDisposed()) {
+        mcpToolDetectedImage.dispose();
+      }
+      if (redNoticeImage != null && !redNoticeImage.isDisposed()) {
+        redNoticeImage.dispose();
+      }
+    });
   }
 
   /**
@@ -326,14 +346,6 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.mcpToolButton.dispose();
       this.mcpToolButton = null;
     }
-    if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
-      mcpToolImage.dispose();
-      mcpToolImage = null;
-    }
-    if (mcpToolDisabledImage != null && !mcpToolDisabledImage.isDisposed()) {
-      mcpToolDisabledImage.dispose();
-      mcpToolDisabledImage = null;
-    }
     if (btnMsgToggle != null && !btnMsgToggle.isDisposed()) {
       btnMsgToggle.dispose();
       btnMsgToggle = null;
@@ -346,20 +358,19 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Add MCP button for Agent mode
     if (isAgentMode) {
-      mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
-      mcpToolDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_disabled.png");
-      this.addDisposeListener(e -> {
-        if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
-          mcpToolImage.dispose();
-        }
-        if (mcpToolDisabledImage != null && !mcpToolDisabledImage.isDisposed()) {
-          mcpToolDisabledImage.dispose();
-        }
-      });
+      if (mcpToolImage == null || mcpToolImage.isDisposed()) {
+        mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+      }
+      if (mcpToolDisabledImage == null || mcpToolDisabledImage.isDisposed()) {
+        mcpToolDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_disabled.png");
+      }
+      if (mcpToolDetectedImage == null || mcpToolDetectedImage.isDisposed()) {
+        mcpToolDetectedImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_detected.png");
+      }
 
       this.mcpToolButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
-          mcpToolDisabledImage);
+          mcpToolDisabledImage, mcpToolDetectedImage);
       GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -371,16 +382,16 @@ public class ActionBar extends Composite implements NewConversationListener {
             return;
           }
 
-          Map<String, Object> parameters = new HashMap<>();
+          // Check if new MCP registrations are found
+          if (chatServiceManager.getMcpConfigService().isNewExtMcpRegFound()) {
+            showMcpToolContextMenu();
+          } else {
+            // Default behavior - open preference page directly
+            openMcpPreferences();
+          }
 
-          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId", McpPreferencePage.ID);
-
-          parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-              String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                  CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
-                  ByokPreferencePage.ID));
-
-          UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
+          // set focus back to input text viewer after handling MCP button click
+          setFocusToInputTextViewer();
         }
       });
     }
@@ -637,5 +648,56 @@ public class ActionBar extends Composite implements NewConversationListener {
       eventBroker.unsubscribe(updateSendButtonToCancelButtonHandler);
       updateSendButtonToCancelButtonHandler = null;
     }
+  }
+
+  /**
+   * Shows a context menu for the MCP tool button when new registrations are found.
+   */
+  private void showMcpToolContextMenu() {
+    Menu contextMenu = new Menu(mcpToolButton);
+
+    // First menu item
+    MenuItem approvalItem = new MenuItem(contextMenu, SWT.NONE);
+    approvalItem.setText(Messages.chat_actionBar_toolButton_detected_toolTip);
+    if (redNoticeImage == null || redNoticeImage.isDisposed()) {
+      redNoticeImage = UiUtils.buildImageFromPngPath("/icons/chat/red_notice.png");
+    }
+    approvalItem.setImage(redNoticeImage);
+    approvalItem.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
+        CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
+      }
+    });
+
+    // Second menu item
+    MenuItem configureItem = new MenuItem(contextMenu, SWT.NONE);
+    configureItem.setText(Messages.chat_actionBar_toolButton_toolTip);
+    configureItem.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        openMcpPreferences();
+      }
+    });
+
+    // Show the menu at the button location
+    Point buttonLocation = mcpToolButton.toDisplay(0, mcpToolButton.getSize().y);
+    contextMenu.setLocation(buttonLocation);
+    contextMenu.setVisible(true);
+  }
+
+  /**
+   * Opens the MCP preferences page.
+   */
+  private void openMcpPreferences() {
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId", McpPreferencePage.ID);
+    parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
+        String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
+            CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
+            ByokPreferencePage.ID));
+
+    UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
   }
 }

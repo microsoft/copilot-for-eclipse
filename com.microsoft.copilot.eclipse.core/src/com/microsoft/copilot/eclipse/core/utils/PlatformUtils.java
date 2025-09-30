@@ -169,4 +169,5 @@ public class PlatformUtils {
     }
     return ResourcesPlugin.getEncoding();
   }
+
 }

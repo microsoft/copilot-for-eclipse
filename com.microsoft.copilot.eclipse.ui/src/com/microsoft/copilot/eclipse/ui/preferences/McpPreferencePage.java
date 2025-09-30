@@ -29,6 +29,7 @@ import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -36,6 +37,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
@@ -47,14 +49,15 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Preference page for GitHub Copilot MCP settings.
@@ -71,6 +74,9 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Tree toolsTree;
   private boolean hasFailedMcpServer;
   private StringFieldEditor mcpField;
+  private Image redNotice;
+  private Label redNoticeLabel;
+  private Composite extMcpTitleComposite; // store title composite for layout refresh and dynamic icon creation
   private StringFieldEditor mcpRegistryField;
   private Button openRegistryButton;
 
@@ -166,6 +172,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
     // add note to mcp field using WrappableNoteLabel
     new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix, Messages.preferences_page_mcp_note_content);
+
+    createExtMcpRegistrationArea(mcpGroup);
 
     if (PlatformUtils.isNightly()) {
       // add mcp registry field and button
@@ -263,6 +271,81 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Set equal height constraint for both groups
     ((GridData) mcpGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
     ((GridData) toolsGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
+  }
+
+  private void createExtMcpRegistrationArea(Composite parent) {
+    McpExtensionPointManager extMcpManager = CopilotUi.getPlugin().getChatServiceManager()
+        .getMcpExtensionPointManager();
+    if (!extMcpManager.hasExtMcpRegistration()) {
+      return;
+    }
+
+    // Create a composite to hold the title label and optional red notice icon
+    extMcpTitleComposite = new Composite(parent, SWT.NONE);
+    GridLayout extMcpTitleLayout = new GridLayout(2, false);
+    extMcpTitleLayout.marginWidth = 0;
+    extMcpTitleLayout.marginHeight = 0;
+    extMcpTitleComposite.setLayout(extMcpTitleLayout);
+    extMcpTitleComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    // Red notice icon
+    var service = CopilotUi.getPlugin().getChatServiceManager().getMcpConfigService();
+    boolean newExtMcpRegFound = service.isNewExtMcpRegFound();
+    if (newExtMcpRegFound) {
+      if (redNotice == null || redNotice.isDisposed()) {
+        redNotice = UiUtils.buildImageFromPngPath("/icons/chat/red_notice.png");
+      }
+      redNoticeLabel = new Label(extMcpTitleComposite, SWT.NONE);
+      redNoticeLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+      redNoticeLabel.setImage(redNotice);
+      redNoticeLabel.setToolTipText(Messages.chat_actionBar_toolButton_detected_toolTip);
+      redNoticeLabel.addDisposeListener(e -> {
+        if (redNotice != null && !redNotice.isDisposed()) {
+          redNotice.dispose();
+          redNotice = null;
+        }
+      });
+    }
+
+    // Title label
+    new WrappableNoteLabel(extMcpTitleComposite, Messages.preferences_page_extMcp_title, "");
+
+    // Edit button
+    Button extMcpButton = new Button(parent, SWT.PUSH);
+    extMcpButton.setText(Messages.preferences_page_extMcp_button_edit);
+    extMcpButton.setToolTipText(Messages.preferences_page_extMcp_button_tooltip);
+    extMcpButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+
+    extMcpButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager().approveExtMcpRegistration();
+        CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
+      }
+    });
+  }
+
+  /**
+   * Dispose the notice icon when for example, user has made actions to the registration.
+   */
+  public void disposeNoticeIcon() {
+    if (extMcpTitleComposite == null || extMcpTitleComposite.isDisposed()) {
+      return; // nothing to update
+    }
+
+    if (redNoticeLabel != null && !redNoticeLabel.isDisposed()) {
+      redNoticeLabel.setImage(null); // detach before dispose
+      redNoticeLabel.dispose();
+      redNoticeLabel = null;
+    }
+
+    if (redNotice != null && !redNotice.isDisposed()) {
+      redNotice.dispose();
+      redNotice = null;
+    }
+
+    // Refresh layout to reflect changes immediately
+    extMcpTitleComposite.requestLayout();
   }
 
   /**
@@ -572,17 +655,16 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     String storedMcp = preferenceStore.getString(Constants.MCP);
     String currentMcp = mcpField.getStringValue();
     if (StringUtils.equals(currentMcp, storedMcp)) {
-      CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
-      settings.setMcpServers(mcpField.getStringValue());
-      LanguageServerSettingManager mgr = CopilotUi.getPlugin().getLanguageServerSettingManager();
-      mgr.syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));
+      CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
     }
   }
 
   @Override
   public boolean performOk() {
     saveToolStatusToPreferences();
-    saveMcpRegistryUrlToGlobalScope();
+    if (PlatformUtils.isNightly()) {
+      saveMcpRegistryUrlToGlobalScope();
+    }
     resyncMcpServers();
     return super.performOk();
   }

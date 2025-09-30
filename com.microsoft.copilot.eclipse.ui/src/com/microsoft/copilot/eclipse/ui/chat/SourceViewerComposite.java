@@ -48,7 +48,10 @@ import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
-class SourceViewerComposite extends Composite {
+/**
+ * A composite that contains a read-only source viewer with syntax highlighting and action buttons (copy, insert).
+ */
+public class SourceViewerComposite extends Composite {
   private static HashMap<String, SourceViewerConfiguration> configurations = new HashMap<>();
   private static final int ACTIONS_PADDING_RIGHT = 10;
   private static final int ACTIONS_PADDING_TOP = 5;
@@ -63,6 +66,9 @@ class SourceViewerComposite extends Composite {
   private Image copyIcon;
   private Image insertIcon;
 
+  /**
+   * Constructs a new SourceViewerComposite.
+   */
   public SourceViewerComposite(Composite parent, int style, ChatServiceManager serviceManager, String language,
       String turnId, int codeBlockIndex) {
     super(parent, style);
@@ -73,6 +79,9 @@ class SourceViewerComposite extends Composite {
     this.init();
   }
 
+  /**
+   * Sets the text to be displayed in the source viewer.
+   */
   public void setText(String text) {
     if (sourceViewer.getDocument() == null) {
       sourceViewer.setDocument(new Document(text));
@@ -283,7 +292,10 @@ class SourceViewerComposite extends Composite {
     textEditor.selectAndReveal(offset + content.length(), 0);
   }
 
-  private static SourceViewerConfiguration getConfiguration(String lang) {
+  /**
+   * Get or create a SourceViewerConfiguration for the given language.
+   */
+  public static SourceViewerConfiguration getConfiguration(String lang) {
     if (configurations.containsKey(lang)) {
       SourceViewerConfiguration result = configurations.get(lang);
       IPresentationReconciler reconciler = result.getPresentationReconciler(null);

@@ -83,6 +83,9 @@ public final class Messages extends NLS {
   public static String preferences_page_mcp_disabled_tip;
   public static String preferences_page_mcp_tools_settings;
   public static String preferences_page_mcp_server_init_error;
+  public static String preferences_page_extMcp_title;
+  public static String preferences_page_extMcp_button_edit;
+  public static String preferences_page_extMcp_button_tooltip;
   public static String preferences_page_mcp_registry_settings;
   public static String preferences_page_mcp_registry_url;
   public static String preferences_page_mcp_registry_description;
@@ -127,6 +130,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_toolButton_toolTip;
   public static String chat_actionBar_toolButton_disabled_toolTip;
   public static String chat_actionBar_modelPicker_manageModels;
+  public static String chat_actionBar_toolButton_detected_toolTip;
   public static String chat_welcomeView_title;
   public static String chat_welcomeView_description;
   public static String chat_welcomeView_agentSuffix;
