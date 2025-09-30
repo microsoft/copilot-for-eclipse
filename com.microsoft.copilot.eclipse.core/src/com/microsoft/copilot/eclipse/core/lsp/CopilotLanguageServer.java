@@ -6,6 +6,11 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageServer;
 
+import com.microsoft.copilot.eclipse.core.lsp.mcp.GetServerParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
@@ -148,12 +153,6 @@ public interface CopilotLanguageServer extends LanguageServer {
   CompletableFuture<CopilotModel[]> listModels(NullParams param);
 
   /**
-   * Update the status of the mcp server and tools.
-   */
-  @JsonRequest("mcp/updateToolsStatus")
-  CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams param);
-
-  /**
    * Get the conversation agents.
    */
   @JsonRequest("conversation/agents")
@@ -164,7 +163,7 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("conversation/notifyCodeAcceptance")
   CompletableFuture<String> notifyCodeAcceptance(NotifyCodeAcceptanceParams params);
-  
+
   /**
    * Generate commit messages.
    */
@@ -206,4 +205,28 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("copilot/byok/listApiKeys")
   CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey);
+
+  /**
+   * Update the status of the mcp server and tools.
+   */
+  @JsonRequest("mcp/updateToolsStatus")
+  CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams param);
+
+  /**
+   * Get the MCP server list.
+   */
+  @JsonRequest("mcp/registry/listServers")
+  CompletableFuture<ServerList> listMcpServers(ListServersParams params);
+
+  /**
+   * Get the details of a specific MCP server.
+   */
+  @JsonRequest("mcp/registry/getServer")
+  CompletableFuture<ServerDetail> getMcpServer(GetServerParams params);
+
+  /**
+   * Get the MCP registry allowlist for the current user or organization.
+   */
+  @JsonRequest("mcp/registry/getAllowlist")
+  CompletableFuture<McpRegistryAllowList> getMcpAllowlist(Object params);
 }

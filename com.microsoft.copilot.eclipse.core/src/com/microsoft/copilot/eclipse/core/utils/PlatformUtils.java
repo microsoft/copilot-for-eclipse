@@ -50,6 +50,13 @@ public class PlatformUtils {
   }
 
   /**
+   * Check if the Copilot plugin is a nightly build.
+   */
+  public static boolean isNightly() {
+    return getBundleVersion().toString().endsWith("_nightly");
+  }
+
+  /**
    * Read the content of a file.
    */
   public static String readFileContent(Path path) {

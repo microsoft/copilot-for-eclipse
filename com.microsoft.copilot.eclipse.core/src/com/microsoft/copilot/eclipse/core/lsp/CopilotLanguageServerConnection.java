@@ -17,6 +17,11 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.GetServerParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCompletionContentPart;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
@@ -460,6 +465,42 @@ public class CopilotLanguageServerConnection {
       return ((CopilotLanguageServer) server).deleteByokApiKey(apiKey);
     };
     return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Get the MCP server list.
+   */
+  public CompletableFuture<ServerList> listMcpServers(ListServersParams params) {
+    Function<LanguageServer, CompletableFuture<ServerList>> fn = server -> ((CopilotLanguageServer) server)
+        .listMcpServers(params);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Get the details of a specific MCP server.
+   */
+  public CompletableFuture<ServerDetail> getMcpServer(GetServerParams params) {
+    Function<LanguageServer, CompletableFuture<ServerDetail>> fn = server -> ((CopilotLanguageServer) server)
+        .getMcpServer(params);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Get the MCP registry allowlist for the current user or organization.
+   */
+  public CompletableFuture<McpRegistryAllowList> getMcpAllowlist(Object params) {
+    Function<LanguageServer, CompletableFuture<McpRegistryAllowList>> fn = 
+        server -> ((CopilotLanguageServer) server).getMcpAllowlist(params);
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
   }
 
   /**

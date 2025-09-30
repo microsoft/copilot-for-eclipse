@@ -1,10 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.chat.viewers;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -225,7 +221,7 @@ public class ChatHistoryViewer extends Composite {
   private String getDateString(ConversationXmlData conversation) {
     Instant dateToFormat = conversation.getLastMessageDate() != null ? conversation.getLastMessageDate()
         : conversation.getCreationDate();
-    return dateToFormat != null ? formatRelativeDateTime(dateToFormat) : "";
+    return dateToFormat != null ? UiUtils.formatRelativeDateTime(dateToFormat) : "";
   }
 
   /**
@@ -428,43 +424,6 @@ public class ChatHistoryViewer extends Composite {
       }
     }
     return false;
-  }
-
-  /**
-   * Converts an Instant to a relative date string with time. Examples: "Today", "Yesterday", "2 days ago", "1 week ago"
-   *
-   * @param instant the instant to format
-   * @return formatted relative date string with time, or empty string if instant is null
-   */
-  private static String formatRelativeDateTime(Instant instant) {
-    if (instant == null) {
-      return "";
-    }
-
-    LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-    LocalDate messageDate = dateTime.toLocalDate();
-    LocalDate today = LocalDate.now();
-
-    long daysDifference = ChronoUnit.DAYS.between(messageDate, today);
-    if (daysDifference == 0) {
-      return Messages.chat_historyView_dateFormat_today;
-    } else if (daysDifference == 1) {
-      return Messages.chat_historyView_dateFormat_yesterday;
-    } else if (daysDifference < 7) {
-      return Messages.chat_historyView_dateFormat_daysAgo.replace("{0}", Long.toString(daysDifference));
-    } else if (daysDifference < 14) {
-      return Messages.chat_historyView_dateFormat_oneWeekAgo;
-    } else if (daysDifference < 30) {
-      long weeksDifference = daysDifference / 7;
-      return Messages.chat_historyView_dateFormat_weeksAgo.replace("{0}", Long.toString(weeksDifference));
-    }
-
-    long monthsDifference = ChronoUnit.MONTHS.between(messageDate, today);
-    if (monthsDifference == 1) {
-      return Messages.chat_historyView_dateFormat_oneMonthAgo;
-    } else {
-      return Messages.chat_historyView_dateFormat_monthsAgo.replace("{0}", Long.toString(monthsDifference));
-    }
   }
 
   /**

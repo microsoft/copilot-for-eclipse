@@ -19,23 +19,30 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -43,8 +50,11 @@ import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Preference page for GitHub Copilot MCP settings.
@@ -52,14 +62,17 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class McpPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
   public static final String ID = "com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage";
 
-  private static final int GROUP_HEIGHT_HINT = 300;
+  private static final int GROUP_HEIGHT_HINT = 260;
   private static final Gson GSON = new Gson();
 
   private Group toolsGroup;
   private Group mcpGroup;
+  private Group mcpRegistryGroup;
   private Tree toolsTree;
   private boolean hasFailedMcpServer;
   private StringFieldEditor mcpField;
+  private StringFieldEditor mcpRegistryField;
+  private Button openRegistryButton;
 
   /**
    * Constructor.
@@ -154,6 +167,93 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // add note to mcp field using WrappableNoteLabel
     new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix, Messages.preferences_page_mcp_note_content);
 
+    if (PlatformUtils.isNightly()) {
+      // add mcp registry field and button
+      mcpRegistryGroup = new Group(parent, SWT.NONE);
+      mcpRegistryGroup.setLayout(gl);
+      gdf.applyTo(mcpRegistryGroup);
+      mcpRegistryGroup.setText(Messages.preferences_page_mcp_registry_settings);
+
+      // Add description label with link
+      PreferencePageUtils.createExternalLink(mcpRegistryGroup, Messages.preferences_page_mcp_registry_description,
+          null);
+
+      // Create container for URL field and button on the same line
+      Composite fieldButtonContainer = new Composite(mcpRegistryGroup, SWT.NONE);
+      GridLayout fieldButtonLayout = new GridLayout(2, false);
+      fieldButtonLayout.marginHeight = 0;
+      fieldButtonLayout.marginWidth = 0;
+      fieldButtonContainer.setLayout(fieldButtonLayout);
+      fieldButtonContainer.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+      // Add URL field
+      Composite mcpRegistryFieldContainer = new Composite(fieldButtonContainer, SWT.NONE);
+      mcpRegistryFieldContainer.setLayout(new GridLayout(1, false));
+      mcpRegistryFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+      mcpRegistryField = new StringFieldEditor(Constants.MCP_REGISTRY_URL, Messages.preferences_page_mcp_registry_url,
+          StringFieldEditor.UNLIMITED, StringFieldEditor.VALIDATE_ON_KEY_STROKE, mcpRegistryFieldContainer) {
+        @Override
+        protected void doFillIntoGrid(Composite parent, int numColumns) {
+          super.doFillIntoGrid(parent, numColumns);
+          getTextControl().setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        }
+
+        @Override
+        protected void doLoad() {
+          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, ""));
+
+          // Add modify listener after text control is created and loaded
+          getTextControl().addModifyListener(e -> {
+            boolean hasContent = StringUtils.isNotBlank(getStringValue());
+            if (openRegistryButton != null && !openRegistryButton.isDisposed()) {
+              openRegistryButton.setEnabled(hasContent);
+            }
+          });
+
+          updateRegistryButtonState();
+        }
+
+        @Override
+        protected void doLoadDefault() {
+          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, ""));
+          updateRegistryButtonState();
+        }
+      };
+      addField(mcpRegistryField);
+
+      // Add Open MCP Registry button
+      openRegistryButton = new Button(fieldButtonContainer, SWT.PUSH);
+      openRegistryButton.setText(Messages.preferences_page_mcp_registry_button);
+      GridData buttonData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
+      openRegistryButton.setLayoutData(buttonData);
+      openRegistryButton.addSelectionListener(new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          saveMcpRegistryUrlToGlobalScope();
+
+          Shell parentShell = getShell();
+          if (getContainer() != null && getContainer() instanceof PreferenceDialog) {
+            ((PreferenceDialog) getContainer()).close();
+          }
+
+          Shell mcpRegistryDialogShell = findExistingMcpRegistryDialog();
+          if (mcpRegistryDialogShell != null) {
+            mcpRegistryDialogShell.forceActive();
+            mcpRegistryDialogShell.setActive();
+          } else {
+            McpRegistryDialog mcpRegistryDialog = new McpRegistryDialog(parentShell);
+            mcpRegistryDialog.open();
+          }
+        }
+      });
+
+      // Set initial button state after field is created - use async to ensure field is fully initialized
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        boolean initialHasContent = StringUtils.isNotBlank(mcpRegistryField.getStringValue());
+        openRegistryButton.setEnabled(initialHasContent);
+      });
+    }
+
     toolsGroup = new Group(parent, SWT.WRAP);
     toolsGroup.setLayout(gl);
     GridDataFactory toolsGdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, true);
@@ -163,6 +263,16 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Set equal height constraint for both groups
     ((GridData) mcpGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
     ((GridData) toolsGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
+  }
+
+  /**
+   * Updates the registry button state based on the current field value.
+   */
+  private void updateRegistryButtonState() {
+    if (openRegistryButton != null && !openRegistryButton.isDisposed() && mcpRegistryField != null) {
+      boolean hasContent = StringUtils.isNotBlank(mcpRegistryField.getStringValue());
+      openRegistryButton.setEnabled(hasContent);
+    }
   }
 
   private boolean validateMcpField(StringFieldEditor mcpField) {
@@ -472,8 +582,30 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   @Override
   public boolean performOk() {
     saveToolStatusToPreferences();
+    saveMcpRegistryUrlToGlobalScope();
     resyncMcpServers();
     return super.performOk();
+  }
+
+  /**
+   * Saves the MCP Registry URL to global scope (ConfigurationScope) to persist across workspaces.
+   */
+  private void saveMcpRegistryUrlToGlobalScope() {
+    // Get the current value from the text field instead of the preference store
+    String newMcpRegistryUrl = mcpRegistryField.getStringValue();
+    String oldMcpRegistryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
+
+    // Ensure the preference change is updated in configuration scope too
+    if (!oldMcpRegistryUrl.equals(newMcpRegistryUrl)) {
+      try {
+        IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
+            .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
+        configPrefs.put(Constants.MCP_REGISTRY_URL, newMcpRegistryUrl);
+        configPrefs.flush();
+      } catch (BackingStoreException ex) {
+        CopilotCore.LOGGER.error("Failed to persist MCP Registry URL preference in ConfigurationScope", ex);
+      }
+    }
   }
 
   /**
@@ -503,5 +635,20 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         | InvocationTargetException e) {
       reader.setLenient(true); // Fallback to older API
     }
+  }
+
+  /**
+   * Finds an existing MCP Registry dialog if opened, used to avoid opening multiple dialogs.
+   *
+   * @return the existing dialog shell, or null if not found
+   */
+  private Shell findExistingMcpRegistryDialog() {
+    Shell[] shells = Display.getDefault().getShells();
+    for (Shell shell : shells) {
+      if (shell.getText().equals(com.microsoft.copilot.eclipse.ui.dialogs.Messages.mcpRegistryDialog_title)) {
+        return shell;
+      }
+    }
+    return null;
   }
 }

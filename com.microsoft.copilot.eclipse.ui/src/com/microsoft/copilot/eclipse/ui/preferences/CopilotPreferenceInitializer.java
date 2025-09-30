@@ -51,5 +51,8 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
     boolean autoShowWhatsNew = configPrefs.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
     pref.setDefault(Constants.AUTO_SHOW_WHAT_IS_NEW, autoShowWhatsNew);
+    
+    String mcpRegistryUrl = configPrefs.get(Constants.MCP_REGISTRY_URL, "");
+    pref.setDefault(Constants.MCP_REGISTRY_URL, mcpRegistryUrl);
   }
 }

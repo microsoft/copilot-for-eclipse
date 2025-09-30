@@ -67,7 +67,7 @@
 #chat-action-bar,
 #chat-action-bar * {
 	color: #DEE1E5;
-	background-color: #48484C; 
+	background-color: #48484C;
 }
 
 #chat-content-viewer .btn-primary {
@@ -90,8 +90,8 @@
 #chat-content-viewer,
 #chat-content-viewer > Composite,
 #chat-content-viewer > Composite * {
-    color: #DEE1E5;
-    background-color: #1E1F22;
+	color: #DEE1E5;
+	background-color: #1E1F22;
 }
 
 #chat-content-viewer > Composite > UserTurnWidget,
@@ -122,4 +122,14 @@
 #chat-history-viewer Label.chat-history-item-current-label,
 #chat-history-viewer Label.chat-history-item-date-label {
 	color: #A4A4A4;
+}
+
+#mcp-registry-dialog {
+	color: #DEE1E5;
+	background-color: #1E1F22;
+}
+
+#mcp-registry-dialog .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
 }

@@ -124,3 +124,13 @@
 #chat-history-viewer Label.chat-history-item-date-label {
 	color: #808080;
 }
+
+#mcp-registry-dialog {
+	color: #000000;
+    background-color: #FFFFFF;
+}
+
+#mcp-registry-dialog .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}

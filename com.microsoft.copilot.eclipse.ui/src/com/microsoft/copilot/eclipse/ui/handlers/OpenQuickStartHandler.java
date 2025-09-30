@@ -50,7 +50,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
 
     public QuickStartDialog(Shell parentShell) {
       super(parentShell);
-      setShellStyle(SWT.RESIZE | SWT.APPLICATION_MODAL | SWT.NO_TRIM | SWT.ON_TOP);
+      setShellStyle(SWT.RESIZE | SWT.APPLICATION_MODAL | SWT.NO_TRIM);
     }
 
     @Override

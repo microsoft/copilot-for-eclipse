@@ -23,6 +23,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
@@ -48,6 +50,8 @@ public class TopBanner extends Composite {
   private Image chatHistoryIcon;
   private Button openPreferenceButton;
   private Image openPreferenceIcon;
+  private Button mcpRegistryButton;
+  private Image mcpRegistryIcon;
   private IEventBroker eventBroker;
 
   /**
@@ -78,11 +82,25 @@ public class TopBanner extends Composite {
     this.chatTitle.setLayoutData(labelGridData);
 
     this.cmpActionArea = new Composite(this, SWT.NONE);
-    GridLayout glGroupButton = new GridLayout(3, false);
+    GridLayout glGroupButton = new GridLayout(PlatformUtils.isNightly() ? 4 : 3, false);
     glGroupButton.marginWidth = 0;
     glGroupButton.marginHeight = 0;
     this.cmpActionArea.setLayout(glGroupButton);
     this.cmpActionArea.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false));
+
+    if (PlatformUtils.isNightly()) {
+      this.mcpRegistryIcon = UiUtils.buildImageFromPngPath("/icons/chat/mcp_registry.png");
+      this.mcpRegistryButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
+      this.mcpRegistryButton.setImage(this.mcpRegistryIcon);
+      this.mcpRegistryButton.setToolTipText(Messages.chat_topBanner_mcpRegistry_Tooltip);
+      this.mcpRegistryButton.addSelectionListener(new SelectionAdapter() {
+        @Override
+        public void widgetSelected(SelectionEvent e) {
+          McpRegistryDialog dialog = new McpRegistryDialog(getShell());
+          dialog.open();
+        }
+      });
+    }
 
     this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
     this.btnNewConversation = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
@@ -161,6 +179,9 @@ public class TopBanner extends Composite {
       }
       if (this.openPreferenceIcon != null && !this.openPreferenceIcon.isDisposed()) {
         this.openPreferenceIcon.dispose();
+      }
+      if (this.mcpRegistryIcon != null && !this.mcpRegistryIcon.isDisposed()) {
+        this.mcpRegistryIcon.dispose();
       }
     });
   }

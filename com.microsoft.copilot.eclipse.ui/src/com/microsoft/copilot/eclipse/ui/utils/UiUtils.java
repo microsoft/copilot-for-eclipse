@@ -1,10 +1,14 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
 import java.net.URI;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.compare.ITypedElement;
@@ -38,7 +42,6 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
@@ -66,8 +69,8 @@ import org.osgi.service.prefs.Preferences;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
-import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolBase.EditableFileCompareInput;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 
 /**
@@ -587,5 +590,62 @@ public class UiUtils {
         viewer.setSelection(selection, true);
       }
     }
+  }
+
+  /**
+   * Converts an Instant to a relative date string with time. Examples: "Today", "Yesterday", "2 days ago", "1 week ago"
+   *
+   * @param instant the instant to format
+   * @return formatted relative date string with time, or empty string if instant is null
+   */
+  public static String formatRelativeDateTime(Instant instant) {
+    if (instant == null) {
+      return "";
+    }
+
+    LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+    LocalDate messageDate = dateTime.toLocalDate();
+    LocalDate today = LocalDate.now();
+
+    long daysDifference = ChronoUnit.DAYS.between(messageDate, today);
+    if (daysDifference == 0) {
+      return Messages.relative_dateFormat_today;
+    } else if (daysDifference == 1) {
+      return Messages.relative_dateFormat_yesterday;
+    } else if (daysDifference < 7) {
+      return Messages.relative_dateFormat_daysAgo.replace("{0}", Long.toString(daysDifference));
+    } else if (daysDifference < 14) {
+      return Messages.relative_dateFormat_oneWeekAgo;
+    } else if (daysDifference < 30) {
+      long weeksDifference = daysDifference / 7;
+      return Messages.relative_dateFormat_weeksAgo.replace("{0}", Long.toString(weeksDifference));
+    }
+
+    long monthsDifference = ChronoUnit.MONTHS.between(messageDate, today);
+    if (monthsDifference == 1) {
+      return Messages.relative_dateFormat_oneMonthAgo;
+    } else {
+      return Messages.relative_dateFormat_monthsAgo.replace("{0}", Long.toString(monthsDifference));
+    }
+  }
+
+  /**
+   * Formats the given local date time as a relative date time string (e.g., "5 minutes ago", "2 hours ago").
+   *
+   * @param localDateTime the local date time to format
+   * @return the formatted relative date time string
+   */
+  public static String formatRelativeDateTime(LocalDateTime localDateTime) {
+    return formatRelativeDateTime(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+  }
+
+  /**
+   * Formats the given local date as a relative date time string (e.g., "5 minutes ago", "2 hours ago").
+   *
+   * @param localDate the local date to format
+   * @return the formatted relative date time string
+   */
+  public static String formatRelativeDateTime(LocalDate localDate) {
+    return formatRelativeDateTime(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
   }
 }

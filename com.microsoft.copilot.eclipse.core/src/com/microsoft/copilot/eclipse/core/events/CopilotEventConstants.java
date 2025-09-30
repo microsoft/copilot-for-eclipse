@@ -21,6 +21,11 @@ public class CopilotEventConstants {
   private static final String TOPIC_AUTH = TOPIC_BASE + "AUTH/";
 
   /**
+   * Topic for MCP events.
+   */
+  private static final String TOPIC_MCP = TOPIC_BASE + "MCP/";
+
+  /**
    * Event when new conversation is started.
    */
   public static final String TOPIC_CHAT_NEW_CONVERSATION = TOPIC_CHAT + "NEW_CONVERSATION";
@@ -89,4 +94,9 @@ public class CopilotEventConstants {
    * Event when BYOK models are updated.
    */
   public static final String TOPIC_CHAT_BYOK_MODELS_UPDATED = TOPIC_CHAT + "BYOK_MODELS_UPDATED";
+
+  /**
+   * Event when MCP server state changes (install, uninstall, etc.).
+   */
+  public static final String TOPIC_MCP_SERVER_STATE_CHANGE = TOPIC_MCP + "SERVER_STATE_CHANGE";
 }
