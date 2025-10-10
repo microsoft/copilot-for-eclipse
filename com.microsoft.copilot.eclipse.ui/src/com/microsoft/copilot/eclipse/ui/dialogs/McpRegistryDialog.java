@@ -189,10 +189,17 @@ public class McpRegistryDialog extends Dialog {
 
   private void createChangeUrlButton(Composite parent) {
     Button editButton = new Button(parent, SWT.PUSH);
+    Image editIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
+    editButton.setImage(editIcon);
     editButton.setText("Change URL");
     editButton.setToolTipText("Change the MCP registry URL");
     editButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     editButton.addListener(SWT.Selection, e -> openPreferencesDialog());
+    editButton.addDisposeListener(e -> {
+      if (editIcon != null && !editIcon.isDisposed()) {
+        editIcon.dispose();
+      }
+    });
   }
 
   private void openPreferencesDialog() {
