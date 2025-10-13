@@ -23,6 +23,7 @@ import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
@@ -43,6 +44,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Widget;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
@@ -647,5 +649,22 @@ public class UiUtils {
    */
   public static String formatRelativeDateTime(LocalDate localDate) {
     return formatRelativeDateTime(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
+  }
+
+  /**
+   * Applies the given CSS class names to the control using the provided styling engine. If the styling engine is null,
+   * the class names are set as data on the control for potential later use.
+   *
+   * @param widget the widget to style
+   * @param classnames the CSS class names to apply
+   * @param stylingEngine the styling engine to use, or null if not available
+   */
+  public static void applyCssClass(Widget widget, String classnames, IStylingEngine stylingEngine) {
+    if (stylingEngine != null) {
+      stylingEngine.setClassname(widget, classnames);
+      stylingEngine.style(widget);
+    } else {
+      widget.setData(CssConstants.CSS_CLASS_NAME_KEY, classnames);
+    }
   }
 }

@@ -234,7 +234,7 @@ public class McpRegistryDialog extends Dialog {
     table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
     // Set custom row height to make rows taller
-    table.addListener(SWT.MeasureItem, event -> event.height = 30);
+    table.addListener(SWT.MeasureItem, event -> event.height = 36);
 
     // Add scroll listener for lazy loading
     table.getVerticalBar().addListener(SWT.Selection, e -> loadMoreIfNearEnd());

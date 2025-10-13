@@ -8,6 +8,7 @@ import java.util.Map;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.graphics.Point;
@@ -31,8 +32,9 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Package;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpServerInstallManager.ButtonState;
-import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Handles the creation and management of action items in the MCP Registry dialog table. This class is responsible for
@@ -47,6 +49,7 @@ public class McpServerAction implements EventHandler {
   private final Shell parentShell;
   private final McpServerInstallManager installManager;
   private final IEventBroker eventBroker;
+  private IStylingEngine stylingEngine;
 
   /**
    * Constructor for ActionItems.
@@ -61,6 +64,7 @@ public class McpServerAction implements EventHandler {
     if (this.eventBroker != null) {
       this.eventBroker.subscribe(CopilotEventConstants.TOPIC_MCP_SERVER_STATE_CHANGE, this);
     }
+    this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
   }
 
   @Override
@@ -199,36 +203,32 @@ public class McpServerAction implements EventHandler {
 
   private Composite createActionCell(Table table) {
     Composite cell = new Composite(table, SWT.NONE);
-    GridLayout gl = new GridLayout(2, false);
-    gl.horizontalSpacing = 6;
+    GridLayout gl = new GridLayout(1, false);
     cell.setLayout(gl);
-    cell.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
-    cell.setData(CssConstants.CSS_ID_KEY, "mcp-registry-dialog");
+    cell.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    if (PlatformUtils.isWindows()) {
+      UiUtils.applyCssClass(cell, "mcp-registry-dialog-actions", stylingEngine);
+    }
     return cell;
   }
 
-  private ToolBar createActionToolBar(Composite parent, ServerDetail serverDetail) {
+  private void createActionToolBar(Composite parent, ServerDetail serverDetail) {
     ToolBar toolBar = new ToolBar(parent, SWT.FLAT);
+    toolBar.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
+    UiUtils.applyCssClass(toolBar, "mcp-registry-dialog-actions", stylingEngine);
 
     createDetailsButton(toolBar, serverDetail);
-    createSeparator(toolBar);
+    ToolItem separator = new ToolItem(toolBar, SWT.SEPARATOR);
+    separator.setWidth(1);
     createInstallUninstallButton(toolBar, serverDetail);
 
-    return toolBar;
+    ((GridLayout) parent.getLayout()).marginHeight = (36 - toolBar.computeSize(SWT.DEFAULT, SWT.DEFAULT).y) / 2;
   }
 
   private void createDetailsButton(ToolBar toolBar, ServerDetail serverDetail) {
     ToolItem detailsButton = new ToolItem(toolBar, SWT.PUSH);
     detailsButton.setText(Messages.mcpRegistryDialog_details);
     detailsButton.addListener(SWT.Selection, e -> onDetails(serverDetail));
-    detailsButton.setData(CssConstants.CSS_ID_KEY, "mcp-registry-dialog");
-  }
-
-  private void createSeparator(ToolBar toolBar) {
-    ToolItem separator = new ToolItem(toolBar, SWT.PUSH);
-    separator.setText(" ");
-    separator.setEnabled(false);
-    separator.setData(CssConstants.CSS_ID_KEY, "mcp-registry-dialog");
   }
 
   private void createInstallUninstallButton(ToolBar toolBar, ServerDetail serverDetail) {
@@ -251,10 +251,8 @@ public class McpServerAction implements EventHandler {
     }
 
     installButton.setText(initialState.getText());
-    installButton.setData(CssConstants.CSS_ID_KEY, "mcp-registry-dialog");
     serverInstallButtons.put(serverName, installButton);
     serverDetailsCache.put(serverName, serverDetail);
-    toolBar.requestLayout();
   }
 
   private Menu createInstallMenu(Shell shell, ToolItem installButton, ServerDetail serverDetail) {
