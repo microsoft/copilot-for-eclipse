@@ -10,6 +10,8 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -19,7 +21,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Widget to display a message when the user has no quota.
  */
 public class WarnWidget extends Composite {
-  private Image warnImage;
   private int buttonLeftMargin;
 
   /**
@@ -53,7 +54,7 @@ public class WarnWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
     Label iconLabel = new Label(composite, SWT.TOP);
-    warnImage = UiUtils.buildImageFromPngPath("/icons/message_warning.png");
+    Image warnImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
     iconLabel.setImage(warnImage);
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;

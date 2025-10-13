@@ -46,6 +46,7 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
+import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
@@ -86,7 +87,6 @@ public class ActionBar extends Composite implements NewConversationListener {
   private CurrentReferencedFile currentFileRef;
   private ContentAssistant ca;
   private Image sendImage;
-  private Image cancelImage;
   private boolean isSendButton = true;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
@@ -399,7 +399,6 @@ public class ActionBar extends Composite implements NewConversationListener {
     // Add toggle button for all modes if it has not been created
     if (btnMsgToggle == null || btnMsgToggle.isDisposed()) {
       this.sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
-      this.cancelImage = UiUtils.buildImageFromPngPath("/icons/chat/cancel.png");
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       this.btnMsgToggle.setEnabled(StringUtils.isBlank(this.inputTextViewer.getContent()) ? false : true);
       this.btnMsgToggle.setImage(this.sendImage);
@@ -421,9 +420,6 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.btnMsgToggle.addDisposeListener(e -> {
         if (sendImage != null && !sendImage.isDisposed()) {
           sendImage.dispose();
-        }
-        if (cancelImage != null && !cancelImage.isDisposed()) {
-          cancelImage.dispose();
         }
       });
     }
@@ -569,6 +565,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         break;
       case CANCEL_ENABLED:
         isSendButton = false;
+        Image cancelImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_STOP);
         updateSendOrCancelMsgBtn(true, cancelImage, Messages.chat_actionBar_cancelButton_Tooltip);
         break;
       default:

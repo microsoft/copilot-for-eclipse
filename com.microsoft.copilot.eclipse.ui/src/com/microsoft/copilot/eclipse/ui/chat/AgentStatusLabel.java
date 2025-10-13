@@ -9,6 +9,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
@@ -25,7 +26,6 @@ public class AgentStatusLabel extends Composite {
   private Image runningIcon;
   private Image completedIcon;
   private Image cancelledIcon;
-  private Image errorIcon;
   private Label iconLabel;
   private ChatMarkupViewer textLabel;
   private int currentFrame = 1;
@@ -54,9 +54,6 @@ public class AgentStatusLabel extends Composite {
       }
       if (this.cancelledIcon != null && !this.cancelledIcon.isDisposed()) {
         this.cancelledIcon.dispose();
-      }
-      if (this.errorIcon != null && !this.errorIcon.isDisposed()) {
-        this.errorIcon.dispose();
       }
       if (this.eventBroker != null) {
         this.eventBroker.unsubscribe(cancelStatusHandler);
@@ -115,10 +112,7 @@ public class AgentStatusLabel extends Composite {
     if (this.status == Status.RUNNING) {
       stopAnimation();
     }
-    if (this.errorIcon == null) {
-      this.errorIcon = UiUtils.buildImageFromPngPath("/icons/message_error.png");
-    }
-    iconLabel.setImage(errorIcon);
+    iconLabel.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK));
     this.status = Status.ERROR;
   }
 

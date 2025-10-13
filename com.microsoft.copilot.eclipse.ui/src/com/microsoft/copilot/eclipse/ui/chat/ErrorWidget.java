@@ -1,20 +1,19 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Widget to display a message when the user has no quota.
  */
 public class ErrorWidget extends Composite {
-  private Image errorImage;
   private static final int MESSAGE_LEFT_MARGIN = 5;
 
   /**
@@ -38,8 +37,7 @@ public class ErrorWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
     Label icon = new Label(composite, SWT.CENTER);
-    errorImage = UiUtils.buildImageFromPngPath("/icons/message_error.png");
-    icon.setImage(errorImage);
+    icon.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK));
 
     WrapLabel label = new WrapLabel(composite, SWT.LEFT);
     label.setText(message);
@@ -48,11 +46,4 @@ public class ErrorWidget extends Composite {
     composite.layout();
   }
 
-  @Override
-  public void dispose() {
-    super.dispose();
-    if (errorImage != null) {
-      errorImage.dispose();
-    }
-  }
 }

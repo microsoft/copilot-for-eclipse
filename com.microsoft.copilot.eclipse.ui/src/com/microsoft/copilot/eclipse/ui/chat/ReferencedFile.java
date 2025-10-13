@@ -6,7 +6,6 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Image;
@@ -16,10 +15,11 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.core.Constants;
-import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -33,7 +33,6 @@ public class ReferencedFile extends Composite {
   private Label lblFileName;
   protected Label lblClose;
   private Image lblImage;
-  private Image warningImage;
   private IResource file;
   private boolean isUnSupportedFile = false;
 
@@ -81,9 +80,6 @@ public class ReferencedFile extends Composite {
     this.addDisposeListener(e -> {
       if (lblImage != null && !lblImage.isDisposed()) {
         lblImage.dispose();
-      }
-      if (warningImage != null && !warningImage.isDisposed()) {
-        warningImage.dispose();
       }
     });
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
@@ -162,10 +158,7 @@ public class ReferencedFile extends Composite {
    */
   private void setupUnsupportedFileDisplay() {
     // Set warning icon
-    if (warningImage == null || warningImage.isDisposed()) {
-      warningImage = UiUtils.buildImageFromPngPath("/icons/message_warning.png");
-    }
-    lblfileIcon.setImage(warningImage);
+    lblfileIcon.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK));
     // Set tooltip with model name
     String modelName = CopilotUi.getPlugin().getChatServiceManager().getModelService().getActiveModel()
         .getModelName();
