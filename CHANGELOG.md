@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.12.0
+### Added
+- Support chat history. [#246](https://github.com/microsoft/copilot-eclipse/issues/246)
+- Support BYOK (Bring Your Own Keys), including Azure, OpenAI, Groq, Anthropic, OpenRouter and Gemini. [#1098](https://github.com/microsoft/copilot-eclipse/issues/1098), [#1099](https://github.com/microsoft/copilot-eclipse/issues/1099), [#1205](https://github.com/microsoft/copilot-eclipse/issues/1205)
+- (Preview) Support MCP Registry. [PR#1210](https://github.com/microsoft/copilot-eclipse/pull/1210)
+- (Preview) Add an extension point to allow MCP server registration from other plugins. [PR#1142](https://github.com/microsoft/copilot-eclipse/pull/1142)
+
+### Changed
+- Show the generate commit message button to different places per Eclipse platform version. [PR#1138](https://github.com/microsoft/copilot-eclipse/pull/1138)
+- Re-organize the Copilot preference pages. [#1107](https://github.com/microsoft/copilot-eclipse/issues/1107)
+- Use new GitHub App ID. [PR#1179](https://github.com/microsoft/copilot-eclipse/pull/1179)
+
+### Fixed
+- Improve focus indicator for buttons in chat view. [PR#1096](https://github.com/microsoft/copilot-eclipse/pull/1096)
+- Misleading description for custom instructions. [#1139](https://github.com/microsoft/copilot-eclipse/issues/1139)
+- SWT Resource was not properly disposed by run_in_terminal tool. [#1140](https://github.com/microsoft/copilot-eclipse/issues/1140)
+- java.nio.file.FileSystemException thrown by TerminalServiceManager. [#1143](https://github.com/microsoft/copilot-eclipse/issues/1143)
+- Rendering of the whats new page is broken on webkit. [PR#1161](https://github.com/microsoft/copilot-eclipse/pull/1161)
+- Consider product customization for what's new preferences. [PR#1166](https://github.com/microsoft/copilot-eclipse/pull/1166)
+- Get charset by file. [PR#1173](https://github.com/microsoft/copilot-eclipse/pull/1173)
+- Dedup the files from the add context file dialog. [PR#1177](https://github.com/microsoft/copilot-eclipse/pull/1177)
+- '&' is used as mnemonic character in SWT Label. [PR#1176](https://github.com/microsoft/copilot-eclipse/pull/1176)
+- Refine color of line separator in chat view. [#1146](https://github.com/microsoft/copilot-eclipse/issues/1146)
+- Validates the files before editing. [PR#1190](https://github.com/microsoft/copilot-eclipse/pull/1190)
+- Set right background color and hover listener for action items in summary bar. [#710](https://github.com/microsoft/copilot-eclipse/issues/710)
+- Do not trigger completion if code mining is disabled. [PR#1195](https://github.com/microsoft/copilot-eclipse/pull/1195), [PR#1200](https://github.com/microsoft/copilot-eclipse/pull/1200)
+
+
 ## 0.11.0
 ### Added
 - Support drag and drop resources to referenced files. [PR#1059](https://github.com/microsoft/copilot-eclipse/pull/1059)
