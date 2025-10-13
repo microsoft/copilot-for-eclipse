@@ -10,6 +10,9 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
@@ -63,6 +66,7 @@ public class McpRegistryDialog extends Dialog {
   private McpServerAction mcpServerAction;
   private Runnable pendingSearchRefresh;
   private SpinnerJob spinnerJob;
+  private IPreferenceChangeListener preferenceChangeListener;
 
   /**
    * Create the MCP registry dialog.
@@ -103,18 +107,56 @@ public class McpRegistryDialog extends Dialog {
     // Initialize mcpServerAction now that shell is available
     this.mcpServerAction = new McpServerAction(getShell());
 
-    createHeader(container);
-    createTableOrEmptyUrlLabelBasedOnUrl(container);
+    createContent(container);
+
+    // Add preference change listener to monitor MCP registry URL changes
+    preferenceChangeListener = event -> {
+      if (Constants.MCP_REGISTRY_URL.equals(event.getKey())) {
+        // Dispose all children of the container
+        if (container != null && !container.isDisposed()) {
+          container.getDisplay().asyncExec(() -> {
+            if (!container.isDisposed()) {
+              // Dispose all children
+              for (Control child : container.getChildren()) {
+                child.dispose();
+              }
+
+              // Recreate content
+              hasMoreData = true;
+              isLoading = false;
+
+              createContent(container);
+              container.requestLayout();
+            }
+          });
+        }
+      }
+    };
+
+    // Register the listener with the preference store
+    IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
+        .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
+    configPrefs.addPreferenceChangeListener(preferenceChangeListener);
 
     return area;
   }
 
-  private void createEmptyUrlLabel(Composite parent) {
-    Label emptyUrlLabel = new Label(parent, SWT.WRAP);
+  private void createWelcomeView(Composite parent) {
+    // Create a centered composite for the button and label
+    Composite centeredComposite = new Composite(parent, SWT.NONE);
+    GridData centeredGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    centeredComposite.setLayoutData(centeredGridData);
+    centeredComposite.setLayout(new GridLayout(1, false));
+
+    Button configButton = new Button(centeredComposite, SWT.PUSH);
+    configButton.setText(Messages.mcpRegistryDialog_button_changeUrl);
+    GridData btnGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
+    configButton.setLayoutData(btnGridData);
+    configButton.addListener(SWT.Selection, e -> openPreferencesDialog());
+
+    Label emptyUrlLabel = new Label(centeredComposite, SWT.WRAP);
     emptyUrlLabel.setText(Messages.mcpRegistryDialog_error_empty_url);
-    GridData gd = new GridData(SWT.FILL, SWT.CENTER, true, true);
-    gd.horizontalAlignment = SWT.CENTER;
-    gd.verticalAlignment = SWT.CENTER;
+    GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, false);
     emptyUrlLabel.setLayoutData(gd);
   }
 
@@ -176,8 +218,8 @@ public class McpRegistryDialog extends Dialog {
     Button refreshButton = new Button(parent, SWT.PUSH);
     Image refreshIcon = UiUtils.buildImageFromPngPath("/icons/mcp/refresh.png");
     refreshButton.setImage(refreshIcon);
-    refreshButton.setText("Refresh");
-    refreshButton.setToolTipText("Refresh the mcp tool list");
+    refreshButton.setText(Messages.mcpRegistryDialog_button_refresh);
+    refreshButton.setToolTipText(Messages.mcpRegistryDialog_button_refresh_tooltip);
     refreshButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     refreshButton.addListener(SWT.Selection, e -> handleRefreshBtnClick());
     refreshButton.addDisposeListener(e -> {
@@ -191,8 +233,8 @@ public class McpRegistryDialog extends Dialog {
     Button editButton = new Button(parent, SWT.PUSH);
     Image editIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
     editButton.setImage(editIcon);
-    editButton.setText("Change URL");
-    editButton.setToolTipText("Change the MCP registry URL");
+    editButton.setText(Messages.mcpRegistryDialog_button_changeUrl);
+    editButton.setToolTipText(Messages.mcpRegistryDialog_button_changeUrl_tooltip);
     editButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     editButton.addListener(SWT.Selection, e -> openPreferencesDialog());
     editButton.addDisposeListener(e -> {
@@ -381,17 +423,18 @@ public class McpRegistryDialog extends Dialog {
         viewer = null;
       }
 
-      createTableOrEmptyUrlLabelBasedOnUrl(container);
+      createContent(container);
 
       container.layout(true, true);
     }
   }
 
-  private void createTableOrEmptyUrlLabelBasedOnUrl(Composite parent) {
+  private void createContent(Composite parent) {
     String registryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
     if (StringUtils.isBlank(registryUrl)) {
-      createEmptyUrlLabel(parent);
+      createWelcomeView(parent);
     } else {
+      createHeader(parent);
       createTable(parent);
       loadServers("");
     }
@@ -537,6 +580,14 @@ public class McpRegistryDialog extends Dialog {
 
   @Override
   public boolean close() {
+    // Remove preference change listener
+    if (preferenceChangeListener != null) {
+      IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
+          .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
+      configPrefs.removePreferenceChangeListener(preferenceChangeListener);
+      preferenceChangeListener = null;
+    }
+
     // Dispose mcpServerAction to clean up event subscriptions
     if (mcpServerAction != null) {
       mcpServerAction.dispose();
