@@ -62,7 +62,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   private Combo installOptionsCombo;
   private SourceViewer configurationPreviewViewer;
   private List<InstallOption> installOptions;
-  private Button installButton;
+  private Button actionButton;
   private IEventBroker eventBroker;
   private McpServerInstallManager installManager;
 
@@ -141,32 +141,32 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
 
   private void handleServerStateChange(ButtonState state, boolean success) {
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
-      if (installButton != null && !installButton.isDisposed()) {
+      if (actionButton != null && !actionButton.isDisposed()) {
         switch (state) {
           case INSTALLING:
           case UNINSTALLING:
-            installButton.setText(state.getText());
-            installButton.setEnabled(false);
+            actionButton.setText(state.getText());
+            actionButton.setEnabled(false);
             break;
           case INSTALL:
           case UNINSTALL:
             if (success) {
               // Update button text and state
-              installButton.setText(state.getText());
-              installButton.setEnabled(true);
+              actionButton.setText(state.getText());
+              actionButton.setEnabled(true);
               // Remove all Selection listeners and add appropriate listener based on state
-              removeAllSelectionListeners(installButton);
+              removeAllSelectionListeners(actionButton);
               if (state == ButtonState.UNINSTALL) {
                 // Server was just installed, button should now uninstall
-                installButton.addListener(SWT.Selection, e -> onUninstall());
+                actionButton.addListener(SWT.Selection, e -> onUninstall());
               } else {
                 // Server was just uninstalled, button should now install
-                installButton.addListener(SWT.Selection, e -> onInstallSelected());
+                actionButton.addListener(SWT.Selection, e -> onInstallSelected());
               }
             } else {
               // Failed operation - reset to previous state
-              installButton.setText(state.getText());
-              installButton.setEnabled(true);
+              actionButton.setText(state.getText());
+              actionButton.setEnabled(true);
             }
             break;
           default:
@@ -474,29 +474,29 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     GridData textData = new GridData(SWT.FILL, SWT.FILL, true, true);
     textData.heightHint = 100;
     configurationPreviewViewer.setEditable(false);
-    
+
     // Configure JSON syntax highlighting
     configurationPreviewViewer.configure(createJsonSourceViewerConfiguration());
-    
+
     configurationPreviewViewer.getControl().setLayoutData(textData);
     configurationPreviewViewer.getControl().setBackground(
         configurationPreviewViewer.getControl().getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND));
   }
 
   /**
-   * Creates a SourceViewerConfiguration with JSON syntax highlighting using TextMate grammar.
-   * This follows the same pattern as the existing SourceViewerComposite implementation.
+   * Creates a SourceViewerConfiguration with JSON syntax highlighting using TextMate grammar. This follows the same
+   * pattern as the existing SourceViewerComposite implementation.
    */
   private SourceViewerConfiguration createJsonSourceViewerConfiguration() {
     TMPresentationReconciler reconciler = new TMPresentationReconciler();
     IGrammarRegistryManager mgr = TMEclipseRegistryPlugin.getGrammarRegistryManager();
     IGrammar grammar = mgr.getGrammarForFileExtension("json");
     reconciler.setGrammar(grammar);
-    
+
     if (grammar != null) {
       reconciler.setTheme(TMUIPlugin.getThemeManager().getThemeForScope(grammar.getScopeName()));
     }
-    
+
     return new SourceViewerConfiguration() {
       @Override
       public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
@@ -646,17 +646,17 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     boolean isInstalled = initialState == ButtonState.UNINSTALL;
 
     // Create Install/Uninstall button
-    installButton = createButton(parent, 1000, initialState.getText(), false);
+    actionButton = createButton(parent, 1000, initialState.getText(), true);
 
     if (isInstalled) {
       // If installed, set up uninstall functionality
-      installButton.addListener(SWT.Selection, e -> onUninstall());
+      actionButton.addListener(SWT.Selection, e -> onUninstall());
     } else {
       // If not installed, set up install functionality
-      installButton.addListener(SWT.Selection, e -> onInstallSelected());
+      actionButton.addListener(SWT.Selection, e -> onInstallSelected());
     }
 
     // Create Close button
-    createButton(parent, CANCEL, Messages.mcpServerDetailDialog_close, true);
+    createButton(parent, CANCEL, Messages.mcpServerDetailDialog_close, false);
   }
 }
