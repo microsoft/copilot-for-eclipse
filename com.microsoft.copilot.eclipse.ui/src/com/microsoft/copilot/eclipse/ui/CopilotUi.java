@@ -26,9 +26,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
@@ -65,6 +63,9 @@ public class CopilotUi extends AbstractUIPlugin {
 
   @Override
   public void start(BundleContext context) throws Exception {
+    // Explicitly call method from core to ensure core is activated
+    CopilotCore.getPlugin();
+
     Job initJob = new Job("Copilot initialization") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {

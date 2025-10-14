@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Validates the files before editing. [PR#1190](https://github.com/microsoft/copilot-eclipse/pull/1190)
 - Set right background color and hover listener for action items in summary bar. [#710](https://github.com/microsoft/copilot-eclipse/issues/710)
 - Do not trigger completion if code mining is disabled. [PR#1195](https://github.com/microsoft/copilot-eclipse/pull/1195), [PR#1200](https://github.com/microsoft/copilot-eclipse/pull/1200)
+- UI bundle is started before CLS is activated. [PR#1230](https://github.com/microsoft/copilot-eclipse/pull/1230)
 
 
 ## 0.11.0
