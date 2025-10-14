@@ -208,7 +208,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
         @Override
         protected void doLoad() {
-          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, ""));
+          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
+              CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
 
           // Add modify listener after text control is created and loaded
           getTextControl().addModifyListener(e -> {
@@ -223,7 +224,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
         @Override
         protected void doLoadDefault() {
-          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, ""));
+          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
+              CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
           updateRegistryButtonState();
         }
       };
@@ -678,7 +680,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private void saveMcpRegistryUrlToGlobalScope() {
     // Get the current value from the text field instead of the preference store
     String newMcpRegistryUrl = mcpRegistryField.getStringValue();
-    String oldMcpRegistryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
+    String oldMcpRegistryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
+        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL);
 
     // Ensure the preference change is updated in configuration scope too
     if (!oldMcpRegistryUrl.equals(newMcpRegistryUrl)) {

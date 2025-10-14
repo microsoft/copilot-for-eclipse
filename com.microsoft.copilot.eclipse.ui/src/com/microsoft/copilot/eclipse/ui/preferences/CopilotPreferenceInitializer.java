@@ -13,6 +13,8 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
  */
 public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer {
 
+  public static final String DEFAULT_MCP_REGISTRY_URL = "https://api.mcp.github.com/2025-09-15/v0/servers";
+
   @Override
   public void initializeDefaultPreferences() {
     IPreferenceStore pref = CopilotUi.getPlugin().getPreferenceStore();
@@ -51,8 +53,8 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
     boolean autoShowWhatsNew = configPrefs.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
     pref.setDefault(Constants.AUTO_SHOW_WHAT_IS_NEW, autoShowWhatsNew);
-    
-    String mcpRegistryUrl = configPrefs.get(Constants.MCP_REGISTRY_URL, "");
+
+    String mcpRegistryUrl = configPrefs.get(Constants.MCP_REGISTRY_URL, DEFAULT_MCP_REGISTRY_URL);
     pref.setDefault(Constants.MCP_REGISTRY_URL, mcpRegistryUrl);
   }
 }
