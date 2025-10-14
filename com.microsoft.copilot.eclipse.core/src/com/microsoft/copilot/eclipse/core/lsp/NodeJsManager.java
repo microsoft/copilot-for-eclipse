@@ -34,7 +34,7 @@ public class NodeJsManager {
   /**
    * The minimum required version of Node.js for Copilot Language Server.
    */
-  private static final int REQUIRED_MINIMUM_VERSION = 20;
+  private static final int REQUIRED_MINIMUM_VERSION = 22;
 
   private static final String NODE_NAME = "node";
 
