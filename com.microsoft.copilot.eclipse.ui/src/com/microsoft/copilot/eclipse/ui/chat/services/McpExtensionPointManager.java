@@ -17,6 +17,8 @@ import org.eclipse.core.runtime.IExtensionPoint;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.osgi.signedcontent.SignedContent;
 import org.eclipse.osgi.signedcontent.SignedContentFactory;
@@ -31,6 +33,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpApprovalDialog;
@@ -60,29 +63,45 @@ public class McpExtensionPointManager {
     gson = new Gson();
     this.mcpConfigService = mcpConfigService;
     // TODO: enable it when group policy is ready
-    if (PlatformUtils.isNightly()) {
+    if (PlatformUtils.isNightly() && CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
       initializeExtMcpRegistration();
     }
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY, event -> {
+      Boolean enabled = (Boolean) event.getProperty(IEventBroker.DATA);
+      if (enabled.booleanValue()) {
+        initializeExtMcpRegistration();
+      } else {
+        extMcpInfoMap.clear();
+        approvedExtMcpServers = null;
+        persistExtMcpInfo(extMcpInfoMap);
+        mcpConfigService.setNewExtMcpRegFound(false);
+      }
+    });
   }
 
-  private void initializeExtMcpRegistration() {
+  private synchronized void initializeExtMcpRegistration() {
     // Previously approved servers will be started during Plugin startup.
     Map<String, McpRegistrationInfo> persistedMcpContribs = loadPersistedMcpContribs();
     updateApprovedMcpServerString(persistedMcpContribs);
 
     // Run the heavy initialization work asynchronously, which has weak relation with Plugin startup.
     CompletableFuture.runAsync(() -> {
-      try {
-        FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-        if (flags != null && !flags.isMcpEnabled()) {
-          return;
-        }
-        loadMcpRegistrationExtensionPoint();
-        detectChangesInMcpContribs(persistedMcpContribs);
-      } catch (Exception e) {
-        CopilotCore.LOGGER.error("Error during EXT MCP registration initialization", e);
-      }
+      doRegistration(persistedMcpContribs);
     });
+  }
+
+  private synchronized void doRegistration(Map<String, McpRegistrationInfo> persistedMcpContribs) {
+    try {
+      FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+      if (flags != null && !flags.isMcpEnabled()) {
+        return;
+      }
+      loadMcpRegistrationExtensionPoint();
+      detectChangesInMcpContribs(persistedMcpContribs);
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Error during EXT MCP registration initialization", e);
+    }
   }
 
   private Map<String, McpRegistrationInfo> loadPersistedMcpContribs() {
@@ -282,11 +301,12 @@ public class McpExtensionPointManager {
    * Process MCP registration from extension point.
    */
   public String approveExtMcpRegistration() {
+    Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
     if (extMcpInfoMap.isEmpty()) {
+      MessageDialog.openInformation(shell, "", "No MCP server registration found");
       return null;
     }
 
-    Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
     McpApprovalDialog dialog = new McpApprovalDialog(shell, extMcpInfoMap);
     dialog.open();
 

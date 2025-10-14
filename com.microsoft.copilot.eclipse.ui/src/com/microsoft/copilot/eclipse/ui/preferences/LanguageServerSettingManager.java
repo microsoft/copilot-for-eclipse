@@ -12,13 +12,16 @@ import org.eclipse.core.net.proxy.IProxyChangeEvent;
 import org.eclipse.core.net.proxy.IProxyChangeListener;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.GitHubSettings;
@@ -74,6 +77,15 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     } else {
       getSettings().getGithubSettings().setWorkspaceCopilotInstructions(null);
     }
+
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY, event -> {
+      Boolean enabled = (Boolean) event.getProperty(IEventBroker.DATA);
+      if (!enabled.booleanValue()) {
+        // if the MCP contribution point is enabled, the sync action will be triggered after user approval.
+        syncMcpRegistrationConfiguration();
+      }
+    });
   }
 
   /**
@@ -173,8 +185,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     settings.setMcpServers(preferenceStore.getString(Constants.MCP));
 
     // From McpRegistration extension point
-    McpExtensionPointManager mgr = CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager();
-    settings.addMcpServers(mgr.getApprovedExtMcpServers());
+    if (CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
+      McpExtensionPointManager mgr = CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager();
+      settings.addMcpServers(mgr.getApprovedExtMcpServers());
+    }
 
     syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));
   }

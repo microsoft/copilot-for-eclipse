@@ -15,6 +15,8 @@ public class CopilotEventConstants {
    */
   private static final String TOPIC_CHAT = TOPIC_BASE + "CHAT/";
 
+  private static final String TOPIC_POLICY = TOPIC_BASE + "POLICY/";
+
   /**
    * Topic for auth events.
    */
@@ -59,6 +61,12 @@ public class CopilotEventConstants {
    * Event when the chat feature flag are updated.
    */
   public static final String TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS = TOPIC_CHAT + "DID_CHANGE_FEATURE_FLAGS";
+
+  /**
+   * Event when the mcp contribution point group policy flag are updated.
+   */
+  public static final String TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY = TOPIC_POLICY
+      + "MCP_CONTRIBUTION_POINT_ENABLED";
 
   /**
    * Event when the chat mode is changed.

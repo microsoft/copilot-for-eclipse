@@ -4,8 +4,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 
 /**
- * Class to manage feature flags for the Copilot plugin.
- * This class allows enabling or disabling features.
+ * Class to manage feature flags for the Copilot plugin. This class allows enabling or disabling features.
  */
 public class FeatureFlags {
   private boolean agentModeEnabled = true;
@@ -13,6 +12,8 @@ public class FeatureFlags {
   private boolean mcpEnabled = true;
 
   private boolean byokEnabled = true;
+
+  private boolean mcpContributionPointEnabled = false;
 
   public boolean isAgentModeEnabled() {
     return agentModeEnabled;
@@ -25,7 +26,7 @@ public class FeatureFlags {
   public boolean isMcpEnabled() {
     return mcpEnabled;
   }
-  
+
   public void setMcpEnabled(boolean mcpEnabled) {
     this.mcpEnabled = mcpEnabled;
   }
@@ -37,7 +38,15 @@ public class FeatureFlags {
   public void setByokEnabled(boolean byokEnabled) {
     this.byokEnabled = byokEnabled;
   }
-  
+
+  public boolean isMcpContributionPointEnabled() {
+    return mcpContributionPointEnabled;
+  }
+
+  public void setMcpContributionPointEnabled(boolean mcpContributionPointEnabled) {
+    this.mcpContributionPointEnabled = mcpContributionPointEnabled;
+  }
+
   /**
    * Checks if the workspace context is enabled.
    *

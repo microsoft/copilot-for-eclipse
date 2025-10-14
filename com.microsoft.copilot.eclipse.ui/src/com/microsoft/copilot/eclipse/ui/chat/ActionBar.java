@@ -663,8 +663,10 @@ public class ActionBar extends Composite implements NewConversationListener {
     approvalItem.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
-        CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
+        String res = chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
+        if (StringUtils.isNotBlank(res)) {
+          CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
+        }
       }
     });
 

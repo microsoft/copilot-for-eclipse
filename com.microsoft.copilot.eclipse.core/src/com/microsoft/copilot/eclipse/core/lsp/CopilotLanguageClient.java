@@ -47,6 +47,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.McpRuntimeLog;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
@@ -68,7 +69,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    * Constructor for CopilotLanguageClient.
    */
   public CopilotLanguageClient() {
-    super();
     this.eventBroker = EclipseContextFactory.getServiceContext(FrameworkUtil.getBundle(getClass()).getBundleContext())
         .get(IEventBroker.class);
   }
@@ -225,6 +225,21 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, params);
+    }
+  }
+
+  /**
+   * Notify when policy changes.
+   */
+  @JsonNotification("policy/didChange")
+  public void onDidChangePolicy(DidChangePolicyParams params) {
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags != null) {
+      if (flags.isMcpContributionPointEnabled() != params.isMcpContributionPointEnabled()) {
+        flags.setMcpContributionPointEnabled(params.isMcpContributionPointEnabled());
+        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY,
+            params.isMcpContributionPointEnabled());
+      }
     }
   }
 
