@@ -14,6 +14,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
@@ -167,6 +168,13 @@ public abstract class BaseTurnWidget extends Composite {
 
     reset();
 
+    // We will skip updating status here, if the cancelled event is already handled in
+    // InvokeToolConfirmationDialog.cancelConfirmation()
+    Control[] children = this.getChildren();
+    if (children.length > 0 && children[children.length - 1] instanceof AgentToolCancelLabel) {
+      return;
+    }
+
     AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(),
         id -> new AgentStatusLabel(this, SWT.LEFT));
 
@@ -180,6 +188,7 @@ public abstract class BaseTurnWidget extends Composite {
         break;
       case "cancelled":
         statusLabel.setCancelledStatus();
+        statusLabel.setText(toolCall.getProgressMessage());
         break;
       case "error":
         statusLabel.setErrorStatus();

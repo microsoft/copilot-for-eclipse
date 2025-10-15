@@ -193,7 +193,6 @@ public final class Messages extends NLS {
   public static String agent_tool_terminal_copilotTerminalTitle;
   public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;
-  public static String agent_tool_cancelConfirmationDialog_defaultTitle;
   public static String quickStart_title;
   public static String quickStart_description;
   public static String quickStart_closeButton_tooltip;

@@ -173,7 +173,10 @@ public class AgentStatusLabel extends Composite {
     }
   }
 
-  private void setText(String text) {
+  /**
+   * Set the text to display next to the icon.
+   */
+  public void setText(String text) {
     if (this.textLabel == null) {
       textLabel = new ChatMarkupViewer(this, SWT.LEFT | SWT.WRAP);
       StyledText styledText = textLabel.getTextWidget();

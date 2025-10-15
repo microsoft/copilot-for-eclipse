@@ -14,7 +14,6 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -152,11 +151,10 @@ public class InvokeToolConfirmationDialog extends Composite {
       // Store parent reference before disposal
       Composite parent = this.getParent();
       SwtUtils.invokeOnDisplayThread(() -> {
-        // Render a tool invocation cancel message
-        if (StringUtils.isEmpty(this.cancelMessage)) {
-          this.cancelMessage = Messages.agent_tool_cancelConfirmationDialog_defaultTitle;
+        // Only show the cancel widget for special cases when the tool has a parameter "command" in the input map
+        if (StringUtils.isNotEmpty(this.cancelMessage)) {
+          new AgentToolCancelLabel(this.getParent(), SWT.NONE, this.cancelMessage);
         }
-        new AgentToolCancelLabel(this.getParent(), SWT.NONE, this.cancelMessage);
         this.dispose();
         // Check if parent is still valid before using it
         if (parent != null && !parent.isDisposed()) {
