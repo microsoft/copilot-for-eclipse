@@ -189,10 +189,10 @@ public class ModelService extends ChatBaseService {
       if (supportsChat || supportsAgent) {
         newModels.put(model.getId(), model);
       }
-      if (defaultModel == null && model.isChatDefault()) {
+      if (model.isChatDefault()) {
         defaultModel = model;
       }
-      if (fallbackModel == null && model.isChatFallback()) {
+      if (model.isChatFallback()) {
         fallbackModel = model;
       }
     }
