@@ -60,11 +60,6 @@ public class WarnWidget extends Composite {
     iconGd.verticalIndent = 4;
     iconLabel.setLayoutData(iconGd);
     buttonLeftMargin = warnImage.getBounds().width + iconGd.verticalIndent;
-    iconLabel.addDisposeListener(e -> {
-      if (warnImage != null && !warnImage.isDisposed()) {
-        warnImage.dispose();
-      }
-    });
 
     ChatMarkupViewer textLabel = new ChatMarkupViewer(composite, SWT.LEFT | SWT.WRAP);
     StyledText styledText = textLabel.getTextWidget();
