@@ -224,8 +224,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
         @Override
         protected void doLoadDefault() {
-          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
-              CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
+          getTextControl().setText(CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL);
           updateRegistryButtonState();
         }
       };
