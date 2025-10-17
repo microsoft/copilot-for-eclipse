@@ -46,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
@@ -292,6 +293,10 @@ public class McpRegistryDialog extends Dialog {
 
     // Add scroll listener for lazy loading
     table.getVerticalBar().addListener(SWT.Selection, e -> loadMoreIfNearEnd());
+    if (!PlatformUtils.isWindows()) {
+      // MacOS uses different scrolling events
+      table.addListener(SWT.MouseWheel, e -> loadMoreIfNearEnd());
+    }
   }
 
   private void createTableColumns() {
