@@ -17,7 +17,7 @@ public class McpRegistryEntry {
    * to registry operations only</li> {@code "allow_all"} - Full access to all registry features</li>
    */
   @SerializedName("registry_access")
-  public String registryAccess;
+  public RegistryAccess registryAccess;
 
   /**
    * Information about the owner of this registry entry.
@@ -32,11 +32,11 @@ public class McpRegistryEntry {
     this.url = url;
   }
 
-  public String getRegistryAccess() {
+  public RegistryAccess getRegistryAccess() {
     return registryAccess;
   }
 
-  public void setRegistryAccess(String registryAccess) {
+  public void setRegistryAccess(RegistryAccess registryAccess) {
     this.registryAccess = registryAccess;
   }
 

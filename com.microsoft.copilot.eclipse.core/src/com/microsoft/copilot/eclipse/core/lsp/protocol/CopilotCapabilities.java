@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Copilot Capabilities of the Copilot language server.
@@ -11,8 +11,10 @@ public class CopilotCapabilities {
   private boolean fetch;
 
   private boolean watchedFiles;
-  
+
   private boolean didChangeFeatureFlags;
+
+  private boolean stateDatabase;
 
   /**
    * Creates a new CopilotCapabilities.
@@ -21,6 +23,7 @@ public class CopilotCapabilities {
     this.didChangeFeatureFlags = true;
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
+    this.stateDatabase = true;
   }
 
   public boolean isFetch() {
@@ -39,18 +42,27 @@ public class CopilotCapabilities {
     this.watchedFiles = watchedFiles;
   }
 
+  public void setStateDatabase(boolean stateDatabase) {
+    this.stateDatabase = stateDatabase;
+  }
+
+  public boolean isStateDatabase() {
+    return stateDatabase;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("fetch", fetch);
-    builder.add("watchedFiles", watchedFiles);
-    builder.add("didChangeFeatureFlags", didChangeFeatureFlags);
+    builder.append("fetch", fetch);
+    builder.append("watchedFiles", watchedFiles);
+    builder.append("didChangeFeatureFlags", didChangeFeatureFlags);
+    builder.append("stateDatabase", stateDatabase);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(didChangeFeatureFlags, fetch, watchedFiles);
+    return Objects.hash(didChangeFeatureFlags, fetch, stateDatabase, watchedFiles);
   }
 
   @Override
@@ -66,6 +78,6 @@ public class CopilotCapabilities {
     }
     CopilotCapabilities other = (CopilotCapabilities) obj;
     return didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
-        && watchedFiles == other.watchedFiles;
+        && stateDatabase == other.stateDatabase && watchedFiles == other.watchedFiles;
   }
 }

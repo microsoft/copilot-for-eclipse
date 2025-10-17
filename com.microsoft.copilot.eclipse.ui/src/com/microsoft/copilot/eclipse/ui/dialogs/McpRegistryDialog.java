@@ -14,6 +14,7 @@ import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.TableViewer;
@@ -40,10 +41,15 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryEntry;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -51,6 +57,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class McpRegistryDialog extends Dialog {
   public static final String LOADING_SPINNER_ROW_NAME = "__LOADING_SPINNER__";
+  private static final String MCP_REGISTRY_VERSION_SUFFIX = "/v0/servers";
 
   private static final int PAGE_SIZE = 30;
   private static final int SEARCH_DEBOUNCE_MS = 200;
@@ -59,6 +66,7 @@ public class McpRegistryDialog extends Dialog {
   private boolean hasMoreData = true;
   private boolean isLoading = false;
   private List<ServerItem> allItems = new ArrayList<>();
+  private String mcpRegistryUrl = "";
 
   private Text txtSearch;
   private TableViewer viewer;
@@ -107,8 +115,6 @@ public class McpRegistryDialog extends Dialog {
     // Initialize mcpServerAction now that shell is available
     this.mcpServerAction = new McpServerAction(getShell());
 
-    createContent(container);
-
     // Add preference change listener to monitor MCP registry URL changes
     preferenceChangeListener = event -> {
       if (Constants.MCP_REGISTRY_URL.equals(event.getKey())) {
@@ -121,12 +127,15 @@ public class McpRegistryDialog extends Dialog {
                 child.dispose();
               }
 
-              // Recreate content
+              // Reset state and recreate content
               hasMoreData = true;
               isLoading = false;
+              if (viewer != null) {
+                viewer = null;
+              }
 
-              createContent(container);
-              container.requestLayout();
+              // Fetch MCP registry URL and create appropriate content
+              fetchUrlAndRefreshContent(container);
             }
           });
         }
@@ -137,6 +146,9 @@ public class McpRegistryDialog extends Dialog {
     IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());
     configPrefs.addPreferenceChangeListener(preferenceChangeListener);
+
+    // Wait for URL to be fetched before creating any content
+    fetchUrlAndRefreshContent(container);
 
     return area;
   }
@@ -378,19 +390,18 @@ public class McpRegistryDialog extends Dialog {
     // Stop any running spinner
     stopSpinner();
 
-    // Check if we need to recreate the dialog content based on URL availability
-    String registryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
-    boolean hasUrl = StringUtils.isNotBlank(registryUrl);
-    boolean hasTable = (viewer != null);
+    // Refresh the cached URL before checking
+    loadMcpRegistryUrl().thenRun(() -> {
+      getShell().getDisplay().asyncExec(() -> continueRefresh());
+    });
+  }
 
-    if (hasUrl != hasTable) {
+  private void continueRefresh() {
+    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
+      return;
+    } else if (viewer == null) {
       // URL state changed - recreate the dialog content
       recreateDialogContent();
-      return;
-    }
-
-    // If viewer is null (URL still blank), just return
-    if (viewer == null) {
       return;
     }
 
@@ -425,13 +436,28 @@ public class McpRegistryDialog extends Dialog {
 
       createContent(container);
 
-      container.layout(true, true);
+      container.requestLayout();
     }
   }
 
+  /**
+   * Fetch the MCP registry URL and refresh the content in the specified container.
+   *
+   * @param container the container to refresh after URL is fetched
+   */
+  private void fetchUrlAndRefreshContent(Composite container) {
+    loadMcpRegistryUrl().thenRun(() -> {
+      SwtUtils.getDisplay().asyncExec(() -> {
+        if (!container.isDisposed()) {
+          createContent(container);
+          container.requestLayout();
+        }
+      });
+    });
+  }
+
   private void createContent(Composite parent) {
-    String registryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
-    if (StringUtils.isBlank(registryUrl)) {
+    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
       createWelcomeView(parent);
     } else {
       createHeader(parent);
@@ -449,9 +475,7 @@ public class McpRegistryDialog extends Dialog {
       return;
     }
 
-    // Check registry URL first before starting spinner or loading
-    String registryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
-    if (StringUtils.isBlank(registryUrl)) {
+    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
       // Show warning message without spinner for empty URL
       isLoading = false;
       showTableItems(List.of(new ServerItem(Messages.mcpRegistryDialog_error_empty_url, null)), true);
@@ -467,12 +491,11 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void loadServersPage(String cursor, String searchText) {
-    String registryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, "");
-    if (StringUtils.isBlank(registryUrl)) {
+    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
       showTableItems(List.of(new ServerItem(Messages.mcpRegistryDialog_error_empty_url, null)), true);
       return;
     }
-    ListServersParams params = new ListServersParams(registryUrl, PAGE_SIZE, cursor);
+    ListServersParams params = new ListServersParams(this.mcpRegistryUrl, PAGE_SIZE, cursor);
     CompletableFuture<ServerList> future = copilotLanguageServerConnection.listMcpServers(params);
     future.thenAccept(serverList -> handleServerList(serverList, searchText));
   }
@@ -545,6 +568,68 @@ public class McpRegistryDialog extends Dialog {
         allItems.remove(allItems.size() - 1);
       }
     }
+  }
+
+  /**
+   * Load the MCP registry URL based on the allowlist configuration and set it to this.mcpRegistryUrl. This method
+   * retrieves the appropriate registry URL by consulting the MCP allowlist from the Copilot Language Server. The URL
+   * selection logic depends on the registry access mode.
+   * 
+   * <p>URL selection logic based on admin settings:
+   * <ol>
+   * <li>If admin sets registry_only, the admin-provided registry URL should directly overwrite the local registry URL
+   * setting.</li>
+   * <li>If admin sets 'allow_all' and provides a registry URL, users can set any registry URL or reuse the
+   * admin-provided registry URL.</li>
+   * <li>If admin does not set any registry URL, users can set any registry URL in the IDE.</li>
+   * </ol>
+   *
+   * @return CompletableFuture that completes when the URL has been loaded and set
+   */
+  private CompletableFuture<Void> loadMcpRegistryUrl() {
+    // Early return with empty URL if no language server connection
+    if (copilotLanguageServerConnection == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Copilot Language Server connection is not available."));
+      this.mcpRegistryUrl = "";
+      return CompletableFuture.completedFuture(null);
+    }
+
+    // Retrieve allowlist and determine appropriate URL
+    return copilotLanguageServerConnection.getMcpAllowlist(new NullParams()).thenAccept(allowList -> {
+      String localUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
+          CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL);
+
+      // If no allowlist or no entries, use local preference
+      if (allowList == null || allowList.getMcpRegistries() == null || allowList.getMcpRegistries().isEmpty()) {
+        this.mcpRegistryUrl = localUrl;
+        return;
+      }
+
+      // Process first registry entry
+      McpRegistryEntry entry = allowList.getMcpRegistries().get(0);
+      RegistryAccess registryAccess = entry.getRegistryAccess();
+      String allowlistUrl = entry.getUrl() != null ? entry.getUrl() + MCP_REGISTRY_VERSION_SUFFIX : "";
+
+      // Determine URL based on access mode
+      if (registryAccess == RegistryAccess.registry_only) {
+        // Use only allowlist URL for registry_only mode
+        if (StringUtils.isBlank(allowlistUrl)) {
+          SwtUtils.getDisplay().asyncExec(() -> {
+            MessageDialog.openWarning(getShell(), Messages.mcpRegistryDialog_emptyUrlForRegistryOnly_title,
+                Messages.mcpRegistryDialog_emptyUrlForRegistryOnly_msg);
+          });
+          this.mcpRegistryUrl = "";
+        } else {
+          this.mcpRegistryUrl = allowlistUrl;
+        }
+      } else if (registryAccess == RegistryAccess.allow_all) {
+        // Prefer local URL, fallback to allowlist URL
+        this.mcpRegistryUrl = StringUtils.isNotBlank(localUrl) ? localUrl : allowlistUrl;
+      } else {
+        // Default fallback to local preference for unknown access modes
+        this.mcpRegistryUrl = localUrl;
+      }
+    });
   }
 
   private void startSpinner() {
