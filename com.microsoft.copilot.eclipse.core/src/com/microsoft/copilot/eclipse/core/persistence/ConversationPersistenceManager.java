@@ -149,8 +149,8 @@ public class ConversationPersistenceManager {
    * @param model the model used for this turn
    * @param chatMode the chat mode for this turn
    */
-  public CompletableFuture<ConversationData> persistUserTurnInfo(String conversationId, String turnId,
-      String message, CopilotModel model, String chatMode, IFile currentFile, List<IResource> references) {
+  public CompletableFuture<ConversationData> persistUserTurnInfo(String conversationId, String turnId, String message,
+      CopilotModel model, String chatMode, IFile currentFile, List<IResource> references) {
     return CompletableFuture.supplyAsync(() -> {
       lock.writeLock().lock();
       try {
@@ -174,7 +174,8 @@ public class ConversationPersistenceManager {
           }
           if (StringUtils.isBlank(conversationData.getTitle()) && StringUtils.isNotBlank(message)) {
             // Set a temporary title if the conversation does not have one yet
-            String tempTitle = message.length() <= 50 ? message : message.substring(0, 50) + "...";
+            String trimedMsg = message.trim();
+            String tempTitle = trimedMsg.length() <= 50 ? trimedMsg : trimedMsg.substring(0, 50) + "...";
             conversationData.setTitle(tempTitle);
           }
           persistAndCacheConversation(conversationData);
@@ -192,8 +193,7 @@ public class ConversationPersistenceManager {
   /**
    * Updates a conversation with progress data and caches it only (no disk persistence).
    */
-  public CompletableFuture<Void> cacheConversationProgress(String conversationId,
-      ChatProgressValue progress) {
+  public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
@@ -210,8 +210,7 @@ public class ConversationPersistenceManager {
   /**
    * Updates a conversation with progress data and persists it to disk.
    */
-  public CompletableFuture<Void> persistConversationProgress(String conversationId,
-      ChatProgressValue progress) {
+  public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
@@ -267,8 +266,8 @@ public class ConversationPersistenceManager {
   /**
    * Internal method to update conversation progress without locking (caller must hold write lock).
    */
-  private ConversationData updateConversationProgressInternal(String conversationId,
-      ChatProgressValue progress) throws IOException {
+  private ConversationData updateConversationProgressInternal(String conversationId, ChatProgressValue progress)
+      throws IOException {
     ConversationData conversationData = getOrCreateNewConversationById(conversationId);
 
     // Update conversation metadata using factory
