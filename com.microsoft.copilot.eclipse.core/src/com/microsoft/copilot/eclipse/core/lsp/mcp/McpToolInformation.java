@@ -1,9 +1,11 @@
-package com.microsoft.copilot.eclipse.core.lsp.protocol;
+package com.microsoft.copilot.eclipse.core.lsp.mcp;
 
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 
 /**
  * Information about the MCP tool. Referenced by McpServerToolsCollection.

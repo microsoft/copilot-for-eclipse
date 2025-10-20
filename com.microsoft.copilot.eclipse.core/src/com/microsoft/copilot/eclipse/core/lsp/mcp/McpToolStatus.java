@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.core.lsp.protocol;
+package com.microsoft.copilot.eclipse.core.lsp.mcp;
 
 /**
  * The status of the MCP tool.

@@ -20,6 +20,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.GetServerParams;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCompletionContentPart;
@@ -37,7 +38,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
@@ -406,7 +406,7 @@ public class CopilotLanguageServerConnection {
       return null;
     });
   }
-  
+
   /**
    * List BYOK models.
    */

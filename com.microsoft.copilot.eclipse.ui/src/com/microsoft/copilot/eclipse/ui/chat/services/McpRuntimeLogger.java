@@ -22,7 +22,7 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.McpRuntimeLog;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRuntimeLog;
 
 /**
  * Console handler for MCP Runtime logs that writes to a dedicated Eclipse console.

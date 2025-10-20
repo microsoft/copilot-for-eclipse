@@ -49,13 +49,17 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerStatus;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -79,6 +83,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Composite extMcpTitleComposite; // store title composite for layout refresh and dynamic icon creation
   private StringFieldEditor mcpRegistryField;
   private Button openRegistryButton;
+  private Composite registryInfoMessageComposite;
+  private CopilotLanguageServerConnection copilotLanguageServerConnection;
 
   /**
    * Constructor.
@@ -90,6 +96,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   @Override
   public void init(IWorkbench workbench) {
     setPreferenceStore(CopilotUi.getPlugin().getPreferenceStore());
+    this.copilotLanguageServerConnection = CopilotCore.getPlugin() != null
+        ? CopilotCore.getPlugin().getCopilotLanguageServer()
+        : null;
+
     Job job = new Job("Binding to MCP service...") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
@@ -179,7 +189,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       // add mcp registry field and button
       mcpRegistryGroup = new Group(parent, SWT.NONE);
       mcpRegistryGroup.setLayout(gl);
-      gdf.applyTo(mcpRegistryGroup);
+      // Use a separate GridDataFactory for registry group without height constraint
+      GridDataFactory registryGdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true,
+          false);
+      registryGdf.applyTo(mcpRegistryGroup);
       mcpRegistryGroup.setText(Messages.preferences_page_mcp_registry_settings);
 
       // Add description label with link
@@ -208,8 +221,32 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
         @Override
         protected void doLoad() {
-          getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
-              CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
+          McpUtils.getMcpAllowList(copilotLanguageServerConnection).thenAccept(allowList -> {
+            SwtUtils.invokeOnDisplayThreadAsync(() -> {
+              if (allowList == null || allowList.mcpRegistries.isEmpty()) {
+                getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
+                    CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
+              } else {
+                // Use the first registry URL from the allowlist
+                String registryUrl = McpUtils.parseMcpRegistryUrlFromAllowList(allowList);
+                getTextControl().setText(registryUrl != null ? registryUrl
+                    : CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
+                        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
+                if (allowList.mcpRegistries.get(0).getRegistryAccess() == RegistryAccess.registry_only) {
+                  // Disable the field
+                  getTextControl().setEnabled(false);
+
+                  // Show info message
+                  String owner = allowList.mcpRegistries.get(0).getOwner().getLogin();
+                  String message = Messages.preferences_page_mcp_registry_restricted_info.replace("{0}", owner);
+                  showRegistryInfoMessage(message);
+                }
+              }
+            });
+          }).exceptionally(ex -> {
+            CopilotCore.LOGGER.error("Failed to load MCP registry URL", ex);
+            return null;
+          });
 
           // Add modify listener after text control is created and loaded
           getTextControl().addModifyListener(e -> {
@@ -272,6 +309,29 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Set equal height constraint for both groups
     ((GridData) mcpGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
     ((GridData) toolsGroup.getLayoutData()).heightHint = GROUP_HEIGHT_HINT;
+  }
+
+  /**
+   * Shows an info message below the registry field when the URL is managed and cannot be modified.
+   *
+   * @param message the message to display
+   */
+  private void showRegistryInfoMessage(String message) {
+    if (mcpRegistryGroup == null || mcpRegistryGroup.isDisposed()) {
+      return;
+    }
+
+    // Remove existing info message if present
+    if (registryInfoMessageComposite != null && !registryInfoMessageComposite.isDisposed()) {
+      registryInfoMessageComposite.dispose();
+    }
+
+    // Create info message composite using WrappableIconLink
+    registryInfoMessageComposite = WrappableIconLink.createWithCustomizedImage(mcpRegistryGroup,
+        "/icons/information.png", message);
+
+    // Trigger layout update on the entire hierarchy to ensure proper sizing
+    mcpRegistryGroup.requestLayout();
   }
 
   private void createExtMcpRegistrationArea(Composite parent) {
@@ -460,6 +520,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private String getServerRunningStatusHint(McpServerToolsCollection server) {
     switch (server.getStatus()) {
       case running:
+      case blocked:
+        return StringUtils.isNotBlank(server.getRegistryInfo()) ? " - " + server.getRegistryInfo() : StringUtils.EMPTY;
       case stopped:
         return StringUtils.EMPTY;
       case error:
@@ -520,6 +582,15 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
       TreeItem serverNode = new TreeItem(toolsTree, SWT.NONE);
       serverNode.setText(server.getName() + getServerRunningStatusHint(server));
+      boolean isBlocked = server.getStatus() == McpServerStatus.blocked;
+
+      // Store blocked status in the tree item data for disabled reference
+      serverNode.setData("blocked", isBlocked);
+
+      if (isBlocked) {
+        serverNode.setGrayed(true);
+        serverNode.setChecked(false);
+      }
 
       for (LanguageModelToolInformation tool : server.getTools()) {
         if (tool == null) {
@@ -530,8 +601,13 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
             .getOrDefault(tool.getName(), true);
 
         TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
-        toolNode.setText(tool.getName());
-        toolNode.setChecked(isEnabled);
+        toolNode.setText(tool.getName() + " - " + tool.getDescription());
+        toolNode.setChecked(isBlocked ? false : isEnabled);
+        toolNode.setData("blocked", isBlocked);
+
+        if (isBlocked) {
+          toolNode.setGrayed(true);
+        }
       }
 
       serverNode.setExpanded(true);
@@ -544,6 +620,15 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       public void widgetSelected(SelectionEvent e) {
         if (e.detail == SWT.CHECK) {
           TreeItem item = (TreeItem) e.item;
+
+          // Check if the item is blocked - if so, prevent the action
+          boolean isBlocked = (Boolean) item.getData("blocked");
+          if (isBlocked) {
+            // Revert the check state change for blocked items
+            item.setChecked(false);
+            return;
+          }
+
           TreeItem parent = item.getParentItem();
 
           if (parent == null) {

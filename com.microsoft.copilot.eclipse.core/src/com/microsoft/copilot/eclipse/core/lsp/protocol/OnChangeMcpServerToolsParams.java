@@ -5,6 +5,8 @@ import java.util.Objects;
 
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
+
 /**
  * Parameters for the mcp server tools.
  */

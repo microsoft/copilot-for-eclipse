@@ -174,9 +174,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     disabledCompositeLayout.marginWidth = 0;
     disabledCompositeLayout.marginHeight = 0;
     disabledComposite.setLayout(disabledCompositeLayout);
-    WrappableIconLink.createWithSharedImage(disabledComposite,
-        PlatformUI.getWorkbench().getSharedImages().getImage(org.eclipse.ui.ISharedImages.IMG_OBJS_INFO_TSK),
-        com.microsoft.copilot.eclipse.ui.preferences.Messages.preferences_page_byok_preview_disabled_tip);
+    WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
+        Messages.preferences_page_byok_preview_disabled_tip);
     contentComposite = createByokView(pageStateStack);
     updatePageState();
     root.addDisposeListener(e -> {

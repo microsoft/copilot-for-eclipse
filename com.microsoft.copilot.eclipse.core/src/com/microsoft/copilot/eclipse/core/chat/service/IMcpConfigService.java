@@ -1,6 +1,6 @@
 package com.microsoft.copilot.eclipse.core.chat.service;
 
-import com.microsoft.copilot.eclipse.core.lsp.protocol.McpOauthRequest;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 
 /**
  * Interface for the MCP config service.

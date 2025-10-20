@@ -90,6 +90,7 @@ public final class Messages extends NLS {
   public static String preferences_page_mcp_registry_url;
   public static String preferences_page_mcp_registry_description;
   public static String preferences_page_mcp_registry_button;
+  public static String preferences_page_mcp_registry_restricted_info;
   public static String preferences_page_custom_instructions_copilot_instructions;
   public static String preferences_page_custom_instructions_copilot_instructions_desc;
   public static String preferences_page_custom_instructions_copilot_instructions_note;

@@ -1,8 +1,8 @@
-package com.microsoft.copilot.eclipse.core.lsp.protocol;
+package com.microsoft.copilot.eclipse.core.lsp.mcp;
 
 /**
  * Enum representing the status of the mcp server.
  */
 public enum McpServerStatus {
-  running, stopped, error
+  running, stopped, error, blocked
 }
