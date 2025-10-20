@@ -174,7 +174,7 @@ public class ConversationPersistenceManager {
           }
           if (StringUtils.isBlank(conversationData.getTitle()) && StringUtils.isNotBlank(message)) {
             // Set a temporary title if the conversation does not have one yet
-            String trimedMsg = message.trim();
+            String trimedMsg = message.trim().replaceAll("\\s*[\\r\\n]+\\s*", " ");
             String tempTitle = trimedMsg.length() <= 50 ? trimedMsg : trimedMsg.substring(0, 50) + "...";
             conversationData.setTitle(tempTitle);
           }
