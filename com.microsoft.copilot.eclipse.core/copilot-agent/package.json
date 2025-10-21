@@ -12,11 +12,11 @@
     "postinstall": "node copy-binaries.js"
   },
   "dependencies": {
-    "@github/copilot-language-server": "1.382.0",
-    "@github/copilot-language-server-win32-x64": "1.382.0",
-    "@github/copilot-language-server-darwin-x64": "1.382.0",
-    "@github/copilot-language-server-darwin-arm64": "1.382.0",
-    "@github/copilot-language-server-linux-x64": "1.382.0",
-    "@github/copilot-language-server-linux-arm64": "1.382.0"
+    "@github/copilot-language-server": "1.385.0",
+    "@github/copilot-language-server-win32-x64": "1.385.0",
+    "@github/copilot-language-server-darwin-x64": "1.385.0",
+    "@github/copilot-language-server-darwin-arm64": "1.385.0",
+    "@github/copilot-language-server-linux-x64": "1.385.0",
+    "@github/copilot-language-server-linux-arm64": "1.385.0"
   }
 }
