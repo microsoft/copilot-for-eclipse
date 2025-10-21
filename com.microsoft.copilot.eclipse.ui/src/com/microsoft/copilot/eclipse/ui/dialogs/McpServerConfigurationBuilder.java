@@ -17,6 +17,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.PositionalArgument;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 
 /**
  * Utility class for building MCP server configuration JSON objects. Contains common configuration building logic shared

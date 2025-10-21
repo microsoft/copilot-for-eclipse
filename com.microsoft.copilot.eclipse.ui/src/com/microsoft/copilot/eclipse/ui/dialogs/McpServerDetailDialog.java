@@ -638,11 +638,30 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     }
   }
 
+  /**
+   * Extracts URL from ServerDetail, preferring the first remote server's URL.
+   *
+   * @param serverDetail The server detail
+   * @return The URL or null if not available
+   */
+  private String getUrlFromServerDetail(ServerDetail serverDetail) {
+    if (serverDetail == null) {
+      return null;
+    }
+
+    List<Remote> remotes = serverDetail.getRemotes();
+    if (remotes != null && !remotes.isEmpty() && remotes.get(0) != null) {
+      return remotes.get(0).getUrl();
+    }
+    return null;
+  }
+
   @Override
   protected void createButtonsForButtonBar(Composite parent) {
     // Determine initial button state based on whether server is installed
-    String serverName = serverDetail != null ? serverDetail.getName() : "";
-    ButtonState initialState = McpServerInstallManager.getInitialState(serverName);
+    String serverId = McpServerConfigurationBuilder.getServerId(serverDetail);
+    String url = getUrlFromServerDetail(serverDetail);
+    ButtonState initialState = this.installManager.getInitialState(serverId, url);
     boolean isInstalled = initialState == ButtonState.UNINSTALL;
 
     // Create Install/Uninstall button

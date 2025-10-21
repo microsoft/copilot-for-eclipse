@@ -113,7 +113,7 @@ public class McpRegistryDialog extends Dialog {
     container.setLayout(new GridLayout(1, false));
 
     // Initialize mcpServerAction now that shell is available
-    this.mcpServerAction = new McpServerAction(getShell());
+    this.mcpServerAction = new McpServerAction(getShell(), this.mcpAllowListFuture);
 
     // Add preference change listener to monitor MCP registry URL changes
     preferenceChangeListener = event -> {

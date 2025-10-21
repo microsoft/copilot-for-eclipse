@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
@@ -29,11 +30,13 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Package;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpServerInstallManager.ButtonState;
+import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -50,16 +53,18 @@ public class McpServerAction implements EventHandler {
   private final McpServerInstallManager installManager;
   private final IEventBroker eventBroker;
   private IStylingEngine stylingEngine;
+  private CompletableFuture<McpRegistryAllowList> mcpAllowListFuture;
 
   /**
    * Constructor for ActionItems.
    *
    * @param parentShell The parent shell for dialog interactions.
    */
-  public McpServerAction(Shell parentShell) {
+  public McpServerAction(Shell parentShell, CompletableFuture<McpRegistryAllowList> mcpAllowListFuture) {
     this.parentShell = parentShell;
     this.installManager = new McpServerInstallManager();
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    this.mcpAllowListFuture = mcpAllowListFuture;
 
     if (this.eventBroker != null) {
       this.eventBroker.subscribe(CopilotEventConstants.TOPIC_MCP_SERVER_STATE_CHANGE, this);
@@ -235,8 +240,17 @@ public class McpServerAction implements EventHandler {
     ToolItem installButton;
 
     // Determine initial button state based on whether server is installed
-    String serverName = serverDetail.getName();
-    ButtonState initialState = McpServerInstallManager.getInitialState(serverName);
+    String serverId = McpServerConfigurationBuilder.getServerId(serverDetail);
+    String url = null;
+    try {
+      McpRegistryAllowList allowList = this.mcpAllowListFuture.get();
+      if (allowList != null && allowList.getMcpRegistries() != null && !allowList.getMcpRegistries().isEmpty()) {
+        url = allowList.getMcpRegistries().get(0).getUrl();
+      }
+    } catch (Exception e) {
+      // Ignore exceptions and proceed without URL
+    }
+    ButtonState initialState = this.installManager.getInitialState(serverId, url);
     boolean isInstalled = initialState == ButtonState.UNINSTALL;
 
     if (isInstalled) {
@@ -250,6 +264,7 @@ public class McpServerAction implements EventHandler {
       setupInstallButtonHandler(installButton, installMenu, serverDetail);
     }
 
+    String serverName = serverDetail.getName();
     installButton.setText(initialState.getText());
     serverInstallButtons.put(serverName, installButton);
     serverDetailsCache.put(serverName, serverDetail);

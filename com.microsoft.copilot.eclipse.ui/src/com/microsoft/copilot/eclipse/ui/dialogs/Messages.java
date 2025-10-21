@@ -69,6 +69,9 @@ public final class Messages extends NLS {
   public static String mcpApprovalDialog_warning_button_cancel;
   public static String mcpApprovalDialog_close_button;
 
+  public static String mcpServerInstallManager_overrideServer_title;
+  public static String mcpServerInstallManager_overrideServer_message;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages("com.microsoft.copilot.eclipse.ui.dialogs.messages", Messages.class);

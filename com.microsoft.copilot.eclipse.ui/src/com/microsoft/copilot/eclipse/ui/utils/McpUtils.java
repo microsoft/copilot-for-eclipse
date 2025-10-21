@@ -90,4 +90,18 @@ public class McpUtils {
     // Default fallback to local preference for unknown access modes
     return localUrl;
   }
+
+  /**
+   * Extracts base URL from full url in the ServerDetail. This will remove version suffix patterns like /v0/servers,
+   * /v1/servers, /v0.1/servers, /v0.1.1/servers, etc.
+   *
+   * @param fullUrl The full URL string
+   * @return The base URL without version suffix
+   */
+  public static String extractBaseUrl(String fullUrl) {
+    if (fullUrl == null) {
+      return null;
+    }
+    return fullUrl.replaceAll("/v\\d+(\\.\\d+)*/servers$", "");
+  }
 }
