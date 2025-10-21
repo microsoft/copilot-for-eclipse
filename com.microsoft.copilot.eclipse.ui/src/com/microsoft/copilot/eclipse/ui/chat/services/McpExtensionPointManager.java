@@ -26,6 +26,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.prefs.BackingStoreException;
@@ -170,6 +171,14 @@ public class McpExtensionPointManager {
         CopilotCore.LOGGER.error("Cannot find bundle: " + bundleName, null);
         continue; // Skip inactive plug-ins
       }
+      if (bundle.getState() != Bundle.ACTIVE || bundle.getState() != Bundle.STARTING) {
+        try {
+          bundle.start(Bundle.START_ACTIVATION_POLICY);
+        } catch (BundleException e) {
+          CopilotCore.LOGGER.error("Failed to start the bundle: " + bundleName, null);
+          continue; // Skip inactive plug-ins
+        }
+      }
       String pluginDisplayName = getPluginDisplayName(bundle);
 
       Map<String, Object> mergedServers = new HashMap<>();
@@ -224,7 +233,7 @@ public class McpExtensionPointManager {
    * available.
    */
   private String getPluginDisplayName(Bundle bundle) {
-    String bundleVender = bundle.getHeaders().get("Bundle-Vendor");
+    String bundleVender = bundle.getHeaders().get("Bundle-Name");
     if (bundleVender != null && !bundleVender.trim().isEmpty()) {
       return bundleVender;
     }
