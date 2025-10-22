@@ -68,7 +68,8 @@ public class McpUtils {
     // Process first registry entry
     McpRegistryEntry entry = allowList.getMcpRegistries().get(0);
     RegistryAccess registryAccess = entry.getRegistryAccess();
-    String allowlistUrl = entry.getUrl() != null ? entry.getUrl() + MCP_REGISTRY_VERSION_SUFFIX : "";
+    String allowlistUrl = entry.getUrl() != null ? entry.getUrl().replaceAll("/+$", "") + MCP_REGISTRY_VERSION_SUFFIX
+        : "";
 
     // Determine URL based on access mode (registry_only takes precedence)
     if (registryAccess == RegistryAccess.registry_only) {

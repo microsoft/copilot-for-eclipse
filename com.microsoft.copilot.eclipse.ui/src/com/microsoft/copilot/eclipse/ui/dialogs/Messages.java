@@ -22,6 +22,7 @@ public final class Messages extends NLS {
   public static String mcpRegistryDialog_button_changeUrl_tooltip;
   public static String mcpRegistryDialog_close;
   public static String mcpRegistryDialog_error_empty_url;
+  public static String mcpRegistryDialog_loading_label;
   public static String mcpRegistryDialog_emptyUrlForRegistryOnly_title;
   public static String mcpRegistryDialog_emptyUrlForRegistryOnly_msg;
   public static String mcpServerDetailDialog_title;

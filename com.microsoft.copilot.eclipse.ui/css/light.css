@@ -125,8 +125,7 @@
 	color: #808080;
 }
 
-.mcp-registry-dialog-actions,
-.mcp-registry-dialog-actions * {
+.mcp-registry-dialog-actions {
 	color: #000000;
     background-color: #FFFFFF;
 }

@@ -65,6 +65,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   private Button actionButton;
   private IEventBroker eventBroker;
   private McpServerInstallManager installManager;
+  private String mcpRegistryUrl;
 
   /**
    * Create a new MCP Server Detail Dialog with a shared install manager.
@@ -73,10 +74,12 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
    * @param serverDetail The server detail to display.
    * @param installManager Install manager from parent dialog.
    */
-  public McpServerDetailDialog(Shell parentShell, ServerDetail serverDetail, McpServerInstallManager installManager) {
+  public McpServerDetailDialog(Shell parentShell, ServerDetail serverDetail, McpServerInstallManager installManager,
+      String mcpRegistryUrl) {
     super(parentShell);
     this.serverDetail = serverDetail;
     this.installManager = installManager;
+    this.mcpRegistryUrl = mcpRegistryUrl;
     setShellStyle(getShellStyle() | SWT.RESIZE | SWT.MAX);
 
     try {
@@ -521,7 +524,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     // Add remote server options first (typically preferred)
     if (hasRemotes) {
       for (Remote remote : remotes) {
-        JsonObject config = McpServerConfigurationBuilder.createRemoteServerConfiguration(remote, serverDetail);
+        JsonObject config = McpServerConfigurationBuilder.createRemoteServerConfiguration(remote, serverDetail,
+            this.mcpRegistryUrl);
         String typeSuffix = (remote.getTransportType() != null
             && StringUtils.isNotBlank(remote.getTransportType().toString())
                 ? " (" + remote.getTransportType().toString() + ")"
@@ -538,7 +542,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     // Add package options
     if (hasPackages) {
       for (Package pkg : packages) {
-        JsonObject config = McpServerConfigurationBuilder.createPackageServerConfiguration(pkg, serverDetail);
+        JsonObject config = McpServerConfigurationBuilder.createPackageServerConfiguration(pkg, serverDetail,
+            this.mcpRegistryUrl);
         InstallOption option = new InstallOption(pkg.getRegistryType() + ": " + pkg.getIdentifier(), config);
         installOptions.add(option);
         installOptionsCombo.add(option.getDisplayName());

@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.dialogs;
 
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;

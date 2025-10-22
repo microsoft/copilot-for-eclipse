@@ -8,7 +8,6 @@ import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Argument;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.KeyValueInput;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.NamedArgument;
@@ -16,8 +15,6 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.Package;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.PositionalArgument;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 
 /**
  * Utility class for building MCP server configuration JSON objects. Contains common configuration building logic shared
@@ -30,9 +27,11 @@ public class McpServerConfigurationBuilder {
    *
    * @param remote The remote server configuration
    * @param serverDetail The server detail (optional, for metadata)
+   * @param mcpProviderUrl The MCP provider URL
    * @return JSON configuration object
    */
-  public static JsonObject createRemoteServerConfiguration(Remote remote, ServerDetail serverDetail) {
+  public static JsonObject createRemoteServerConfiguration(Remote remote, ServerDetail serverDetail,
+      String mcpProviderUrl) {
     JsonObject serverConfig = new JsonObject();
     serverConfig.addProperty("type", "http");
     serverConfig.addProperty("url", remote.getUrl());
@@ -53,7 +52,7 @@ public class McpServerConfigurationBuilder {
     }
 
     // Add x-metadata section with registry information if requested
-    addMetadata(serverConfig, serverDetail);
+    addMetadata(serverConfig, serverDetail, mcpProviderUrl);
 
     return serverConfig;
   }
@@ -63,9 +62,11 @@ public class McpServerConfigurationBuilder {
    *
    * @param pkg The package configuration
    * @param serverDetail The server detail (optional, for metadata)
+   * @param mcpProviderUrl The MCP provider URL
    * @return JSON configuration object
    */
-  public static JsonObject createPackageServerConfiguration(Package pkg, ServerDetail serverDetail) {
+  public static JsonObject createPackageServerConfiguration(Package pkg, ServerDetail serverDetail,
+      String mcpProviderUrl) {
     JsonObject serverConfig = new JsonObject();
 
     serverConfig.addProperty("type", "stdio");
@@ -112,7 +113,7 @@ public class McpServerConfigurationBuilder {
     }
 
     // Add x-metadata section with registry information if requested
-    addMetadata(serverConfig, serverDetail);
+    addMetadata(serverConfig, serverDetail, mcpProviderUrl);
 
     return serverConfig;
   }
@@ -122,11 +123,12 @@ public class McpServerConfigurationBuilder {
    *
    * @param serverConfig The server configuration JSON object
    * @param serverDetail The server detail containing metadata
+   * @param mcpProviderUrl The MCP provider URL
    */
-  public static void addMetadata(JsonObject serverConfig, ServerDetail serverDetail) {
+  public static void addMetadata(JsonObject serverConfig, ServerDetail serverDetail, String mcpProviderUrl) {
     JsonObject metadata = new JsonObject();
     JsonObject registry = new JsonObject();
-    registry.addProperty("url", CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL, ""));
+    registry.addProperty("url", mcpProviderUrl);
     String serverId = getServerId(serverDetail);
     if (serverId != null) {
       registry.addProperty("serverId", serverId);

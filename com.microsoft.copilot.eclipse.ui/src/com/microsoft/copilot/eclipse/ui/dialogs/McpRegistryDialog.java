@@ -65,7 +65,8 @@ public class McpRegistryDialog extends Dialog {
   private boolean isLoading = false;
   private List<ServerItem> allItems = new ArrayList<>();
   private String mcpRegistryUrl = "";
-  private CompletableFuture<McpRegistryAllowList> mcpAllowListFuture = null;
+  private McpRegistryAllowList mcpAllowList = null;
+  private int loadingSpinnerIndex = -1;
 
   private Text txtSearch;
   private TableViewer viewer;
@@ -86,7 +87,6 @@ public class McpRegistryDialog extends Dialog {
         ? CopilotCore.getPlugin().getCopilotLanguageServer()
         : null;
     this.spinnerJob = new SpinnerJob();
-    this.mcpAllowListFuture = McpUtils.getMcpAllowList(copilotLanguageServerConnection);
   }
 
   @Override
@@ -111,9 +111,6 @@ public class McpRegistryDialog extends Dialog {
     Composite container = new Composite(area, SWT.NONE);
     container.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     container.setLayout(new GridLayout(1, false));
-
-    // Initialize mcpServerAction now that shell is available
-    this.mcpServerAction = new McpServerAction(getShell(), this.mcpAllowListFuture);
 
     // Add preference change listener to monitor MCP registry URL changes
     preferenceChangeListener = event -> {
@@ -153,37 +150,25 @@ public class McpRegistryDialog extends Dialog {
     return area;
   }
 
-  private void createWelcomeView(Composite parent) {
-    // Create a centered composite for the button and label
-    Composite centeredComposite = new Composite(parent, SWT.NONE);
-    GridData centeredGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
-    centeredComposite.setLayoutData(centeredGridData);
-    centeredComposite.setLayout(new GridLayout(1, false));
-
-    Button configButton = new Button(centeredComposite, SWT.PUSH);
-    configButton.setText(Messages.mcpRegistryDialog_button_changeUrl);
-    GridData btnGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
-    configButton.setLayoutData(btnGridData);
-    configButton.addListener(SWT.Selection, e -> openPreferencesDialog());
-
-    Label emptyUrlLabel = new Label(centeredComposite, SWT.WRAP);
-    emptyUrlLabel.setText(Messages.mcpRegistryDialog_error_empty_url);
-    GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, false);
-    emptyUrlLabel.setLayoutData(gd);
+  /**
+   * Fetch the MCP registry URL and refresh the content in the specified container.
+   *
+   * @param container the container to refresh after URL is fetched
+   */
+  private void fetchUrlAndRefreshContent(Composite container) {
+    loadMcpRegistryAllowListAndUrl().thenRun(() -> {
+      SwtUtils.getDisplay().asyncExec(() -> {
+        if (!container.isDisposed()) {
+          createContent(container);
+          container.requestLayout();
+        }
+      });
+    });
   }
 
   @Override
   protected void createButtonsForButtonBar(Composite parent) {
     createButton(parent, CANCEL, Messages.mcpRegistryDialog_close, true);
-  }
-
-  private void createHeader(Composite parent) {
-    Composite header = new Composite(parent, SWT.NONE);
-    header.setLayout(createZeroMarginGridLayout(2, false));
-    header.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-
-    createSearchField(header);
-    createHeaderButtons(header);
   }
 
   private void createSearchField(Composite parent) {
@@ -232,22 +217,23 @@ public class McpRegistryDialog extends Dialog {
     }
   }
 
+  private GridLayout createZeroMarginGridLayout(int numColumns, boolean makeColumnsEqualWidth) {
+    GridLayout layout = new GridLayout(numColumns, makeColumnsEqualWidth);
+    layout.marginWidth = 0;
+    layout.marginHeight = 0;
+    return layout;
+  }
+
   /**
    * Check if the current registry access mode is registry_only.
    *
    * @return true if registry access is registry_only, false otherwise
    */
   private boolean isRegistryOnlyMode() {
-    try {
-      McpRegistryAllowList mcpAllowList = mcpAllowListFuture != null ? mcpAllowListFuture.get() : null;
-      if (mcpAllowList == null || mcpAllowList.getMcpRegistries().isEmpty()) {
-        return false;
-      }
-      return mcpAllowList.getMcpRegistries().get(0).getRegistryAccess() == RegistryAccess.registry_only;
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Error getting MCP allowlist", e);
+    if (mcpAllowList == null || mcpAllowList.getMcpRegistries().isEmpty()) {
       return false;
     }
+    return mcpAllowList.getMcpRegistries().get(0).getRegistryAccess() == RegistryAccess.registry_only;
   }
 
   private void createRefreshButton(Composite parent) {
@@ -272,7 +258,8 @@ public class McpRegistryDialog extends Dialog {
     editButton.setText(Messages.mcpRegistryDialog_button_changeUrl);
     editButton.setToolTipText(Messages.mcpRegistryDialog_button_changeUrl_tooltip);
     editButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
-    editButton.addListener(SWT.Selection, e -> openPreferencesDialog());
+    editButton.addListener(SWT.Selection,
+        e -> PreferencesUtil.createPreferenceDialogOn(getShell(), McpPreferencePage.ID, null, null).open());
     editButton.addDisposeListener(e -> {
       if (editIcon != null && !editIcon.isDisposed()) {
         editIcon.dispose();
@@ -280,39 +267,10 @@ public class McpRegistryDialog extends Dialog {
     });
   }
 
-  private void openPreferencesDialog() {
-    // Open the preferences dialog for the MCP URL setting
-    PreferencesUtil.createPreferenceDialogOn(getShell(), McpPreferencePage.ID, null, null).open();
-  }
-
-  private GridLayout createZeroMarginGridLayout(int numColumns, boolean makeColumnsEqualWidth) {
-    GridLayout layout = new GridLayout(numColumns, makeColumnsEqualWidth);
-    layout.marginWidth = 0;
-    layout.marginHeight = 0;
-    return layout;
-  }
-
-  private void createTable(Composite parent) {
-    viewer = new TableViewer(parent, SWT.BORDER | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.H_SCROLL);
-    Table table = viewer.getTable();
-    configureTable(table);
-    createTableColumns();
-    setupTableResize();
-
-    viewer.setContentProvider(ArrayContentProvider.getInstance());
-    viewer.addFilter(new SearchFilter());
-
-    allItems.clear();
-    viewer.setInput(allItems);
-  }
-
   private void configureTable(Table table) {
     table.setHeaderVisible(true);
     table.setLinesVisible(true);
     table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
-    // Set custom row height to make rows taller
-    table.addListener(SWT.MeasureItem, event -> event.height = 36);
 
     // Add scroll listener for lazy loading
     table.getVerticalBar().addListener(SWT.Selection, e -> loadMoreIfNearEnd());
@@ -320,54 +278,6 @@ public class McpRegistryDialog extends Dialog {
       // MacOS uses different scrolling events
       table.addListener(SWT.MouseWheel, e -> loadMoreIfNearEnd());
     }
-  }
-
-  private void createTableColumns() {
-    createNameColumn();
-    createDescriptionColumn();
-    createActionsColumn();
-  }
-
-  private void createNameColumn() {
-    TableViewerColumn colName = new TableViewerColumn(viewer, SWT.LEFT);
-    TableColumn nameColumn = colName.getColumn();
-    nameColumn.setText(Messages.mcpRegistryDialog_col_name);
-    nameColumn.setWidth(200);
-    colName.setLabelProvider(new ColumnLabelProvider() {
-      @Override
-      public String getText(Object element) {
-        ServerItem item = (ServerItem) element;
-        return LOADING_SPINNER_ROW_NAME.equals(item.name) ? Messages.mcpRegistryDialog_loading : item.name;
-      }
-    });
-  }
-
-  private void createDescriptionColumn() {
-    TableViewerColumn colDesc = new TableViewerColumn(viewer, SWT.LEFT);
-    TableColumn descColumn = colDesc.getColumn();
-    descColumn.setText(Messages.mcpRegistryDialog_col_desc);
-    descColumn.setWidth(380);
-    colDesc.setLabelProvider(new ColumnLabelProvider() {
-      @Override
-      public String getText(Object element) {
-        ServerItem item = (ServerItem) element;
-        return LOADING_SPINNER_ROW_NAME.equals(item.name) ? ""
-            : item.details != null ? item.details.getDescription() : "";
-      }
-    });
-  }
-
-  private void createActionsColumn() {
-    TableViewerColumn colActions = new TableViewerColumn(viewer, SWT.LEFT);
-    TableColumn actionColumn = colActions.getColumn();
-    actionColumn.setText(Messages.mcpRegistryDialog_col_actions);
-    actionColumn.setWidth(150);
-    colActions.setLabelProvider(new ColumnLabelProvider() {
-      @Override
-      public String getText(Object element) {
-        return "";
-      }
-    });
   }
 
   private void setupTableResize() {
@@ -463,34 +373,16 @@ public class McpRegistryDialog extends Dialog {
       }
 
       createContent(container);
-
       container.requestLayout();
     }
-  }
-
-  /**
-   * Fetch the MCP registry URL and refresh the content in the specified container.
-   *
-   * @param container the container to refresh after URL is fetched
-   */
-  private void fetchUrlAndRefreshContent(Composite container) {
-    loadMcpRegistryAllowListAndUrl().thenRun(() -> {
-      SwtUtils.getDisplay().asyncExec(() -> {
-        if (!container.isDisposed()) {
-          createContent(container);
-          container.requestLayout();
-        }
-      });
-    });
   }
 
   private void createContent(Composite parent) {
     if (StringUtils.isBlank(this.mcpRegistryUrl)) {
       createWelcomeView(parent);
     } else {
-      createHeader(parent);
-      createTable(parent);
-      loadServers("");
+      createLoadingView(parent);
+      loadServersThenInitializeTableWithHeader("");
     }
   }
 
@@ -503,14 +395,8 @@ public class McpRegistryDialog extends Dialog {
       return;
     }
 
-    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
-      // Show warning message without spinner for empty URL
-      isLoading = false;
-      showTableItems(List.of(new ServerItem(Messages.mcpRegistryDialog_error_empty_url, null)), true);
-      return;
-    }
-
     isLoading = true;
+    loadingSpinnerIndex = allItems.size();
     allItems.add(new ServerItem(LOADING_SPINNER_ROW_NAME, null));
     refresh();
     startSpinner();
@@ -519,65 +405,22 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void loadServersPage(String cursor, String searchText) {
-    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
-      showTableItems(List.of(new ServerItem(Messages.mcpRegistryDialog_error_empty_url, null)), true);
-      return;
-    }
     ListServersParams params = new ListServersParams(this.mcpRegistryUrl, PAGE_SIZE, cursor);
     CompletableFuture<ServerList> future = copilotLanguageServerConnection.listMcpServers(params);
-    future.thenAccept(serverList -> handleServerList(serverList, searchText));
+    future.thenAccept(serverList -> {
+      List<ServerItem> newItems = processServerList(serverList, searchText, true);
+      showTableItems(newItems);
+    });
   }
 
-  private void handleServerList(ServerList serverList, String searchText) {
-    if (serverList == null) {
-      showTableItems(List.of(new ServerItem(Messages.mcpRegistryDialog_errorLoading, null)), true);
-      return;
-    }
-    List<ServerDetail> servers = serverList != null ? serverList.getServers() : null;
-    List<ServerItem> newItems = new ArrayList<>();
-
-    if (servers != null) {
-      for (ServerDetail details : servers) {
-        if (details != null) {
-          // Filter based on search text before adding
-          if (StringUtils.isBlank(searchText) || StringUtils.containsIgnoreCase(details.getName(), searchText)
-              || StringUtils.containsIgnoreCase(details.getDescription(), searchText)) {
-            // Only add latest official servers
-            if (details.getMeta() != null && details.getMeta().getOfficial() != null
-                && details.getMeta().getOfficial().isLatest()) {
-              newItems.add(new ServerItem(details.getName(), details));
-            }
-          }
-        }
-      }
-    }
-
-    updatePaginationState(serverList);
-    showTableItems(newItems, false);
-  }
-
-  private void updatePaginationState(ServerList serverList) {
-    if (serverList != null && serverList.getMetadata() != null) {
-      nextCursor = serverList.getMetadata().getNextCursor();
-      hasMoreData = StringUtils.isNotEmpty(nextCursor);
-    } else {
-      hasMoreData = false;
-    }
-  }
-
-  private void showTableItems(List<ServerItem> newItems, boolean isError) {
+  private void showTableItems(List<ServerItem> newItems) {
     if (viewer != null && !viewer.getControl().isDisposed()) {
       viewer.getControl().getDisplay().asyncExec(() -> {
         if (!viewer.getControl().isDisposed()) {
           stopSpinner();
           removeSpinnerRow();
 
-          if (isError) {
-            // For errors, replace all items with just the error message
-            allItems.clear();
-            allItems.addAll(newItems);
-            hasMoreData = false;
-          } else if (!newItems.isEmpty()) {
+          if (!newItems.isEmpty()) {
             // For successful loads, add the new items
             allItems.addAll(newItems);
           }
@@ -590,21 +433,258 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void removeSpinnerRow() {
-    if (!allItems.isEmpty()) {
-      ServerItem lastItem = allItems.get(allItems.size() - 1);
-      if (LOADING_SPINNER_ROW_NAME.equals(lastItem.name)) {
-        allItems.remove(allItems.size() - 1);
+    if (loadingSpinnerIndex >= 0 && loadingSpinnerIndex < allItems.size()
+        && LOADING_SPINNER_ROW_NAME.equals(allItems.get(loadingSpinnerIndex).name)) {
+      allItems.remove(loadingSpinnerIndex);
+      loadingSpinnerIndex = -1;
+    }
+  }
+
+  private void createWelcomeView(Composite parent) {
+    // Create a centered composite for the button and label
+    Composite centeredComposite = new Composite(parent, SWT.NONE);
+    GridData centeredGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
+    centeredComposite.setLayoutData(centeredGridData);
+    centeredComposite.setLayout(new GridLayout(1, false));
+
+    Button configButton = new Button(centeredComposite, SWT.PUSH);
+    configButton.setText(Messages.mcpRegistryDialog_button_changeUrl);
+    GridData btnGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
+    configButton.setLayoutData(btnGridData);
+    configButton.addListener(SWT.Selection,
+        e -> PreferencesUtil.createPreferenceDialogOn(getShell(), McpPreferencePage.ID, null, null).open());
+
+    Label emptyUrlLabel = new Label(centeredComposite, SWT.WRAP);
+    emptyUrlLabel.setText(Messages.mcpRegistryDialog_error_empty_url);
+    GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, false);
+    emptyUrlLabel.setLayoutData(gd);
+  }
+
+  private void createLoadingView(Composite parent) {
+    createSingleLabelView(parent, Messages.mcpRegistryDialog_loading_label);
+  }
+
+  private void createErrorView(Composite parent, String errorMessage) {
+    createSingleLabelView(parent, errorMessage);
+  }
+
+  private void createSingleLabelView(Composite parent, String labelText) {
+    // Create a centered composite for the button and label
+    Composite centeredComposite = new Composite(parent, SWT.NONE);
+    GridData centeredGridData = new GridData(SWT.FILL, SWT.CENTER, true, true);
+    centeredComposite.setLayoutData(centeredGridData);
+    centeredComposite.setLayout(new GridLayout(1, false));
+
+    Label emptyUrlLabel = new Label(centeredComposite, SWT.WRAP);
+    emptyUrlLabel.setText(labelText);
+    GridData gd = new GridData(SWT.CENTER, SWT.CENTER, true, false);
+    emptyUrlLabel.setLayoutData(gd);
+  }
+
+  /**
+   * Load servers and show the header/table only after loading is complete.
+   */
+  private void loadServersThenInitializeTableWithHeader(String searchText) {
+    if (copilotLanguageServerConnection == null) {
+      return;
+    }
+
+    isLoading = true;
+    ListServersParams params = new ListServersParams(this.mcpRegistryUrl, PAGE_SIZE, "");
+    copilotLanguageServerConnection.listMcpServers(params).thenAccept(serverList -> {
+      initializeTableWithHeader(serverList, searchText);
+    });
+  }
+
+  /**
+   * Handle the server list response and show the UI with header and table.
+   */
+  private void initializeTableWithHeader(ServerList serverList, String searchText) {
+    SwtUtils.getDisplay().asyncExec(() -> {
+      // Get the container (should be the first child of the dialog area)
+      Composite dialogArea = (Composite) getDialogArea();
+      if (dialogArea == null || dialogArea.getChildren().length == 0) {
+        return;
       }
+
+      Composite container = (Composite) dialogArea.getChildren()[0];
+      if (container.isDisposed()) {
+        return;
+      }
+
+      // Dispose the loading view
+      for (Control child : container.getChildren()) {
+        child.dispose();
+      }
+
+      // Create header and table
+      createHeader(container);
+      createTable(container);
+      container.requestLayout();
+
+      // Process the server list data
+      processServerList(serverList, searchText, false);
+
+      isLoading = false;
+      refresh();
+    });
+  }
+
+  private void createHeader(Composite parent) {
+    Composite header = new Composite(parent, SWT.NONE);
+    header.setLayout(createZeroMarginGridLayout(2, false));
+    header.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+    createSearchField(header);
+    createHeaderButtons(header);
+  }
+
+  private void createTable(Composite parent) {
+    viewer = new TableViewer(parent, SWT.BORDER | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.H_SCROLL);
+    Table table = viewer.getTable();
+    configureTable(table);
+    createTableColumns();
+    setupTableResize();
+
+    viewer.setContentProvider(ArrayContentProvider.getInstance());
+    viewer.addFilter(new SearchFilter());
+
+    allItems.clear();
+    viewer.setInput(allItems);
+  }
+
+  private void createTableColumns() {
+    createNameColumn();
+    createDescriptionColumn();
+    createActionsColumn();
+  }
+
+  private void createNameColumn() {
+    TableViewerColumn colName = new TableViewerColumn(viewer, SWT.LEFT);
+    TableColumn nameColumn = colName.getColumn();
+    nameColumn.setText(Messages.mcpRegistryDialog_col_name);
+    nameColumn.setWidth(200);
+    colName.setLabelProvider(new ColumnLabelProvider() {
+      @Override
+      public String getText(Object element) {
+        ServerItem item = (ServerItem) element;
+        return LOADING_SPINNER_ROW_NAME.equals(item.name) ? Messages.mcpRegistryDialog_loading : item.name;
+      }
+    });
+  }
+
+  private void createDescriptionColumn() {
+    TableViewerColumn colDesc = new TableViewerColumn(viewer, SWT.LEFT);
+    TableColumn descColumn = colDesc.getColumn();
+    descColumn.setText(Messages.mcpRegistryDialog_col_desc);
+    descColumn.setWidth(380);
+    colDesc.setLabelProvider(new ColumnLabelProvider() {
+      @Override
+      public String getText(Object element) {
+        ServerItem item = (ServerItem) element;
+        return LOADING_SPINNER_ROW_NAME.equals(item.name) ? ""
+            : item.details != null ? item.details.getDescription() : "";
+      }
+    });
+  }
+
+  private void createActionsColumn() {
+    TableViewerColumn colActions = new TableViewerColumn(viewer, SWT.LEFT);
+    TableColumn actionColumn = colActions.getColumn();
+    actionColumn.setText(Messages.mcpRegistryDialog_col_actions);
+    actionColumn.setWidth(150);
+    colActions.setLabelProvider(new ColumnLabelProvider() {
+      @Override
+      public String getText(Object element) {
+        return "";
+      }
+    });
+  }
+
+  /**
+   * Process server list and add items to the table.
+   *
+   * @param serverList the server list response
+   * @param searchText the search filter text
+   * @param append true to append items, false to replace with error on null
+   * @return the list of new items added
+   */
+  private List<ServerItem> processServerList(ServerList serverList, String searchText, boolean append) {
+    List<ServerItem> newItems = new ArrayList<>();
+    if (serverList == null) {
+      disposeTableAndShowErrorView();
+      allItems.clear();
+      hasMoreData = false;
+    } else {
+      List<ServerDetail> servers = serverList.getServers();
+      if (servers != null) {
+        for (ServerDetail details : servers) {
+          if (details != null) {
+            // Filter based on search text before adding
+            if (StringUtils.isBlank(searchText) || StringUtils.containsIgnoreCase(details.getName(), searchText)
+                || StringUtils.containsIgnoreCase(details.getDescription(), searchText)) {
+              // Only add latest official servers
+              if (details.getMeta() != null && details.getMeta().getOfficial() != null
+                  && details.getMeta().getOfficial().isLatest()) {
+                ServerItem item = new ServerItem(details.getName(), details);
+                if (append) {
+                  newItems.add(item);
+                } else {
+                  allItems.add(item);
+                }
+              }
+            }
+          }
+        }
+      }
+      updatePaginationState(serverList);
+    }
+
+    return newItems;
+  }
+
+  private void disposeTableAndShowErrorView() {
+    SwtUtils.getDisplay().asyncExec(() -> {
+      if (viewer != null && !viewer.getControl().isDisposed()) {
+        Composite dialogArea = (Composite) getDialogArea();
+        if (dialogArea != null && dialogArea.getChildren().length > 0) {
+          Composite container = (Composite) dialogArea.getChildren()[0];
+          if (!container.isDisposed()) {
+            // Dispose only the table and keep action header
+            Control[] children = container.getChildren();
+            for (int i = 1; i < children.length; i++) {
+              children[i].dispose();
+            }
+            viewer = null;
+
+            createErrorView(container, Messages.mcpRegistryDialog_errorLoading);
+            container.requestLayout();
+          }
+        }
+      }
+    });
+  }
+
+  private void updatePaginationState(ServerList serverList) {
+    if (serverList != null && serverList.getMetadata() != null) {
+      nextCursor = serverList.getMetadata().getNextCursor();
+      hasMoreData = StringUtils.isNotEmpty(nextCursor);
+    } else {
+      hasMoreData = false;
     }
   }
 
   /**
-   * Load the MCP registry allowlist and URL, and set them to this.mcpAllowListFuture & this.mcpRegistryUrl.
+   * Load the MCP registry allowlist and URL, and set them to this.mcpAllowList & this.mcpRegistryUrl.
    */
   private CompletableFuture<Void> loadMcpRegistryAllowListAndUrl() {
-    this.mcpAllowListFuture = McpUtils.getMcpAllowList(copilotLanguageServerConnection);
-    return mcpAllowListFuture.thenAccept(allowList -> {
+    return McpUtils.getMcpAllowList(copilotLanguageServerConnection).thenAccept(allowList -> {
+      this.mcpAllowList = allowList;
       this.mcpRegistryUrl = McpUtils.parseMcpRegistryUrlFromAllowList(allowList);
+      // Initialize mcpServerAction now that mcpAllowList is resolved
+      if (this.mcpServerAction == null) {
+        this.mcpServerAction = new McpServerAction(getShell(), this.mcpRegistryUrl);
+      }
     });
   }
 
@@ -621,9 +701,13 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void refresh() {
-    mcpServerAction.disposeAllEditors();
+    if (mcpServerAction != null) {
+      mcpServerAction.disposeAllEditors();
+    }
     viewer.refresh();
-    mcpServerAction.buildActionEditors(viewer.getTable(), allItems);
+    if (mcpServerAction != null) {
+      mcpServerAction.buildActionEditors(viewer.getTable(), allItems);
+    }
 
     // Check if we need to continue loading more data when filtered results don't fill the table
     loadMoreIfNearEnd();
