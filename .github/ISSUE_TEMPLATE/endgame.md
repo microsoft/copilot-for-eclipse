@@ -16,16 +16,18 @@ tbd
 - [ ] 
 
 ### Release steps
-- [ ] Trigger RC build
+- [ ] Trigger Nightly build: https://mseng.visualstudio.com/VSJava/_build?definitionId=19562
+- [ ] Trigger RC build: https://mseng.visualstudio.com/VSJava/_build?definitionId=19982
 - [ ] Verify issues
-- [ ] Check the BI at GitHub
-- [ ] Upload to blob storage
-- [ ] Purge CDN cache
-- [ ] Update solution version in marketplace portal
-- [ ] Add a new release in GitHub
-- [ ] Close current milestone and create a new milestone
+- [ ] Fix blocking issues for release
 - [ ] Update test plan
   - [ ] @jdneo 
-  - [ ] @hithisispolarbear 
+  - [ ] @duzitong 
   - [ ] @ethanyhou 
   - [ ] @xinyi-gong
+- [ ] Release Nightly: https://mseng.visualstudio.com/VSJava/_build?definitionId=20768
+- [ ] Update solution version for nightly on marketplace: https://marketplace.eclipse.org/content/github-copilot-nightly/edit
+- [ ] Release RC: https://mseng.visualstudio.com/VSJava/_build?definitionId=21364
+- [ ] Update solution version for stable on marketplace: https://marketplace.eclipse.org/content/github-copilot/edit
+- [ ] Add release in https://github.com/eclipse-copilot/eclipse-copilot/releases
+- [ ] Add release in https://github.com/microsoft/GitHub-Copilot-for-Eclipse/releases
