@@ -87,6 +87,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private CurrentReferencedFile currentFileRef;
   private ContentAssistant ca;
   private Image sendImage;
+  private Image sendDisabledImage;
   private boolean isSendButton = true;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
@@ -399,9 +400,11 @@ public class ActionBar extends Composite implements NewConversationListener {
     // Add toggle button for all modes if it has not been created
     if (btnMsgToggle == null || btnMsgToggle.isDisposed()) {
       this.sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
+      this.sendDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/send_disabled.png");
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-      this.btnMsgToggle.setEnabled(StringUtils.isBlank(this.inputTextViewer.getContent()) ? false : true);
-      this.btnMsgToggle.setImage(this.sendImage);
+      boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
+      this.btnMsgToggle.setEnabled(isEnabled);
+      this.btnMsgToggle.setImage(isEnabled ? this.sendImage : this.sendDisabledImage);
       this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
       GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
       sendGd.widthHint = this.sendImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
@@ -420,6 +423,9 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.btnMsgToggle.addDisposeListener(e -> {
         if (sendImage != null && !sendImage.isDisposed()) {
           sendImage.dispose();
+        }
+        if (sendDisabledImage != null && !sendDisabledImage.isDisposed()) {
+          sendDisabledImage.dispose();
         }
       });
     }
@@ -561,7 +567,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         break;
       case SEND_DISABLED:
         isSendButton = true;
-        updateSendOrCancelMsgBtn(false, sendImage, Messages.chat_actionBar_sendButton_Tooltip);
+        updateSendOrCancelMsgBtn(false, sendDisabledImage, Messages.chat_actionBar_sendButton_Tooltip);
         break;
       case CANCEL_ENABLED:
         isSendButton = false;
