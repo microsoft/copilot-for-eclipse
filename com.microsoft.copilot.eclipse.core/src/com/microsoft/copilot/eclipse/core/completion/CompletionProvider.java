@@ -73,18 +73,20 @@ public class CompletionProvider {
    *
    * @param position the position of the cursor.
    * @param documentVersion the version of the document.
+   * @param enableNes whether NES is enabled
    */
-  public void triggerCompletion(IFile file, Position position, int documentVersion) {
+  public void triggerCompletion(IFile file, Position position, int documentVersion, boolean enableNes) {
     if (statusManager.isNotSignedInOrNotAuthorized()) {
       return;
     }
-    if (this.usingCodeMining
-        && !Platform.getPreferencesService().getBoolean(JDT_UI_PLUGIN_ID, CODE_MINING_ENABLED_PREF_KEY, true, null)) {
-      // Code mining is disabled, do not trigger completion to save the quota.
-      // we are not caching and listening the preference change event, because we cannot get access to the
-      // JDT UI plugin preference store.
+    boolean enableCompletion = !this.usingCodeMining
+        || Platform.getPreferencesService().getBoolean(JDT_UI_PLUGIN_ID, CODE_MINING_ENABLED_PREF_KEY, true, null);
+
+    if (!enableCompletion && !enableNes) {
+      // Both completion and NES are disabled, no need to trigger completion
       return;
     }
+
     this.completionJob.cancel();
     String uriString = FileUtils.getResourceUri(file);
     CompletionDocument completionDoc = new CompletionDocument(uriString, position);
@@ -99,6 +101,8 @@ public class CompletionProvider {
 
     this.completionJob.setCompletionParams(params);
     this.completionJob.setFile(file);
+    this.completionJob.setEnableCompletion(enableCompletion);
+    this.completionJob.setEnableNes(enableNes);
     this.completionJob.schedule();
   }
 
@@ -127,6 +131,8 @@ public class CompletionProvider {
     private CompletionParams params;
     private IResource file;
     private List<CompletionItem> completions;
+    private boolean enableCompletion; // whether to request completion
+    private boolean enableNes; // whether NES is enabled (for fallback or direct fetch)
 
     /**
      * Creates a new completion job.
@@ -144,6 +150,14 @@ public class CompletionProvider {
 
     public void setFile(IResource file) {
       this.file = file;
+    }
+
+    public void setEnableCompletion(boolean enable) {
+      this.enableCompletion = enable;
+    }
+
+    public void setEnableNes(boolean enable) {
+      this.enableNes = enable;
     }
 
     @Override
@@ -172,28 +186,53 @@ public class CompletionProvider {
         return Status.CANCEL_STATUS;
       }
 
-      try {
-        CompletionResult result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS,
-            TimeUnit.MILLISECONDS);
-        if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
-          return Status.OK_STATUS;
-        }
+      // If completion is enabled, request completion from LS
+      if (this.enableCompletion) {
+        try {
+          CompletionResult result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS,
+              TimeUnit.MILLISECONDS);
+          if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
+            // Empty completion result: fallback to NES if enabled
+            if (this.enableNes && file instanceof IFile f) {
+              fetchNes(f, params.getDoc().getPosition());
+            }
+            return Status.OK_STATUS;
+          }
 
-        this.completions = result.getCompletions();
-      } catch (InterruptedException e) {
-        return Status.CANCEL_STATUS;
-      } catch (ExecutionException e) {
-        statusManager.setCopilotStatus(CopilotStatusResult.ERROR);
-        CopilotCore.LOGGER.error(e);
-        return Status.OK_STATUS;
-      } catch (TimeoutException e) {
-        CopilotCore.LOGGER.info("Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
-        return Status.CANCEL_STATUS;
+          this.completions = result.getCompletions();
+        } catch (InterruptedException e) {
+          return Status.CANCEL_STATUS;
+        } catch (ExecutionException e) {
+          statusManager.setCopilotStatus(CopilotStatusResult.ERROR);
+          CopilotCore.LOGGER.error(e);
+          return Status.OK_STATUS;
+        } catch (TimeoutException e) {
+          CopilotCore.LOGGER.info("Completion request timed out after " + COMPLETION_TIMEOUT_MILLIS + " milliseconds");
+          return Status.CANCEL_STATUS;
+        }
+      } else if (this.enableNes && file instanceof IFile f) {
+        // Completion disabled but NES enabled: fetch NES directly
+        fetchNes(f, params.getDoc().getPosition());
       }
+
       if (monitor.isCanceled()) {
         return Status.CANCEL_STATUS;
       }
       return Status.OK_STATUS;
+    }
+
+    /**
+     * Fetch NES suggestion.
+     */
+    private void fetchNes(IFile file, Position position) {
+      try {
+        var nesProvider = CopilotCore.getPlugin().getNextEditSuggestionProvider();
+        if (nesProvider != null) {
+          nesProvider.fetchSuggestion(file, position);
+        }
+      } catch (Exception ex) {
+        CopilotCore.LOGGER.error(ex);
+      }
     }
 
     @Override

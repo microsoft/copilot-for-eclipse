@@ -72,6 +72,7 @@ public class EditorLifecycleListener implements IPartListener2 {
     }
     if (textEditor != null) {
       manager.setActiveEditor(textEditor);
+      manager.getOrCreateNesRenderManager(textEditor);
     }
   }
 
@@ -81,12 +82,32 @@ public class EditorLifecycleListener implements IPartListener2 {
   }
 
   @Override
+  public void partDeactivated(IWorkbenchPartReference partRef) {
+    // Clear NES suggestion when switching away from editor
+    IEditorPart editorPart = getEditorPart(partRef);
+    if (editorPart == null) {
+      return;
+    }
+    ITextEditor textEditor = editorPart.getAdapter(ITextEditor.class);
+    if (textEditor != null) {
+      var nesManager = manager.getNesRenderManager(textEditor);
+      if (nesManager != null) {
+        nesManager.clearSuggestion();
+      }
+    }
+  }
+
+  @Override
   public void partInputChanged(IWorkbenchPartReference partRef) {
     // try to re-create the completion handler for the part to fix the completion manager is not created for the ABAP
     // editor in the beginning
     IEditorPart editorPart = getEditorPart(partRef);
     if (editorPart == null) {
       return;
+    }
+    ITextEditor editor = editorPart.getAdapter(ITextEditor.class);
+    if (editor != null) {
+      manager.disposeNesRenderManager(editor);
     }
     disconnectDocumentIfNecessary(editorPart);
 
@@ -104,6 +125,7 @@ public class EditorLifecycleListener implements IPartListener2 {
 
     ITextEditor textEditor = editorPart.getAdapter(ITextEditor.class);
     disposeCompletionHandlerFor(textEditor);
+    manager.disposeNesRenderManager(textEditor);
   }
 
   @Nullable

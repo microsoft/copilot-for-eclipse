@@ -109,10 +109,9 @@ public class RenderingManager implements PaintListener {
     if (styledText == null || widgetOffset < 0) {
       return;
     }
-
-    int lineIndex = styledText.getLineAtOffset(widgetOffset) + 1;
-    lineIndex = Math.min(lineIndex, styledText.getLineCount() - 1);
-    styledText.setLineVerticalIndent(lineIndex, height);
+    int widgetLine = styledText.getLineAtOffset(widgetOffset) + 1;
+    widgetLine = Math.min(widgetLine, styledText.getLineCount() - 1);
+    UiUtils.setLineVerticalIndent(styledText, widgetLine, height);
   }
 
   /**

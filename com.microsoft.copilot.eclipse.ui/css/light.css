@@ -129,3 +129,10 @@
 	color: #000000;
     background-color: #FFFFFF;
 }
+
+/* Next Edit Suggestion - Bottom Bar */
+#nes-bottom-bar,
+#nes-bottom-bar * {
+	color: #000000;
+	background-color: #FFFFFF;
+}

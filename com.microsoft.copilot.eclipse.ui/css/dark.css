@@ -128,3 +128,10 @@
 	color: #DEE1E5;
 	background-color: #1E1F22;
 }
+
+/* Next Edit Suggestion - Bottom Bar */
+#nes-bottom-bar,
+#nes-bottom-bar * {
+	color: #DEE1E5;
+	background-color: #1E1F22;
+}

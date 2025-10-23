@@ -18,6 +18,7 @@ public class Constants {
 
   public static final String PLUGIN_ID = "com.microsoft.copilot.eclipse";
   public static final String AUTO_SHOW_COMPLETION = "enableAutoCompletions";
+  public static final String ENABLE_NEXT_EDIT_SUGGESTION = "enableNextEditSuggestion";
   public static final String ENABLE_STRICT_SSL = "enableStrictSsl";
   public static final String PROXY_KERBEROS_SP = "proxyKerberosSp";
   public static final String GITHUB_ENTERPRISE = "githubEnterprise";

@@ -56,6 +56,13 @@ public class CompletionsPreferencesPage extends FieldEditorPreferencePage implem
           Messages.preferences_page_completions_codeMiningNote, null, CODE_MINING_PREF_PAGE_ID);
     }
 
+
+    // add auto show nes field
+    Composite ctnAutoShowNes = new Composite(completionComposite, SWT.NONE);
+    ctnAutoShowNes.setLayout(gl);
+    BooleanFieldEditor bfeAutoShowNes = new BooleanFieldEditor(Constants.ENABLE_NEXT_EDIT_SUGGESTION,
+        Messages.preferences_page_completions_enableNes, ctnAutoShowNes);
+    addField(bfeAutoShowNes);
   }
 
   @Override

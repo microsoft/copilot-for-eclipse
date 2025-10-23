@@ -38,6 +38,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
@@ -501,6 +503,16 @@ public class CopilotLanguageServerConnection {
       CopilotCore.LOGGER.error(ex);
       return null;
     });
+  }
+  
+  /**
+   * Get next edit suggestions (inline edit) for a position.
+   */
+  public CompletableFuture<NextEditSuggestionsResult> getNextEditSuggestions(NextEditSuggestionsParams params) {
+    Function<LanguageServer, CompletableFuture<NextEditSuggestionsResult>> fn = 
+        server -> ((CopilotLanguageServer) server)
+        .getNextEditSuggestions(params);
+    return this.languageServerWrapper.execute(fn);
   }
 
   /**

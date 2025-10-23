@@ -86,7 +86,7 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
     completionManager.mouseDown(mouseEvent);
 
     // Verify no completion triggered on first mouse down (only initializes version)
-    verify(mockCompletionProvider, never()).triggerCompletion(any(), any(), any(Integer.class));
+    verify(mockCompletionProvider, never()).triggerCompletion(any(), any(), any(Integer.class), any(Boolean.class));
     assertEquals(1, completionManager.getDocumentVersion());
 
     // Second handleCaretPositionChange call with updated document version - should
@@ -96,7 +96,7 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
 
     // Verify completion was triggered with correct document version
     ArgumentCaptor<Integer> versionCaptor = ArgumentCaptor.forClass(Integer.class);
-    verify(mockCompletionProvider, times(1)).triggerCompletion(any(), any(Position.class), versionCaptor.capture());
+    verify(mockCompletionProvider, times(1)).triggerCompletion(any(), any(Position.class), versionCaptor.capture(),any(Boolean.class));
 
     assertEquals(2, versionCaptor.getValue().intValue());
     assertEquals(2, completionManager.getDocumentVersion());
@@ -116,7 +116,7 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
     completionManager.mouseDown(mouseEvent);
 
     // Verify completion was never triggered since version didn't change
-    verify(mockCompletionProvider, never()).triggerCompletion(any(), any(), any(Integer.class));
+    verify(mockCompletionProvider, never()).triggerCompletion(any(), any(), any(Integer.class),any(Boolean.class));
     assertEquals(1, completionManager.getDocumentVersion());
   }
 
@@ -139,7 +139,7 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
     completionManager.mouseDown(mouseEvent); // Should not trigger due to disabled auto completion
 
     // Verify completion was never triggered
-    verify(mockCompletionProvider, never()).triggerCompletion(any(), any(), any(Integer.class));
+    verify(mockCompletionProvider, never()).triggerCompletion(any(), any(), any(Integer.class), any(Boolean.class));
   }
 
   private MouseEvent createMockMouseEvent() {

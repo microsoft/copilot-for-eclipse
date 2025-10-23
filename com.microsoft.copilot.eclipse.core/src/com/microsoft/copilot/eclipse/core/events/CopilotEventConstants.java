@@ -28,6 +28,11 @@ public class CopilotEventConstants {
   private static final String TOPIC_MCP = TOPIC_BASE + "MCP/";
 
   /**
+   * Topic for Next Edit Suggestion (NES) events.
+   */
+  private static final String TOPIC_NES = TOPIC_BASE + "NES/";
+
+  /**
    * Event when new conversation is started.
    */
   public static final String TOPIC_CHAT_NEW_CONVERSATION = TOPIC_CHAT + "NEW_CONVERSATION";
@@ -107,4 +112,14 @@ public class CopilotEventConstants {
    * Event when MCP server state changes (install, uninstall, etc.).
    */
   public static final String TOPIC_MCP_SERVER_STATE_CHANGE = TOPIC_MCP + "SERVER_STATE_CHANGE";
+
+  /**
+   * Event when NES suggestion is accepted.
+   */
+  public static final String TOPIC_NES_ACCEPT_SUGGESTION = TOPIC_NES + "ACCEPT_SUGGESTION";
+
+  /**
+   * Event when NES suggestion is rejected.
+   */
+  public static final String TOPIC_NES_REJECT_SUGGESTION = TOPIC_NES + "REJECT_SUGGESTION";
 }

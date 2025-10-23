@@ -46,6 +46,8 @@ import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.nes.RenderManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -75,6 +77,8 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
   protected DefaultPositionUpdater positionUpdater;
   protected boolean autoShowCompletion;
+  // Whether NES suggestions are enabled
+  protected boolean enableNes;
   protected LanguageServerSettingManager settingsManager;
 
   /**
@@ -116,6 +120,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
     // initialize the auto show completion preference and add listener to update it.
     this.autoShowCompletion = settingsManager.getSettings().isEnableAutoCompletions();
+
+    // initialize NES preference
+    this.enableNes = CopilotUi.getBooleanPreference(Constants.ENABLE_NEXT_EDIT_SUGGESTION, false);
 
     // Cache the model offset to clear line vertical offset when the line is out of the visible range.
     // We cache the model offset here because the caret offset won't update when code blocks are collapsed.
@@ -301,6 +308,8 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
   public void propertyChange(PropertyChangeEvent event) {
     if (event.getProperty().equals(Constants.AUTO_SHOW_COMPLETION)) {
       this.autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
+    } else if (event.getProperty().equals(Constants.ENABLE_NEXT_EDIT_SUGGESTION)) {
+      this.enableNes = Boolean.parseBoolean(event.getNewValue().toString());
     }
   }
 
@@ -309,12 +318,41 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
    */
   public void triggerCompletion() {
     try {
+      // TODO: this logic cannot handle the case that nes doesn't have a valid suggetion while inline completion has
+      // result. need merge two results later
+      if (shouldSkipCompletionDueToNes()) {
+        return;
+      }
+
       IFile file = LSPEclipseUtils.getFile(document);
       this.provider.triggerCompletion(file, LSPEclipseUtils.toPosition(this.triggerPosition.getOffset(), this.document),
-          documentVersion);
+          documentVersion, this.enableNes);
     } catch (BadLocationException e) {
       CopilotCore.LOGGER.error(e);
     }
+  }
+
+  /**
+   * Check if completion should be skipped due to active or pending NES suggestion. This prevents race conditions when
+   * NES is being fetched or displayed.
+   *
+   * @return true if should skip completion, false otherwise
+   */
+  private boolean shouldSkipCompletionDueToNes() {
+    EditorsManager editorsManager = CopilotUi.getPlugin().getEditorsManager();
+    if (editorsManager == null) {
+      return false;
+    }
+    ITextEditor editor = editorsManager.getActiveEditor();
+    if (editor == null) {
+      return false;
+    }
+    RenderManager nesManager = editorsManager.getNesRenderManager(editor);
+    if (nesManager == null) {
+      return false;
+    }
+    // Check both pending and active states to prevent race conditions
+    return nesManager.isNesPendingOrActive();
   }
 
   /**

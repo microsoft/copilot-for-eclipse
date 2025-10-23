@@ -17,7 +17,8 @@ Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.preferences,
  com.microsoft.copilot.eclipse.ui.testers,
  com.microsoft.copilot.eclipse.ui.utils,
- com.microsoft.copilot.eclipse.ui.extensions
+ com.microsoft.copilot.eclipse.ui.extensions,
+ com.microsoft.copilot.eclipse.ui.nes;x-friends:="com.microsoft.copilot.eclipse.ui.test"
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui
@@ -58,4 +59,5 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.12.0",
  org.eclipse.e4.ui.services;bundle-version="1.6.300",
  org.eclipse.egit.core;bundle-version="6.9.0";resolution:=optional,
  org.eclipse.egit.ui;bundle-version="6.9.0";resolution:=optional,
- org.eclipse.jgit;bundle-version="6.9.0";resolution:=optional
+ org.eclipse.jgit;bundle-version="6.9.0";resolution:=optional,
+ org.eclipse.ui.editors

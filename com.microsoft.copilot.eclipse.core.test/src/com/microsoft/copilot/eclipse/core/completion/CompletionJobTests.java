@@ -84,6 +84,7 @@ class CompletionJobTests {
     completionDoc.setTabSize(4);
     job.setCompletionParams(new CompletionParams(completionDoc));
     job.setFile(mockResource);
+    job.setEnableCompletion(true); // Enable completion to trigger the timeout logic
     job.schedule();
 
     IJobManager jobManager = Job.getJobManager();
@@ -113,6 +114,7 @@ class CompletionJobTests {
     completionDoc.setTabSize(4);
     job.setCompletionParams(new CompletionParams(completionDoc));
     job.setFile(mockResource);
+    job.setEnableCompletion(true);
     job.schedule();
 
     IJobManager jobManager = Job.getJobManager();
@@ -133,6 +135,7 @@ class CompletionJobTests {
     completionDoc.setTabSize(4);
     job.setCompletionParams(new CompletionParams(completionDoc));
     job.setFile(mockResource);
+    job.setEnableCompletion(true);
     job.schedule();
 
     IJobManager jobManager = Job.getJobManager();

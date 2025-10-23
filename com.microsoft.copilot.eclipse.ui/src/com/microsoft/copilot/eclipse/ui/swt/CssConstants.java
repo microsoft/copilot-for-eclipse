@@ -78,4 +78,45 @@ public class CssConstants {
     return new Color(display, 48, 107, 152);
   }
 
+  /**
+   * Returns the background color used to highlight replace text for next edit suggestions.
+   */
+  public static Color getNesReplaceBackground(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 36, 3, 2);
+    }
+    return new Color(display, 250, 222, 222);
+  }
+
+  /**
+   * Returns the background color used to highlight insert text for next edit suggestions.
+   */
+  public static Color getNesInsertBackground(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 43, 45, 35);
+    }
+    return new Color(display, 225, 250, 227);
+  }
+
+  /**
+   * Returns the highlight color used to highlight replace text for next edit suggestions.
+   */
+  public static Color getNesReplaceHighlight(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 64, 27, 29);
+    } else {
+      return new Color(display, 255, 161, 161);
+    }
+  }
+  
+  /**
+   * Returns the highlight color used to highlight insert text for next edit suggestions.
+   */
+  public static Color getNesInsertHighlight(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 68, 75, 43);
+    }
+    return new Color(display, 108, 190, 114);
+  }
+
 }

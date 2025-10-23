@@ -745,4 +745,73 @@
 	<extension point="org.eclipse.help.contexts">
 		<contexts file="contexts.xml" />
 	</extension>
+	<extension point="org.eclipse.ui.workbench.texteditor.rulerColumns">
+		<column
+           class="com.microsoft.copilot.eclipse.ui.nes.RulerColumn"
+           enabled="true"
+           global="true"
+           id="com.microsoft.copilot.eclipse.ui.suggest.NextEditSuggestionRulerColumn"
+           includeInMenu="false">
+          <targetClass
+               class="org.eclipse.ui.texteditor.AbstractDecoratedTextEditor">
+         </targetClass>
+        <placement
+              gravity="1.0">
+        </placement>
+     </column>
+	</extension>
+	
+	<!-- Annotation types for Next Edit Suggestions -->
+	<extension point="org.eclipse.ui.editors.annotationTypes">
+		<type
+			name="com.microsoft.copilot.eclipse.ui.nes.change"
+			markerType="org.eclipse.core.resources.textmarker">
+		</type>
+		<type
+			name="com.microsoft.copilot.eclipse.ui.nes.delete"
+			markerType="org.eclipse.core.resources.textmarker">
+		</type>
+	</extension>
+	
+	<!-- Annotation presentation for highlighting -->
+	<extension point="org.eclipse.ui.editors.markerAnnotationSpecification">
+		<specification
+			annotationType="com.microsoft.copilot.eclipse.ui.nes.change"
+			colorPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.change.color"
+			colorPreferenceValue="255, 161, 161"
+			highlightPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.change.highlight"
+			highlightPreferenceValue="true"
+			isGoToNextNavigationTarget="false"
+			isGoToPreviousNavigationTarget="false"
+			label="Text to be Changed"
+			overviewRulerPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.change.overviewRuler"
+			overviewRulerPreferenceValue="true"
+			presentationLayer="5"
+			textPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.change.text"
+			textPreferenceValue="false"
+			textStylePreferenceKey="com.microsoft.copilot.eclipse.ui.nes.change.textStyle"
+			textStylePreferenceValue="NONE"
+			verticalRulerPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.change.verticalRuler"
+			verticalRulerPreferenceValue="false">
+		</specification>
+		<specification
+			annotationType="com.microsoft.copilot.eclipse.ui.nes.delete"
+			colorPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.color"
+			colorPreferenceValue="173, 43, 56"
+			highlightPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.highlight"
+			highlightPreferenceValue="false"
+			isGoToNextNavigationTarget="false"
+			isGoToPreviousNavigationTarget="false"
+			label="Text to be Deleted"
+			overviewRulerPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.overviewRuler"
+			overviewRulerPreferenceValue="true"
+			presentationLayer="6"
+			textPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.text"
+			textPreferenceValue="true"
+			textStylePreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.textStyle"
+			textStylePreferenceValue="BOX"
+			verticalRulerPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.verticalRuler"
+			verticalRulerPreferenceValue="false">
+		</specification>
+	</extension>
 </plugin>

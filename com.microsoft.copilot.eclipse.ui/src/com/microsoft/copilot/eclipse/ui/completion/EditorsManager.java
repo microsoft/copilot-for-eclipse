@@ -11,17 +11,21 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
+import com.microsoft.copilot.eclipse.ui.nes.RenderManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
- * Manages the completion managers for all available ITextEditors.
+ * Manages the completion managers and NES render managers for all available ITextEditors.
  */
 public class EditorsManager {
 
   private CopilotLanguageServerConnection languageServer;
   private CompletionProvider completionProvider;
+  private NextEditSuggestionProvider nesProvider;
   private Map<ITextEditor, BaseCompletionManager> editorMap;
+  private Map<ITextEditor, RenderManager> nesRenderManagers;
   private AtomicReference<ITextEditor> activeEditor;
   private LanguageServerSettingManager settingsManager;
 
@@ -29,10 +33,12 @@ public class EditorsManager {
    * Creates a new EditorManager.
    */
   public EditorsManager(CopilotLanguageServerConnection languageServer, CompletionProvider completionProvider,
-      LanguageServerSettingManager settingsManager) {
+      NextEditSuggestionProvider nesProvider, LanguageServerSettingManager settingsManager) {
     this.languageServer = languageServer;
     this.completionProvider = completionProvider;
+    this.nesProvider = nesProvider;
     this.editorMap = new ConcurrentHashMap<>();
+    this.nesRenderManagers = new ConcurrentHashMap<>();
     this.activeEditor = new AtomicReference<>();
     this.settingsManager = settingsManager;
   }
@@ -125,6 +131,71 @@ public class EditorsManager {
       handler.dispose();
     }
     this.editorMap.clear();
+
+    // Dispose all NES RenderManagers
+    for (RenderManager renderMgr : this.nesRenderManagers.values()) {
+      renderMgr.dispose();
+    }
+    this.nesRenderManagers.clear();
   }
 
+  // ============ NES RenderManager Management ============
+
+  /**
+   * Gets or creates the RenderManager for the given editor.
+   *
+   * @param editor The text editor
+   * @return The RenderManager instance, or null if creation fails
+   */
+  @Nullable
+  public RenderManager getOrCreateNesRenderManager(ITextEditor editor) {
+    if (editor == null) {
+      return null;
+    }
+    return nesRenderManagers.computeIfAbsent(editor,
+        ed -> new RenderManager(this.languageServer, this.nesProvider, ed));
+  }
+
+  /**
+   * Gets the RenderManager for the given editor.
+   *
+   * @param editor The text editor
+   * @return The RenderManager instance, or null if not found
+   */
+  @Nullable
+  public RenderManager getNesRenderManager(ITextEditor editor) {
+    if (editor == null) {
+      return null;
+    }
+    return nesRenderManagers.get(editor);
+  }
+
+  /**
+   * Gets the RenderManager for the currently active editor.
+   *
+   * @return The RenderManager instance, or null if no active editor or no manager found
+   */
+  @Nullable
+  public RenderManager getActiveNesRenderManager() {
+    ITextEditor ed = this.activeEditor.get();
+    if (ed == null) {
+      return null;
+    }
+    return nesRenderManagers.get(ed);
+  }
+
+  /**
+   * Disposes the RenderManager for the given editor.
+   *
+   * @param editor The text editor
+   */
+  public void disposeNesRenderManager(ITextEditor editor) {
+    if (editor == null) {
+      return;
+    }
+    RenderManager mgr = nesRenderManagers.remove(editor);
+    if (mgr != null) {
+      mgr.dispose();
+    }
+  }
 }

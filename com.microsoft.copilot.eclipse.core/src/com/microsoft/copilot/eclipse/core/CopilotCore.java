@@ -22,6 +22,7 @@ import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
 
 /**
  * The plug-in runtime class for the Copilot plug-in containing the core (UI-free) support, like the completion,
@@ -32,6 +33,7 @@ public class CopilotCore extends Plugin {
   private CopilotLanguageServerConnection copilotLanguageServer;
   private AuthStatusManager authStatusManager;
   private CompletionProvider completionProvider;
+  private NextEditSuggestionProvider nextEditSuggestionProvider;
   private FormatOptionProvider formatOptionProvider;
   private GithubPanicErrorReport githubPanicErrorReport;
   private ChatEventsManager chatEventsManager;
@@ -149,6 +151,16 @@ public class CopilotCore extends Plugin {
 
   public CompletionProvider getCompletionProvider() {
     return completionProvider;
+  }
+
+  /**
+   * Get the next edit suggestion provider in lazy-load manner.
+   */
+  public NextEditSuggestionProvider getNextEditSuggestionProvider() {
+    if (this.nextEditSuggestionProvider == null) {
+      this.nextEditSuggestionProvider = new NextEditSuggestionProvider(this.copilotLanguageServer);
+    }
+    return nextEditSuggestionProvider;
   }
 
   public GithubPanicErrorReport getGithubPanicErrorReport() {

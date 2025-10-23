@@ -91,7 +91,7 @@ public class CopilotUi extends AbstractUIPlugin {
             getPreferenceStore());
         CopilotUi.this.settingMgr = mgr;
         CopilotUi.this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider(),
-            mgr);
+            CopilotCore.getPlugin().getNextEditSuggestionProvider(), mgr);
         CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(connection, editorsManager);
         CopilotUi.this.chatServiceManager = new ChatServiceManager();
         // inject the chat service manager into the core plugin, so that it can be used to handle

@@ -45,6 +45,7 @@ public class Messages extends NLS {
   public static String preferences_page_byok_enabledCount;
   public static String preferences_page_byok_preview_disabled_tip;
   public static String preferences_page_completions_codeMiningNote;
+  public static String preferences_page_completions_enableNes;
  
   static {
     // initialize resource bundle

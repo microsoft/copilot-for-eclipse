@@ -1,0 +1,363 @@
+package com.microsoft.copilot.eclipse.ui.nes;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.text.IInformationControlCreator;
+import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.jface.text.source.AbstractRulerColumn;
+import org.eclipse.jface.text.source.CompositeRuler;
+import org.eclipse.jface.text.source.IAnnotationHover;
+import org.eclipse.jface.text.source.IAnnotationHoverExtension;
+import org.eclipse.jface.text.source.ILineRange;
+import org.eclipse.jface.text.source.ISourceViewer;
+import org.eclipse.jface.text.source.LineRange;
+import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.ui.texteditor.ITextEditor;
+import org.eclipse.ui.texteditor.rulers.IContributedRulerColumn;
+import org.eclipse.ui.texteditor.rulers.RulerColumnDescriptor;
+
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+
+/**
+ * Ruler column to display Next Edit Suggestion icons.
+ */
+public class RulerColumn extends AbstractRulerColumn implements IContributedRulerColumn {
+
+  private static final int ICON_SIZE = 14;
+  private ITextViewer viewer;
+  private StyledText text;
+  private Image icon;
+  private ITextEditor editor;
+  private RulerColumnDescriptor descriptor;
+  private Rectangle lastIconBounds;
+  private static final List<RulerColumn> liveColumns = Collections.synchronizedList(new ArrayList<>());
+
+  private final class SuggestionAnnotationHover implements IAnnotationHover, IAnnotationHoverExtension {
+    @Override
+    public String getHoverInfo(ISourceViewer sourceViewer, int lineNumber) {
+      ILineRange range = getHoverLineRange(sourceViewer, lineNumber);
+      if (range == null) {
+        return null;
+      }
+      return "Copilot Next Edit Suggestion\n" + "- Tab: Accept suggestion\n" + "- Esc: Dismiss suggestion";
+    }
+
+    @Override
+    public Object getHoverInfo(ISourceViewer sourceViewer, ILineRange lineRange, int visibleNumberOfLines) {
+      return "Copilot Next Edit Suggestion\n" + "- Tab: Accept suggestion\n" + "- Esc: Dismiss suggestion";
+    }
+
+    @Override
+    public ILineRange getHoverLineRange(ISourceViewer viewer, int lineNumber) {
+      if (text == null || text.isDisposed() || RulerColumn.this.viewer == null) {
+        return null;
+      }
+
+      RenderManager manager = resolveNesRenderManager();
+      if (manager == null) {
+        return null;
+      }
+
+      int suggestionLine = manager.getSuggestionLine();
+      if (suggestionLine == -1) {
+        return null;
+      }
+
+      // Need to match the exact line for this function will be called for each line in the hover area.
+      if (lineNumber != suggestionLine) {
+        return null;
+      }
+
+      return new LineRange(suggestionLine, 1);
+    }
+
+    @Override
+    public IInformationControlCreator getHoverControlCreator() {
+      return null;
+    }
+
+    @Override
+    public boolean canHandleMouseCursor() {
+      return false;
+    }
+  }
+
+  /**
+   * Constructor.
+   */
+  public RulerColumn() {
+    setWidth(ICON_SIZE + 2);
+    setHover(new SuggestionAnnotationHover());
+  }
+
+  @Override
+  public Control createControl(CompositeRuler parentRuler, Composite parentControl) {
+    this.viewer = parentRuler.getTextViewer();
+    this.text = viewer.getTextWidget();
+    Control control = super.createControl(parentRuler, parentControl);
+    control.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseDown(MouseEvent e) {
+        // Only handle left mouse button (e.button: 1=left, 2=middle, 3=right)
+        if (e.button != 1) {
+          return;
+        }
+        if (!isOnIcon(e.x, e.y)) {
+          return;
+        }
+        RenderManager manager = resolveNesRenderManager();
+        if (manager != null && !control.isDisposed()) {
+          Point displayPoint = control.toDisplay(e.x, e.y);
+          Point textPoint = text.toControl(displayPoint);
+          manager.openActionMenu(textPoint.x, textPoint.y);
+          // Temporarily capture mouse events to ensure the action menu receives initial events properly.
+          // And otherwise parent controls may intercept those events leading to unexpected behavior.
+          // We need to release the capture asynchronously after the menu is fully initialized and ready
+          // to handle mouse events on its own, preventing event handling conflicts.
+          control.setCapture(true);
+          SwtUtils.invokeOnDisplayThreadAsync(() -> {
+            if (!control.isDisposed()) {
+              control.setCapture(false);
+            }
+          }, control);
+        }
+      }
+    });
+    control.addDisposeListener(new DisposeListener() {
+      @Override
+      public void widgetDisposed(DisposeEvent e) {
+        disposeResources();
+      }
+    });
+    return control;
+  }
+
+  @Override
+  protected void paintLine(GC gc, int modelLine, int widgetLine, int linePixel, int lineHeight) {
+    gc.setBackground(getControl().getBackground());
+    gc.fillRectangle(0, linePixel, getWidth(), lineHeight);
+
+    Rectangle bounds = getSuggestionIconBounds(modelLine, widgetLine);
+    if (bounds == null) {
+      return;
+    }
+    ensureIcon();
+    int actualSize = Math.min(ICON_SIZE, lineHeight - 2);
+    if (actualSize < ICON_SIZE) {
+      int offsetX = (ICON_SIZE - actualSize) / 2;
+      int offsetY = (ICON_SIZE - actualSize) / 2;
+      // Save the actual drawn bounds for clearing later
+      lastIconBounds = new Rectangle(bounds.x + offsetX, bounds.y + offsetY, actualSize, actualSize);
+      gc.drawImage(icon, 0, 0, ICON_SIZE, ICON_SIZE, bounds.x + offsetX, bounds.y + offsetY, actualSize, actualSize);
+    } else {
+      lastIconBounds = bounds;
+      gc.drawImage(icon, bounds.x, bounds.y);
+    }
+  }
+
+  private boolean isOnIcon(int x, int y) {
+    Rectangle bounds = getSuggestionIconBounds(-1, -1);
+    if (bounds == null) {
+      return false;
+    }
+    int actualSize = bounds.height;
+    int offsetX = (ICON_SIZE - actualSize) / 2;
+    int offsetY = (ICON_SIZE - actualSize) / 2;
+    return x >= bounds.x + offsetX && x <= bounds.x + offsetX + actualSize && y >= bounds.y + offsetY
+        && y <= bounds.y + offsetY + actualSize;
+  }
+
+  /**
+   * Gets the bounds of the suggestion icon for the given model line and widget line.
+   */
+  private Rectangle getSuggestionIconBounds(int expectedModelLine, int expectedWidgetLine) {
+    if (text == null || text.isDisposed()) {
+      return null;
+    }
+    if (viewer == null) {
+      return null;
+    }
+
+    RenderManager manager = resolveNesRenderManager();
+    if (manager == null) {
+      return null;
+    }
+
+    int suggestionLine = manager.getSuggestionLine();
+    if (suggestionLine == -1) {
+      return null;
+    }
+
+    // Check expected model line and widget line to match exact suggestion line
+    if (expectedModelLine != -1 && expectedModelLine != suggestionLine) {
+      return null;
+    }
+
+    int widgetLine = UiUtils.modelLine2WidgetLine(viewer, suggestionLine);
+    if (widgetLine == -1) {
+      return null;
+    }
+
+    if (expectedWidgetLine != -1 && expectedWidgetLine != widgetLine) {
+      return null;
+    }
+
+    int linePixel = text.getLinePixel(widgetLine);
+    int lineHeight = text.getLineHeight(widgetLine);
+
+    int actualHeight = Math.min(ICON_SIZE, lineHeight - 2);
+    int drawX = Math.max(1, (getWidth() - ICON_SIZE) / 2);
+    int drawY = linePixel + Math.max(0, (lineHeight - actualHeight) / 2);
+
+    return new Rectangle(drawX, drawY, ICON_SIZE, actualHeight);
+  }
+
+  private void ensureIcon() {
+    if (icon == null || icon.isDisposed()) {
+      ImageDescriptor desc = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/gutter-arrow.png");
+      if (desc != null) {
+        icon = desc.createImage(true);
+      }
+    }
+  }
+
+  private void disposeResources() {
+    if (icon != null && !icon.isDisposed()) {
+      icon.dispose();
+    }
+    icon = null;
+    RenderManager manager = resolveNesRenderManager();
+    if (manager != null) {
+      manager.detachColumn(this);
+    }
+  }
+
+  /**
+   * Requests a layout update for the ruler column.
+   */
+  public void requestLayout() {
+    Control c = getControl();
+    if (c != null && !c.isDisposed()) {
+      if (lastIconBounds != null) {
+        // Clear the last icon area by filling with background color, In case Eclipse doesn't clear it properly.
+        GC gc = new GC(c);
+        try {
+          gc.setBackground(c.getBackground());
+          gc.fillRectangle(lastIconBounds);
+        } finally {
+          gc.dispose();
+        }
+        lastIconBounds = null;
+      }
+      c.redraw();
+      c.update();
+    }
+  }
+
+  /**
+   * Clear indentation area in ruler column by manually filling with background color. This is needed because
+   * indentation area doesn't correspond to any text line, the icon in indentation area will not be cleared when redraw
+   * is called.
+   */
+  public void clearIndentationArea(int widgetLine, int height) {
+    Control c = getControl();
+    if (c == null || c.isDisposed() || text == null || text.isDisposed()) {
+      return;
+    }
+    if (widgetLine < 0 || height <= 0) {
+      return;
+    }
+
+    int linePixel = text.getLinePixel(widgetLine);
+    int lineHeight = text.getLineHeight(widgetLine);
+
+    // Fill the indentation area (from line bottom to line bottom + height)
+    GC gc = new GC(c);
+    try {
+      gc.setBackground(c.getBackground());
+      gc.fillRectangle(0, linePixel + lineHeight, getWidth(), height);
+    } finally {
+      gc.dispose();
+    }
+  }
+
+  /**
+   * Gets the list of all live RulerColumn instances.
+   *
+   * @return List of live RulerColumn instances
+   */
+  public static List<RulerColumn> getLiveColumns() {
+    synchronized (liveColumns) {
+      return new ArrayList<>(liveColumns);
+    }
+  }
+
+  public ITextEditor getTextEditor() {
+    return editor;
+  }
+
+  @Override
+  public RulerColumnDescriptor getDescriptor() {
+    return descriptor;
+  }
+
+  @Override
+  public void setDescriptor(RulerColumnDescriptor descriptor) {
+    this.descriptor = descriptor;
+  }
+
+  @Override
+  public void setEditor(ITextEditor editor) {
+    this.editor = editor;
+  }
+
+  @Override
+  public ITextEditor getEditor() {
+    return editor;
+  }
+
+  @Override
+  public void columnCreated() {
+    RenderManager manager = resolveNesRenderManager();
+    if (manager != null) {
+      manager.attachColumn(this);
+    }
+    liveColumns.add(this);
+  }
+
+  @Override
+  public void columnRemoved() {
+    RenderManager manager = resolveNesRenderManager();
+    if (manager != null) {
+      manager.detachColumn(this);
+    }
+    liveColumns.remove(this);
+  }
+
+  private RenderManager resolveNesRenderManager() {
+    EditorsManager mgr = CopilotUi.getPlugin().getEditorsManager();
+    if (mgr == null) {
+      return null;
+    }
+    if (this.editor != null) {
+      return mgr.getNesRenderManager(this.editor);
+    }
+    return null;
+  }
+}

@@ -59,7 +59,7 @@ class CompletionProviderTests {
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     completionProvider.addCompletionListener(mockListener);
     Position position = new Position(0, 0);
-    completionProvider.triggerCompletion(mockFile, position, 1);
+    completionProvider.triggerCompletion(mockFile, position, 1, false);
     IJobManager jobManager = Job.getJobManager();
     jobManager.join(CompletionProvider.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
     verify(mockLsConnection, times(1)).getCompletions(any());
@@ -79,7 +79,7 @@ class CompletionProviderTests {
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     completionProvider.addCompletionListener(mockListener);
     Position position = new Position(0, 0);
-    completionProvider.triggerCompletion(mockFile, position, 1);
+    completionProvider.triggerCompletion(mockFile, position, 1, false);
     IJobManager jobManager = Job.getJobManager();
     jobManager.join(CompletionProvider.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
     verify(mockLsConnection, times(1)).getCompletions(any());
@@ -93,7 +93,7 @@ class CompletionProviderTests {
     CompletionProvider completionProvider = new CompletionProvider(mockLsConnection, mockStatusManager);
     completionProvider.addCompletionListener(mockListener);
     Position position = new Position(0, 0);
-    completionProvider.triggerCompletion(mockFile, position, 1);
+    completionProvider.triggerCompletion(mockFile, position, 1, false);
     verify(mockLsConnection, never()).getCompletions(any());
     verify(mockStatusManager, never()).setCopilotStatus(CopilotStatusResult.OK);
   }
@@ -119,7 +119,7 @@ class CompletionProviderTests {
     when(mockUri.getPath()).thenReturn("/test.java");
     CompletionListener mockListener = mock(CompletionListener.class);
     completionProvider.addCompletionListener(mockListener);
-    completionProvider.triggerCompletion(mockFile, new Position(0, 0), 1);
+    completionProvider.triggerCompletion(mockFile, new Position(0, 0), 1, false);
     IJobManager jobManager = Job.getJobManager();
     jobManager.join(CompletionProvider.COMPLETION_JOB_FAMILY, new NullProgressMonitor());
 

@@ -32,6 +32,7 @@ import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -303,6 +304,44 @@ public class UiUtils {
    */
   public static int widgetOffset2ModelOffset(ITextViewer textViewer, int offset) {
     return textViewer instanceof ITextViewerExtension5 extension ? extension.widgetOffset2ModelOffset(offset) : offset;
+  }
+
+  /**
+   * Converts a model (document) offset to a widget line number.
+   *
+   * @param viewer the text viewer
+   * @param modelOffset the model offset
+   * @return the widget line number, or -1 if the offset is not visible or invalid
+   */
+  public static int modelOffset2WidgetLine(ITextViewer viewer, int modelOffset) {
+    if (viewer == null) {
+      return -1;
+    }
+    StyledText text = viewer.getTextWidget();
+    if (text == null || text.isDisposed()) {
+      return -1;
+    }
+
+    int widgetOffset = modelOffset2WidgetOffset(viewer, modelOffset);
+    if (widgetOffset < 0 || widgetOffset >= text.getCharCount()) {
+      return -1;
+    }
+    return text.getLineAtOffset(widgetOffset);
+  }
+  
+
+  /**
+   * Convert model line to widget line. Returns -1 if line is folded.
+   *
+   * @param viewer the text viewer
+   * @param modelLine the model line number
+   * @return the widget line number, or -1 if folded
+   */
+  public static int modelLine2WidgetLine(ITextViewer viewer, int modelLine) {
+    if (viewer instanceof ITextViewerExtension5 ext5) {
+      return ext5.modelLine2WidgetLine(modelLine);
+    }
+    return modelLine;
   }
 
   /**
@@ -665,6 +704,22 @@ public class UiUtils {
       stylingEngine.style(widget);
     } else {
       widget.setData(CssConstants.CSS_CLASS_NAME_KEY, classnames);
+    }
+  }
+
+  /**
+   * Set vertical indentation for a specific line.
+   *
+   * @param text the styled text widget
+   * @param widgetLine the widget line number
+   * @param height the indent height in pixels (0 to clear)
+   */
+  public static void setLineVerticalIndent(StyledText text, int widgetLine, int height) {
+    if (text == null || widgetLine < 0) {
+      return;
+    }
+    if (widgetLine < text.getLineCount()) {
+      text.setLineVerticalIndent(widgetLine, height);
     }
   }
 }

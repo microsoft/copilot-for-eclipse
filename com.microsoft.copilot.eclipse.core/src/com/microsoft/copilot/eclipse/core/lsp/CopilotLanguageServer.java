@@ -25,6 +25,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
@@ -229,4 +231,10 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("mcp/registry/getAllowlist")
   CompletableFuture<McpRegistryAllowList> getMcpAllowlist(Object params);
+  
+  /**
+   * Next Edit Suggestions request.
+   */
+  @JsonRequest("textDocument/copilotInlineEdit")
+  CompletableFuture<NextEditSuggestionsResult> getNextEditSuggestions(NextEditSuggestionsParams params);
 }
