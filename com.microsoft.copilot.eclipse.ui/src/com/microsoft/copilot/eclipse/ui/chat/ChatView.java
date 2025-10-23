@@ -148,7 +148,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       Object status = event.getProperty(IEventBroker.DATA);
       if (status != null && status instanceof CopilotStatusResult statusResult) {
         if (statusResult.isNotSignedIn()) {
+          // Reset status
           this.conversationId = "";
+          conversationState = ConversationState.NEW_CONVERSATION;
+          isChatHistoryVisible = false;
         }
         buildViewFor(statusResult.getStatus());
       }
