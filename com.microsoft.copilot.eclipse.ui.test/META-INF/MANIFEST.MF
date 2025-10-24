@@ -26,4 +26,5 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  org.eclipse.core.expressions,
  org.eclipse.core.net;bundle-version="1.5.300",
  org.eclipse.e4.core.services;bundle-version="2.4.300",
- org.osgi.service.event
+ org.osgi.service.event,
+ com.google.gson

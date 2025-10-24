@@ -123,7 +123,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         settings.getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
         singleSetting = new CopilotLanguageServerSettings(null, null, settings.getGithubEnterprise(), null);
         break;
-      case Constants.MCP:
+      case Constants.MCP, Constants.MCP_EXTENSION_POINT_CONTRIB:
         syncMcpRegistrationConfiguration();
         return;
       case Constants.MCP_TOOLS_STATUS:

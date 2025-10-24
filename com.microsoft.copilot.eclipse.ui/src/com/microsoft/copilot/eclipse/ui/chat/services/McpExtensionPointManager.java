@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutionException;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
@@ -121,7 +122,7 @@ public class McpExtensionPointManager {
    * Set the combined MCP servers json from all approved plug-ins.
    */
   private void updateApprovedMcpServerString(Map<String, McpRegistrationInfo> extMcpInfoMap) {
-    if (extMcpInfoMap == null || extMcpInfoMap.isEmpty()) {
+    if (extMcpInfoMap == null) {
       return;
     }
 
@@ -196,14 +197,16 @@ public class McpExtensionPointManager {
 
               try {
                 String mcpServers = mcpServersFuture.get();
-                Map<String, Object> configObject = gson.fromJson(mcpServers, Map.class);
-                if (configObject != null && configObject.containsKey("servers")) {
-                  Object serversObj = configObject.get("servers");
-                  if (serversObj instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> servers = (Map<String, Object>) serversObj;
-                    // Duplicate server name is not allowed, which will be overridden by the last one
-                    mergedServers.putAll(servers);
+                if (StringUtils.isNotBlank(mcpServers)) {
+                  Map<String, Object> configObject = gson.fromJson(mcpServers, Map.class);
+                  if (configObject != null && configObject.containsKey("servers")) {
+                    Object serversObj = configObject.get("servers");
+                    if (serversObj instanceof Map) {
+                      @SuppressWarnings("unchecked")
+                      Map<String, Object> servers = (Map<String, Object>) serversObj;
+                      // Duplicate server name is not allowed, which will be overridden by the last one
+                      mergedServers.putAll(servers);
+                    }
                   }
                 }
               } catch (JsonSyntaxException e) {
@@ -271,11 +274,6 @@ public class McpExtensionPointManager {
    * Detect changes in MCP registration from extension point compared to the existing record.
    */
   private void detectChangesInMcpContribs(Map<String, McpRegistrationInfo> existingExtMcpInfoMap) {
-    // No new registration if no registration from extension point
-    if (extMcpInfoMap.isEmpty()) {
-      return;
-    }
-
     boolean newExtMcpRegFound = false;
     // extMcpInfoMap is not empty, and no existing record, all registrations are new
     if (existingExtMcpInfoMap == null || existingExtMcpInfoMap.isEmpty()) {
@@ -303,6 +301,13 @@ public class McpExtensionPointManager {
 
     if (newExtMcpRegFound) {
       mcpConfigService.setNewExtMcpRegFound(true);
+    }
+
+    // Always persist the latest MCP registration info, in case some plug-ins are un-installed, or unregister MCP
+    // servers.
+    if (!extMcpInfoMap.equals(existingExtMcpInfoMap)) {
+      updateApprovedMcpServerString(extMcpInfoMap);
+      persistExtMcpInfo(extMcpInfoMap);
     }
   }
 
