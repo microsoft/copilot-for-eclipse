@@ -14,10 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.text.Document;
-import org.eclipse.jface.text.presentation.IPresentationReconciler;
-import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewer;
-import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.jface.text.source.VerticalRuler;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
@@ -36,11 +33,6 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.tm4e.core.grammar.IGrammar;
-import org.eclipse.tm4e.registry.IGrammarRegistryManager;
-import org.eclipse.tm4e.registry.TMEclipseRegistryPlugin;
-import org.eclipse.tm4e.ui.TMUIPlugin;
-import org.eclipse.tm4e.ui.text.TMPresentationReconciler;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
@@ -52,6 +44,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpServerInstallManager.ButtonState;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -479,33 +472,11 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     configurationPreviewViewer.setEditable(false);
 
     // Configure JSON syntax highlighting
-    configurationPreviewViewer.configure(createJsonSourceViewerConfiguration());
+    configurationPreviewViewer.configure(TextMateUtils.getConfiguration("json"));
 
     configurationPreviewViewer.getControl().setLayoutData(textData);
     configurationPreviewViewer.getControl().setBackground(
         configurationPreviewViewer.getControl().getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND));
-  }
-
-  /**
-   * Creates a SourceViewerConfiguration with JSON syntax highlighting using TextMate grammar. This follows the same
-   * pattern as the existing SourceViewerComposite implementation.
-   */
-  private SourceViewerConfiguration createJsonSourceViewerConfiguration() {
-    TMPresentationReconciler reconciler = new TMPresentationReconciler();
-    IGrammarRegistryManager mgr = TMEclipseRegistryPlugin.getGrammarRegistryManager();
-    IGrammar grammar = mgr.getGrammarForFileExtension("json");
-    reconciler.setGrammar(grammar);
-
-    if (grammar != null) {
-      reconciler.setTheme(TMUIPlugin.getThemeManager().getThemeForScope(grammar.getScopeName()));
-    }
-
-    return new SourceViewerConfiguration() {
-      @Override
-      public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
-        return reconciler;
-      }
-    };
   }
 
   private void populateInstallationOptions() {

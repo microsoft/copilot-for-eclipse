@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.HashMap;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
@@ -10,10 +9,7 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextSelection;
-import org.eclipse.jface.text.presentation.IPresentationReconciler;
-import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewer;
-import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StyledText;
@@ -30,11 +26,6 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
-import org.eclipse.tm4e.core.grammar.IGrammar;
-import org.eclipse.tm4e.registry.IGrammarRegistryManager;
-import org.eclipse.tm4e.registry.TMEclipseRegistryPlugin;
-import org.eclipse.tm4e.ui.TMUIPlugin;
-import org.eclipse.tm4e.ui.text.TMPresentationReconciler;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -47,12 +38,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParam
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
 
 /**
  * A composite that contains a read-only source viewer with syntax highlighting and action buttons (copy, insert).
  */
 public class SourceViewerComposite extends Composite {
-  private static HashMap<String, SourceViewerConfiguration> configurations = new HashMap<>();
   private static final int ACTIONS_PADDING_RIGHT = 10;
   private static final int ACTIONS_PADDING_TOP = 5;
   private ChatServiceManager serviceManager;
@@ -127,7 +118,7 @@ public class SourceViewerComposite extends Composite {
 
     SourceViewer viewer = new SourceViewer(codeScroll, null, SWT.NONE);
     viewer.setEditable(false);
-    viewer.configure(getConfiguration(language));
+    viewer.configure(TextMateUtils.getConfiguration(language));
     viewer.setHoverControlCreator(null);
     viewer.getTextWidget().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
@@ -290,38 +281,6 @@ public class SourceViewerComposite extends Composite {
 
     // Set the cursor position after the inserted text
     textEditor.selectAndReveal(offset + content.length(), 0);
-  }
-
-  /**
-   * Get or create a SourceViewerConfiguration for the given language.
-   */
-  public static SourceViewerConfiguration getConfiguration(String lang) {
-    if (configurations.containsKey(lang)) {
-      SourceViewerConfiguration result = configurations.get(lang);
-      IPresentationReconciler reconciler = result.getPresentationReconciler(null);
-      if (reconciler instanceof TMPresentationReconciler tmReconciler && tmReconciler.getGrammar() != null) {
-        // TMPresentationReconciler will auto update source theme based on eclipse theme,
-        // however, the method to check whether is dark theme will always return false when set theme in settings panel
-        // https://github.com/eclipse-tm4e/tm4e/blob/main/org.eclipse.tm4e.ui/src/main/java/org/eclipse/tm4e/ui/internal/utils/UI.java#L167-L172
-        // so we need to set theme again here
-        tmReconciler.setTheme(TMUIPlugin.getThemeManager().getThemeForScope(tmReconciler.getGrammar().getScopeName()));
-      }
-    }
-    TMPresentationReconciler reconciler = new TMPresentationReconciler();
-    IGrammarRegistryManager mgr = TMEclipseRegistryPlugin.getGrammarRegistryManager();
-    IGrammar grammar = mgr.getGrammarForFileExtension(lang);
-    reconciler.setGrammar(grammar);
-    if (grammar != null) {
-      reconciler.setTheme(TMUIPlugin.getThemeManager().getThemeForScope(grammar.getScopeName()));
-    }
-    SourceViewerConfiguration ret = new SourceViewerConfiguration() {
-      @Override
-      public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
-        return reconciler;
-      }
-    };
-    configurations.put(lang, ret);
-    return ret;
   }
 
   private void notifyCodeCopy(String copiedText, String source) {

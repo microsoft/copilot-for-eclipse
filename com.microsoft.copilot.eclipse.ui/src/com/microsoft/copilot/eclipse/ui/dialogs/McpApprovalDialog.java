@@ -37,9 +37,9 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.ui.chat.SourceViewerComposite;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager.McpRegistrationInfo;
 import com.microsoft.copilot.eclipse.ui.preferences.WrappableNoteLabel;
+import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -247,7 +247,7 @@ public class McpApprovalDialog extends Dialog {
     mcpServersPreviewViewer = new SourceViewer(parent, new VerticalRuler(0),
         SWT.BORDER | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL);
     mcpServersPreviewViewer.setEditable(false);
-    mcpServersPreviewViewer.configure(SourceViewerComposite.getConfiguration("json"));
+    mcpServersPreviewViewer.configure(TextMateUtils.getConfiguration("json"));
 
     // Set up the document
     IDocument document = new Document();

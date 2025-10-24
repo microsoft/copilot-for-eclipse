@@ -8,10 +8,7 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.TextPresentation;
-import org.eclipse.jface.text.presentation.IPresentationReconciler;
-import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewer;
-import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
@@ -23,17 +20,13 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.tm4e.core.grammar.IGrammar;
-import org.eclipse.tm4e.registry.IGrammarRegistryManager;
-import org.eclipse.tm4e.registry.TMEclipseRegistryPlugin;
-import org.eclipse.tm4e.ui.TMUIPlugin;
-import org.eclipse.tm4e.ui.text.TMPresentationReconciler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.nes.TextDiffCalculator.DiffSegment;
 import com.microsoft.copilot.eclipse.ui.nes.TextDiffCalculator.DualDiffResult;
 import com.microsoft.copilot.eclipse.ui.nes.TextDiffCalculator.DualDiffSpan;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -61,8 +54,8 @@ public class DiffPopup {
   /**
    * Update popup position and show it.
    */
-  public void updatePosition(StyledText text, ITextViewer editorViewer, IFile file, Range range,
-      Position indentPos, RenderManager.DiffModel model) {
+  public void updatePosition(StyledText text, ITextViewer editorViewer, IFile file, Range range, Position indentPos,
+      RenderManager.DiffModel model) {
 
     if (text == null || text.isDisposed() || editorViewer == null || range == null) {
       hideAndClearIndent(text, editorViewer, indentPos);
@@ -98,7 +91,6 @@ public class DiffPopup {
     hide();
     clearIndentation(text, editorViewer, indentPos);
   }
-
 
   /**
    * Dispose all resources.
@@ -138,7 +130,7 @@ public class DiffPopup {
     insertHighlightColor = CssConstants.getNesInsertHighlight(display);
     viewer = new SourceViewer(shell, null, SWT.READ_ONLY | SWT.MULTI | SWT.BORDER);
     document = new Document(model != null ? prepareDisplayText(model) : "");
-    configureSyntaxHighlighting(viewer, document, file);
+    configureSyntaxHighlighting(viewer, file);
     viewer.setDocument(document);
     popupText = viewer.getTextWidget();
     copyFont(editorText, popupText);
@@ -146,7 +138,7 @@ public class DiffPopup {
     popupText.setMargins(POPUP_H_MARGIN, POPUP_V_MARGIN, POPUP_H_MARGIN, POPUP_V_MARGIN);
     popupText.pack();
     popupText.moveAbove(null);
-    
+
     // Add dispose listener to clean up resources
     popupText.addDisposeListener(e -> {
       if (bgColor != null && !bgColor.isDisposed()) {
@@ -158,7 +150,7 @@ public class DiffPopup {
         insertHighlightColor = null;
       }
     });
-    
+
     this.diffModel = model;
     installDiffHighlighting();
     updateLayout();
@@ -410,8 +402,7 @@ public class DiffPopup {
   }
 
   /**
-   * Get current indentation info for RulerColumn to clear.
-   * Calculates based on current position.
+   * Get current indentation info for RulerColumn to clear. Calculates based on current position.
    *
    * @return int array [widgetLine, height], or null if no indentation applied
    */
@@ -534,7 +525,7 @@ public class DiffPopup {
   /**
    * Configure TextMate syntax highlighting for viewer.
    */
-  private void configureSyntaxHighlighting(SourceViewer target, Document doc, IFile file) {
+  private void configureSyntaxHighlighting(SourceViewer target, IFile file) {
     if (file == null) {
       return;
     }
@@ -544,26 +535,7 @@ public class DiffPopup {
       return;
     }
 
-    try {
-      IGrammarRegistryManager registryManager = TMEclipseRegistryPlugin.getGrammarRegistryManager();
-      IGrammar grammar = registryManager.getGrammarForFileExtension(extension);
-
-      if (grammar != null) {
-        TMPresentationReconciler reconciler = new TMPresentationReconciler();
-        reconciler.setGrammar(grammar);
-        reconciler.setTheme(TMUIPlugin.getThemeManager().getThemeForScope(grammar.getScopeName()));
-
-        SourceViewerConfiguration config = new SourceViewerConfiguration() {
-          @Override
-          public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
-            return reconciler;
-          }
-        };
-        target.configure(config);
-      }
-    } catch (Exception ex) {
-      CopilotCore.LOGGER.error(ex);
-    }
+    target.configure(TextMateUtils.getConfiguration(extension));
   }
 
   /**
@@ -615,7 +587,6 @@ public class DiffPopup {
       popupText.setVisible(false);
     }
   }
-
 
   /**
    * Get text of a document line.
