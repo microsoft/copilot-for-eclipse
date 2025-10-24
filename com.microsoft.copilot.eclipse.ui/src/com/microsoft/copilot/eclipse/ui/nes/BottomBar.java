@@ -4,6 +4,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Point;
@@ -73,21 +74,27 @@ public class BottomBar {
       return;
     }
 
-    bar = new Composite(parent, SWT.DOUBLE_BUFFERED | SWT.NO_FOCUS | SWT.BORDER);
-
+    bar = new Composite(parent, SWT.DOUBLE_BUFFERED | SWT.NO_FOCUS);
+ 
     bar.setData(CssConstants.CSS_ID_KEY, "nes-bottom-bar");
     
+    bar.addPaintListener(e -> {
+      e.gc.setForeground(CssConstants.getNesBottomBarBorderColor(bar.getDisplay()));
+      e.gc.setLineWidth(1);
+      e.gc.drawRectangle(0, 0, e.width - 1, e.height - 1);
+    });
+    
     GridLayout outer = new GridLayout(1, false);
-    outer.marginWidth = 0;
-    outer.marginHeight = 0;
+    outer.marginWidth = 2;
+    outer.marginHeight = 2;
     outer.horizontalSpacing = 0;
     outer.verticalSpacing = 0;
     bar.setLayout(outer);
 
     GridLayout contentLayout = new GridLayout(3, false);
-    contentLayout.marginWidth = 10;
-    contentLayout.marginHeight = 6;
-    contentLayout.horizontalSpacing = 8;
+    contentLayout.marginWidth = 5;
+    contentLayout.marginHeight = 3;
+    contentLayout.horizontalSpacing = 4;
     contentLayout.verticalSpacing = 0;
     Composite content = new Composite(bar, SWT.NO_FOCUS);
     content.setLayout(contentLayout);

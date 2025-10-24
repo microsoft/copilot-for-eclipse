@@ -119,4 +119,11 @@ public class CssConstants {
     return new Color(display, 108, 190, 114);
   }
 
+  /**
+   * Returns the border color for the NES bottom bar.
+   */
+  public static Color getNesBottomBarBorderColor(Display display) {
+    return new Color(display, 53, 132, 241);
+  }
+
 }
