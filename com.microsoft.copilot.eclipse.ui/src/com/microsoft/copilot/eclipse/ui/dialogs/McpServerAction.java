@@ -171,6 +171,7 @@ public class McpServerAction implements EventHandler {
           Composite toolBar = button.getParent();
           button.dispose();
           createInstallUninstallButton((ToolBar) toolBar, serverDetailsCache.get(serverName));
+          toolBar.requestLayout();
           break;
         case INSTALLING:
         case UNINSTALLING:
