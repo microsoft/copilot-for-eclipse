@@ -608,6 +608,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
         toolNode.setText(tool.getName() + " - " + tool.getDescription());
         toolNode.setChecked(isBlocked ? false : isEnabled);
+        toolNode.setData("toolName", tool.getName());
         toolNode.setData("blocked", isBlocked);
 
         if (isBlocked) {
@@ -723,7 +724,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       String serverName = serverNode.getText();
       Map<String, Boolean> toolStatus = new HashMap<>();
       for (TreeItem toolNode : serverNode.getItems()) {
-        toolStatus.put(toolNode.getText(), toolNode.getChecked());
+        String toolName = (String) toolNode.getData("toolName");
+        if (StringUtils.isNotBlank(serverName)) {
+          toolStatus.put(toolName, toolNode.getChecked());
+        }
       }
       serverToolStatus.put(serverName, toolStatus);
     }
