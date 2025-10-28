@@ -275,27 +275,26 @@ public class McpExtensionPointManager {
    */
   private void detectChangesInMcpContribs(Map<String, McpRegistrationInfo> existingExtMcpInfoMap) {
     boolean newExtMcpRegFound = false;
-    // extMcpInfoMap is not empty, and no existing record, all registrations are new
-    if (existingExtMcpInfoMap == null || existingExtMcpInfoMap.isEmpty()) {
-      newExtMcpRegFound = true;
-    } else {
-      // Compare each plugin's current MCP servers with the stored record
-      for (Map.Entry<String, McpRegistrationInfo> entry : extMcpInfoMap.entrySet()) {
-        String contributorName = entry.getKey();
-        McpRegistrationInfo mcpRegistrationInfo = entry.getValue();
-        McpRegistrationInfo storedInfo = existingExtMcpInfoMap.get(contributorName);
-        if (storedInfo != null) {
-          String storedMcpServersJson = storedInfo.getMcpServersAsJson();
-          String currentMcpServersJson = mcpRegistrationInfo.getMcpServersAsJson();
-          if (currentMcpServersJson.equals(storedMcpServersJson)) {
-            mcpRegistrationInfo.setApproved(storedInfo.isApproved());
-          } else {
-            // we do not early break here, to make sure all new registrations are marked
-            newExtMcpRegFound = true;
-          }
+    if (existingExtMcpInfoMap == null) {
+      existingExtMcpInfoMap = Collections.emptyMap();
+    }
+
+    // Compare each plugin's current MCP servers with the stored record
+    for (Map.Entry<String, McpRegistrationInfo> entry : extMcpInfoMap.entrySet()) {
+      String contributorName = entry.getKey();
+      McpRegistrationInfo mcpRegistrationInfo = entry.getValue();
+      McpRegistrationInfo storedInfo = existingExtMcpInfoMap.get(contributorName);
+      if (storedInfo != null) {
+        String storedMcpServersJson = storedInfo.getMcpServersAsJson();
+        String currentMcpServersJson = mcpRegistrationInfo.getMcpServersAsJson();
+        if (currentMcpServersJson.equals(storedMcpServersJson)) {
+          mcpRegistrationInfo.setApproved(storedInfo.isApproved());
         } else {
+          // we do not early break here, to make sure all new registrations are marked
           newExtMcpRegFound = true;
         }
+      } else {
+        newExtMcpRegFound = true;
       }
     }
 
