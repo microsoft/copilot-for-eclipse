@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.nes;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -13,7 +14,6 @@ import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult.CopilotInlineEdit;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
@@ -23,10 +23,10 @@ import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 public class NextEditSuggestionProvider {
 
   private static final int NES_TIMEOUT_MILLIS = 5000;
-  private final Set<NextEditSuggestionListener> listeners = new LinkedHashSet<>();
-  private CompletableFuture<NextEditSuggestionsResult> currentRequest;
+  private final Set<NextEditSuggestionListener> listeners = Collections.synchronizedSet(new LinkedHashSet<>());
   private final CopilotLanguageServerConnection lsConnection;
-  
+  private volatile CompletableFuture<Void> currentRequest;
+
   /**
    * Construct a NextEditSuggestionProvider.
    */
@@ -66,38 +66,37 @@ public class NextEditSuggestionProvider {
     if (file == null || position == null) {
       return;
     }
+    
     cancelCurrentRequest();
+    
     VersionedTextDocumentIdentifier doc = new VersionedTextDocumentIdentifier();
     String uriString = FileUtils.getResourceUri(file);
     doc.setUri(uriString);
     int currentVersion = lsConnection.getDocumentVersion(URI.create(uriString));
     doc.setVersion(currentVersion);
     NextEditSuggestionsParams params = new NextEditSuggestionsParams(doc, position);
-    currentRequest = lsConnection.getNextEditSuggestions(params).orTimeout(NES_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
-    currentRequest.thenAccept(result -> {
-      if (currentRequest != null && !currentRequest.isCancelled()) {
-        CopilotInlineEdit validEdit = null;
-        if (result != null && result.getEdits() != null && !result.getEdits().isEmpty()) {
-          CopilotInlineEdit edit = result.getEdits().get(0);
-          if (edit != null) {
-            validEdit = edit;
+    currentRequest = lsConnection.getNextEditSuggestions(params).orTimeout(NES_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .handle((result, ex) -> {
+          CopilotInlineEdit validEdit = null;
+          if (ex != null) {
+            CopilotCore.LOGGER.error("NES request failed", ex);
+          } else if (result != null && result.getEdits() != null && !result.getEdits().isEmpty()) {
+            CopilotInlineEdit edit = result.getEdits().get(0);
+            if (edit != null) {
+              validEdit = edit;
+            }
           }
-        }
-        for (NextEditSuggestionListener l : listeners) {
-          l.onNextEditSuggestion(file, validEdit);
-        }
-      }
-    }).exceptionally(ex -> {
-      if (currentRequest != null && !currentRequest.isCancelled()) {
-        CopilotCore.LOGGER.error(ex);
-        // Always notify listeners with null on error/timeout
-        for (NextEditSuggestionListener l : listeners) {
-          l.onNextEditSuggestion(file, null);
-        }
-      }
-      return null;
-    });
+          // Notify listeners
+          for (NextEditSuggestionListener l : listeners) {
+            try {
+              l.onNextEditSuggestion(file, validEdit);
+            } catch (Exception e) {
+              CopilotCore.LOGGER.error("Listener notification failed", e);
+            }
+          }
+          return null;
+        });
   }
 
   /** Cancel the current request if any. */
@@ -105,6 +104,14 @@ public class NextEditSuggestionProvider {
     if (currentRequest != null && !currentRequest.isDone()) {
       currentRequest.cancel(true);
     }
-    currentRequest = null;
+  }
+
+  /**
+   * Check if there is a request currently in progress (including listener notification).
+   *
+   * @return true if a request is pending (not yet completed), false otherwise
+   */
+  public boolean hasRequestInProgress() {
+    return currentRequest != null && !currentRequest.isDone();
   }
 }

@@ -105,9 +105,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   // Cache suggestion viewport state
   private boolean suggestionInViewport = false;
 
-  // Flag to track if NES request is in flight (pending response)
-  private volatile boolean nesRequestPending = false;
-
   /**
    * Constructor. Mirrors BaseCompletionManager pattern: accepts ITextEditor and extracts viewer/text internally.
    */
@@ -308,8 +305,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   public void clearSuggestion() {
     nesProvider.cancelCurrentRequest();
     notifyRejected();
-    // Reset pending flag (request is cancelled)
-    nesRequestPending = false;
     
     SwtUtils.invokeOnDisplayThread(() -> {
       clearSuggestionUi();
@@ -323,7 +318,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * @return true if there is an active suggestion, false otherwise
    */
   public boolean hasActiveSuggestion() {
-    return diffModel != null && suggestionStartPosition != null && !suggestionStartPosition.isDeleted();
+    return suggestionStartPosition != null && !suggestionStartPosition.isDeleted();
   }
 
   /**
@@ -333,7 +328,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * @return true if NES is pending or active, false otherwise
    */
   public boolean isNesPendingOrActive() {
-    return nesRequestPending || hasActiveSuggestion();
+    return nesProvider.hasRequestInProgress() || hasActiveSuggestion();
   }
 
   /**
@@ -442,7 +437,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   // ==== Listener implementation ====
   @Override
   public void onNextEditSuggestion(IFile file, CopilotInlineEdit edit) {
-    nesRequestPending = false;
     if (edit == null || edit.getRange() == null) {
       return;
     }
@@ -679,7 +673,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
     if (diffModel == null || nesProvider == null) {
       return;
     }
-    nesProvider.cancelCurrentRequest();
     IFile currentFile = lastFile;
     int capturedVersion = this.suggestionDocumentVersion;
     IDocument doc = viewer != null ? viewer.getDocument() : null;
@@ -775,12 +768,9 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       int lineOffset = doc.getLineOffset(line);
       int character = caretOffset - lineOffset;
       org.eclipse.lsp4j.Position lspPosition = new org.eclipse.lsp4j.Position(line, character);
-      // Set pending flag BEFORE making request
-      nesRequestPending = true;
-      
       nesProvider.fetchSuggestion(file, lspPosition);
     } catch (BadLocationException ex) {
-      nesRequestPending = false;
+      CopilotCore.LOGGER.error(ex);
     }
   }
 
@@ -851,7 +841,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   @Override
   public void inputDocumentChanged(IDocument oldInput, IDocument newInput) {
-    cleanupPositionTracking();
     initializePositionTracking();
     clearSuggestion();
   }
