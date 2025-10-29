@@ -112,7 +112,7 @@ public class DiffPopup {
       createPopupWidget(editorText, editorViewer, file, model);
     }
     if (model != null && document != null) {
-      updatePopupContent(model);
+      updatePopupContent(editorText, model);
     }
   }
 
@@ -159,7 +159,7 @@ public class DiffPopup {
   /**
    * Update popup content and colors based on diff model.
    */
-  private void updatePopupContent(RenderManager.DiffModel model) {
+  private void updatePopupContent(StyledText editorText, RenderManager.DiffModel model) {
     this.diffModel = model;
     if (popupText != null && !popupText.isDisposed()) {
       Color newBgColor = CssConstants.getNesInsertBackground(popupText.getDisplay());
@@ -173,6 +173,7 @@ public class DiffPopup {
     }
     String displayText = prepareDisplayText(model);
     document.set(displayText);
+    copyFont(editorText, popupText);
     updateLayout();
     refreshDiffHighlighting();
   }
@@ -369,11 +370,6 @@ public class DiffPopup {
       return;
     }
 
-    // Calculate target line: current line for delete, next line for insert/replace
-    if (diffModel != null && !diffModel.isPureDelete()) {
-      targetLine++;
-    }
-
     UiUtils.setLineVerticalIndent(text, targetLine, height);
     appliedIndentLine = targetLine;
     appliedIndentHeight = height;
@@ -386,9 +382,6 @@ public class DiffPopup {
     if (text != null && !text.isDisposed() && viewer != null && indentPos != null && !indentPos.isDeleted()) {
       int targetLine = UiUtils.modelOffset2WidgetLine(viewer, indentPos.getOffset());
       if (targetLine >= 0) {
-        if (diffModel != null && !diffModel.isPureDelete()) {
-          targetLine++;
-        }
         UiUtils.setLineVerticalIndent(text, targetLine, 0);
       }
     }
@@ -417,11 +410,6 @@ public class DiffPopup {
     int targetLine = UiUtils.modelOffset2WidgetLine(viewer, indentPos.getOffset());
     if (targetLine < 0) {
       return null;
-    }
-
-    // Calculate target line: current line for delete, next line for insert/replace
-    if (diffModel != null && !diffModel.isPureDelete()) {
-      targetLine++;
     }
 
     return new int[] { targetLine, appliedIndentHeight };

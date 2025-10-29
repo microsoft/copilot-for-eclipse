@@ -39,13 +39,14 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class RulerColumn extends AbstractRulerColumn implements IContributedRulerColumn {
 
-  private static final int ICON_SIZE = 14;
+  private static final int COLUMN_PADDING = 2;
   private ITextViewer viewer;
   private StyledText text;
   private Image icon;
   private ITextEditor editor;
   private RulerColumnDescriptor descriptor;
   private Rectangle lastIconBounds;
+  private boolean enableIconRendering = true; // Flag to control whether to render icon
   private static final List<RulerColumn> liveColumns = Collections.synchronizedList(new ArrayList<>());
 
   private final class SuggestionAnnotationHover implements IAnnotationHover, IAnnotationHoverExtension {
@@ -66,6 +67,11 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
     @Override
     public ILineRange getHoverLineRange(ISourceViewer viewer, int lineNumber) {
       if (text == null || text.isDisposed() || RulerColumn.this.viewer == null) {
+        return null;
+      }
+
+      // Check if icon rendering is enabled
+      if (!enableIconRendering) {
         return null;
       }
 
@@ -102,7 +108,7 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
    * Constructor.
    */
   public RulerColumn() {
-    setWidth(ICON_SIZE + 2);
+    ensureIcon();
     setHover(new SuggestionAnnotationHover());
   }
 
@@ -157,18 +163,14 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
     if (bounds == null) {
       return;
     }
-    ensureIcon();
-    int actualSize = Math.min(ICON_SIZE, lineHeight - 2);
-    if (actualSize < ICON_SIZE) {
-      int offsetX = (ICON_SIZE - actualSize) / 2;
-      int offsetY = (ICON_SIZE - actualSize) / 2;
-      // Save the actual drawn bounds for clearing later
-      lastIconBounds = new Rectangle(bounds.x + offsetX, bounds.y + offsetY, actualSize, actualSize);
-      gc.drawImage(icon, 0, 0, ICON_SIZE, ICON_SIZE, bounds.x + offsetX, bounds.y + offsetY, actualSize, actualSize);
-    } else {
-      lastIconBounds = bounds;
-      gc.drawImage(icon, bounds.x, bounds.y);
-    }
+    lastIconBounds = bounds;
+    
+    // Get original icon dimensions for scaling source
+    Rectangle iconBounds = icon.getBounds();
+    
+    // Draw icon with scaling from original size to actual drawn bounds
+    gc.drawImage(icon, 0, 0, iconBounds.width, iconBounds.height, 
+                 bounds.x, bounds.y, bounds.width, bounds.height);
   }
 
   private boolean isOnIcon(int x, int y) {
@@ -176,21 +178,32 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
     if (bounds == null) {
       return false;
     }
-    int actualSize = bounds.height;
-    int offsetX = (ICON_SIZE - actualSize) / 2;
-    int offsetY = (ICON_SIZE - actualSize) / 2;
-    return x >= bounds.x + offsetX && x <= bounds.x + offsetX + actualSize && y >= bounds.y + offsetY
-        && y <= bounds.y + offsetY + actualSize;
+
+    // getSuggestionIconBounds already calculated the exact drawn bounds
+    return x >= bounds.x && x <= bounds.x + bounds.width 
+        && y >= bounds.y && y <= bounds.y + bounds.height;
   }
 
   /**
-   * Gets the bounds of the suggestion icon for the given model line and widget line.
+   * Gets the actual drawn bounds of the suggestion icon (including scaling and centering).
+   * Returns the precise rectangle where the icon is drawn, accounting for line height constraints.
+   *
+   * @param expectedModelLine the expected model line number, or -1 to skip check
+   * @param expectedWidgetLine the expected widget line number, or -1 to skip check
+   * @return the actual drawn icon bounds, or null if no icon should be drawn
    */
   private Rectangle getSuggestionIconBounds(int expectedModelLine, int expectedWidgetLine) {
     if (text == null || text.isDisposed()) {
       return null;
     }
     if (viewer == null) {
+      return null;
+    }
+    if (icon == null || icon.isDisposed()) {
+      return null;
+    }
+    // Check if icon rendering is enabled
+    if (!enableIconRendering) {
       return null;
     }
 
@@ -221,11 +234,28 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
     int linePixel = text.getLinePixel(widgetLine);
     int lineHeight = text.getLineHeight(widgetLine);
 
-    int actualHeight = Math.min(ICON_SIZE, lineHeight - 2);
-    int drawX = Math.max(1, (getWidth() - ICON_SIZE) / 2);
+    // Get actual icon dimensions
+    Rectangle iconBounds = icon.getBounds();
+    int iconWidth = iconBounds.width;
+    int iconHeight = iconBounds.height;
+
+    // Scale to fit within line height if needed, maintaining aspect ratio
+    int actualHeight = Math.min(iconHeight, lineHeight - 2);
+    int actualWidth = iconWidth;
+    if (actualHeight < iconHeight) {
+      actualWidth = (iconWidth * actualHeight) / iconHeight;
+    }
+
+    // Get the available space for icon
+    int iconSize = Math.max(iconBounds.width, iconBounds.height);
+    
+    // Center the icon within the column and line
+    int drawX = Math.max(1, (getWidth() - iconSize) / 2);
+    int offsetX = (iconSize - actualWidth) / 2;
+    int offsetY = (actualHeight < iconSize) ? (iconSize - actualHeight) / 2 : 0;
     int drawY = linePixel + Math.max(0, (lineHeight - actualHeight) / 2);
 
-    return new Rectangle(drawX, drawY, ICON_SIZE, actualHeight);
+    return new Rectangle(drawX + offsetX, drawY + offsetY, actualWidth, actualHeight);
   }
 
   private void ensureIcon() {
@@ -233,6 +263,16 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
       ImageDescriptor desc = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/gutter-arrow.png");
       if (desc != null) {
         icon = desc.createImage(true);
+
+        // Update column width based on actual icon size
+        if (icon != null && !icon.isDisposed()) {
+          Rectangle bounds = icon.getBounds();
+          int iconSize = Math.max(bounds.width, bounds.height);
+          int requiredWidth = iconSize + COLUMN_PADDING;
+          if (getWidth() != requiredWidth) {
+            setWidth(requiredWidth);
+          }
+        }
       }
     }
   }
@@ -252,6 +292,16 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
    * Requests a layout update for the ruler column.
    */
   public void requestLayout() {
+    requestLayout(true);
+  }
+
+  /**
+   * Requests a layout update for the ruler column.
+   *
+   * @param enableRendering whether to enable icon rendering
+   */
+  public void requestLayout(boolean enableRendering) {
+    this.enableIconRendering = enableRendering;
     Control c = getControl();
     if (c != null && !c.isDisposed()) {
       if (lastIconBounds != null) {

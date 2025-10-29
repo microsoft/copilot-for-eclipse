@@ -18,6 +18,7 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.Region;
 import org.eclipse.jface.text.TextEvent;
+import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.text.source.IAnnotationModel;
 import org.eclipse.jface.text.source.IAnnotationModelListener;
 import org.eclipse.jface.text.source.ISourceViewer;
@@ -89,6 +90,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   private int suggestionDocumentVersion = -1; // document version when suggestion was received
   private Position suggestionStartPosition; // start offset of suggestion range
   private Position suggestionEndPosition; // end offset of suggestion range
+  private Position indentLinePosition; // track the actual line where indent is applied
   private DefaultPositionUpdater positionUpdater;
   private static final String POSITION_CATEGORY = 
       "com.microsoft.copilot.eclipse.ui.suggest.RenderManager.SuggestionPosition";
@@ -209,6 +211,10 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
         doc.removePosition(POSITION_CATEGORY, suggestionEndPosition);
         suggestionEndPosition = null;
       }
+      if (indentLinePosition != null) {
+        doc.removePosition(POSITION_CATEGORY, indentLinePosition);
+        indentLinePosition = null;
+      }
       if (this.positionUpdater != null) {
         doc.removePositionUpdater(this.positionUpdater);
       }
@@ -237,7 +243,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
         }
       }, text);
     }
-    
+
     cleanupPositionTracking();
   }
 
@@ -246,7 +252,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    */
   public void showSuggestion(int modelLine, String removed, String added) {
     SwtUtils.invokeOnDisplayThread(() -> {
-      clearSuggestionUi();
       if (diffModel == null) {
         diffModel = new DiffModel();
       }
@@ -268,9 +273,10 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   private void clearSuggestionUi() {
     highlighter.clear();
-    diffPopup.hideAndClearIndent(text, viewer, suggestionEndPosition);
+    diffPopup.hideAndClearIndent(text, viewer, indentLinePosition);
+    // Request layout with icon rendering disabled to ensure no icon is drawn
     if (column != null) {
-      column.requestLayout();
+      column.requestLayout(false);
     }
     if (bottomBar != null) {
       bottomBar.hide();
@@ -289,6 +295,10 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
           doc.removePosition(POSITION_CATEGORY, suggestionEndPosition);
           suggestionEndPosition = null;
         }
+        if (indentLinePosition != null) {
+          doc.removePosition(POSITION_CATEGORY, indentLinePosition);
+          indentLinePosition = null;
+        }
       } catch (BadPositionCategoryException ex) {
         CopilotCore.LOGGER.error(ex);
       }
@@ -305,7 +315,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   public void clearSuggestion() {
     nesProvider.cancelCurrentRequest();
     notifyRejected();
-    
+
     SwtUtils.invokeOnDisplayThread(() -> {
       clearSuggestionUi();
       clearSuggestionData();
@@ -322,8 +332,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   }
 
   /**
-   * Check if NES is currently pending (requesting) or has an active suggestion.
-   * This prevents race conditions with inline completion triggering.
+   * Check if NES is currently pending (requesting) or has an active suggestion. This prevents race conditions with
+   * inline completion triggering.
    *
    * @return true if NES is pending or active, false otherwise
    */
@@ -357,8 +367,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       }
 
       // Clear indentation area in ruler before updating position
-      if (column != null && suggestionEndPosition != null) {
-        int[] indentInfo = diffPopup.getAppliedIndentInfo(text, viewer, suggestionEndPosition);
+      if (column != null && indentLinePosition != null) {
+        int[] indentInfo = diffPopup.getAppliedIndentInfo(text, viewer, indentLinePosition);
         if (indentInfo != null) {
           column.clearIndentationArea(indentInfo[0], indentInfo[1]);
         }
@@ -368,8 +378,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       boolean pureDelete = diffModel != null && diffModel.isPureDelete();
       if (!pureDelete && suggestionInViewport) {
         // Only show popup for insert/replace scenarios when in viewport
-        diffPopup.updatePosition(text, viewer, lastFile, lastRange,
-            suggestionEndPosition, diffModel);
+        diffPopup.updatePosition(text, viewer, lastFile, lastRange, indentLinePosition, diffModel);
       } else {
         // For pure delete or out-of-viewport: only hide popup without clearing indent
         // This avoids feedback loop: clearing indent → viewport changes → suggestion reappears
@@ -391,7 +400,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       }
     }, text);
   }
-  
+
   /**
    * Check if the suggestion is currently visible in the viewport.
    */
@@ -505,16 +514,27 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       if (suggestionEndPosition != null) {
         doc.removePosition(POSITION_CATEGORY, suggestionEndPosition);
       }
+      if (indentLinePosition != null) {
+        doc.removePosition(POSITION_CATEGORY, indentLinePosition);
+      }
 
       // Create and register new positions
       suggestionStartPosition = new Position(startOffset, 0);
       suggestionEndPosition = new Position(endOffset, 0);
       doc.addPosition(POSITION_CATEGORY, suggestionStartPosition);
       doc.addPosition(POSITION_CATEGORY, suggestionEndPosition);
+      int indentLineOffset = endOffset;
+      int endLine = doc.getLineOfOffset(endOffset);
+      if (endLine + 1 < doc.getNumberOfLines()) {
+        indentLineOffset = doc.getLineOffset(endLine + 1);
+      }
+      indentLinePosition = new Position(indentLineOffset, 0);
+      doc.addPosition(POSITION_CATEGORY, indentLinePosition);
     } catch (BadLocationException | BadPositionCategoryException e) {
       CopilotCore.LOGGER.error(e);
       suggestionStartPosition = null;
       suggestionEndPosition = null;
+      indentLinePosition = null;
     }
   }
 
@@ -528,6 +548,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       });
       viewer.addViewportListener(v -> refreshUi());
       text.addListener(SWT.MouseHorizontalWheel, e -> refreshUi());
+      // Add this listener to fix 2025-09 related issue that clicking cause indentation disappear and icon misalign
+      text.addListener(SWT.MouseDown, e -> refreshUi());
       var horizontalBar = text.getHorizontalBar();
       if (horizontalBar != null) {
         horizontalBar.addListener(SWT.Selection, e -> refreshUi());
@@ -620,11 +642,11 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   }
 
   /**
-   * Find the fold start offset if suggestion overlaps with any collapsed fold region. Returns the fold start offset,
-   * or null if suggestion doesn't overlap with any fold.
+   * Find the fold start offset if suggestion overlaps with any collapsed fold region. Returns the fold start offset, or
+   * null if suggestion doesn't overlap with any fold.
    */
-  private int findFoldContainingSuggestion(IAnnotationModel annotationModel, IDocument doc,
-      int suggestionStartOffset, int suggestionEndOffset) throws BadLocationException {
+  private int findFoldContainingSuggestion(IAnnotationModel annotationModel, IDocument doc, int suggestionStartOffset,
+      int suggestionEndOffset) throws BadLocationException {
     var iter = annotationModel.getAnnotationIterator();
     while (iter.hasNext()) {
       var ann = iter.next();
@@ -676,7 +698,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
     IFile currentFile = lastFile;
     int capturedVersion = this.suggestionDocumentVersion;
     IDocument doc = viewer != null ? viewer.getDocument() : null;
-    
+
     if (doc == null || !isValidSuggestionRange(doc)) {
       return;
     }
@@ -701,40 +723,35 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       if (!expectedOriginal.equals(current)) {
         return;
       }
-      
+
       // UI operations must run on display thread
       SwtUtils.invokeOnDisplayThread(() -> {
         if (text == null || text.isDisposed()) {
           return;
         }
         // Clear indent BEFORE document changes to avoid position invalidation
-        diffPopup.hideAndClearIndent(text, viewer, suggestionEndPosition);
+        diffPopup.hideAndClearIndent(text, viewer, indentLinePosition);
       }, text);
-      
+
       // Apply replacement (document operation)
       String replacement = diffModel.replacement == null ? "" : diffModel.replacement;
       doc.replace(startOff, endOff - startOff, replacement);
       int newCaretOffset = startOff + replacement.length();
-      
+
       // UI operations: caret movement and reveal
       SwtUtils.invokeOnDisplayThread(() -> {
         if (text == null || text.isDisposed()) {
           return;
         }
-        // Move caret to end of replaced text
-        text.setCaretOffset(newCaretOffset);
-        text.setSelection(newCaretOffset);
-        if (viewer instanceof ISourceViewer sv) {
-          sv.revealRange(newCaretOffset, 0);
-        }
+        viewer.getSelectionProvider().setSelection(new TextSelection(newCaretOffset, 0));
         clearSuggestionUi();
       }, text);
-      
+
       // Clear data and notify (non-UI operations)
       clearSuggestionData();
       notifyAccepted();
       scheduleNextSuggestionRequest(doc, currentFile, newCaretOffset);
-      
+
     } catch (BadLocationException ex) {
       CopilotCore.LOGGER.error(ex);
     }
@@ -796,8 +813,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       }
       text.setTopIndex(targetTop);
       int lineOffset = viewer.getDocument().getLineOffset(suggestionLine);
-      text.setCaretOffset(lineOffset);
-      text.setSelection(lineOffset);
+      viewer.getSelectionProvider().setSelection(new TextSelection(lineOffset, 0));
     } catch (BadLocationException ex) {
       CopilotCore.LOGGER.error(ex);
     }

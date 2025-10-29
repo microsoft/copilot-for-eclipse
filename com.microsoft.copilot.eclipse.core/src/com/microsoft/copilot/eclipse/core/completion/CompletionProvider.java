@@ -15,6 +15,8 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 
@@ -191,11 +193,10 @@ public class CompletionProvider {
         try {
           CompletionResult result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS,
               TimeUnit.MILLISECONDS);
-          if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
-            // Empty completion result: fallback to NES if enabled
-            if (this.enableNes && file instanceof IFile f) {
-              fetchNes(f, params.getDoc().getPosition());
-            }
+          
+          // Check if we should fallback to NES (empty or useless completions)
+          if (this.enableNes && file instanceof IFile f && shouldFallbackToNes(result)) {
+            fetchNes(f, params.getDoc().getPosition());
             return Status.OK_STATUS;
           }
 
@@ -232,6 +233,50 @@ public class CompletionProvider {
         }
       } catch (Exception ex) {
         CopilotCore.LOGGER.error(ex);
+      }
+    }
+
+    /**
+     * Check if we should fallback to NES because completions are empty or useless.
+     * Returns true if:
+     * 1. Result is null or completions list is empty
+     * 2. All completions have displayText matching the document text (suggesting what's already there)
+     *
+     * @param result the completion result to check
+     * @return true if should fallback to NES
+     */
+    private boolean shouldFallbackToNes(CompletionResult result) {
+      if (result == null || result.getCompletions() == null || result.getCompletions().isEmpty()) {
+        return true;
+      }
+      List<CompletionItem> completions = result.getCompletions();
+      try {
+        IDocument document = LSPEclipseUtils.getDocument(this.file);
+        if (document == null) {
+          return false;
+        }
+        // Check if all completions with valid displayText match the document text
+        for (CompletionItem item : completions) {
+          String displayText = item.getDisplayText();
+          if (displayText == null || displayText.isEmpty()) {
+            continue;
+          }    
+          int offset = LSPEclipseUtils.toOffset(item.getPosition(), document);
+          int availableLength = document.getLength() - offset;
+          // If displayText is longer than the available text in document, it must be providing new content
+          if (displayText.length() > availableLength) {
+            return false;
+          }
+          String documentText = document.get(offset, displayText.length());
+          // If displayText does NOT exactly match the document text, it's providing different content
+          if (!displayText.equals(documentText)) {
+            return false;
+          }
+        }
+        return true;
+      } catch (BadLocationException ex) {
+        CopilotCore.LOGGER.error("Error checking if should fallback to NES", ex);
+        return false;
       }
     }
 
