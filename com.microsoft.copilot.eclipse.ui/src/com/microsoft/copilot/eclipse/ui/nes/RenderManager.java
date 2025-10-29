@@ -548,8 +548,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       });
       viewer.addViewportListener(v -> refreshUi());
       text.addListener(SWT.MouseHorizontalWheel, e -> refreshUi());
-      // Add this listener to fix 2025-09 related issue that clicking cause indentation disappear and icon misalign
-      text.addListener(SWT.MouseDown, e -> refreshUi());
       var horizontalBar = text.getHorizontalBar();
       if (horizontalBar != null) {
         horizontalBar.addListener(SWT.Selection, e -> refreshUi());
