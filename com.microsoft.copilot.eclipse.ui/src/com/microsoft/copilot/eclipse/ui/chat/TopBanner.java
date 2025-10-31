@@ -34,6 +34,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferenceP
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -100,6 +101,8 @@ public class TopBanner extends Composite {
           dialog.open();
         }
       });
+      AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpRegistryButton,
+          Messages.chat_topBanner_mcpRegistry_Tooltip);
     }
 
     this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
@@ -118,6 +121,8 @@ public class TopBanner extends Composite {
         }
       }
     });
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this.btnNewConversation,
+        Messages.chat_topBanner_newConversationButton_Tooltip);
 
     this.chatHistoryIcon = UiUtils.buildImageFromPngPath("/icons/chat/chat_history.png");
     this.chatHistoryButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
@@ -131,6 +136,8 @@ public class TopBanner extends Composite {
         }
       }
     });
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this.chatHistoryButton,
+        Messages.chat_topBanner_chatHistoryButton_Tooltip);
 
     this.openPreferenceIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
     this.openPreferenceButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
@@ -152,6 +159,7 @@ public class TopBanner extends Composite {
         UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
       }
     });
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this.openPreferenceButton, Messages.menu_editPreferences);
 
     this.addPaintListener(new PaintListener() {
       @Override

@@ -70,6 +70,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferenceP
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -176,6 +177,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       }
     });
     this.inputTextViewer = tv;
+    AccessibilityUtils.addAccessibilityNameForUiComponent(tv.getTextWidget(), "ask copilot input text area");
 
     ca = new ContentAssistant();
     ca.enableAutoActivateCompletionOnType(true);
@@ -395,6 +397,8 @@ public class ActionBar extends Composite implements NewConversationListener {
           setFocusToInputTextViewer();
         }
       });
+      AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpToolButton,
+          Messages.chat_actionBar_toolButton_toolTip);
     }
 
     // Add toggle button for all modes if it has not been created
@@ -428,6 +432,8 @@ public class ActionBar extends Composite implements NewConversationListener {
           sendDisabledImage.dispose();
         }
       });
+      AccessibilityUtils.addAccessibilityNameForUiComponent(this.btnMsgToggle,
+          Messages.chat_actionBar_sendButton_Tooltip);
     }
     // Refresh the layout
     this.bottomRightButtonsComposite.requestLayout();
@@ -445,6 +451,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpModelPicker(Composite parent) {
     this.cmbModelPicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    AccessibilityUtils.addAccessibilityNameForUiComponent(cmbModelPicker, "model picker");
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindModelPicker(cmbModelPicker);
   }
@@ -461,6 +468,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         userPreferenceService.setActiveChatMode(index);
       }
     });
+    AccessibilityUtils.addAccessibilityNameForUiComponent(cmbChatModePicker, "chat mode picker");
   }
 
   @Override
