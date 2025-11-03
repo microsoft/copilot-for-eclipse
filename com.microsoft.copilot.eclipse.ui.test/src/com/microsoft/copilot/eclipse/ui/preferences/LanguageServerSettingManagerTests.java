@@ -232,4 +232,34 @@ class LanguageServerSettingManagerTests {
     verify(mockPreferenceStore, times(1)).getString(Constants.MCP_TOOLS_STATUS);
     verify(mockLsConnection, times(0)).updateMcpToolsStatus(any());
   }
+
+  @Test
+  void testProxyWithNoProxyHosts() {
+    // Verifies noProxy bypass list is transmitted when proxy is configured
+    // This fixes the issue where internal MCP servers couldn't bypass proxy
+    
+    // arrange
+    IProxyData mockProxyData = mock(IProxyData.class);
+    when(mockProxyData.getHost()).thenReturn("proxy.com");
+    when(mockProxyData.getPort()).thenReturn(8080);
+    when(mockProxyData.getType()).thenReturn("HTTP");
+    when(mockProxyData.isRequiresAuthentication()).thenReturn(false);
+    
+    String[] noProxyHosts = new String[] { "localhost", "*.internal.net" };
+    when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
+    when(mockProxyService.isProxiesEnabled()).thenReturn(true);
+    when(mockProxyService.getNonProxiedHosts()).thenReturn(noProxyHosts);
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+    
+    // act
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+    manager.updateProxySettings();
+    
+    // assert
+    CopilotLanguageServerSettings settings = manager.getSettings();
+    assertEquals("HTTP://proxy.com:8080", settings.getHttp().getProxy());
+    assertEquals(2, settings.getHttp().getNoProxy().length);
+    assertEquals("localhost", settings.getHttp().getNoProxy()[0]);
+  }
 }

@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -29,6 +30,7 @@ public class CopilotLanguageServerSettings {
     @SerializedName("proxyStrictSSL")
     private boolean proxyStrictSsl;
     private String proxyKerberosServicePrincipal;
+    private String[] noProxy;
 
     /**
      * get proxy.
@@ -84,18 +86,27 @@ public class CopilotLanguageServerSettings {
       this.proxyKerberosServicePrincipal = proxyKerberosServicePrincipal;
     }
 
+    public String[] getNoProxy() {
+      return noProxy;
+    }
+
+    public void setNoProxy(String[] noProxy) {
+      this.noProxy = noProxy;
+    }
+
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.add("proxy", proxy);
       builder.add("proxyStrictSsl", proxyStrictSsl);
       builder.add("proxyKerberosServicePrincipal", proxyKerberosServicePrincipal);
+      builder.add("noProxy", noProxy);
       return builder.toString();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(proxy, proxyKerberosServicePrincipal, proxyStrictSsl);
+      return Objects.hash(proxy, proxyKerberosServicePrincipal, proxyStrictSsl, noProxy);
     }
 
     @Override
@@ -112,7 +123,8 @@ public class CopilotLanguageServerSettings {
       Http other = (Http) obj;
       return Objects.equals(proxy, other.proxy)
           && Objects.equals(proxyKerberosServicePrincipal, other.proxyKerberosServicePrincipal)
-          && proxyStrictSsl == other.proxyStrictSsl;
+          && proxyStrictSsl == other.proxyStrictSsl
+          && Arrays.equals(noProxy, other.noProxy);
     }
 
   }

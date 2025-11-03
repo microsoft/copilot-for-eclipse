@@ -256,11 +256,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public void updateProxySettings() {
     proxyData = getProxy();
-    if (proxyData == null) {
-      settings.getHttp().setProxy(null);
-      return;
-    }
     settings.getHttp().setProxy(createProxyString(proxyData));
+    settings.getHttp().setNoProxy(getNonProxiedHosts());
   }
 
   /**
@@ -281,6 +278,22 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       return proxyDataArr[0];
     }
     return null;
+  }
+
+  /**
+   * Gets the non-proxied hosts from the proxy service.
+   *
+   * @return the array of non-proxied hosts, or null if proxy is not enabled
+   */
+  private String[] getNonProxiedHosts() {
+    if (proxyService == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Proxy service is null"));
+      return null;
+    }
+    if (!proxyService.isProxiesEnabled()) {
+      return null;
+    }
+    return proxyService.getNonProxiedHosts();
   }
 
   /**
