@@ -1,14 +1,16 @@
 package com.microsoft.copilot.eclipse.core.chat.service;
 
+import java.util.Map;
+
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 
 /**
  * Interface for the MCP config service.
- * This service handles the OAuth confirmation process.
+ * This service handles the Dynamic OAuth process for MCP servers.
  */
 public interface IMcpConfigService {
   /**
-   * Handles the OAuth confirmation request.
+   * Handles the Dynamic OAuth request from MCP servers.
    */
-  boolean mcpOauth(McpOauthRequest request);
+  Map<String, String> mcpOauth(McpOauthRequest request);
 }

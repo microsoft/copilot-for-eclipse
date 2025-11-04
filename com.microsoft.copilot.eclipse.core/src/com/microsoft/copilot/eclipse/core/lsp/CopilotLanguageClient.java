@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -34,7 +35,6 @@ import com.microsoft.copilot.eclipse.core.chat.service.IMcpConfigService;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthResponse;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRuntimeLog;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
@@ -197,17 +197,19 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Handles the OAuth request for MCP.
+   * Handles the Dynamic OAuth request for MCP.
+   * Shows a dialog with multiple input fields and returns the user's input values.
+   * Returns null if the user cancels the request.
    */
-  @JsonRequest("copilot/mcpOAuth")
-  public CompletableFuture<McpOauthResponse> mcpOauth(McpOauthRequest request) {
+  @JsonRequest("copilot/dynamicOAuth")
+  public CompletableFuture<Map<String, String>> mcpOauth(McpOauthRequest request) {
     return CompletableFuture.supplyAsync(() -> {
       IMcpConfigService mcpConfigService = CopilotCore.getPlugin().getChatServiceManager().getMcpConfigService();
-      boolean result = mcpConfigService.mcpOauth(request);
-      return new McpOauthResponse(result);
+      Map<String, String> result = mcpConfigService.mcpOauth(request);
+      return result;
     }).exceptionally(e -> {
       CopilotCore.LOGGER.error(e);
-      return new McpOauthResponse(false);
+      return null;
     });
   }
 

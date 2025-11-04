@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -9,7 +10,7 @@ import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Shell;
@@ -23,6 +24,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.dialogs.DynamicOauthDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 
@@ -191,27 +193,27 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
   }
 
   /**
-   * Handles the OAuth confirmation request.
+   * Handles the Dynamic OAuth request from MCP servers.
    *
-   * @return true if the OAuth confirmation is successful, false otherwise.
+   * @return a map of input field names to values, or null if the user cancelled
    */
-  public boolean mcpOauth(McpOauthRequest request) {
-    String title = Messages.preferences_page_mcpOAuth_confirmTitle;
-    String message = String.format(Messages.preferences_page_mcpOAuth_confirmMessage, request.getMcpServer(),
-        request.getAuthLabel());
-
-    CompletableFuture<Boolean> result = new CompletableFuture<>();
+  public Map<String, String> mcpOauth(McpOauthRequest request) {
+    CompletableFuture<Map<String, String>> result = new CompletableFuture<>();
     ensureRealm(() -> {
       var shell = new Shell(PlatformUI.getWorkbench().getDisplay());
-      boolean confirmed = MessageDialog.openConfirm(shell, title, message);
-      result.complete(confirmed);
+      var dialog = new DynamicOauthDialog(shell, request);
+      if (dialog.open() == Window.OK) {
+        result.complete(dialog.getInputValues());
+      } else {
+        result.complete(null);
+      }
     });
 
     try {
       return result.get();
     } catch (ExecutionException | InterruptedException e) {
-      CopilotCore.LOGGER.error("Error during MCP OAuth confirmation", e);
-      return false;
+      CopilotCore.LOGGER.error("Error during MCP Dynamic OAuth", e);
+      return null;
     }
   }
 
