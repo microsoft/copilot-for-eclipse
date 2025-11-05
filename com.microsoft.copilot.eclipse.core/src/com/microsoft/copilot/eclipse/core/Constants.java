@@ -37,6 +37,7 @@ public class Constants {
   public static final String CHAT_VIEW_ID = "com.microsoft.copilot.eclipse.ui.chat.ChatView";
   public static final String CHAT_CHANNEL = "chatProgress";
   public static final String AUTO_SHOW_WHAT_IS_NEW = "autoShowWhatsNew";
+  public static final String GITHUB_JOBS_VIEW_ID = "com.microsoft.copilot.eclipse.ui.jobs.JobsView";
 
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list

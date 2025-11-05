@@ -45,6 +45,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 
 /**
@@ -171,7 +173,7 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("git/commitGenerate")
   CompletableFuture<GenerateCommitMessageResult> generateCommitMessage(GenerateCommitMessageParams params);
-  
+
   /**
    * List BYOK models.
    */
@@ -231,10 +233,16 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("mcp/registry/getAllowlist")
   CompletableFuture<McpRegistryAllowList> getMcpAllowlist(Object params);
-  
+
   /**
    * Next Edit Suggestions request.
    */
   @JsonRequest("textDocument/copilotInlineEdit")
   CompletableFuture<NextEditSuggestionsResult> getNextEditSuggestions(NextEditSuggestionsParams params);
+
+  /**
+   * Search GitHub Pull Requests.
+   */
+  @JsonRequest("githubApi/searchPR")
+  CompletableFuture<SearchPrResponse> searchPr(SearchPrParams params);
 }

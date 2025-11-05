@@ -23,7 +23,9 @@ import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.services.IStylingEngine;
+import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
@@ -31,6 +33,7 @@ import org.eclipse.jface.text.ITextViewerExtension5;
 import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Color;
@@ -267,6 +270,28 @@ public class UiUtils {
   }
 
   /**
+   * Opens an E4 part (view) by its ID and activates it.
+   *
+   * @param partId the ID of the part to open
+   * @return true if the part was successfully opened and activated, false otherwise
+   */
+  public static boolean openE4Part(String partId) {
+    try {
+      EPartService partService = PlatformUI.getWorkbench().getService(EPartService.class);
+      if (partService != null) {
+        MPart part = partService.showPart(partId, EPartService.PartState.VISIBLE);
+        if (part != null) {
+          partService.activate(part);
+          return true;
+        }
+      }
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to open E4 part: " + partId, e);
+    }
+    return false;
+  }
+
+  /**
    * Resizes the icon at the given path to the given width and height. Icon size is 16x16 by default, which is the
    * recommended size for toolbar icons. For more details: https://eclipse-platform.github.io/ui-best-practices/#toolbar
    */
@@ -328,7 +353,6 @@ public class UiUtils {
     }
     return text.getLineAtOffset(widgetOffset);
   }
-  
 
   /**
    * Convert model line to widget line. Returns -1 if line is folded.
@@ -654,19 +678,19 @@ public class UiUtils {
     } else if (daysDifference == 1) {
       return Messages.relative_dateFormat_yesterday;
     } else if (daysDifference < 7) {
-      return Messages.relative_dateFormat_daysAgo.replace("{0}", Long.toString(daysDifference));
+      return NLS.bind(Messages.relative_dateFormat_daysAgo, Long.toString(daysDifference));
     } else if (daysDifference < 14) {
       return Messages.relative_dateFormat_oneWeekAgo;
     } else if (daysDifference < 30) {
       long weeksDifference = daysDifference / 7;
-      return Messages.relative_dateFormat_weeksAgo.replace("{0}", Long.toString(weeksDifference));
+      return NLS.bind(Messages.relative_dateFormat_weeksAgo, Long.toString(weeksDifference));
     }
 
     long monthsDifference = ChronoUnit.MONTHS.between(messageDate, today);
     if (monthsDifference == 1) {
       return Messages.relative_dateFormat_oneMonthAgo;
     } else {
-      return Messages.relative_dateFormat_monthsAgo.replace("{0}", Long.toString(monthsDifference));
+      return NLS.bind(Messages.relative_dateFormat_monthsAgo, Long.toString(monthsDifference));
     }
   }
 

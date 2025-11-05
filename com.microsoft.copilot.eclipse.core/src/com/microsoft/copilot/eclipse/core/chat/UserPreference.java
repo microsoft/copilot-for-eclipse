@@ -15,6 +15,7 @@ public class UserPreference {
   private String chatModel;
   private String chatModeName;
   private List<String> userInputs;
+  private boolean skipGitHubJobConfirmDialog;
 
   /**
    * Gets the id of the Chat model.
@@ -61,9 +62,17 @@ public class UserPreference {
     this.userInputs = userInputs;
   }
 
+  public synchronized boolean isSkipGitHubJobConfirmDialog() {
+    return skipGitHubJobConfirmDialog;
+  }
+
+  public synchronized void setSkipGitHubJobConfirmDialog(boolean skipGitHubJobConfirmDialog) {
+    this.skipGitHubJobConfirmDialog = skipGitHubJobConfirmDialog;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(chatModeName, chatModel, userInputs);
+    return Objects.hash(chatModeName, chatModel, userInputs, skipGitHubJobConfirmDialog);
   }
 
   @Override
@@ -79,7 +88,8 @@ public class UserPreference {
     }
     UserPreference other = (UserPreference) obj;
     return Objects.equals(chatModeName, other.chatModeName) && Objects.equals(chatModel, other.chatModel)
-        && Objects.equals(userInputs, other.userInputs);
+        && Objects.equals(userInputs, other.userInputs)
+        && skipGitHubJobConfirmDialog == other.skipGitHubJobConfirmDialog;
   }
 
   @Override
@@ -88,6 +98,7 @@ public class UserPreference {
     builder.add("chatModel", chatModel);
     builder.add("chatModeName", chatModeName);
     builder.add("userInputs", userInputs);
+    builder.add("skipGitHubJobConfirmDialog", skipGitHubJobConfirmDialog);
     return builder.toString();
   }
 }

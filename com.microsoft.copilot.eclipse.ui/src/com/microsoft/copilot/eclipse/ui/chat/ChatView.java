@@ -40,10 +40,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.AgentMessageData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessageData;
@@ -51,6 +53,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
@@ -140,7 +143,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         String workDoneToken = UUID.randomUUID().toString();
         String previousInput = (String) properties.get("previousInput");
         boolean needCreateUserTurn = (boolean) properties.get("needCreateUserTurn");
-        onSend(workDoneToken, previousInput, needCreateUserTurn);
+        onSendInternal(workDoneToken, previousInput, null, null, needCreateUserTurn);
+      }
+    });
+
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_SEND, event -> {
+      Object params = event.getProperty(IEventBroker.DATA);
+      if (params != null && params instanceof Map properties) {
+        String workDoneToken = (String) properties.get("workDoneToken");
+        String message = (String) properties.get("message");
+        String agentSlug = (String) properties.get("agentSlug");
+        String agentJobWorkspaceFolder = (String) properties.get("agentJobWorkspaceFolder");
+        boolean createNewTurn = (boolean) properties.get("createNewTurn");
+        onSendInternal(workDoneToken, message, agentSlug, agentJobWorkspaceFolder, createNewTurn);
       }
     });
 
@@ -240,6 +255,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (titleData instanceof String newTitle && StringUtils.isNotEmpty(newTitle) && topBanner != null
           && !topBanner.isDisposed()) {
         topBanner.updateTitle(newTitle);
+      }
+    });
+
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CODING_AGENT_MESSAGE, event -> {
+      Object messageData = event.getProperty(IEventBroker.DATA);
+      if (messageData instanceof CodingAgentMessageRequestParams params) {
+        handleCodingAgentMessage(params);
       }
     });
   }
@@ -586,9 +608,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
   }
 
-  @Override
-  public void onSend(String workDoneToken, String message, boolean createNewTurn) {
+  private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
+      boolean createNewTurn) {
     String processedMessage = replaceWorkspaceCommand(message);
+
+    // Persist the user input to history
+    chatServiceManager.getUserPreferenceService().addInputToHistory(processedMessage);
+
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
     String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
@@ -614,7 +640,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, activeModel, chatModeName);
+          processedMessage, references, currentFile, activeModel, chatModeName, agentSlug, agentJobWorkspaceFolder);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.exceptionally(th -> {
@@ -640,8 +666,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             activeChatMode.toString(), currentFile, references);
       }
 
-      CompletableFuture<ChatCreateResult> createConversationFuture = ls.createConversation(workDoneToken,
-          processedMessage, references, currentFile, turns, activeModel, chatModeName);
+      CompletableFuture<ChatCreateResult> createConversationFuture = null;
+      if (StringUtils.isBlank(agentSlug)) {
+        createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
+            turns, activeModel, chatModeName);
+      } else {
+        // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
+        createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
+            turns, activeModel, chatModeName, agentSlug, agentJobWorkspaceFolder);
+      }
       conversationFutures.add(createConversationFuture);
 
       createConversationFuture.thenAccept(result -> {
@@ -695,6 +728,31 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     SwtUtils.invokeOnDisplayThread(() -> {
       chatContentViewer.renderErrorMessage(content);
       actionBar.resetSendButton();
+    }, parent);
+  }
+
+  private void handleCodingAgentMessage(CodingAgentMessageRequestParams params) {
+    if (params == null || this.chatContentViewer == null) {
+      return;
+    }
+
+    if (!StringUtils.equals(params.getConversationId(), this.conversationId)) {
+      return;
+    }
+
+    // Persist the agent message to conversation history
+    if (persistenceManager != null) {
+      // TODO: We currently only have GitHub Copilot Coding Agent, need to extend for other agents in the future
+      persistenceManager.addCodingAgentMessage(params, UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG);
+    }
+
+    SwtUtils.invokeOnDisplayThread(() -> {
+      if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
+        BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(params.getTurnId());
+        if (turnWidget != null && !turnWidget.isDisposed()) {
+          turnWidget.createAgentMessageWidget(params);
+        }
+      }
     }, parent);
   }
 
@@ -971,6 +1029,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
             copilotTurnWidget.createWarnDialog(errorMessage, errorCode);
           }, parent);
+        }
+      }
+
+      // Restore any agent messages from the reply data
+      if (replyData.getAgentMessages() != null && !replyData.getAgentMessages().isEmpty()) {
+        for (AgentMessageData agentMessageData : replyData.getAgentMessages()) {
+          // TODO: We currently only have GitHub Copilot Coding Agent, need to extend for other agents in the future
+          if (StringUtils.equals(agentMessageData.getAgentSlug(), UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG)) {
+            SwtUtils.invokeOnDisplayThread(() -> {
+              // Create CodingAgentMessageRequestParams from the persisted data
+              CodingAgentMessageRequestParams params = new CodingAgentMessageRequestParams();
+              params.setTitle(agentMessageData.getTitle());
+              params.setDescription(agentMessageData.getDescription());
+              params.setPrLink(agentMessageData.getPrLink());
+              params.setConversationId(this.conversationId);
+              params.setTurnId(turn.getTurnId());
+
+              copilotTurnWidget.createAgentMessageWidget(params);
+            }, parent);
+          }
         }
       }
 

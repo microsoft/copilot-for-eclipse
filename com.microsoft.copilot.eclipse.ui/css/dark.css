@@ -34,6 +34,12 @@
 	background-color: #1E1F22;
 }
 
+/* General btn-primary style for dialogs and other components */
+.btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
 #chat-container > BeforeLoginWelcomeViewer .btn-primary {
 	color: #FFFFFF;
 	background-color: #3584F1;

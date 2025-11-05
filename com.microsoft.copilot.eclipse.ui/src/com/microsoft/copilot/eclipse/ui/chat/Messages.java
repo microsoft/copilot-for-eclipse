@@ -16,6 +16,11 @@ public final class Messages extends NLS {
   public static String confirmDialog_keepChangesButton;
   public static String confirmDialog_undoChangesButton;
   public static String chat_warnWidget_defaultErrorMsg;
+  public static String agentMessageWidget_openInBrowserButton;
+  public static String agentMessageWidget_openInBrowserTooltip;
+  public static String agentMessageWidget_openJobListButton;
+  public static String agentMessageWidget_openJobListTooltip;
+  public static String agentMessageWidget_openJobListError;
 
   static {
     // initialize resource bundle

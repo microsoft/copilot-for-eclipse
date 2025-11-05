@@ -12,7 +12,7 @@
 	<extension-point
 		id="mcpRegistration"
 		name="MCP Registration"
-		schema="schema/mcpRegistration.exsd"/>
+		schema="schema/mcpRegistration.exsd" />
 
 	<!-- Menus registration -->
 	<extension
@@ -47,7 +47,7 @@
 				id="com.microsoft.copilot.egit.generateCommitMessage"
 				label="%command.generateCommitMessage.name"
 				style="push">
-				<visibleWhen checkEnabled="true"/>
+				<visibleWhen checkEnabled="true" />
 			</command>
 		</menuContribution>
 		<menuContribution locationURI="toolbar:org.eclipse.egit.ui.commitMsgToolBar?after=additions">
@@ -63,14 +63,14 @@
 			locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?after=additions">
 			<dynamic
 				id="com.microsoft.copilot.eclipse.ui.dynamicContextMenu.projectExplorer"
-				class="com.microsoft.copilot.eclipse.ui.handlers.ShowContextMenuHandler"/>
+				class="com.microsoft.copilot.eclipse.ui.handlers.ShowContextMenuHandler" />
 		</menuContribution>
 
 		<menuContribution
 			locationURI="popup:org.eclipse.jdt.ui.PackageExplorer?after=additions">
 			<dynamic
 				id="com.microsoft.copilot.eclipse.ui.dynamicContextMenu.packageExplorer"
-				class="com.microsoft.copilot.eclipse.ui.handlers.ShowContextMenuHandler"/>
+				class="com.microsoft.copilot.eclipse.ui.handlers.ShowContextMenuHandler" />
 		</menuContribution>
 	</extension>
 	<extension
@@ -159,16 +159,16 @@
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
 			id="com.microsoft.copilot.eclipse.commands.openChatView"
 			name="%command.showChatView.name">
-				<commandParameter 
-					id="com.microsoft.copilot.eclipse.commands.openChatView.inputValue"
-					name="%command.openChatView.inputValue"
-					values="">
-				</commandParameter>
-				<commandParameter 
-					id="com.microsoft.copilot.eclipse.commands.openChatView.autoSend"
-					name="%command.openChatView.autoSend"
-					values="">
-				</commandParameter>
+			<commandParameter
+				id="com.microsoft.copilot.eclipse.commands.openChatView.inputValue"
+				name="%command.openChatView.inputValue"
+				values="">
+			</commandParameter>
+			<commandParameter
+				id="com.microsoft.copilot.eclipse.commands.openChatView.autoSend"
+				name="%command.openChatView.autoSend"
+				values="">
+			</commandParameter>
 		</command>
 		<command
 			id="com.microsoft.copilot.eclipse.commands.signOut"
@@ -339,7 +339,7 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.GenerateCommitMessageHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.generateCommitMessage">
 			<enabledWhen>
-				<test property="com.microsoft.copilot.eclipse.ui.testers.platformVersion" args="le:4.36"/>
+				<test property="com.microsoft.copilot.eclipse.ui.testers.platformVersion" args="le:4.36" />
 			</enabledWhen>
 		</handler>
 		<handler
@@ -450,6 +450,10 @@
 	<!-- PerspectiveExtension: Manage Chat View Position -->
 	<extension
 		point="org.eclipse.ui.perspectiveExtensions">
+		<!-- We add the JobsView for each perspective here due to the JobsView needs ChatView and
+		ChatView's relative position to be defined first. Adding JobsView standalone to the plugin.xml of
+		com.microsoft.copilot.eclipse.ui.jobs will not work due to missing dependency on ChatView 's
+		relative position. -->
 		<perspectiveExtension
 			targetID="*">
 			<editorOnboardingCommand
@@ -473,6 +477,12 @@
 				relationship="right"
 				relative="org.eclipse.ui.editorss">
 			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
 		</perspectiveExtension>
 		<perspectiveExtension
 			targetID="org.eclipse.team.ui.TeamSynchronizingPerspective">
@@ -482,6 +492,12 @@
 				ratio="0.66"
 				relationship="right"
 				relative="org.eclipse.ui.editorss">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 		</perspectiveExtension>
 		<perspectiveExtension
@@ -493,6 +509,12 @@
 				relationship="right"
 				relative="org.eclipse.ui.editorss">
 			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
 		</perspectiveExtension>
 		<perspectiveExtension
 			targetID="org.eclipse.jdt.ui.JavaPerspective">
@@ -501,6 +523,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.ui.views.ContentOutline"
@@ -524,6 +552,12 @@
 				relationship="right"
 				relative="org.eclipse.ui.editorss">
 			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
 		</perspectiveExtension>
 		<perspectiveExtension
 			targetID="org.eclipse.debug.ui.DebugPerspective">
@@ -532,6 +566,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.debug.ui.VariableView">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.debug.ui.VariableView"
@@ -561,6 +601,12 @@
 				relationship="right"
 				relative="org.eclipse.ui.editorss">
 			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
 		</perspectiveExtension>
 		<perspectiveExtension
 			targetID="org.eclipse.mylyn.tasks.ui.perspectives.planning">
@@ -569,6 +615,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.mylyn.tasks.ui.views.tasks">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.mylyn.tasks.ui.views.tasks"
@@ -584,6 +636,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.ui.views.ContentOutline"
@@ -608,6 +666,12 @@
 				relative="org.eclipse.ui.views.ContentOutline">
 			</view>
 			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
+			<view
 				id="org.eclipse.ui.views.ContentOutline"
 				minimized="false"
 				relationship="stack"
@@ -622,6 +686,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.ui.views.ContentOutline"
@@ -640,6 +710,12 @@
 				relationship="right"
 				relative="org.eclipse.ui.editorss">
 			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			</view>
 		</perspectiveExtension>
 		<!-- JPA -->
 		<perspectiveExtension
@@ -649,6 +725,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.jpt.ui.jpaStructureView"
@@ -671,6 +753,12 @@
 				minimized="false"
 				relationship="stack"
 				relative="org.eclipse.ui.views.ContentOutline">
+			</view>
+			<view
+				id="com.microsoft.copilot.eclipse.ui.jobs.JobsView"
+				minimized="false"
+				relationship="stack"
+				relative="com.microsoft.copilot.eclipse.ui.chat.ChatView">
 			</view>
 			<view
 				id="org.eclipse.ui.views.ContentOutline"
@@ -706,31 +794,31 @@
 	</extension>
 	<extension point="org.eclipse.e4.ui.css.swt.theme">
 		<stylesheet uri="css/dark.css">
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.high-contrast"/>
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.high-contrast" />
 		</stylesheet>
 		<stylesheet uri="css/light.css">
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_default"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_classic"/>
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_default" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_classic" />
 		</stylesheet>
 		<stylesheet uri="css/windows-light.css" os="win32">
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_default"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_classic"/>
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_default" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_classic" />
 		</stylesheet>
 		<stylesheet uri="css/windows-dark.css" os="win32">
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.high-contrast"/>
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.high-contrast" />
 		</stylesheet>
 		<stylesheet uri="css/macosx-light.css" os="macosx">
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_default"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_classic"/>
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_default" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_preview" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_classic" />
 		</stylesheet>
 		<stylesheet uri="css/macosx-dark.css" os="macosx">
-			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark"/>
-			<themeid refid="org.eclipse.e4.ui.css.theme.high-contrast"/>
+			<themeid refid="org.eclipse.e4.ui.css.theme.e4_dark" />
+			<themeid refid="org.eclipse.e4.ui.css.theme.high-contrast" />
 		</stylesheet>
 	</extension>
 	<extension point="org.eclipse.core.expressions.propertyTesters">
@@ -747,20 +835,20 @@
 	</extension>
 	<extension point="org.eclipse.ui.workbench.texteditor.rulerColumns">
 		<column
-           class="com.microsoft.copilot.eclipse.ui.nes.RulerColumn"
-           enabled="true"
-           global="true"
-           id="com.microsoft.copilot.eclipse.ui.suggest.NextEditSuggestionRulerColumn"
-           includeInMenu="false">
-          <targetClass
-               class="org.eclipse.ui.texteditor.AbstractDecoratedTextEditor">
-         </targetClass>
-        <placement
-              gravity="1.0">
-        </placement>
-     </column>
+			class="com.microsoft.copilot.eclipse.ui.nes.RulerColumn"
+			enabled="true"
+			global="true"
+			id="com.microsoft.copilot.eclipse.ui.suggest.NextEditSuggestionRulerColumn"
+			includeInMenu="false">
+			<targetClass
+				class="org.eclipse.ui.texteditor.AbstractDecoratedTextEditor">
+			</targetClass>
+			<placement
+				gravity="1.0">
+			</placement>
+		</column>
 	</extension>
-	
+
 	<!-- Annotation types for Next Edit Suggestions -->
 	<extension point="org.eclipse.ui.editors.annotationTypes">
 		<type
@@ -772,7 +860,7 @@
 			markerType="org.eclipse.core.resources.textmarker">
 		</type>
 	</extension>
-	
+
 	<!-- Annotation presentation for highlighting -->
 	<extension point="org.eclipse.ui.editors.markerAnnotationSpecification">
 		<specification

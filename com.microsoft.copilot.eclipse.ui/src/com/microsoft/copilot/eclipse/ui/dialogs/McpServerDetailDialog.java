@@ -16,6 +16,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.jface.text.source.VerticalRuler;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -502,8 +503,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
                 ? " (" + remote.getTransportType().toString() + ")"
                 : "");
         InstallOption option = new InstallOption(
-            Messages.mcpServerDetailDialog_remote_prefix.replace("{0}", remote.getUrl()).replace("{1}", typeSuffix),
-            config);
+            NLS.bind(Messages.mcpServerDetailDialog_remote_prefix, remote.getUrl(), typeSuffix), config);
 
         installOptions.add(option);
         installOptionsCombo.add(option.getDisplayName());

@@ -354,6 +354,29 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
+   * Gets whether to skip the GitHub Job confirmation dialog.
+   *
+   * @return true if the dialog should be skipped, false otherwise
+   */
+  public boolean isSkipGitHubJobConfirmDialog() {
+    UserPreference preference = getUserPreference();
+    return preference != null && preference.isSkipGitHubJobConfirmDialog();
+  }
+
+  /**
+   * Sets whether to skip the GitHub Job confirmation dialog.
+   *
+   * @param skip true to skip the dialog, false otherwise
+   */
+  public void setSkipGitHubJobConfirmDialog(boolean skip) {
+    UserPreference preference = getUserPreference();
+    if (preference != null && preference.isSkipGitHubJobConfirmDialog() != skip) {
+      preference.setSkipGitHubJobConfirmDialog(skip);
+      persistUserPreference();
+    }
+  }
+
+  /**
    * Dispose of the service.
    */
   public void dispose() {

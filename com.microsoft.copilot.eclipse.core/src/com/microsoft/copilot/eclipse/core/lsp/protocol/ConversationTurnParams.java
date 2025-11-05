@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -34,6 +33,7 @@ public class ConversationTurnParams {
 
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
+  private String agentSlug;
 
   /**
    * Creates a new ConversationTurnParams.
@@ -151,14 +151,22 @@ public class ConversationTurnParams {
     this.modelProviderName = modelProviderName;
   }
 
+  public String getAgentSlug() {
+    return agentSlug;
+  }
+
+  public void setAgentSlug(String agentSlug) {
+    this.agentSlug = agentSlug;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result
-        + Objects.hash(chatMode, computeSuggestions, conversationId, message, model, needToolCallConfirmation,
-            references, textDocument, workDoneToken, workspaceFolder, workspaceFolders, modelProviderName);
+        + Objects.hash(agentSlug, chatMode, computeSuggestions, conversationId, message, model, modelProviderName,
+            needToolCallConfirmation, references, textDocument, workDoneToken, workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -174,14 +182,14 @@ public class ConversationTurnParams {
       return false;
     }
     ConversationTurnParams other = (ConversationTurnParams) obj;
-    return Objects.equals(chatMode, other.chatMode) && computeSuggestions == other.computeSuggestions
-        && Objects.equals(conversationId, other.conversationId) && Arrays.equals(ignoredSkills, other.ignoredSkills)
-        && Objects.equals(message, other.message) && Objects.equals(model, other.model)
+    return Objects.equals(agentSlug, other.agentSlug) && Objects.equals(chatMode, other.chatMode)
+        && computeSuggestions == other.computeSuggestions && Objects.equals(conversationId, other.conversationId)
+        && Arrays.equals(ignoredSkills, other.ignoredSkills) && Objects.equals(message, other.message)
+        && Objects.equals(model, other.model) && Objects.equals(modelProviderName, other.modelProviderName)
         && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
         && Objects.equals(textDocument, other.textDocument) && Objects.equals(workDoneToken, other.workDoneToken)
         && Objects.equals(workspaceFolder, other.workspaceFolder)
-        && Objects.equals(workspaceFolders, other.workspaceFolders)
-        && Objects.equals(modelProviderName, other.modelProviderName);
+        && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
 
   @Override
@@ -200,6 +208,7 @@ public class ConversationTurnParams {
     builder.add("chatMode", chatMode);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     builder.add("modelProviderName", modelProviderName);
+    builder.add("agentSlug", agentSlug);
     return builder.toString();
   }
 }

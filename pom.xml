@@ -25,6 +25,7 @@
 
 		<module>com.microsoft.copilot.eclipse.core</module>
 		<module>com.microsoft.copilot.eclipse.ui</module>
+		<module>com.microsoft.copilot.eclipse.ui.jobs</module>
 
 		<!-- branding -->
 		<module>com.microsoft.copilot.eclipse.branding</module>

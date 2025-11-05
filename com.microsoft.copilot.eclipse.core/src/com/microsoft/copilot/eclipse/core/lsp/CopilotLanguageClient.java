@@ -47,6 +47,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmat
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -223,6 +225,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       flags.setAgentModeEnabled(params.isAgentModeEnabled());
       flags.setMcpEnabled(params.isMcpEnabled());
       flags.setByokEnabled(params.isByokEnabled());
+      flags.setClientPreviewFeatureEnabled(params.isClientPreviewFeaturesEnabled());
     }
 
     if (eventBroker != null) {
@@ -243,6 +246,20 @@ public class CopilotLanguageClient extends LanguageClientImpl {
             params.isMcpContributionPointEnabled());
       }
     }
+  }
+
+  /**
+   * Handles coding agent messages from the server.
+   */
+  @JsonRequest("copilot/codingAgentMessage")
+  public CompletableFuture<CodingAgentMessageResult> onCodingAgentMessage(CodingAgentMessageRequestParams message) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_CODING_AGENT_MESSAGE, message);
+    }
+
+    CodingAgentMessageResult result = new CodingAgentMessageResult();
+    result.setSuccess(true);
+    return CompletableFuture.completedFuture(result);
   }
 
   /**

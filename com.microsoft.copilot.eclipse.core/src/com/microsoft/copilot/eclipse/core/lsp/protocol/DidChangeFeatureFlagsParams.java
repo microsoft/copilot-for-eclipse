@@ -65,6 +65,13 @@ public class DidChangeFeatureFlagsParams {
     return !disabled;
   }
 
+  /**
+   * Checks if client preview features are enabled.
+   */
+  public boolean isClientPreviewFeaturesEnabled() {
+    boolean disabled = featureFlags != null && "0".equals(featureFlags.get("editor_preview_features"));
+    return !disabled;
+  }
 
   @Override
   public int hashCode() {

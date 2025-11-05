@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ASCII"?>
+<fragment:ModelFragments xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/descriptor/basic" xmlns:fragment="http://www.eclipse.org/ui/2010/UIModel/fragment" xmi:id="_JobsViewFragment">
+  <fragments xsi:type="fragment:StringModelFragment" xmi:id="_JobsViewStringFragment" featurename="descriptors" parentElementId="xpath:/">
+    <elements xsi:type="basic:PartDescriptor" xmi:id="_JobsViewPartDescriptor" elementId="com.microsoft.copilot.eclipse.ui.jobs.JobsView" label="GitHub Coding Agent Jobs" iconURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs/icons/bg_agents.png" tooltip="GitHub Coding Agent Jobs" category="GitHub Copilot" closeable="true" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.views.JobsView">
+      <tags>View</tags>
+      <tags>categoryTag:GitHub Copilot</tags>
+    </elements>
+  </fragments>
+</fragment:ModelFragments>

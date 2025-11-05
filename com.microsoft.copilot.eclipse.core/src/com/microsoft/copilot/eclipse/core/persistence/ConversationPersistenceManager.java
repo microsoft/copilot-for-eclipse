@@ -19,6 +19,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
 /**
@@ -429,6 +430,42 @@ public class ConversationPersistenceManager {
         }
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to update conversation title: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
+   * Adds a coding agent message to a conversation turn and persists it.
+   *
+   * @param params the coding agent message request parameters
+   * @param agentSlug the slug identifier of the coding agent
+   */
+  public CompletableFuture<Void> addCodingAgentMessage(CodingAgentMessageRequestParams params, String agentSlug) {
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ConversationData conversation = getOrCreateNewConversationById(params.getConversationId());
+        final CopilotTurnData copilotTurn = findOrCreateCopilotTurn(conversation, params.getTurnId());
+
+        // Create agent message data
+        CopilotTurnData.AgentMessageData agentMessage = new CopilotTurnData.AgentMessageData();
+        agentMessage.setTitle(params.getTitle());
+        agentMessage.setDescription(params.getDescription());
+        agentMessage.setPrLink(params.getPrLink());
+        agentMessage.setAgentSlug(agentSlug);
+
+        // Add to the turn's reply data
+        if (copilotTurn.getReply().getAgentMessages() == null) {
+          copilotTurn.getReply().setAgentMessages(new ArrayList<>());
+        }
+        copilotTurn.getReply().getAgentMessages().add(agentMessage);
+
+        // Persist the updated conversation
+        persistAndCacheConversation(conversation);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to add agent message: " + params.getConversationId(), e);
       } finally {
         lock.writeLock().unlock();
       }

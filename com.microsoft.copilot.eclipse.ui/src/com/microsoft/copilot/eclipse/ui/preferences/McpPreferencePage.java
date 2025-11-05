@@ -26,6 +26,7 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.preference.StringFieldEditor;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -238,7 +239,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
                   // Show info message
                   String owner = allowList.mcpRegistries.get(0).getOwner().getLogin();
-                  String message = Messages.preferences_page_mcp_registry_restricted_info.replace("{0}", owner);
+                  String message = NLS.bind(Messages.preferences_page_mcp_registry_restricted_info, owner);
                   showRegistryInfoMessage(message);
                 }
               }

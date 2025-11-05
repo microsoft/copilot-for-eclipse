@@ -13,6 +13,8 @@ public class FeatureFlags {
 
   private boolean byokEnabled = true;
 
+  private boolean clientPreviewFeatureEnabled = true;
+
   private boolean mcpContributionPointEnabled = false;
 
   public boolean isAgentModeEnabled() {
@@ -45,6 +47,14 @@ public class FeatureFlags {
 
   public void setMcpContributionPointEnabled(boolean mcpContributionPointEnabled) {
     this.mcpContributionPointEnabled = mcpContributionPointEnabled;
+  }
+
+  public boolean isClientPreviewFeatureEnabled() {
+    return clientPreviewFeatureEnabled;
+  }
+
+  public void setClientPreviewFeatureEnabled(boolean clientPreviewFeatureEnabled) {
+    this.clientPreviewFeatureEnabled = clientPreviewFeatureEnabled;
   }
 
   /**

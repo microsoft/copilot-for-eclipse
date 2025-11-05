@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
@@ -54,6 +55,8 @@ class ReferencedFileTest {
   private CopilotUi mockCopilotUi;
   @Mock
   private CopilotModel mockModel;
+  @Mock
+  private McpConfigService mockMcpConfigService;
 
   private Shell shell;
   private ActionBar actionBar;
@@ -104,6 +107,7 @@ class ReferencedFileTest {
     when(mockChatServiceManager.getUserPreferenceService()).thenReturn(mockUserPreferenceService);
     when(mockChatServiceManager.getModelService()).thenReturn(mockModelService);
     when(mockChatServiceManager.getReferencedFileService()).thenReturn(mockReferencedFileService);
+    when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
     when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
     when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
     actionBar = spy(new ActionBar(shell, SWT.NONE, mockChatServiceManager));

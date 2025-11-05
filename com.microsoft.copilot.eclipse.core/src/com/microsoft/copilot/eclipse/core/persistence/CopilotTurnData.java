@@ -165,6 +165,7 @@ public class CopilotTurnData extends AbstractTurnData {
     private List<Object> panelMessages;
     private Integer rating;
     private List<Object> steps;
+    private List<AgentMessageData> agentMessages;
     private Map<String, Object> data;
 
     /**
@@ -179,6 +180,7 @@ public class CopilotTurnData extends AbstractTurnData {
       this.editAgentRounds = new ArrayList<>();
       this.panelMessages = new ArrayList<>();
       this.steps = new ArrayList<>();
+      this.agentMessages = new ArrayList<>();
       this.data = new HashMap<>();
     }
 
@@ -270,6 +272,14 @@ public class CopilotTurnData extends AbstractTurnData {
       this.steps = steps;
     }
 
+    public List<AgentMessageData> getAgentMessages() {
+      return agentMessages;
+    }
+
+    public void setAgentMessages(List<AgentMessageData> agentMessages) {
+      this.agentMessages = agentMessages;
+    }
+
     public Map<String, Object> getData() {
       return data;
     }
@@ -281,7 +291,7 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public int hashCode() {
       return Objects.hash(annotations, data, editAgentRounds, errorMessages, followups, hideText, notifications,
-          panelMessages, rating, references, steps, text);
+          panelMessages, rating, references, steps, agentMessages, text);
     }
 
     @Override
@@ -302,7 +312,7 @@ public class CopilotTurnData extends AbstractTurnData {
           && hideText == other.hideText && Objects.equals(notifications, other.notifications)
           && Objects.equals(panelMessages, other.panelMessages) && Objects.equals(rating, other.rating)
           && Objects.equals(references, other.references) && Objects.equals(steps, other.steps)
-          && Objects.equals(text, other.text);
+          && Objects.equals(agentMessages, other.agentMessages) && Objects.equals(text, other.text);
     }
 
     @Override
@@ -319,6 +329,7 @@ public class CopilotTurnData extends AbstractTurnData {
       builder.add("panelMessages", panelMessages);
       builder.add("rating", rating);
       builder.add("steps", steps);
+      builder.add("agentMessages", agentMessages);
       builder.add("data", data);
       return builder.toString();
     }
@@ -600,6 +611,90 @@ public class CopilotTurnData extends AbstractTurnData {
       builder.add("progressMessage", progressMessage);
       builder.add("status", status);
       builder.add("result", result);
+      builder.add("data", data);
+      return builder.toString();
+    }
+  }
+
+  /**
+   * Data class representing a coding agent message.
+   */
+  public static class AgentMessageData {
+    private String title;
+    private String description;
+    private String prLink;
+    private String agentSlug;
+    private Map<String, Object> data;
+
+    public String getTitle() {
+      return title;
+    }
+
+    public void setTitle(String title) {
+      this.title = title;
+    }
+
+    public String getDescription() {
+      return description;
+    }
+
+    public void setDescription(String description) {
+      this.description = description;
+    }
+
+    public String getPrLink() {
+      return prLink;
+    }
+
+    public void setPrLink(String prLink) {
+      this.prLink = prLink;
+    }
+
+    public String getAgentSlug() {
+      return agentSlug;
+    }
+
+    public void setAgentSlug(String agentSlug) {
+      this.agentSlug = agentSlug;
+    }
+
+    public Map<String, Object> getData() {
+      return data;
+    }
+
+    public void setData(Map<String, Object> data) {
+      this.data = data;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(data, description, prLink, title, agentSlug);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      AgentMessageData other = (AgentMessageData) obj;
+      return Objects.equals(data, other.data) && Objects.equals(description, other.description)
+          && Objects.equals(prLink, other.prLink) && Objects.equals(title, other.title)
+          && Objects.equals(agentSlug, other.agentSlug);
+    }
+
+    @Override
+    public String toString() {
+      ToStringBuilder builder = new ToStringBuilder(this);
+      builder.add("title", title);
+      builder.add("description", description);
+      builder.add("prLink", prLink);
+      builder.add("agentSlug", agentSlug);
       builder.add("data", data);
       return builder.toString();
     }

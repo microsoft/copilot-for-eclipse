@@ -193,7 +193,6 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
       } else {
         // Users press Enter to send message, so we should remove the line break
         removeLineBreak();
-        userPreferenceService.addInputToHistory(this.getContent());
         handleSendMessage();
       }
       return;

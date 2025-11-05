@@ -13,7 +13,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
  * Copilot Perspective.
  */
 public class CopilotPerspectiveFactory implements IPerspectiveFactory {
-    
+
   @Override
   public void createInitialLayout(IPageLayout layout) {
     // Get the editor area id
@@ -22,6 +22,7 @@ public class CopilotPerspectiveFactory implements IPerspectiveFactory {
     // Right
     IFolderLayout copilotLayout = layout.createFolder("right", IPageLayout.RIGHT, 0.75f, editorArea);
     copilotLayout.addView(Constants.CHAT_VIEW_ID);
+    copilotLayout.addView(Constants.GITHUB_JOBS_VIEW_ID);
 
     // Left
     IFolderLayout projectExplorerLayout = layout.createFolder("left", IPageLayout.LEFT, 0.25f, editorArea);
@@ -37,12 +38,12 @@ public class CopilotPerspectiveFactory implements IPerspectiveFactory {
     consoleLayout.addView(IPageLayout.ID_PROBLEM_VIEW);
     consoleLayout.addView(IConsoleConstants.ID_CONSOLE_VIEW);
     consoleLayout.addView("org.eclipse.tm.terminal.view.ui.TerminalsView");
-    
+
     consoleLayout.addPlaceholder(IPageLayout.ID_BOOKMARKS);
     consoleLayout.addPlaceholder(IProgressConstants.PROGRESS_VIEW_ID);
     consoleLayout.addPlaceholder("org.eclipse.pde.runtime.LogView");
     consoleLayout.addPlaceholder("org.eclipse.search.ui.views.SearchView");
-    
+
     // 'Window' > 'Show View' shortcuts
     layout.addShowViewShortcut(IConsoleConstants.ID_CONSOLE_VIEW);
     layout.addShowViewShortcut(IPageLayout.ID_OUTLINE);
@@ -54,7 +55,8 @@ public class CopilotPerspectiveFactory implements IPerspectiveFactory {
     layout.addShowViewShortcut("org.eclipse.tm.terminal.view.ui.TerminalsView");
     layout.addShowViewShortcut("org.eclipse.pde.runtime.LogView");
     layout.addShowViewShortcut("org.eclipse.search.ui.views.SearchView");
-    
+    layout.addShowViewShortcut(Constants.GITHUB_JOBS_VIEW_ID);
+
     // 'Window' > 'Perspective' > 'Open Perspective' contributions
     layout.addPerspectiveShortcut("org.eclipse.debug.ui.DebugPerspective");
   }

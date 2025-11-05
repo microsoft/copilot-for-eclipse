@@ -42,7 +42,9 @@ public class AgentStatusLabel extends Composite {
    */
   public AgentStatusLabel(Composite parent, int style) {
     super(parent, style);
-    setLayout(new GridLayout(2, false));
+    GridLayout layout = new GridLayout(2, false);
+    layout.horizontalSpacing = 0;
+    setLayout(layout);
     setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     this.addDisposeListener(e -> {
       stopAnimation();

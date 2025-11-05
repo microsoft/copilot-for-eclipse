@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -54,13 +55,17 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
+import com.microsoft.copilot.eclipse.ui.dialogs.jobs.GitHubCodingAgentDialog;
+import com.microsoft.copilot.eclipse.ui.dialogs.jobs.ProjectSelectionDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
@@ -96,10 +101,14 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image mcpToolDisabledImage;
   private Image mcpToolDetectedImage;
   private Image redNoticeImage;
+  private Button sendToJobButton;
+  private Image sendToJobImage;
+  private Image sendToJobDisabledImage;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
   EventHandler updateSendButtonToCancelButtonHandler;
+  EventHandler featureFlagsChangedEventHandler;
 
   private static enum SendOrCancelButtonStates {
     SEND_ENABLED, SEND_DISABLED, CANCEL_ENABLED;
@@ -123,6 +132,14 @@ public class ActionBar extends Composite implements NewConversationListener {
     };
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, updateSendButtonToCancelButtonHandler);
+    this.featureFlagsChangedEventHandler = event -> {
+      // Update buttons layout when feature flags change
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        updateButtonsLayout();
+      }, this);
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS,
+        featureFlagsChangedEventHandler);
     Composite actionBar = new Composite(this, style | SWT.BORDER);
     GridLayout gl = new GridLayout(1, false);
     gl.marginHeight = 5;
@@ -243,13 +260,14 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
     Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
-    GridLayout glControlBar = new GridLayout(2, false);
+    GridLayout glControlBar = new GridLayout(3, false);
     glControlBar.marginWidth = 0;
     glControlBar.marginLeft = 0;
     cmpControlBar.setLayout(glControlBar);
     cmpControlBar.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, true, false));
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
+    setUpMcpToolButtonInControlBar(cmpControlBar);
 
     // Create a composite for the bottom-right side buttons
     GridLayout buttonsLayout = new GridLayout(2, false);
@@ -259,7 +277,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.bottomRightButtonsComposite.setLayout(buttonsLayout);
     this.bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
 
-    // Update both MCP button and send button together
+    // Update send to job button and send button together
     updateButtonsLayout();
 
     this.addDisposeListener(e -> {
@@ -341,64 +359,55 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   /**
-   * Refresh the layout of both MCP button and send button together to ensure proper coordination.
+   * Refresh the layout of both sendToJob button and send button together to ensure proper coordination.
    */
   public void updateButtonsLayout() {
-    if (this.mcpToolButton != null && !this.mcpToolButton.isDisposed()) {
-      this.chatServiceManager.getMcpConfigService().unbindWithMcpToolButton();
-      this.mcpToolButton.dispose();
-      this.mcpToolButton = null;
+    if (sendToJobButton != null && !sendToJobButton.isDisposed()) {
+      sendToJobButton.dispose();
+      sendToJobButton = null;
     }
     if (btnMsgToggle != null && !btnMsgToggle.isDisposed()) {
       btnMsgToggle.dispose();
       btnMsgToggle = null;
     }
 
-    // Update the bottom right buttons composite layout based on chat mode
-    boolean isAgentMode = chatServiceManager.getUserPreferenceService().getActiveChatMode().equals(ChatMode.Agent);
+    // Check if client preview features are enabled
+    boolean clientPreviewFeaturesEnabled = CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled();
+
+    // Bottom right buttons composite: 2 columns if sendToJob is visible, 1 column otherwise
     GridLayout buttonsLayout = (GridLayout) this.bottomRightButtonsComposite.getLayout();
-    buttonsLayout.numColumns = isAgentMode ? 2 : 1;
+    buttonsLayout.numColumns = clientPreviewFeaturesEnabled ? 2 : 1;
 
-    // Add MCP button for Agent mode
-    if (isAgentMode) {
-      if (mcpToolImage == null || mcpToolImage.isDisposed()) {
-        mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+    // Add sendToJob button - only visible if clientPreviewFeaturesEnabled
+    if (clientPreviewFeaturesEnabled) {
+      if (sendToJobImage == null || sendToJobImage.isDisposed()) {
+        sendToJobImage = UiUtils.buildImageFromPngPath("/icons/chat/send_to_job.png");
       }
-      if (mcpToolDisabledImage == null || mcpToolDisabledImage.isDisposed()) {
-        mcpToolDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_disabled.png");
-      }
-      if (mcpToolDetectedImage == null || mcpToolDetectedImage.isDisposed()) {
-        mcpToolDetectedImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_detected.png");
+      if (sendToJobDisabledImage == null || sendToJobDisabledImage.isDisposed()) {
+        sendToJobDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/send_to_job_disabled.png");
       }
 
-      this.mcpToolButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-      this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
-          mcpToolDisabledImage, mcpToolDetectedImage);
-      GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-      mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
-      mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
-      this.mcpToolButton.setLayoutData(mcpToolGd);
-      this.mcpToolButton.addSelectionListener(new SelectionAdapter() {
+      this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
+
+      // Enable sendToJobButton only if there's text AND at least one project is a git repository
+      boolean hasText = !StringUtils.isBlank(this.inputTextViewer.getContent());
+      boolean hasGitRepo = hasGitRepository();
+      boolean shouldEnable = hasText && hasGitRepo;
+
+      this.sendToJobButton.setEnabled(shouldEnable);
+      this.sendToJobButton.setImage(shouldEnable ? sendToJobImage : sendToJobDisabledImage);
+      this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
+      GridData sendToJobGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+      sendToJobGd.widthHint = sendToJobImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
+      sendToJobGd.heightHint = sendToJobImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
+      this.sendToJobButton.setLayoutData(sendToJobGd);
+      this.sendToJobButton.addSelectionListener(new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent e) {
-          if (!CopilotCore.getPlugin().getFeatureFlags().isMcpEnabled()) {
-            return;
-          }
-
-          // Check if new MCP registrations are found
-          if (chatServiceManager.getMcpConfigService().isNewExtMcpRegFound()) {
-            showMcpToolContextMenu();
-          } else {
-            // Default behavior - open preference page directly
-            openMcpPreferences();
-          }
-
-          // set focus back to input text viewer after handling MCP button click
+          handleSendToJob();
           setFocusToInputTextViewer();
         }
       });
-      AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpToolButton,
-          Messages.chat_actionBar_toolButton_toolTip);
     }
 
     // Add toggle button for all modes if it has not been created
@@ -466,9 +475,66 @@ public class ActionBar extends Composite implements NewConversationListener {
       public void widgetSelected(SelectionEvent e) {
         int index = cmbChatModePicker.getSelectionIndex();
         userPreferenceService.setActiveChatMode(index);
+        updateMcpToolButtonVisibility();
       }
     });
     AccessibilityUtils.addAccessibilityNameForUiComponent(cmbChatModePicker, "chat mode picker");
+  }
+
+  private void setUpMcpToolButtonInControlBar(Composite parent) {
+    if (mcpToolImage == null || mcpToolImage.isDisposed()) {
+      mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+    }
+    if (mcpToolDisabledImage == null || mcpToolDisabledImage.isDisposed()) {
+      mcpToolDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_disabled.png");
+    }
+    if (mcpToolDetectedImage == null || mcpToolDetectedImage.isDisposed()) {
+      mcpToolDetectedImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_detected.png");
+    }
+
+    this.mcpToolButton = UiUtils.createIconButton(parent, SWT.PUSH | SWT.FLAT);
+    this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
+        mcpToolDisabledImage, mcpToolDetectedImage);
+
+    GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+    mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
+    mcpToolGd.heightHint = mcpToolImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
+    this.mcpToolButton.setLayoutData(mcpToolGd);
+    this.mcpToolButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        if (!CopilotCore.getPlugin().getFeatureFlags().isMcpEnabled()) {
+          return;
+        }
+
+        // Check if new MCP registrations are found
+        if (chatServiceManager.getMcpConfigService().isNewExtMcpRegFound()) {
+          showMcpToolContextMenu();
+        } else {
+          // Default behavior - open preference page directly
+          openMcpPreferences();
+        }
+
+        // set focus back to input text viewer after handling MCP button click
+        setFocusToInputTextViewer();
+      }
+    });
+
+    // Set initial visibility based on chat mode
+    updateMcpToolButtonVisibility();
+  }
+
+  /**
+   * Update MCP tool button visibility based on chat mode. Only visible in Agent mode.
+   */
+  private void updateMcpToolButtonVisibility() {
+    if (mcpToolButton == null || mcpToolButton.isDisposed()) {
+      return;
+    }
+    boolean isAgentMode = chatServiceManager.getUserPreferenceService().getActiveChatMode().equals(ChatMode.Agent);
+    mcpToolButton.setVisible(isAgentMode);
+    ((GridData) mcpToolButton.getLayoutData()).exclude = !isAgentMode;
+    mcpToolButton.getParent().layout(true);
   }
 
   @Override
@@ -528,6 +594,46 @@ public class ActionBar extends Composite implements NewConversationListener {
     notifySend(workDoneToken, message);
   }
 
+  /**
+   * Handles the send to job button click event. Shows a dialog to inform user about git repository requirement.
+   */
+  private void handleSendToJob() {
+    ChatServiceManager chatServiceManager = (ChatServiceManager) CopilotCore.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
+      if (userPreferenceService != null) {
+        String selectedProjectPath = null;
+        Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+
+        // Only proceed if a project was selected when multiple projects are present or user confirmed the Copilot agent
+        // job when single project
+        List<IProject> topLevelGitProjects = WorkspaceUtils.listTopLevelProjectsWithGitRepository();
+        if (topLevelGitProjects.size() > 1) {
+          selectedProjectPath = ProjectSelectionDialog.open(shell);
+        } else if (userPreferenceService.isSkipGitHubJobConfirmDialog() || GitHubCodingAgentDialog.open(shell)) {
+          selectedProjectPath = FileUtils.getResourceUri(topLevelGitProjects.get(0));
+        }
+
+        // Only proceed if a project path was selected (dialog was not cancelled)
+        if (selectedProjectPath != null) {
+          updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
+          String message = this.inputTextViewer.getContent();
+          String workDoneToken = UUID.randomUUID().toString();
+          this.inputTextViewer.setContent(StringUtils.EMPTY);
+          notifySendWithSlug(workDoneToken, message, UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG, selectedProjectPath);
+        } else {
+          // Dialog was cancelled, reset button state based on current input content
+          if (this.inputTextViewer.getContent().isEmpty()) {
+            updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
+          } else {
+            updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
+          }
+        }
+      }
+    }
+
+  }
+
   private void handleCancelMessage() {
     resetSendButton();
     notifyCancel();
@@ -572,15 +678,18 @@ public class ActionBar extends Composite implements NewConversationListener {
       case SEND_ENABLED:
         isSendButton = true;
         updateSendOrCancelMsgBtn(true, sendImage, Messages.chat_actionBar_sendButton_Tooltip);
+        updateSendToJobBtn(true);
         break;
       case SEND_DISABLED:
         isSendButton = true;
         updateSendOrCancelMsgBtn(false, sendDisabledImage, Messages.chat_actionBar_sendButton_Tooltip);
+        updateSendToJobBtn(false);
         break;
       case CANCEL_ENABLED:
         isSendButton = false;
         Image cancelImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_STOP);
         updateSendOrCancelMsgBtn(true, cancelImage, Messages.chat_actionBar_cancelButton_Tooltip);
+        updateSendToJobBtn(false);
         break;
       default:
         break;
@@ -594,9 +703,23 @@ public class ActionBar extends Composite implements NewConversationListener {
    * @param message the message
    */
   public void notifySend(String workDoneToken, String message) {
-    for (MessageListener listener : this.messageListeners) {
-      listener.onSend(workDoneToken, message, true);
-    }
+    Map<String, Object> properties = Map.of("workDoneToken", workDoneToken, "message", message, "createNewTurn", true);
+    this.eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MESSAGE_SEND, properties);
+  }
+
+  /**
+   * Notifies the send message listeners with a specific agent slug.
+   *
+   * @param workDoneToken the work done token
+   * @param message the message
+   * @param agentSlug the agent slug to use for this turn
+   * @param agentJobWorkspaceFolder the workspace folder for the agent job
+   */
+  public void notifySendWithSlug(String workDoneToken, String message, String agentSlug,
+      String agentJobWorkspaceFolder) {
+    Map<String, Object> properties = Map.of("workDoneToken", workDoneToken, "message", message, "agentSlug", agentSlug,
+        "agentJobWorkspaceFolder", agentJobWorkspaceFolder, "createNewTurn", true);
+    this.eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MESSAGE_SEND, properties);
   }
 
   private void updateSendOrCancelMsgBtn(boolean enable, Image image, String tooltip) {
@@ -608,6 +731,27 @@ public class ActionBar extends Composite implements NewConversationListener {
       btnMsgToggle.setImage(image);
       btnMsgToggle.setToolTipText(tooltip);
     }, btnMsgToggle);
+  }
+
+  private void updateSendToJobBtn(boolean enable) {
+    if (sendToJobButton == null || sendToJobButton.isDisposed()) {
+      return;
+    }
+    SwtUtils.invokeOnDisplayThread(() -> {
+      // Only enable if the parameter is true AND at least one project is a git repository
+      boolean shouldEnable = enable && hasGitRepository();
+      sendToJobButton.setEnabled(shouldEnable);
+      sendToJobButton.setImage(shouldEnable ? sendToJobImage : sendToJobDisabledImage);
+    }, sendToJobButton);
+  }
+
+  /**
+   * Check if at least one top-level project is a git repository.
+   *
+   * @return true if at least one project has a .git folder, false otherwise
+   */
+  private boolean hasGitRepository() {
+    return !WorkspaceUtils.listTopLevelProjectsWithGitRepository().isEmpty();
   }
 
   /**
@@ -658,6 +802,10 @@ public class ActionBar extends Composite implements NewConversationListener {
     if (eventBroker != null && updateSendButtonToCancelButtonHandler != null) {
       eventBroker.unsubscribe(updateSendButtonToCancelButtonHandler);
       updateSendButtonToCancelButtonHandler = null;
+    }
+    if (eventBroker != null && featureFlagsChangedEventHandler != null) {
+      eventBroker.unsubscribe(featureFlagsChangedEventHandler);
+      featureFlagsChangedEventHandler = null;
     }
   }
 

@@ -32,4 +32,7 @@ public class UiConstants {
   public static final String OPEN_CHAT_VIEW_INPUT_VALUE = 
       "com.microsoft.copilot.eclipse.commands.openChatView.inputValue";
   public static final String OPEN_CHAT_VIEW_AUTO_SEND = "com.microsoft.copilot.eclipse.commands.openChatView.autoSend";
+
+  public static final String GITHUB_COPILOT_CODING_AGENT_SLUG = "github-copilot-coding-agent";
+  public static final String GITHUB_COPILOT_CODING_AGENT_LEARN_MORE_URL = "https://aka.ms/learn-copilot-coding-agent";
 }

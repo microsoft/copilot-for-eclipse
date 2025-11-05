@@ -22,6 +22,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
@@ -53,6 +54,8 @@ public class TopBanner extends Composite {
   private Image openPreferenceIcon;
   private Button mcpRegistryButton;
   private Image mcpRegistryIcon;
+  private Button gitHubJobsButton;
+  private Image gitHubJobsIcon;
   private IEventBroker eventBroker;
 
   /**
@@ -83,7 +86,7 @@ public class TopBanner extends Composite {
     this.chatTitle.setLayoutData(labelGridData);
 
     this.cmpActionArea = new Composite(this, SWT.NONE);
-    GridLayout glGroupButton = new GridLayout(PlatformUtils.isNightly() ? 4 : 3, false);
+    GridLayout glGroupButton = new GridLayout(PlatformUtils.isNightly() ? 5 : 4, false);
     glGroupButton.marginWidth = 0;
     glGroupButton.marginHeight = 0;
     this.cmpActionArea.setLayout(glGroupButton);
@@ -104,6 +107,17 @@ public class TopBanner extends Composite {
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpRegistryButton,
           Messages.chat_topBanner_mcpRegistry_Tooltip);
     }
+
+    this.gitHubJobsIcon = UiUtils.buildImageFromPngPath("/icons/jobs/github_jobs.png");
+    this.gitHubJobsButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
+    this.gitHubJobsButton.setImage(this.gitHubJobsIcon);
+    this.gitHubJobsButton.setToolTipText("GitHub Copilot Agent Jobs");
+    this.gitHubJobsButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        UiUtils.openE4Part(Constants.GITHUB_JOBS_VIEW_ID);
+      }
+    });
 
     this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
     this.btnNewConversation = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
@@ -190,6 +204,9 @@ public class TopBanner extends Composite {
       }
       if (this.mcpRegistryIcon != null && !this.mcpRegistryIcon.isDisposed()) {
         this.mcpRegistryIcon.dispose();
+      }
+      if (this.gitHubJobsIcon != null && !this.gitHubJobsIcon.isDisposed()) {
+        this.gitHubJobsIcon.dispose();
       }
     });
   }

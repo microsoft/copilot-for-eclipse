@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.text.IDocument;
@@ -59,6 +60,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
@@ -236,22 +239,41 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName) {
+    return createConversation(workDoneToken, message, files, currentFile, turns, activeModel, chatModeName, null, null);
+  }
+
+  /**
+   * Create a conversation with the given parameters and optional agentSlug, agentJobWorkspaceFolder.
+   */
+  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
+      List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
+      String agentSlug, String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
     Function<LanguageServer, CompletableFuture<ChatCreateResult>> fn = server -> {
       ConversationCreateParams param = new ConversationCreateParams(messageWithImages, workDoneToken);
-      param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
-      param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
       param.setChatMode(chatModeName);
 
+      if (StringUtils.isBlank(agentSlug)) {
+        param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
+        param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+      } else {
+        // Set agentSlug if provided - this will modify the first turn's agentSlug
+        if (param.getTurns() != null && !param.getTurns().isEmpty()) {
+          param.getTurns().get(0).setAgentSlug(agentSlug);
+        }
+        param.setWorkspaceFolder(agentJobWorkspaceFolder);
+      }
+
       // Set historical turns if provided.
       if (turns != null && turns.size() > 0) {
-        param.setTurns(turns);
+        param.getTurns().addAll(turns);
       }
+
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
       param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {
@@ -266,7 +288,8 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
-      String message, List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName) {
+      String message, List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName,
+      String agentSlug, String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -276,13 +299,21 @@ public class CopilotLanguageServerConnection {
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
       param.setChatMode(chatModeName);
-      param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
-      param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+
+      if (StringUtils.isBlank(agentSlug)) {
+        param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
+        param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+      } else {
+        param.setAgentSlug(agentSlug);
+        param.setWorkspaceFolder(agentJobWorkspaceFolder);
+      }
+
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
       param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {
         param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
       }
+
       return ((CopilotLanguageServer) server).addTurn(param);
     };
     return this.languageServerWrapper.execute(fn);
@@ -497,14 +528,14 @@ public class CopilotLanguageServerConnection {
    * Get the MCP registry allowlist for the current user or organization.
    */
   public CompletableFuture<McpRegistryAllowList> getMcpAllowlist(Object params) {
-    Function<LanguageServer, CompletableFuture<McpRegistryAllowList>> fn = 
-        server -> ((CopilotLanguageServer) server).getMcpAllowlist(params);
+    Function<LanguageServer, CompletableFuture<McpRegistryAllowList>> fn = server -> ((CopilotLanguageServer) server)
+        .getMcpAllowlist(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
       return null;
     });
   }
-  
+
   /**
    * Get next edit suggestions (inline edit) for a position.
    */
@@ -512,6 +543,15 @@ public class CopilotLanguageServerConnection {
     Function<LanguageServer, CompletableFuture<NextEditSuggestionsResult>> fn = 
         server -> ((CopilotLanguageServer) server)
         .getNextEditSuggestions(params);
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Search GitHub pull requests based on the given parameters.
+   */
+  public CompletableFuture<SearchPrResponse> searchPr(SearchPrParams params) {
+    Function<LanguageServer, CompletableFuture<SearchPrResponse>> fn = server -> ((CopilotLanguageServer) server)
+        .searchPr(params);
     return this.languageServerWrapper.execute(fn);
   }
 

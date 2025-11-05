@@ -18,6 +18,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 
@@ -126,7 +127,7 @@ public class McpServerInstallManager {
       // Show confirmation dialog on UI thread
       final boolean[] shouldProceed = new boolean[1];
       Display.getDefault().syncExec(() -> {
-        String message = Messages.mcpServerInstallManager_overrideServer_message.replace("{0}", serverName);
+        String message = NLS.bind(Messages.mcpServerInstallManager_overrideServer_message, serverName);
         shouldProceed[0] = MessageDialog.openQuestion(Display.getDefault().getActiveShell(),
             Messages.mcpServerInstallManager_overrideServer_title, message);
       });

@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;

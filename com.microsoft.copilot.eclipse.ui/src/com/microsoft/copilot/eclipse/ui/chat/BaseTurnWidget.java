@@ -23,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -302,6 +303,14 @@ public abstract class BaseTurnWidget extends Composite {
    */
   protected void createWarnDialog(String message, int code) {
     new WarnWidget(this, SWT.BOTTOM, message, code);
+    requestLayout();
+  }
+
+  /**
+   * Create an agent message widget to the turn widget.
+   */
+  protected void createAgentMessageWidget(CodingAgentMessageRequestParams params) {
+    new AgentMessageWidget(this, SWT.BOTTOM, params);
     requestLayout();
   }
 

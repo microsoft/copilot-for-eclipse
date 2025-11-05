@@ -58,6 +58,11 @@ public class CopilotEventConstants {
   public static final String TOPIC_CHAT_ON_SEND = TOPIC_CHAT + "ON_SEND";
 
   /**
+   * Event when a message is sent from the action bar.
+   */
+  public static final String TOPIC_CHAT_MESSAGE_SEND = TOPIC_CHAT + "MESSAGE_SEND";
+
+  /**
    * Event when MCP runtime log is received.
    */
   public static final String TOPIC_CHAT_MCP_RUNTIME_LOG = TOPIC_CHAT + "MCP_RUNTIME_LOG";
@@ -107,6 +112,11 @@ public class CopilotEventConstants {
    * Event when BYOK models are updated.
    */
   public static final String TOPIC_CHAT_BYOK_MODELS_UPDATED = TOPIC_CHAT + "BYOK_MODELS_UPDATED";
+
+  /**
+   * Event when a coding agent message is received.
+   */
+  public static final String TOPIC_CHAT_CODING_AGENT_MESSAGE = TOPIC_CHAT + "CODING_AGENT_MESSAGE";
 
   /**
    * Event when MCP server state changes (install, uninstall, etc.).

@@ -72,6 +72,18 @@ public final class Messages extends NLS {
 
   public static String mcpServerInstallManager_overrideServer_title;
   public static String mcpServerInstallManager_overrideServer_message;
+  
+  public static String githubCodingAgentDialog_title;
+  public static String githubCodingAgentDialog_info_description;
+  public static String githubCodingAgentDialog_checkbox_dontAskAgain;
+  public static String githubCodingAgentDialog_button_cancel;
+  public static String githubCodingAgentDialog_button_continue;
+  public static String projectSelectionDialog_title;
+  public static String projectSelectionDialog_info_description;
+  public static String projectSelectionDialog_label_selectProject;
+  public static String projectSelectionDialog_button_cancel;
+  public static String projectSelectionDialog_button_continue;
+  public static String githubCodingAgent_link_learnMore;
 
   static {
     // initialize resource bundle
