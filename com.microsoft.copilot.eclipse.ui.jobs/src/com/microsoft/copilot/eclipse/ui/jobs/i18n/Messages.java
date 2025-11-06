@@ -15,6 +15,7 @@ public final class Messages extends NLS {
   public static String jobsView_label_loadingAgentJobs;
   public static String jobsView_label_noOpenProjects;
   public static String jobsView_label_copilotNotInitialized;
+  public static String jobsView_label_noAgentJobsFound;
   public static String jobsView_label_draftPrefix;
   public static String jobsView_job_loadingPullRequests;
   public static String jobsView_job_loadingPullRequestsForProjects;

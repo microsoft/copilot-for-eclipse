@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import jakarta.annotation.PostConstruct;
@@ -59,6 +60,9 @@ import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 public class JobsView {
   private static final String SEARCH_PR_QUERY = 
       "repo:${owner}/${repository} is:open author:@copilot involves:${user} is:pull-request";
+  private static final Set<String> SPECIAL_STATUS_LABELS = Set.of(Messages.jobsView_label_noOpenProjects,
+      Messages.jobsView_label_copilotNotInitialized, Messages.jobsView_label_noAgentJobsFound,
+      Messages.jobsView_label_loadingAgentJobs);
 
   @Inject
   private UISynchronize sync;
@@ -406,13 +410,13 @@ public class JobsView {
       params.setQuery(SEARCH_PR_QUERY);
       params.setWorkspaceFolders(List.of(workspaceFolder));
 
-      CompletableFuture<SearchPrResponse> future = lsConnection.searchPr(params);
+      CompletableFuture<SearchPrResponse> prListFuture = lsConnection.searchPr(params);
 
-      future.thenAccept(response -> {
+      prListFuture.thenAccept(response -> {
         if (response != null && response.getPullRequests() != null && !response.getPullRequests().isEmpty()) {
           repoToPullRequestsMap.put(projectName, Either.forLeft(response.getPullRequests()));
         } else {
-          repoToPullRequestsMap.put(projectName, Either.forLeft(new ArrayList<>()));
+          repoToPullRequestsMap.put(projectName, Either.forRight(Messages.jobsView_label_noAgentJobsFound));
         }
 
         sync.asyncExec(() -> {
@@ -421,17 +425,35 @@ public class JobsView {
             treeViewer.expandToLevel(projectName, 1);
           }
         });
+      }).exceptionally(ex -> {
+        handlePullRequestLoadError(projectName, ex);
+        return null;
       });
 
     } catch (Exception e) {
-      CopilotCore.LOGGER.error(NLS.bind(Messages.jobsView_error_loadingPRsForProject, projectName), e);
-      repoToPullRequestsMap.put(projectName, Either.forLeft(new ArrayList<>()));
-      sync.asyncExec(() -> {
-        if (!treeViewer.getControl().isDisposed()) {
-          treeViewer.refresh(projectName);
-        }
-      });
+      handlePullRequestLoadError(projectName, e);
     }
+  }
+
+  /**
+   * Handle errors that occur when loading pull requests for a project.
+   *
+   * @param projectName The name of the project
+   * @param error       The error that occurred
+   */
+  private void handlePullRequestLoadError(String projectName, Throwable error) {
+    CopilotCore.LOGGER.error(NLS.bind(Messages.jobsView_error_loadingPRsForProject, projectName), error);
+    String errorMessage = error.getMessage();
+    if (StringUtils.isBlank(errorMessage)) {
+      errorMessage = error.getClass().getSimpleName();
+    }
+    repoToPullRequestsMap.put(projectName, Either.forRight(errorMessage));
+    sync.asyncExec(() -> {
+      if (!treeViewer.getControl().isDisposed()) {
+        treeViewer.refresh(projectName);
+        treeViewer.expandToLevel(projectName, 1);
+      }
+    });
   }
 
   /**
@@ -509,7 +531,7 @@ public class JobsView {
     @Override
     public boolean hasChildren(Object element) {
       if (element instanceof String nodeName) {
-        if (Messages.jobsView_label_noOpenProjects.equals(nodeName)) {
+        if (SPECIAL_STATUS_LABELS.contains(nodeName)) {
           return false;
         }
 
@@ -560,13 +582,14 @@ public class JobsView {
           loadingIcon = UiUtils.buildImageFromPngPath("/icons/status/loading.png");
         }
         return this.loadingIcon;
-      } else if (Messages.jobsView_label_noOpenProjects.equals(nodeText)
-          || Messages.jobsView_label_copilotNotInitialized.equals(nodeText)) {
+      } else if (SPECIAL_STATUS_LABELS.contains(nodeText)) {
         return informationIcon;
-      } else if (directoryIcon != null) {
+      } else if (projectNameToProjectMap.containsKey(nodeText)) {
         return directoryIcon;
+      } else {
+        // This is an error message or unknown status, use warning icon
+        return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
       }
-      return null;
     }
 
     private Image getStatusIconForPr(GitHubPullRequestItem pr) {
@@ -575,18 +598,19 @@ public class JobsView {
       }
 
       switch (pr.copilotWorkStatus()) {
-        case in_progress:
-          if (this.loadingIcon == null) {
-            loadingIcon = UiUtils.buildImageFromPngPath("/icons/status/loading.png");
-          }
-          return this.loadingIcon;
         case done:
           if (this.completeIcon == null) {
             completeIcon = UiUtils.buildImageFromPngPath("/icons/status/complete.png");
           }
           return this.completeIcon;
-        default:
+        case error:
           return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+        case in_progress:
+        default:
+          if (this.loadingIcon == null) {
+            loadingIcon = UiUtils.buildImageFromPngPath("/icons/status/loading.png");
+          }
+          return this.loadingIcon;
       }
     }
 

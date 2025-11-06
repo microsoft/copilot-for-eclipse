@@ -108,7 +108,7 @@ public class WorkspaceUtils {
     }
 
     IFolder gitFolder = project.getFolder(".git");
-    return gitFolder.exists();
+    return gitFolder.getLocation().toPath().toFile().exists();
   }
 
 }
