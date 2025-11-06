@@ -50,6 +50,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
@@ -90,6 +91,7 @@ public class ModelService extends ChatBaseService {
   private EventHandler chatModeChangedEventHandler;
   private EventHandler byokModelsUpdatedEventHandler;
   private EventHandler featureFlagsChangedEventHandler;
+  private EventHandler customModeModelChangedEventHandler;
 
   /**
    * Constructor for the ModelService.
@@ -142,6 +144,25 @@ public class ModelService extends ChatBaseService {
         });
       }
     };
+
+    customModeModelChangedEventHandler = event -> {
+      Object property = event.getProperty(IEventBroker.DATA);
+      if (property instanceof String modelNameWithFamily) {
+        // Parse the model name from format "<modelName> (<modelFamily>)"
+        String modelName = modelNameWithFamily;
+        int openParenIndex = modelNameWithFamily.indexOf(" (");
+        if (openParenIndex > 0) {
+          modelName = modelNameWithFamily.substring(0, openParenIndex).trim();
+        }
+        
+        // First update chat mode to Agent to load Agent mode models
+        currentChatMode = ChatMode.Agent;
+        updateModelsForChatMode(ChatMode.Agent);
+        
+        // Then switch to the specified model (setActiveModel will be called after models are loaded)
+        setActiveModel(modelName);
+      }
+    };
   }
 
   private void subscribeToEvents() {
@@ -151,6 +172,8 @@ public class ModelService extends ChatBaseService {
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, chatModeChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_BYOK_MODELS_UPDATED, byokModelsUpdatedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagsChangedEventHandler);
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CUSTOM_MODE_MODEL_CHANGED,
+          customModeModelChangedEventHandler);
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
     }
@@ -352,6 +375,15 @@ public class ModelService extends ChatBaseService {
   }
 
   /**
+   * Get all available models for the current chat mode.
+   *
+   * @return map of model ID to CopilotModel
+   */
+  public Map<String, CopilotModel> getModels() {
+    return modelObservable.getValue();
+  }
+
+  /**
    * Get the fallback model.
    *
    * @return the fallback model
@@ -422,8 +454,8 @@ public class ModelService extends ChatBaseService {
 
             parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
                 String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                    CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
-                    ByokPreferencePage.ID));
+                    CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
+                    McpPreferencePage.ID, ByokPreferencePage.ID));
 
             UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
           } else {
@@ -730,6 +762,7 @@ public class ModelService extends ChatBaseService {
       eventBroker.unsubscribe(chatModeChangedEventHandler);
       eventBroker.unsubscribe(byokModelsUpdatedEventHandler);
       eventBroker.unsubscribe(featureFlagsChangedEventHandler);
+      eventBroker.unsubscribe(customModeModelChangedEventHandler);
       eventBroker = null;
     }
 

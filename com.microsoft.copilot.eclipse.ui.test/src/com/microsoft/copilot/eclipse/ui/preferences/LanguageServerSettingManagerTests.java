@@ -221,14 +221,16 @@ class LanguageServerSettingManagerTests {
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     when(mockPreferenceStore.getString(Constants.PROXY_KERBEROS_SP)).thenReturn(null);
     when(mockPreferenceStore.getString(Constants.GITHUB_ENTERPRISE)).thenReturn(null);
+    when(mockPreferenceStore.getString(Constants.MCP_TOOLS_MODE_STATUS)).thenReturn("");
     when(mockPreferenceStore.getString(Constants.MCP_TOOLS_STATUS)).thenReturn("");
 
     // act
     LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
         mockPreferenceStore);
-    assertDoesNotThrow(manager::initializeMcpToolsStatus);
+    assertDoesNotThrow(() -> manager.initializeMcpToolsStatus());
 
     // assert
+    verify(mockPreferenceStore, times(1)).getString(Constants.MCP_TOOLS_MODE_STATUS);
     verify(mockPreferenceStore, times(1)).getString(Constants.MCP_TOOLS_STATUS);
     verify(mockLsConnection, times(0)).updateMcpToolsStatus(any());
   }

@@ -6,46 +6,56 @@ import java.util.Objects;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
-import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsStatusCollection;
-
 /**
- * Parameters for updating the status of the MCP tools.
+ * Parameters for updating conversation tools status.
  */
-public class UpdateMcpToolsStatusParams {
-
-  private List<McpServerToolsStatusCollection> servers;
-  
+public class UpdateConversationToolsStatusParams {
+  private String chatModeKind;
   private String customChatModeId;
-  
   private List<WorkspaceFolder> workspaceFolders;
+  private List<ConversationToolStatus> tools;
 
-  public List<McpServerToolsStatusCollection> getServers() {
-    return servers;
+  /**
+   * Creates a new UpdateConversationToolsStatusParams.
+   */
+  public UpdateConversationToolsStatusParams() {
   }
 
-  public void setServers(List<McpServerToolsStatusCollection> servers) {
-    this.servers = servers;
+  public String getChatModeKind() {
+    return chatModeKind;
   }
-  
+
+  public void setChatModeKind(String chatModeKind) {
+    this.chatModeKind = chatModeKind;
+  }
+
   public String getCustomChatModeId() {
     return customChatModeId;
   }
-  
+
   public void setCustomChatModeId(String customChatModeId) {
     this.customChatModeId = customChatModeId;
   }
-  
+
   public List<WorkspaceFolder> getWorkspaceFolders() {
     return workspaceFolders;
   }
-  
+
   public void setWorkspaceFolders(List<WorkspaceFolder> workspaceFolders) {
     this.workspaceFolders = workspaceFolders;
   }
 
+  public List<ConversationToolStatus> getTools() {
+    return tools;
+  }
+
+  public void setTools(List<ConversationToolStatus> tools) {
+    this.tools = tools;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(servers, customChatModeId, workspaceFolders);
+    return Objects.hash(chatModeKind, customChatModeId, workspaceFolders, tools);
   }
 
   @Override
@@ -59,17 +69,18 @@ public class UpdateMcpToolsStatusParams {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    UpdateMcpToolsStatusParams other = (UpdateMcpToolsStatusParams) obj;
-    return Objects.equals(servers, other.servers) && Objects.equals(customChatModeId, other.customChatModeId)
-        && Objects.equals(workspaceFolders, other.workspaceFolders);
+    UpdateConversationToolsStatusParams other = (UpdateConversationToolsStatusParams) obj;
+    return Objects.equals(chatModeKind, other.chatModeKind) && Objects.equals(customChatModeId, other.customChatModeId)
+        && Objects.equals(workspaceFolders, other.workspaceFolders) && Objects.equals(tools, other.tools);
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("servers", servers);
+    builder.add("chatModeKind", chatModeKind);
     builder.add("customChatModeId", customChatModeId);
     builder.add("workspaceFolders", workspaceFolders);
+    builder.add("tools", tools);
     return builder.toString();
   }
 }

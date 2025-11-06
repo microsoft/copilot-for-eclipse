@@ -26,6 +26,7 @@ public class Constants {
   public static final String MCP = "mcp";
   public static final String MCP_REGISTRY_URL = "mcpRegistryUrl";
   public static final String MCP_TOOLS_STATUS = "mcpToolsStatus";
+  public static final String MCP_TOOLS_MODE_STATUS = "mcpToolsModeStatus";
   public static final String MCP_EXTENSION_POINT_CONTRIB = "mcpExtensionPointContrib";
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE = "customInstructionsWorkspace";
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED = "customInstructionsWorkspaceEnabled";

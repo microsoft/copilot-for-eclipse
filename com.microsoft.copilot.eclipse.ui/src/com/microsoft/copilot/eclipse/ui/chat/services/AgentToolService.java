@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +18,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
@@ -41,6 +43,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
 
   protected CopilotLanguageServerConnection lsConnection;
   private volatile boolean terminalToolsRegistered = false;
+  private List<LanguageModelToolInformation> cachedBuiltInTools;
 
   /**
    * Constructor for AgentToolService.
@@ -79,8 +82,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     // Diagnostic tools
     registerTool(new GetErrorsTool());
 
-    // Register the tools to the language server
-    registerToolWithServer();
+    // Register the tools to the language server and cache the result
+    registerToolWithServer().thenAccept(toolList -> {
+      cachedBuiltInTools = toolList;
+    });
 
     ChatEventsManager chatEventsManager = CopilotCore.getPlugin().getChatEventsManager();
     if (chatEventsManager != null) {
@@ -89,18 +94,18 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   }
 
   /**
-   * Register tools to the language server.
+   * Register tools to the language server and get the list of registered tools.
+   * This is called with different tool sets depending on the chat mode.
    *
-   * @param registerToolsParams The parameters for tool registration
-   * @return true if registration was successful, false otherwise
+   * @return A CompletableFuture containing the list of registered tools from the language server
    */
-  private void registerToolWithServer() {
+  private CompletableFuture<List<LanguageModelToolInformation>> registerToolWithServer() {
     RegisterToolsParams registerToolsParams = new RegisterToolsParams();
     for (BaseTool tool : getAllTools()) {
       registerToolsParams.addTool(tool.getToolInformation());
     }
 
-    lsConnection.registerTools(registerToolsParams);
+    return lsConnection.registerTools(registerToolsParams);
   }
 
   private void registerTerminalTools() {
@@ -144,6 +149,16 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
    */
   public Collection<BaseTool> getAllTools() {
     return Collections.unmodifiableCollection(tools.values());
+  }
+
+  /**
+   * Get the cached built-in tools information.
+   * This method is intended for MCP preference service and always returns the cached result.
+   *
+   * @return An unmodifiable list of built-in tool information, or empty list if not yet initialized
+   */
+  public List<LanguageModelToolInformation> getBuiltInTools() {
+    return cachedBuiltInTools != null ? Collections.unmodifiableList(cachedBuiltInTools) : Collections.emptyList();
   }
 
   /**

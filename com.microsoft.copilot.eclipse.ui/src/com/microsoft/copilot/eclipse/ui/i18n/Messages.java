@@ -82,6 +82,9 @@ public final class Messages extends NLS {
   public static String preferences_page_mcp_note_content;
   public static String preferences_page_mcp_disabled_tip;
   public static String preferences_page_mcp_tools_settings;
+  public static String preferences_page_mcp_tools_mode_selector;
+  public static String preferences_page_mcp_tools_agent_mode;
+  public static String preferences_page_mcp_tools_builtin;
   public static String preferences_page_mcp_server_init_error;
   public static String preferences_page_extMcp_title;
   public static String preferences_page_extMcp_button_edit;
@@ -194,6 +197,8 @@ public final class Messages extends NLS {
   public static String agent_tool_terminal_copilotTerminalTitle;
   public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;
+  public static String agentFileEditor_contentAssist_statusMessage;
+  public static String agentFileEditor_contentAssist_emptyMessage;
   public static String quickStart_title;
   public static String quickStart_description;
   public static String quickStart_closeButton_tooltip;

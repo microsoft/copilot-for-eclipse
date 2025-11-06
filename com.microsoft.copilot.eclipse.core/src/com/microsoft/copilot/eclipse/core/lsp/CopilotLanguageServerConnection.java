@@ -34,11 +34,14 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
@@ -51,6 +54,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
@@ -238,8 +242,10 @@ public class CopilotLanguageServerConnection {
    * Create a conversation with the given parameters.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
-      List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName) {
-    return createConversation(workDoneToken, message, files, currentFile, turns, activeModel, chatModeName, null, null);
+      List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
+      String customChatModeId) {
+    return createConversation(workDoneToken, message, files, currentFile, turns, activeModel, chatModeName,
+        customChatModeId, null, null);
   }
 
   /**
@@ -247,7 +253,7 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
-      String agentSlug, String agentJobWorkspaceFolder) {
+      String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -257,6 +263,7 @@ public class CopilotLanguageServerConnection {
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
       param.setChatMode(chatModeName);
+      param.setCustomChatModeId(customChatModeId);
 
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
@@ -289,7 +296,7 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName,
-      String agentSlug, String agentJobWorkspaceFolder) {
+      String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -298,7 +305,7 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
-      param.setChatMode(chatModeName);
+      param.setCustomChatModeId(customChatModeId);
 
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
@@ -325,6 +332,16 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ConversationTemplate[]> listConversationTemplates() {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
       return ((CopilotLanguageServer) server).listTemplates(new NullParams());
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List the conversation modes.
+   */
+  public CompletableFuture<ConversationMode[]> listConversationModes(ConversationModesParams params) {
+    Function<LanguageServer, CompletableFuture<ConversationMode[]>> fn = server -> {
+      return ((CopilotLanguageServer) server).listModes(params);
     };
     return this.languageServerWrapper.execute(fn);
   }
@@ -374,9 +391,11 @@ public class CopilotLanguageServerConnection {
   /**
    * Used to register the tools for the language server.
    */
-  public CompletableFuture<Object> registerTools(RegisterToolsParams params) {
-    Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
-        .registerTools(params);
+  public CompletableFuture<List<LanguageModelToolInformation>> registerTools(RegisterToolsParams params) {
+    // @formatter:off
+    Function<LanguageServer, CompletableFuture<List<LanguageModelToolInformation>>> fn = 
+        server -> ((CopilotLanguageServer) server).registerTools(params);
+    // @formatter:on
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
       return null;
@@ -401,6 +420,18 @@ public class CopilotLanguageServerConnection {
     Function<LanguageServer, CompletableFuture<List<McpServerToolsCollection>>> fn = 
         server -> ((CopilotLanguageServer) server).updateMcpToolsStatus(params);
     // @formatter:on
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Update the status of conversation tools (built-in tools for Agent mode).
+   */
+  public CompletableFuture<Object> updateConversationToolsStatus(UpdateConversationToolsStatusParams params) {
+    Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
+        .updateConversationToolsStatus(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
       return null;
@@ -540,9 +571,10 @@ public class CopilotLanguageServerConnection {
    * Get next edit suggestions (inline edit) for a position.
    */
   public CompletableFuture<NextEditSuggestionsResult> getNextEditSuggestions(NextEditSuggestionsParams params) {
+    // @formatter:off
     Function<LanguageServer, CompletableFuture<NextEditSuggestionsResult>> fn = 
-        server -> ((CopilotLanguageServer) server)
-        .getNextEditSuggestions(params);
+        server -> ((CopilotLanguageServer) server).getNextEditSuggestions(params);
+    // @formatter:on
     return this.languageServerWrapper.execute(fn);
   }
 

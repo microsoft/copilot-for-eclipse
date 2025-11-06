@@ -29,6 +29,7 @@ public class ConversationCreateParams {
   private String model;
   private String modelProviderName;
   private String chatMode;
+  private String customChatModeId;
 
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
@@ -151,6 +152,14 @@ public class ConversationCreateParams {
     this.chatMode = chatMode;
   }
 
+  public String getCustomChatModeId() {
+    return customChatModeId;
+  }
+
+  public void setCustomChatModeId(String customChatModeId) {
+    this.customChatModeId = customChatModeId;
+  }
+
   public boolean isNeedToolCallConfirmation() {
     return needToolCallConfirmation;
   }
@@ -174,8 +183,9 @@ public class ConversationCreateParams {
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result + Objects.hashCode(turns);
     result = prime * result
-        + Objects.hash(capabilities, chatMode, computeSuggestions, model, needToolCallConfirmation, references, source,
-            textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders, modelProviderName);
+        + Objects.hash(capabilities, chatMode, computeSuggestions, customChatModeId, model, needToolCallConfirmation,
+            references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders,
+            modelProviderName);
     return result;
   }
 
@@ -192,12 +202,13 @@ public class ConversationCreateParams {
     }
     ConversationCreateParams other = (ConversationCreateParams) obj;
     return Objects.equals(capabilities, other.capabilities) && Objects.equals(chatMode, other.chatMode)
-        && computeSuggestions == other.computeSuggestions && Arrays.equals(ignoredSkills, other.ignoredSkills)
-        && Objects.equals(model, other.model) && needToolCallConfirmation == other.needToolCallConfirmation
-        && Objects.equals(references, other.references) && Objects.equals(source, other.source)
-        && Objects.equals(textDocument, other.textDocument) && Objects.equals(turns, other.turns)
-        && Objects.equals(userLanguage, other.userLanguage) && Objects.equals(workDoneToken, other.workDoneToken)
-        && Objects.equals(workspaceFolder, other.workspaceFolder)
+        && computeSuggestions == other.computeSuggestions
+        && Objects.equals(customChatModeId, other.customChatModeId)
+        && Arrays.equals(ignoredSkills, other.ignoredSkills) && Objects.equals(model, other.model)
+        && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
+        && Objects.equals(source, other.source) && Objects.equals(textDocument, other.textDocument)
+        && Objects.equals(turns, other.turns) && Objects.equals(userLanguage, other.userLanguage)
+        && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders)
         && Objects.equals(modelProviderName, other.modelProviderName);
   }
@@ -219,6 +230,7 @@ public class ConversationCreateParams {
     builder.add("model", model);
     builder.add("modelProviderName", modelProviderName);
     builder.add("chatMode", chatMode);
+    builder.add("customChatModeId", customChatModeId);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     return builder.toString();
   }

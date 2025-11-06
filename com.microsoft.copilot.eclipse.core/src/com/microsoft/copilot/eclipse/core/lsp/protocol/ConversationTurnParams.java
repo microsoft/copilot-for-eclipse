@@ -30,6 +30,7 @@ public class ConversationTurnParams {
   private String model;
   private String modelProviderName;
   private String chatMode;
+  private String customChatModeId;
 
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
@@ -127,6 +128,14 @@ public class ConversationTurnParams {
     this.chatMode = chatMode;
   }
 
+  public String getCustomChatModeId() {
+    return customChatModeId;
+  }
+
+  public void setCustomChatModeId(String customChatModeId) {
+    this.customChatModeId = customChatModeId;
+  }
+
   public List<WorkspaceFolder> getWorkspaceFolders() {
     return workspaceFolders;
   }
@@ -165,8 +174,9 @@ public class ConversationTurnParams {
     int result = 1;
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result
-        + Objects.hash(agentSlug, chatMode, computeSuggestions, conversationId, message, model, modelProviderName,
-            needToolCallConfirmation, references, textDocument, workDoneToken, workspaceFolder, workspaceFolders);
+        + Objects.hash(agentSlug, chatMode, computeSuggestions, conversationId, customChatModeId, message, model,
+            modelProviderName, needToolCallConfirmation, references, textDocument, workDoneToken, workspaceFolder,
+            workspaceFolders);
     return result;
   }
 
@@ -184,6 +194,7 @@ public class ConversationTurnParams {
     ConversationTurnParams other = (ConversationTurnParams) obj;
     return Objects.equals(agentSlug, other.agentSlug) && Objects.equals(chatMode, other.chatMode)
         && computeSuggestions == other.computeSuggestions && Objects.equals(conversationId, other.conversationId)
+        && Objects.equals(customChatModeId, other.customChatModeId)
         && Arrays.equals(ignoredSkills, other.ignoredSkills) && Objects.equals(message, other.message)
         && Objects.equals(model, other.model) && Objects.equals(modelProviderName, other.modelProviderName)
         && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
@@ -206,6 +217,7 @@ public class ConversationTurnParams {
     builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
     builder.add("model", model);
     builder.add("chatMode", chatMode);
+    builder.add("customChatModeId", customChatModeId);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     builder.add("modelProviderName", modelProviderName);
     builder.add("agentSlug", agentSlug);

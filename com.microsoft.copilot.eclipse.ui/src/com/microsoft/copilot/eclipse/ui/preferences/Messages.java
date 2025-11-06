@@ -45,7 +45,40 @@ public class Messages extends NLS {
   public static String preferences_page_byok_enabledCount;
   public static String preferences_page_byok_preview_disabled_tip;
   public static String preferences_page_completions_codeMiningNote;
+  public static String preferences_page_customModes_defaultDescription;
+  public static String preferences_page_customModes_defaultInstructions;
   public static String preferences_page_completions_enableNes;
+  
+  // CustomModesPreferencePage
+  public static String customModes_page_description;
+  public static String customModes_table_column_modeName;
+  public static String customModes_table_column_workspace;
+  public static String customModes_table_column_description;
+  public static String customModes_button_add;
+  public static String customModes_button_edit;
+  public static String customModes_button_delete;
+  public static String customModes_info_label;
+  public static String customModes_error_noWorkspaceFolder_title;
+  public static String customModes_error_noWorkspaceFolder_message;
+  public static String customModes_dialog_createMode_title;
+  public static String customModes_dialog_modeName_label;
+  public static String customModes_dialog_workspaceFolder_label;
+  public static String customModes_dialog_error_emptyName_title;
+  public static String customModes_dialog_error_emptyName_message;
+  public static String customModes_dialog_error_invalidName_title;
+  public static String customModes_dialog_error_invalidName_message;
+  public static String customModes_dialog_error_noFolder_title;
+  public static String customModes_dialog_error_noFolder_message;
+  public static String customModes_error_createFailed_title;
+  public static String customModes_error_createFailed_message;
+  public static String customModes_error_fileNotFound_title;
+  public static String customModes_error_fileNotFound_message;
+  public static String customModes_error_openFailed_title;
+  public static String customModes_error_openFailed_message;
+  public static String customModes_delete_confirm_title;
+  public static String customModes_delete_confirm_message;
+  public static String customModes_error_deleteFailed_title;
+  public static String customModes_error_deleteFailed_message;
  
   static {
     // initialize resource bundle

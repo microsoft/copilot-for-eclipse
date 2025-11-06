@@ -11,17 +11,22 @@ import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.jface.preference.PreferenceDialog;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -31,14 +36,18 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 
 /**
  * Service for managing chat modes and input navigation.
  */
 public class UserPreferenceService extends ChatBaseService implements CopilotAuthStatusListener {
   private static final int EXTRA_PADDING = 40;
+  private static final String SEPARATOR_PREFIX = "---";
   private IObservableValue<String[]> chatModeObservable;
   private IObservableValue<ChatMode> activeChatModeObservable;
+  private IObservableValue<String> activeModeNameOrIdObservable; // Tracks current mode (built-in or custom)
   private InputNavigation inputNavigation = new InputNavigation();
 
   // Track side effects for chat mode combos only
@@ -60,6 +69,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     ensureRealm(() -> {
       chatModeObservable = new WritableValue<>(getAvalibleChatModes(), String[].class);
       activeChatModeObservable = new WritableValue<>(null, ChatMode.class);
+      activeModeNameOrIdObservable = new WritableValue<>(null, String.class);
     });
 
     initializeEventHandlers();
@@ -110,18 +120,52 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     if (authStatusManager.isSignedIn()) {
       // Initialize chat mode preferences
       String chatModeName = restoreChatModeName();
-      ChatMode chatMode = ChatMode.valueOf(chatModeName);
+      ChatMode chatMode;
+      
+      // Check if it's a custom mode ID
+      if (CustomChatModeManager.INSTANCE.isCustomMode(chatModeName)) {
+        // Custom mode - check if it still exists
+        CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(chatModeName);
+        if (customMode == null) {
+          // Custom mode no longer exists, fall back to Ask mode
+          CopilotCore.LOGGER.error(new IllegalStateException(
+              "Custom mode " + chatModeName + " no longer exists, falling back to Ask mode"));
+          chatMode = ChatMode.Ask;
+        } else {
+          // Custom mode exists, use Agent mode for the observable (custom modes use Agent mode UI)
+          chatMode = ChatMode.Agent;
+        }
+      } else {
+        // Built-in mode - try to parse it
+        try {
+          chatMode = ChatMode.valueOf(chatModeName);
+        } catch (IllegalArgumentException e) {
+          // Invalid mode name, fall back to Ask mode
+          CopilotCore.LOGGER.error("Invalid chat mode name: " + chatModeName + ", falling back to Ask mode", e);
+          chatMode = ChatMode.Ask;
+        }
+      }
+      
       FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
       if (flags != null && !flags.isAgentModeEnabled()) {
         chatMode = ChatMode.Ask; // Only Ask mode is available
       }
       final ChatMode finalChatMode = chatMode;
-      ensureRealm(() -> activeChatModeObservable.setValue(finalChatMode));
+      final String finalChatModeName = chatModeName;
+      ensureRealm(() -> {
+        activeChatModeObservable.setValue(finalChatMode);
+        activeModeNameOrIdObservable.setValue(finalChatModeName);
+      });
       inputNavigation = new InputNavigation(restoreUserInputs());
     }
   }
 
-  private String restoreChatModeName() {
+  /**
+   * Restore the chat mode name from preferences.
+   *
+   * @return the chat mode name or custom mode ID
+   */
+  public String restoreChatModeName() {
     UserPreference preference = getUserPreference();
     if (preference != null && preference.getChatModeName() != null) {
       return preference.getChatModeName();
@@ -153,18 +197,136 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
   /**
    * Get available chat modes based on feature flags.
+   * Includes built-in modes, custom modes, and "Add New Mode" option with separators.
    */
   private String[] getAvalibleChatModes() {
+    List<String> modes = new ArrayList<>();
+    
+    // Add built-in modes
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isAgentModeEnabled()) {
-      return new String[] { ChatMode.Ask.displayName() }; // Only Ask mode is available
+      modes.add(ChatMode.Ask.displayName());
+    } else {
+      Arrays.stream(ChatMode.values()).map(ChatMode::displayName).forEach(modes::add);
     }
-
-    return Arrays.stream(ChatMode.values()).map(ChatMode::displayName).toArray(String[]::new);
+    
+    // Add custom modes section
+    List<CustomChatMode> customModes = CustomChatModeManager.INSTANCE.getCustomModes();
+    if (!customModes.isEmpty()) {
+      customModes.forEach(mode -> modes.add(mode.getDisplayName()));
+    }
+    
+    // Add "Configure Modes" option
+    modes.add(Messages.configureModes);
+    
+    // Calculate the longest mode name to size separators properly
+    GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
+    try {
+      int maxWidth = 0;
+      for (String mode : modes) {
+        int width = gc.textExtent(mode).x;
+        if (width > maxWidth) {
+          maxWidth = width;
+        }
+      }
+      
+      // Create separator with proper width
+      String separator = createDashSeparator(maxWidth, gc);
+      
+      // Insert separators at appropriate positions
+      List<String> modesWithSeparators = new ArrayList<>();
+      
+      // Add built-in modes
+      int builtInCount = (flags != null && !flags.isAgentModeEnabled()) ? 1 : ChatMode.values().length;
+      for (int i = 0; i < builtInCount; i++) {
+        modesWithSeparators.add(modes.get(i));
+      }
+      
+      // Add custom modes section with separator
+      if (!customModes.isEmpty()) {
+        modesWithSeparators.add(separator);
+        for (int i = builtInCount; i < builtInCount + customModes.size(); i++) {
+          modesWithSeparators.add(modes.get(i));
+        }
+      }
+      
+      // Add "Configure Modes" section with separator
+      modesWithSeparators.add(separator);
+      modesWithSeparators.add(Messages.configureModes);
+      
+      return modesWithSeparators.toArray(new String[0]);
+    } finally {
+      gc.dispose();
+    }
+  }
+  
+  /**
+   * Creates a dash separator line matching the width of the content.
+   * Similar to ModelService's addDashesAroundModelHeader but for full-width separators.
+   *
+   * @param maxWidth the maximum width to match
+   * @param gc the graphics context for measuring
+   * @return a string of dashes matching the width
+   */
+  private String createDashSeparator(int maxWidth, GC gc) {
+    int dashWidth = gc.textExtent("-").x;
+    if (dashWidth == 0) {
+      dashWidth = 1; // Fallback to prevent division by zero
+    }
+    int dashCount = maxWidth / dashWidth;
+    return "-".repeat(Math.max(1, dashCount));
   }
 
   /**
-   * Set the active chat mode by index.
+   * Set the active chat mode by index from the combo box.
+   *
+   * @param index the index of the chat mode to set
+   * @param combo the combo box containing the modes
+   */
+  public void setActiveChatMode(int index, Combo combo) {
+    if (index < 0 || combo == null || combo.isDisposed()) {
+      return;
+    }
+    
+    String selectedItem = combo.getItem(index);
+    
+    // Check if it's a separator - if so, revert to previous selection
+    if (selectedItem.startsWith(SEPARATOR_PREFIX)) {
+      revertToCurrentMode(combo);
+      return;
+    }
+    
+    // Check if it's "Configure Modes"
+    if (selectedItem.equals(Messages.configureModes)) {
+      handleConfigureModes(combo);
+      return;
+    }
+    
+    // Check if it's a custom mode
+    CustomChatModeManager customModeManager = CustomChatModeManager.INSTANCE;
+    CustomChatMode customMode = customModeManager.getCustomModes().stream()
+        .filter(mode -> mode.getDisplayName().equals(selectedItem))
+        .findFirst()
+        .orElse(null);
+    
+    if (customMode != null) {
+      // Handle custom mode selection
+      setActiveChatMode(customMode.getId());
+      return;
+    }
+    
+    // It's a built-in mode
+    ChatMode[] modes = ChatMode.values();
+    for (ChatMode mode : modes) {
+      if (mode.displayName().equals(selectedItem)) {
+        setActiveChatMode(mode.toString());
+        return;
+      }
+    }
+  }
+  
+  /**
+   * Set the active chat mode by index (legacy method for backward compatibility).
    *
    * @param index the index of the chat mode to set
    */
@@ -181,25 +343,66 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
-   * Set the active chat mode by name.
+   * Set the active chat mode by name or custom mode ID.
    *
-   * @param chatModeName the name of the chat mode to set
+   * @param chatModeNameOrId the name/ID of the chat mode to set
    */
-  public void setActiveChatMode(String chatModeName) {
-    if (StringUtils.isBlank(chatModeName) || chatModeName.equals(getActiveChatMode().toString())) {
+  public void setActiveChatMode(String chatModeNameOrId) {
+    if (StringUtils.isBlank(chatModeNameOrId)) {
       return;
     }
 
-    // Persist the chat mode selection
+    // Step 1: Determine ChatMode and validate existence
+    ChatMode chatMode;
+    CustomChatMode customMode = null;
+    CustomChatModeManager customModeManager = CustomChatModeManager.INSTANCE;
+    
+    if (customModeManager.isCustomMode(chatModeNameOrId)) {
+      // Custom mode - verify it exists
+      customMode = customModeManager.getCustomModeById(chatModeNameOrId);
+      if (customMode == null) {
+        CopilotCore.LOGGER.error(new IllegalStateException(
+            "Custom mode " + chatModeNameOrId + " no longer exists, ignoring"));
+        return;
+      }
+      // Custom modes use Agent mode UI
+      chatMode = ChatMode.Agent;
+    } else {
+      // Built-in mode - validate it exists
+      try {
+        chatMode = ChatMode.valueOf(chatModeNameOrId);
+      } catch (IllegalArgumentException e) {
+        CopilotCore.LOGGER.error("Invalid chat mode name: " + chatModeNameOrId + ", ignoring", e);
+        return;
+      }
+    }
+    
+    // Step 2: Check if already active
+    String currentModeName = restoreChatModeName();
+    if (chatModeNameOrId.equals(currentModeName)) {
+      return;
+    }
+
+    // Step 3: Persist user preference
     UserPreference preference = getUserPreference();
-    preference.setChatModeName(chatModeName);
+    preference.setChatModeName(chatModeNameOrId);
     persistUserPreference();
 
-    ensureRealm(() -> activeChatModeObservable.setValue(ChatMode.valueOf(chatModeName)));
+    // Step 4: Update observables
+    final ChatMode finalChatMode = chatMode;
+    ensureRealm(() -> {
+      activeChatModeObservable.setValue(finalChatMode);
+      activeModeNameOrIdObservable.setValue(chatModeNameOrId);
+    });
 
-    // Publish chat mode change event for other services (like ModelService)
+    // Step 5: Post events
     if (eventBroker != null) {
-      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, ChatMode.valueOf(chatModeName));
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, chatMode);
+      
+      // If custom mode has a model defined, publish event to switch to that model
+      if (customMode != null && customMode.getModel() != null && !customMode.getModel().isEmpty()) {
+        eventBroker.post(CopilotEventConstants.TOPIC_CHAT_CUSTOM_MODE_MODEL_CHANGED, customMode.getModel());
+      }
     }
   }
 
@@ -210,7 +413,151 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    */
   public ChatMode getActiveChatMode() {
     ChatMode activeChatMode = activeChatModeObservable.getValue();
-    return activeChatMode == null ? ChatMode.valueOf(restoreChatModeName()) : activeChatMode;
+    if (activeChatMode != null) {
+      return activeChatMode;
+    }
+    
+    // Try to restore from preferences
+    String chatModeName = restoreChatModeName();
+    
+    // Check if it's a custom mode ID
+    if (CustomChatModeManager.INSTANCE.isCustomMode(chatModeName)) {
+      // Custom modes use Agent mode for the UI
+      return ChatMode.Agent;
+    }
+    
+    // Try to parse as built-in mode
+    try {
+      return ChatMode.valueOf(chatModeName);
+    } catch (IllegalArgumentException e) {
+      // Invalid mode name, fall back to Ask mode
+      CopilotCore.LOGGER.error("Invalid chat mode name: " + chatModeName + ", falling back to Ask mode", e);
+      return ChatMode.Ask;
+    }
+  }
+
+  /**
+   * Get the active mode name or custom mode ID from the observable.
+   * This returns the current mode being tracked by the observable, which is always in sync with the UI.
+   *
+   * @return the active mode name (for built-in modes) or custom mode ID (for custom modes)
+   */
+  public String getActiveModeNameOrId() {
+    return activeModeNameOrIdObservable.getValue();
+  }
+
+  /**
+   * Get the active custom mode if one is selected.
+   *
+   * @return the custom mode or null if a built-in mode is active
+   */
+  public CustomChatMode getActiveCustomMode() {
+    try {
+      String modeName = restoreChatModeName();
+      if (CustomChatModeManager.INSTANCE.isCustomMode(modeName)) {
+        return CustomChatModeManager.INSTANCE.getCustomModeById(modeName);
+      }
+    } catch (Exception e) {
+      // Ignore and return null
+    }
+    return null;
+  }
+
+  /**
+   * Revert combo selection to the current active mode.
+   * If the current mode no longer exists (e.g., custom mode was deleted),
+   * fall back to Ask mode and update the active mode.
+   *
+   * @param combo the combo box
+   */
+  private void revertToCurrentMode(Combo combo) {
+    // Get the current mode name from preferences (could be custom mode ID or built-in mode name)
+    String currentModeName = restoreChatModeName();
+    
+    // Check if it's a custom mode
+    if (CustomChatModeManager.INSTANCE.isCustomMode(currentModeName)) {
+      CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(currentModeName);
+      if (customMode != null) {
+        // Find the custom mode in the combo by display name
+        int currentIndex = Arrays.asList(combo.getItems()).indexOf(customMode.getDisplayName());
+        if (currentIndex >= 0) {
+          combo.select(currentIndex);
+        }
+        return;
+      } else {
+        // Custom mode was deleted, switch to Ask mode
+        CopilotCore.LOGGER.info("Current mode " + currentModeName + " was deleted, switching to Ask mode");
+        setActiveChatMode(ChatMode.Ask.toString());
+        // Select Ask in the combo
+        int askIndex = Arrays.asList(combo.getItems()).indexOf(ChatMode.Ask.displayName());
+        if (askIndex >= 0) {
+          combo.select(askIndex);
+        }
+        return;
+      }
+    }
+    
+    // It's a built-in mode - find by display name
+    try {
+      ChatMode chatMode = ChatMode.valueOf(currentModeName);
+      int currentIndex = Arrays.asList(combo.getItems()).indexOf(chatMode.displayName());
+      if (currentIndex >= 0) {
+        combo.select(currentIndex);
+      }
+    } catch (IllegalArgumentException e) {
+      // Invalid mode, default to Ask
+      CopilotCore.LOGGER.error("Invalid mode name: " + currentModeName + ", falling back to Ask mode", e);
+      setActiveChatMode(ChatMode.Ask.toString());
+      int askIndex = Arrays.asList(combo.getItems()).indexOf(ChatMode.Ask.displayName());
+      if (askIndex >= 0) {
+        combo.select(askIndex);
+      }
+    }
+  }
+
+  /**
+   * Handle the "Configure Modes" selection.
+   *
+   * @param combo the combo box
+   */
+  private void handleConfigureModes(Combo combo) {
+    // Revert selection first - keep current mode active
+    revertToCurrentMode(combo);
+    
+    // Open the Custom Modes preference page
+    PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(
+        combo.getShell(),
+        CustomModesPreferencePage.ID,
+        null,
+        null);
+    
+    dialog.open();
+    
+    // After dialog closes, reload modes synchronously and restore the current selection
+    try {
+      CustomChatModeManager customModeManager = CustomChatModeManager.INSTANCE;
+      // Wait for sync to complete
+      customModeManager.syncCustomModesFromService().join();
+      
+      // Update UI on UI thread
+      ensureRealm(() -> {
+        if (!combo.isDisposed()) {
+          // Update the chatModeObservable - this triggers the side effect that calls combo.setItems()
+          String[] updatedModes = getAvalibleChatModes();
+          chatModeObservable.setValue(updatedModes);
+          
+          // Schedule the selection restore to happen after the combo items are set
+          // revertToCurrentMode will handle switching to Ask mode if the current mode was deleted
+          combo.getDisplay().asyncExec(() -> {
+            if (!combo.isDisposed()) {
+              revertToCurrentMode(combo);
+            }
+          });
+        }
+      });
+    } catch (Exception ex) {
+      CopilotCore.LOGGER.error("Failed to reload modes after configuration", ex);
+    }
   }
 
   /**
@@ -235,16 +582,40 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       });
 
       ISideEffect activeChatModeSideEffect = ISideEffect.create(() -> {
-        ChatMode activeMode = this.activeChatModeObservable.getValue();
-        return activeMode == null ? ChatMode.valueOf(restoreChatModeName()) : activeMode;
-      }, (ChatMode mode) -> {
-        if (combo.isDisposed()) {
+        // Return the current mode name or ID from observable
+        String modeNameOrId = this.activeModeNameOrIdObservable.getValue();
+        if (modeNameOrId == null) {
+          // Fallback to restoring from preferences
+          modeNameOrId = restoreChatModeName();
+        }
+        return modeNameOrId;
+      }, (String modeNameOrId) -> {
+        if (combo.isDisposed() || modeNameOrId == null) {
           return;
         }
-        String modeName = mode.displayName();
-        int index = Arrays.asList(combo.getItems()).indexOf(modeName);
+        
+        String displayName;
+        // Check if it's a custom mode ID
+        if (CustomChatModeManager.INSTANCE.isCustomMode(modeNameOrId)) {
+          CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(modeNameOrId);
+          if (customMode != null) {
+            displayName = customMode.getDisplayName();
+          } else {
+            // Custom mode no longer exists, fall back to Ask
+            displayName = ChatMode.Ask.displayName();
+          }
+        } else {
+          // It's a built-in mode
+          try {
+            displayName = ChatMode.valueOf(modeNameOrId).displayName();
+          } catch (IllegalArgumentException e) {
+            displayName = ChatMode.Ask.displayName();
+          }
+        }
+        
+        int index = Arrays.asList(combo.getItems()).indexOf(displayName);
         if (index >= 0) {
-          updateSelectedItem(combo, modeName, index);
+          updateSelectedItem(combo, displayName, index);
         }
       });
 
@@ -283,9 +654,29 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     // Unbind any previously bound chat view
     unbindChatView();
 
+    // Observe activeModeNameOrIdObservable to detect switches between Agent and custom modes
     ensureRealm(() -> chatViewSideEffect = ISideEffect.create(() -> {
-      return this.activeChatModeObservable.getValue();
-    }, chatView::buildViewFor));
+      String modeNameOrId = this.activeModeNameOrIdObservable.getValue();
+      if (modeNameOrId == null) {
+        modeNameOrId = restoreChatModeName();
+      }
+      return modeNameOrId;
+    }, (String modeNameOrId) -> {
+      // Determine which view to build based on the mode
+      ChatMode viewMode;
+      if (CustomChatModeManager.INSTANCE.isCustomMode(modeNameOrId)) {
+        // Custom modes use Agent mode view
+        viewMode = ChatMode.Agent;
+      } else {
+        try {
+          viewMode = ChatMode.valueOf(modeNameOrId);
+        } catch (IllegalArgumentException e) {
+          viewMode = ChatMode.Ask;
+        }
+      }
+      // Always call buildViewFor when the observable changes - it will re-render if needed
+      chatView.buildViewFor(viewMode);
+    }));
   }
 
   /**
@@ -309,9 +700,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     // Add some padding (dropdown button width + horizontal margins)
     int padding = PlatformUtils.isWindows() ? 0 : EXTRA_PADDING;
     int widthHint = textExtent.x + padding;
-    if (gridData.widthHint != widthHint) {
-      gridData.widthHint = widthHint;
-      combo.requestLayout();
+    
+    // Always update and force layout, especially important when shrinking (e.g., switching to "Ask")
+    gridData.widthHint = widthHint;
+    combo.requestLayout();
+    
+    // Also request layout on parent to ensure the resize is applied
+    if (combo.getParent() != null) {
+      combo.getParent().requestLayout();
     }
   }
 

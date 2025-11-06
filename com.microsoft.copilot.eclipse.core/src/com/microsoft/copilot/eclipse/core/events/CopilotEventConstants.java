@@ -114,6 +114,11 @@ public class CopilotEventConstants {
   public static final String TOPIC_CHAT_BYOK_MODELS_UPDATED = TOPIC_CHAT + "BYOK_MODELS_UPDATED";
 
   /**
+   * Event when switching to a custom mode with a specific model.
+   */
+  public static final String TOPIC_CHAT_CUSTOM_MODE_MODEL_CHANGED = TOPIC_CHAT + "CUSTOM_MODE_MODEL_CHANGED";
+
+  /**
    * Event when a coding agent message is received.
    */
   public static final String TOPIC_CHAT_CODING_AGENT_MESSAGE = TOPIC_CHAT + "CODING_AGENT_MESSAGE";

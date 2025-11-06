@@ -746,4 +746,27 @@ public class UiUtils {
       text.setLineVerticalIndent(widgetLine, height);
     }
   }
+
+  /**
+   * Checks if the given file is an agent file (.agent.md).
+   *
+   * @param file the file to check
+   * @return true if the file is an agent file, false otherwise
+   */
+  public static boolean isAgentFile(IFile file) {
+    if (file == null) {
+      return false;
+    }
+    return isAgentFile(file.getName());
+  }
+
+  /**
+   * Checks if the given filename represents an agent file (.agent.md).
+   *
+   * @param fileName the filename to check
+   * @return true if the filename ends with .agent.md, false otherwise
+   */
+  public static boolean isAgentFile(String fileName) {
+    return fileName != null && fileName.endsWith(".agent.md");
+  }
 }

@@ -21,10 +21,13 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
@@ -36,6 +39,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
@@ -133,6 +137,12 @@ public interface CopilotLanguageServer extends LanguageServer {
   CompletableFuture<ConversationTemplate[]> listTemplates(NullParams param);
 
   /**
+   * List conversation modes.
+   */
+  @JsonRequest("conversation/modes")
+  CompletableFuture<ConversationMode[]> listModes(ConversationModesParams params);
+
+  /**
    * Used to track telemetry from users copying code from chat.
    */
   @JsonRequest("conversation/copyCode")
@@ -148,7 +158,13 @@ public interface CopilotLanguageServer extends LanguageServer {
    * Register agent tools to the language server.
    */
   @JsonRequest("conversation/registerTools")
-  CompletableFuture<Object> registerTools(RegisterToolsParams params);
+  CompletableFuture<List<LanguageModelToolInformation>> registerTools(RegisterToolsParams params);
+
+  /**
+   * Update the status of conversation tools (built-in tools for Agent mode).
+   */
+  @JsonRequest("conversation/updateToolsStatus")
+  CompletableFuture<Object> updateConversationToolsStatus(UpdateConversationToolsStatusParams params);
 
   /**
    * List copilot models.

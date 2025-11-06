@@ -13,6 +13,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -35,7 +36,8 @@ public class OpenPreferencesHandler extends AbstractHandler {
     } else {
       dialog = PreferencesUtil.createPreferenceDialogOn(shell, CopilotPreferencesPage.ID,
           new String[] { GeneralPreferencesPage.ID, ChatPreferencesPage.ID, CompletionsPreferencesPage.ID,
-              CustomInstructionPreferencePage.ID, McpPreferencePage.ID, ByokPreferencePage.ID},
+              CustomInstructionPreferencePage.ID, McpPreferencePage.ID, ByokPreferencePage.ID,
+              CustomModesPreferencePage.ID },
           null);
     }
 

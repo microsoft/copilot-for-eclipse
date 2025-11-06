@@ -90,6 +90,7 @@ public class AgentModeViewer extends BaseViewer {
     this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
     WrapLabel label = new WrapLabel(iconLabelComposite, SWT.CENTER);
+    // Always use Agent mode title for both default and custom modes
     label.setText(Messages.chat_agentModeView_title);
     FontData fontData = new FontData();
     fontData.setHeight(ALIGNED_TITLE_HEIGHT);
@@ -115,6 +116,7 @@ public class AgentModeViewer extends BaseViewer {
     this.subComposite.setLayoutData(gridData);
 
     WrapLabel introLabel = new WrapLabel(this.subComposite, SWT.CENTER);
+    // Always use default Agent mode description
     introLabel.setText(Messages.chat_agentModeView_agentModeIntro);
     GridData introGridData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
     introGridData.widthHint = ALIGNED_LABEL_WIDTH;

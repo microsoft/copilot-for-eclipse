@@ -72,6 +72,23 @@
 				id="com.microsoft.copilot.eclipse.ui.dynamicContextMenu.packageExplorer"
 				class="com.microsoft.copilot.eclipse.ui.handlers.ShowContextMenuHandler" />
 		</menuContribution>
+		
+		<!-- Configure Tools menu for .agent.md files in text editor context -->
+		<menuContribution
+			locationURI="popup:#TextEditorContext?after=additions">
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.configureTools"
+				label="Configure Tools..."
+				icon="icons/github_copilot.png">
+				<visibleWhen>
+					<with variable="activeEditorInput">
+						<adapt type="org.eclipse.core.resources.IFile">
+							<test property="org.eclipse.core.resources.name" value="*.agent.md"/>
+						</adapt>
+					</with>
+				</visibleWhen>
+			</command>
+		</menuContribution>
 	</extension>
 	<extension
 		point="org.eclipse.ui.preferencePages">
@@ -116,7 +133,26 @@
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			class="com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage">
 		</page>
+		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage"
+			name="Custom Modes"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage">
+		</page>
 	</extension>
+	
+	<!-- Agent file editor registration -->
+	<extension
+		point="org.eclipse.ui.editors">
+		<editor
+			class="com.microsoft.copilot.eclipse.ui.editors.AgentFileEditor"
+			contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+			id="com.microsoft.copilot.eclipse.ui.editors.AgentFileEditor"
+			name="Agent File Editor"
+			icon="icons/github_copilot.png">
+		</editor>
+	</extension>
+	
 	<extension
 		point="org.eclipse.core.runtime.preferences">
 		<initializer
@@ -274,6 +310,12 @@
 				values="">
 			</commandParameter>
 		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.configureTools"
+			name="Configure Tools..."
+			description="Configure tools for the current agent file">
+		</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -366,6 +408,10 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.OpenUrlHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.openUrl">
 		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.ConfigureToolsCommandHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.configureTools">
+		</handler>
 	</extension>
 
 	<extension
@@ -433,6 +479,11 @@
 		<codeMiningProvider
 			class="com.microsoft.copilot.eclipse.ui.completion.codemining.GhostTextProvider"
 			id="com.microsoft.copilot.eclipse.ui.ghostTextProvider">
+		</codeMiningProvider>
+		<!-- Tool configuration code mining for .agent.md files -->
+		<codeMiningProvider
+			class="com.microsoft.copilot.eclipse.ui.completion.codemining.ToolConfigurationCodeMiningProvider"
+			id="com.microsoft.copilot.eclipse.ui.toolConfigurationCodeMiningProvider">
 		</codeMiningProvider>
 	</extension>
 
@@ -833,6 +884,14 @@
 	<extension point="org.eclipse.help.contexts">
 		<contexts file="contexts.xml" />
 	</extension>
+	
+	<extension point="org.eclipse.ui.genericeditor.quickAssistProcessors">
+		<quickAssistProcessor
+			id="com.microsoft.copilot.eclipse.ui.quickfix.toolConfiguration"
+			name="Tool Configuration Quick Fix"
+			class="com.microsoft.copilot.eclipse.ui.quickfix.ToolConfigurationQuickFixProcessor"/>
+	</extension>
+	
 	<extension point="org.eclipse.ui.workbench.texteditor.rulerColumns">
 		<column
 			class="com.microsoft.copilot.eclipse.ui.nes.RulerColumn"

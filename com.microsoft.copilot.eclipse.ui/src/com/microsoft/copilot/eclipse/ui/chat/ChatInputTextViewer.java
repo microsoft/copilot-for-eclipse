@@ -26,6 +26,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
@@ -44,6 +46,7 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   private Consumer<String> sendMessageHandler;
   private ChatCompletionService chatCompletionService;
   private UserPreferenceService userPreferenceService;
+  private ChatServiceManager chatServiceManager;
   private ContentAssistant contentAssistant;
 
   private boolean caretLineOffsetChanged = false;
@@ -60,6 +63,7 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   public ChatInputTextViewer(Composite parent, ChatServiceManager chatServiceManager) {
     super(parent, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
     this.parent = parent;
+    this.chatServiceManager = chatServiceManager;
     this.userPreferenceService = chatServiceManager.getUserPreferenceService();
     this.chatCompletionService = chatServiceManager.getChatCompletionService();
     this.init();
@@ -295,6 +299,11 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   private String getPlaceholderText() {
     switch (userPreferenceService.getActiveChatMode()) {
       case Agent:
+        // Check if a custom mode is active and use its description as placeholder
+        CustomChatMode customMode = userPreferenceService.getActiveCustomMode();
+        if (customMode != null && StringUtils.isNotBlank(customMode.getDescription())) {
+          return customMode.getDescription();
+        }
         return Messages.chat_actionBar_initialContentForAgent;
       case Ask:
       default:

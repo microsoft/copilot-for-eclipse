@@ -32,6 +32,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -167,8 +168,8 @@ public class TopBanner extends Composite {
 
         parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
             String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
-                ByokPreferencePage.ID));
+                CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
+                McpPreferencePage.ID, ByokPreferencePage.ID));
 
         UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
       }

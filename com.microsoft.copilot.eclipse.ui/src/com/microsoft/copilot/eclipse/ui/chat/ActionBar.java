@@ -72,6 +72,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -474,7 +475,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       @Override
       public void widgetSelected(SelectionEvent e) {
         int index = cmbChatModePicker.getSelectionIndex();
-        userPreferenceService.setActiveChatMode(index);
+        userPreferenceService.setActiveChatMode(index, cmbChatModePicker);
         updateMcpToolButtonVisibility();
       }
     });
@@ -852,13 +853,20 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Opens the MCP preferences page.
    */
   private void openMcpPreferences() {
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId", McpPreferencePage.ID);
-    parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-        String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-            CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, McpPreferencePage.ID,
-            ByokPreferencePage.ID));
-
-    UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
+    // Get the current chat mode name/ID from observable
+    String currentModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+    
+    // Open MCP preference page with the current mode selected
+    org.eclipse.jface.preference.PreferenceDialog dialog =
+        org.eclipse.ui.dialogs.PreferencesUtil.createPreferenceDialogOn(
+            getShell(),
+            McpPreferencePage.ID,
+            new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
+                CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
+                McpPreferencePage.ID, ByokPreferencePage.ID },
+            currentModeId  // Pass the current mode ID as data
+        );
+    
+    dialog.open();
   }
 }

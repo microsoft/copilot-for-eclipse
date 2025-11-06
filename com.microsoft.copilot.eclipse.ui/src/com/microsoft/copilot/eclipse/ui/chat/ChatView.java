@@ -27,6 +27,7 @@ import org.eclipse.ui.part.ViewPart;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
@@ -333,6 +334,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
   }
 
+  /**
+   * Get the active custom mode if one is selected.
+   *
+   * @return the custom mode or null if a built-in mode is active
+   */
+  private CustomChatMode getActiveCustomMode() {
+    return chatServiceManager.getUserPreferenceService().getActiveCustomMode();
+  }
+
   private void createAgentModeView() {
     // upper bar
     this.topBanner = new TopBanner(parent, SWT.NONE);
@@ -343,6 +353,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (hasHistory) {
       createConversationPage();
     } else {
+      // Always use default Agent mode page for welcome screen
       createAgentModePage();
     }
 
@@ -619,6 +630,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
     String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
     ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
+    CustomChatMode customMode = getActiveCustomMode();
+    String customChatModeId = (customMode != null) ? customMode.getId() : null;
 
     if (!(this.hasHistory)) {
       this.hasHistory = true;
@@ -640,7 +653,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, activeModel, chatModeName, agentSlug, agentJobWorkspaceFolder);
+          processedMessage, references, currentFile, activeModel, chatModeName, customChatModeId, agentSlug,
+          agentJobWorkspaceFolder);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.exceptionally(th -> {
@@ -669,11 +683,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            turns, activeModel, chatModeName);
+            turns, activeModel, chatModeName, customChatModeId);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            turns, activeModel, chatModeName, agentSlug, agentJobWorkspaceFolder);
+            turns, activeModel, chatModeName, customChatModeId, agentSlug, agentJobWorkspaceFolder);
       }
       conversationFutures.add(createConversationFuture);
 
