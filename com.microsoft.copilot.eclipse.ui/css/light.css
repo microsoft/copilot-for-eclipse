@@ -85,6 +85,16 @@
 	background-color: #FFFFFF;
 }
 
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block {
+	background-color: #FFFFFF;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite,
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget,
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget * {
+	background-color: #FFFFFF;
+}
+
 #chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary {
 	color: #808080;
 }

@@ -29,7 +29,7 @@ public class UserTurnWidget extends BaseTurnWidget {
    * Create the widget.
    */
   public UserTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
-    super(parent, style, serviceManager, turnId, false);
+    super(parent, style, serviceManager, turnId, false, null);
   }
 
   @Override

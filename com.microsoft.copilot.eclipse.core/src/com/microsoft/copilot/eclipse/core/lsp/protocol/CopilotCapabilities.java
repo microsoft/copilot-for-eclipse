@@ -16,14 +16,17 @@ public class CopilotCapabilities {
 
   private boolean stateDatabase;
 
+  private boolean subAgent;
+
   /**
    * Creates a new CopilotCapabilities.
    */
-  public CopilotCapabilities(boolean fetch, boolean watchedFiles) {
+  public CopilotCapabilities(boolean fetch, boolean watchedFiles, boolean subAgent) {
     this.didChangeFeatureFlags = true;
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
     this.stateDatabase = true;
+    this.subAgent = subAgent;
   }
 
   public boolean isFetch() {
@@ -50,6 +53,14 @@ public class CopilotCapabilities {
     return stateDatabase;
   }
 
+  public boolean isSubAgent() {
+    return subAgent;
+  }
+
+  public void setSubAgent(boolean subAgent) {
+    this.subAgent = subAgent;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -57,12 +68,13 @@ public class CopilotCapabilities {
     builder.append("watchedFiles", watchedFiles);
     builder.append("didChangeFeatureFlags", didChangeFeatureFlags);
     builder.append("stateDatabase", stateDatabase);
+    builder.append("subAgent", subAgent);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(didChangeFeatureFlags, fetch, stateDatabase, watchedFiles);
+    return Objects.hash(didChangeFeatureFlags, fetch, stateDatabase, watchedFiles, subAgent);
   }
 
   @Override
@@ -78,6 +90,7 @@ public class CopilotCapabilities {
     }
     CopilotCapabilities other = (CopilotCapabilities) obj;
     return didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
-        && stateDatabase == other.stateDatabase && watchedFiles == other.watchedFiles;
+        && stateDatabase == other.stateDatabase && watchedFiles == other.watchedFiles
+        && subAgent == other.subAgent;
   }
 }

@@ -20,7 +20,7 @@ public class CopilotTurnWidget extends BaseTurnWidget {
    * Create the widget.
    */
   public CopilotTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
-    super(parent, style, serviceManager, turnId, true);
+    super(parent, style, serviceManager, turnId, true, null);
   }
 
   @Override

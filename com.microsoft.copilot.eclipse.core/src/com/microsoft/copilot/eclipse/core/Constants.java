@@ -23,6 +23,7 @@ public class Constants {
   public static final String PROXY_KERBEROS_SP = "proxyKerberosSp";
   public static final String GITHUB_ENTERPRISE = "githubEnterprise";
   public static final String WORKSPACE_CONTEXT_ENABLED = "workspaceContextEnabled";
+  public static final String SUB_AGENT_ENABLED = "subAgentEnabled";
   public static final String MCP = "mcp";
   public static final String MCP_REGISTRY_URL = "mcpRegistryUrl";
   public static final String MCP_TOOLS_STATUS = "mcpToolsStatus";

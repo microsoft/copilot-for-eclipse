@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.WorkspaceFolder;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -19,6 +18,7 @@ import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 
 /**
  * File-based implementation of ICustomModeService. Manages custom modes as .agent.md files under .github/agents in the
@@ -44,7 +44,7 @@ public class FileBasedCustomModeService implements ICustomModeService {
   @Override
   public CompletableFuture<List<CustomChatMode>> loadCustomModes() {
     // Get workspace folders for LSP call
-    List<WorkspaceFolder> workspaceFolders = LSPEclipseUtils.getWorkspaceFolders();
+    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
     ConversationModesParams params = new ConversationModesParams(workspaceFolders);
 
     // Call LSP to get modes from all projects
@@ -107,11 +107,10 @@ public class FileBasedCustomModeService implements ICustomModeService {
   }
 
   /**
-   * Create a custom mode in a specific workspace folder.
-   * Creates a default template file that the user can edit.
+   * Create a custom mode in a specific workspace folder. Creates a default template file that the user can edit.
    */
   @Override
-  public CompletableFuture<CustomChatMode> createCustomModeInWorkspaceFolder(WorkspaceFolder workspaceFolder, 
+  public CompletableFuture<CustomChatMode> createCustomModeInWorkspaceFolder(WorkspaceFolder workspaceFolder,
       String displayName) {
     return CompletableFuture.supplyAsync(() -> {
       try {

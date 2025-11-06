@@ -79,6 +79,11 @@ public class CopilotEventConstants {
       + "MCP_CONTRIBUTION_POINT_ENABLED";
 
   /**
+   * Event when the sub-agent policy flag is updated.
+   */
+  public static final String TOPIC_DID_CHANGE_SUB_AGENT_POLICY = TOPIC_POLICY + "SUB_AGENT_ENABLED";
+
+  /**
    * Event when the chat mode is changed.
    */
   public static final String TOPIC_CHAT_MODE_CHANGED = TOPIC_CHAT + "MODE_CHANGED";

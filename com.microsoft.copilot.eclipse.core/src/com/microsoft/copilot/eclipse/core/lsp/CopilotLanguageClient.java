@@ -245,6 +245,11 @@ public class CopilotLanguageClient extends LanguageClientImpl {
         eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY,
             params.isMcpContributionPointEnabled());
       }
+      if (flags.isSubAgentPolicyEnabled() != params.isSubAgentEnabled()) {
+        flags.setSubAgentPolicyEnabled(params.isSubAgentEnabled());
+        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_SUB_AGENT_POLICY,
+            params.isSubAgentEnabled());
+      }
     }
   }
 

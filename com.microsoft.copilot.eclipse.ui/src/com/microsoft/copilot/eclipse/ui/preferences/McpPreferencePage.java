@@ -29,7 +29,6 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.preference.StringFieldEditor;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -64,6 +63,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
@@ -89,6 +89,14 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Combo modeSelector;
   private Composite modeSelectorComposite;
   private String currentModeId = "agent-mode";
+  /**
+   * Stores tool enable/disable status for each mode.
+   * Structure: Map&lt;ModeId, Map&lt;ServerName, Map&lt;ToolName, IsEnabled&gt;&gt;&gt;
+   * - ModeId: The mode identifier (e.g., "agent-mode" or custom mode ID)
+   * - ServerName: The MCP server name (e.g., "Built-in Tools" or specific server name)
+   * - ToolName: The tool identifier within the server
+   * - IsEnabled: Boolean indicating whether the tool is enabled for this mode
+   */
   private Map<String, Map<String, Map<String, Boolean>>> modeToolStatus = new HashMap<>();
   private StringFieldEditor mcpField;
   private Image redNotice;
@@ -904,8 +912,12 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       List<CustomChatMode> customModes = CustomChatModeManager.INSTANCE.getCustomModes();
       for (CustomChatMode mode : customModes) {
         String workspaceName = getWorkspaceNameForMode(mode);
-        String prefix = workspaceName.isEmpty() ? "Custom: " : workspaceName + ": ";
-        options.add(prefix + mode.getDisplayName());
+        if (workspaceName.isEmpty()) {
+          CopilotCore.LOGGER.info("Workspace name is empty for custom mode: " + mode.getDisplayName()
+              + " (ID: " + mode.getId() + ")");
+          continue;
+        }
+        options.add(workspaceName + ": " + mode.getDisplayName());
       }
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to load custom modes", e);
@@ -956,12 +968,14 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
    * Handle mode selection change.
    */
   private void onModeChanged() {
-    // Save current mode's tool status
+    // Save current mode's tool status before switching
     saveModeToolStatus(currentModeId);
 
-    // Load new mode's tool status
+    // Update current mode ID
     String selectedText = modeSelector.getText();
     currentModeId = extractModeIdFromSelection(selectedText);
+    
+    // Load the tool status for the new mode (updates checkboxes on existing tree)
     loadModeToolStatus(currentModeId);
   }
 
@@ -972,23 +986,29 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     if (selectionText.equals(Messages.preferences_page_mcp_tools_agent_mode)) {
       return "agent-mode";
     } else {
-      // Extract display name by removing workspace prefix or "Custom: " prefix
+      // Extract workspace name and display name from the selection text
+      // Format: "workspace: displayName"
+      String workspaceName;
       String displayName;
-      if (selectionText.contains("/")) {
-        // Format: "workspace/displayName"
-        displayName = selectionText.substring(selectionText.indexOf("/") + 1);
-      } else if (selectionText.startsWith("Custom: ")) {
-        // Format: "Custom: displayName"
-        displayName = selectionText.substring(8);
-      } else {
-        displayName = selectionText;
-      }
       
+      if (selectionText.contains(": ")) {
+        int colonIndex = selectionText.indexOf(": ");
+        workspaceName = selectionText.substring(0, colonIndex);
+        displayName = selectionText.substring(colonIndex + 2);
+      } else {
+        CopilotCore.LOGGER.info("Invalid mode selection format (missing ': '): " + selectionText);
+        return "agent-mode";
+      }
+
       try {
         List<CustomChatMode> customModes = CustomChatModeManager.INSTANCE.getCustomModes();
         for (CustomChatMode mode : customModes) {
+          // Match both display name and workspace name to ensure uniqueness
           if (mode.getDisplayName().equals(displayName)) {
-            return mode.getId();
+            String modeWorkspaceName = getWorkspaceNameForMode(mode);
+            if (workspaceName.equals(modeWorkspaceName)) {
+              return mode.getId();
+            }
           }
         }
       } catch (Exception e) {
@@ -1005,8 +1025,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     try {
       String modeId = mode.getId();
       Path modePath = Paths.get(java.net.URI.create(modeId));
-      
-      List<WorkspaceFolder> workspaceFolders = LSPEclipseUtils.getWorkspaceFolders();
+
+      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
       if (workspaceFolders != null) {
         for (WorkspaceFolder folder : workspaceFolders) {
           Path folderPath = Paths.get(java.net.URI.create(folder.getUri()));
@@ -1328,6 +1348,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Shell findExistingMcpRegistryDialog() {
     Shell[] shells = Display.getDefault().getShells();
     for (Shell shell : shells) {
+      // Using fully qualified name to avoid conflict with com.microsoft.copilot.eclipse.ui.i18n.Messages
       if (shell.getText().equals(com.microsoft.copilot.eclipse.ui.dialogs.Messages.mcpRegistryDialog_title)) {
         return shell;
       }

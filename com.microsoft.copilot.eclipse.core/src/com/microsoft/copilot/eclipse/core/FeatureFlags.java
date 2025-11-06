@@ -17,6 +17,8 @@ public class FeatureFlags {
 
   private boolean mcpContributionPointEnabled = false;
 
+  private boolean subAgentPolicyEnabled = true;
+
   public boolean isAgentModeEnabled() {
     return agentModeEnabled;
   }
@@ -49,6 +51,14 @@ public class FeatureFlags {
     this.mcpContributionPointEnabled = mcpContributionPointEnabled;
   }
 
+  public boolean isSubAgentPolicyEnabled() {
+    return subAgentPolicyEnabled;
+  }
+
+  public void setSubAgentPolicyEnabled(boolean subAgentPolicyEnabled) {
+    this.subAgentPolicyEnabled = subAgentPolicyEnabled;
+  }
+
   public boolean isClientPreviewFeatureEnabled() {
     return clientPreviewFeatureEnabled;
   }
@@ -69,6 +79,28 @@ public class FeatureFlags {
     IEclipsePreferences uiPrefs = InstanceScope.INSTANCE.getNode("com.microsoft.copilot.eclipse.ui");
     if (uiPrefs != null) {
       return uiPrefs.getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED, false);
+    }
+
+    return false;
+  }
+
+  /**
+   * Checks if the sub-agent is enabled.
+   * Sub-agent is enabled only if both the user preference is enabled AND the organization policy allows it.
+   *
+   * @return true if the sub-agent is enabled, false otherwise.
+   */
+  public static boolean isSubAgentEnabled() {
+    // Check if policy allows sub-agent (defaults to true, so safe to check during initialization)
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags != null && !flags.isSubAgentPolicyEnabled()) {
+      return false;
+    }
+
+    // Check user preference
+    IEclipsePreferences uiPrefs = InstanceScope.INSTANCE.getNode("com.microsoft.copilot.eclipse.ui");
+    if (uiPrefs != null) {
+      return uiPrefs.getBoolean(Constants.SUB_AGENT_ENABLED, false);
     }
 
     return false;

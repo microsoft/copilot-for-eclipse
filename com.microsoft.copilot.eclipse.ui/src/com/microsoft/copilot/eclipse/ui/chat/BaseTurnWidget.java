@@ -41,6 +41,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected SourceViewer currentTextBlock;
   protected SourceViewerComposite currentCodeBlock;
   protected Map<String, AgentStatusLabel> statusLabels;
+  protected SubagentMessageBlock currentSubagentBlock;
 
   // Data
   protected StringBuilder messageBuffer;
@@ -49,6 +50,8 @@ public abstract class BaseTurnWidget extends Composite {
   protected boolean isCopilot;
   protected String turnId;
   protected int codeBlockIndex;
+  protected boolean inSubagentBlock;
+  protected String overrideRoleName;
 
   // Resource
   protected Image icon = null;
@@ -63,10 +66,15 @@ public abstract class BaseTurnWidget extends Composite {
    *
    * @param parent the parent composite
    * @param style the style
+   * @param serviceManager the service manager
+   * @param turnId the turn ID
+   * @param isCopilot whether this is a copilot turn
+   * @param overrideRoleName optional role name to override getRoleName(), can be null
    */
   protected BaseTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId,
-      boolean isCopilot) {
+      boolean isCopilot, String overrideRoleName) {
     super(parent, style);
+    this.overrideRoleName = overrideRoleName;
     this.messageBuffer = new StringBuilder();
     this.mdContentBuilder = new StringBuilder();
     this.serviceManager = serviceManager;
@@ -110,7 +118,7 @@ public abstract class BaseTurnWidget extends Composite {
     lblAvatar.setImage(icon);
 
     Label lblRoleName = new Label(cmpTitle, SWT.NONE);
-    String name = getRoleName();
+    String name = overrideRoleName != null ? overrideRoleName : getRoleName();
     lblRoleName.setText(name);
     if (this.boldFont == null) {
       this.boldFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
@@ -148,6 +156,13 @@ public abstract class BaseTurnWidget extends Composite {
     if (StringUtils.isEmpty(message)) {
       return;
     }
+
+    // If we're in a subagent block, route messages there
+    if (inSubagentBlock && currentSubagentBlock != null) {
+      currentSubagentBlock.appendMessage(message);
+      return;
+    }
+
     messageBuffer.append(message);
     int newlineIndex;
     while ((newlineIndex = messageBuffer.indexOf("\n")) != -1) {
@@ -164,6 +179,18 @@ public abstract class BaseTurnWidget extends Composite {
    */
   public void appendToolCallStatus(AgentToolCall toolCall) {
     if (toolCall == null || StringUtils.isEmpty(toolCall.getProgressMessage())) {
+      return;
+    }
+
+    // Check if this is a run_subagent tool call
+    if ("run_subagent".equalsIgnoreCase(toolCall.getName())) {
+      handleSubagentToolCall(toolCall);
+      return;
+    }
+
+    // If we're in a subagent block, route tool calls there
+    if (inSubagentBlock && currentSubagentBlock != null) {
+      currentSubagentBlock.appendToolCallStatus(toolCall);
       return;
     }
 
@@ -197,6 +224,66 @@ public abstract class BaseTurnWidget extends Composite {
       default:
         statusLabel.setErrorStatus();
         CopilotCore.LOGGER.error(new IllegalStateException("Unknown status: " + status));
+    }
+  }
+
+  /**
+   * Handle run_subagent tool call specially.
+   *
+   * @param toolCall the subagent tool call
+   */
+  private void handleSubagentToolCall(AgentToolCall toolCall) {
+    String status = toolCall.getStatus().toLowerCase();
+
+    // TODO: Extract tool call status to enum and reuse it in AgentStatusLabel
+    switch (status) {
+      case "running":
+        // Start of subagent block
+        if (currentSubagentBlock == null) {
+          reset();
+          inSubagentBlock = true;
+          currentSubagentBlock = new SubagentMessageBlock(this, SWT.NONE, serviceManager, toolCall.getId(), toolCall);
+          currentSubagentBlock.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+          requestLayout();
+        }
+        break;
+      case "completed":
+        // End of subagent block
+        if (currentSubagentBlock != null) {
+          currentSubagentBlock.notifyTurnEnd();
+          inSubagentBlock = false;
+          currentSubagentBlock = null;
+          requestLayout();
+        }
+        break;
+      case "cancelled":
+      case "error":
+        // Handle errors in subagent
+        if (currentSubagentBlock != null) {
+          currentSubagentBlock.notifyTurnEnd();
+          inSubagentBlock = false;
+          currentSubagentBlock = null;
+        }
+        // Show error status
+        AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(),
+            id -> new AgentStatusLabel(this, SWT.LEFT));
+        if ("cancelled".equals(status)) {
+          statusLabel.setCancelledStatus();
+          statusLabel.setText(toolCall.getProgressMessage());
+        } else {
+          statusLabel.setErrorStatus();
+          String errorText = StringUtils.isNotEmpty(toolCall.getError()) ? toolCall.getError()
+              : toolCall.getProgressMessage();
+          statusLabel.setText(errorText);
+        }
+        requestLayout();
+        break;
+      default:
+        statusLabel = statusLabels.computeIfAbsent(toolCall.getId(),
+            id -> new AgentStatusLabel(this, SWT.LEFT));
+        statusLabel.setErrorStatus();
+        CopilotCore.LOGGER.error(new IllegalStateException("Unknown status: " + status));
+        break;
     }
   }
 
@@ -275,6 +362,8 @@ public abstract class BaseTurnWidget extends Composite {
     this.currentCodeBlock = null;
     this.currentTextBlock = null;
     this.inCodeBlock = false;
+
+    // Don't reset subagent block state here - it's managed by tool call status
   }
 
   /**
@@ -364,6 +453,10 @@ public abstract class BaseTurnWidget extends Composite {
         label.dispose();
       }
       statusLabels.clear();
+    }
+    if (currentSubagentBlock != null) {
+      currentSubagentBlock.dispose();
+      currentSubagentBlock = null;
     }
     // TODO: the event broker can be injected once we fully migrated to e4 and use ui injection
     if (this.cancelMsgEventHandler != null) {

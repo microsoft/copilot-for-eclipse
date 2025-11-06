@@ -471,6 +471,12 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
     UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
     userPreferenceService.bindChatModePicker(this.cmbChatModePicker);
+    
+    // Add a listener to reload modes when dropdown is about to be shown
+    this.cmbChatModePicker.addListener(SWT.MouseDown, event -> {
+      userPreferenceService.reloadChatModes();
+    });
+    
     this.cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {

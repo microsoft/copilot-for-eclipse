@@ -464,6 +464,25 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
+   * Reload the available chat modes from the manager.
+   * This will sync custom modes from the Language Server and refresh the dropdown.
+   */
+  public void reloadChatModes() {
+    // Sync custom modes from LS first, then update the observable
+    CustomChatModeManager.INSTANCE.syncCustomModesFromService().thenRun(() -> {
+      ensureRealm(() -> {
+        String[] currentModes = chatModeObservable.getValue();
+        String[] updatedModes = getAvalibleChatModes();
+        
+        // Only update if the modes have changed
+        if (!Arrays.deepEquals(currentModes, updatedModes)) {
+          chatModeObservable.setValue(updatedModes);
+        }
+      });
+    });
+  }
+
+  /**
    * Revert combo selection to the current active mode.
    * If the current mode no longer exists (e.g., custom mode was deleted),
    * fall back to Ask mode and update the active mode.
@@ -485,13 +504,13 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         }
         return;
       } else {
-        // Custom mode was deleted, switch to Ask mode
-        CopilotCore.LOGGER.info("Current mode " + currentModeName + " was deleted, switching to Ask mode");
-        setActiveChatMode(ChatMode.Ask.toString());
-        // Select Ask in the combo
-        int askIndex = Arrays.asList(combo.getItems()).indexOf(ChatMode.Ask.displayName());
-        if (askIndex >= 0) {
-          combo.select(askIndex);
+        // Custom mode was deleted, switch to Agent mode
+        CopilotCore.LOGGER.info("Current mode " + currentModeName + " was deleted, switching to Agent mode");
+        setActiveChatMode(ChatMode.Agent.toString());
+        // Select Agent in the combo
+        int agentIndex = Arrays.asList(combo.getItems()).indexOf(ChatMode.Agent.displayName());
+        if (agentIndex >= 0) {
+          combo.select(agentIndex);
         }
         return;
       }
@@ -505,12 +524,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         combo.select(currentIndex);
       }
     } catch (IllegalArgumentException e) {
-      // Invalid mode, default to Ask
-      CopilotCore.LOGGER.error("Invalid mode name: " + currentModeName + ", falling back to Ask mode", e);
-      setActiveChatMode(ChatMode.Ask.toString());
-      int askIndex = Arrays.asList(combo.getItems()).indexOf(ChatMode.Ask.displayName());
-      if (askIndex >= 0) {
-        combo.select(askIndex);
+      // Invalid mode, default to Agent
+      CopilotCore.LOGGER.error("Invalid mode name: " + currentModeName + ", falling back to Agent mode", e);
+      setActiveChatMode(ChatMode.Agent.toString());
+      int agentIndex = Arrays.asList(combo.getItems()).indexOf(ChatMode.Agent.displayName());
+      if (agentIndex >= 0) {
+        combo.select(agentIndex);
       }
     }
   }
@@ -704,11 +723,6 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     // Always update and force layout, especially important when shrinking (e.g., switching to "Ask")
     gridData.widthHint = widthHint;
     combo.requestLayout();
-    
-    // Also request layout on parent to ensure the resize is applied
-    if (combo.getParent() != null) {
-      combo.getParent().requestLayout();
-    }
   }
 
   /**

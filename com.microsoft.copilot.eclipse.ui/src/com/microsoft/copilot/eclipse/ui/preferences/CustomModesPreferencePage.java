@@ -16,6 +16,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.preference.PreferencePage;
@@ -254,7 +255,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
   /**
    * Dialog for creating a new custom mode with name and workspace folder selection.
    */
-  private static class CreateModeDialog extends org.eclipse.jface.dialogs.Dialog {
+  private static class CreateModeDialog extends Dialog {
     private List<WorkspaceFolder> folders;
     private Text nameText;
     private Combo folderCombo;
@@ -479,9 +480,9 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
               page.closeEditor(editorRef.getEditor(true), false);
               CopilotCore.LOGGER.info("Closed workspace editor for mode file: " + filePath);
             }
-          } else if (editorInput instanceof org.eclipse.ui.ide.FileStoreEditorInput) {
+          } else if (editorInput instanceof FileStoreEditorInput) {
             // Check if it's an external file editor
-            org.eclipse.ui.ide.FileStoreEditorInput storeInput = (org.eclipse.ui.ide.FileStoreEditorInput) editorInput;
+            FileStoreEditorInput storeInput = (FileStoreEditorInput) editorInput;
             if (fileStore.toURI().equals(storeInput.getURI())) {
               page.closeEditor(editorRef.getEditor(true), false);
               CopilotCore.LOGGER.info("Closed external editor for mode file: " + filePath);

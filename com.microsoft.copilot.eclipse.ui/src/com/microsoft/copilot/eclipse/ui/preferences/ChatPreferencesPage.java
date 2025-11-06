@@ -45,14 +45,14 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
 
-    Composite chatComposite = new Composite(parent, SWT.NONE);
-    chatComposite.setLayout(gl);
-    gdf.applyTo(chatComposite);
+    Composite workspaceContextComposite = new Composite(parent, SWT.NONE);
+    workspaceContextComposite.setLayout(gl);
+    gdf.applyTo(workspaceContextComposite);
     BooleanFieldEditor workspaceContextField = new BooleanFieldEditor(Constants.WORKSPACE_CONTEXT_ENABLED,
-        Messages.preferences_page_watched_files, SWT.WRAP, chatComposite);
+        Messages.preferences_page_watched_files, SWT.WRAP, workspaceContextComposite);
     GridData workspaceContextFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     workspaceContextFieldGridData.widthHint = 400;
-    workspaceContextField.getDescriptionControl(chatComposite).setLayoutData(workspaceContextFieldGridData);
+    workspaceContextField.getDescriptionControl(workspaceContextComposite).setLayoutData(workspaceContextFieldGridData);
 
     addField(workspaceContextField);
 
@@ -60,14 +60,32 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix,
         Messages.preferences_page_watched_files_note_content);
 
-    // Add control listener to handle workspace context field resizing
+    // Add sub-agent toggle
+    Composite subAgentComposite = new Composite(parent, SWT.NONE);
+    subAgentComposite.setLayout(gl);
+    gdf.applyTo(subAgentComposite);
+    BooleanFieldEditor subAgentField = new BooleanFieldEditor(Constants.SUB_AGENT_ENABLED,
+        Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
+    GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    subAgentFieldGridData.widthHint = 400;
+    subAgentField.getDescriptionControl(subAgentComposite).setLayoutData(subAgentFieldGridData);
+
+    addField(subAgentField);
+
+    // add sub-agent note using WrappableNoteLabel
+    new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix,
+        Messages.preferences_page_sub_agent_note_content);
+
+    // Add control listener to handle field resizing
     ControlListener controlListener = new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
-        // resize the workspace context field description
+        // resize the workspace context field and sub-agent field descriptions
         ChatPreferencesPage pg = ChatPreferencesPage.this;
         int width = pg.getFieldEditorParent().getSize().x - 20;
-        ((GridData) workspaceContextField.getDescriptionControl(chatComposite).getLayoutData()).widthHint = width;
+        ((GridData) workspaceContextField.getDescriptionControl(workspaceContextComposite)
+            .getLayoutData()).widthHint = width;
+        ((GridData) subAgentField.getDescriptionControl(subAgentComposite).getLayoutData()).widthHint = width;
         pg.getFieldEditorParent().layout();
       }
     };

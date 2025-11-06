@@ -83,9 +83,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     registerTool(new GetErrorsTool());
 
     // Register the tools to the language server and cache the result
-    registerToolWithServer().thenAccept(toolList -> {
-      cachedBuiltInTools = toolList;
-    });
+    registerToolWithServer();
 
     ChatEventsManager chatEventsManager = CopilotCore.getPlugin().getChatEventsManager();
     if (chatEventsManager != null) {
@@ -96,6 +94,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   /**
    * Register tools to the language server and get the list of registered tools.
    * This is called with different tool sets depending on the chat mode.
+   * The cached built-in tools are updated every time this method is called.
    *
    * @return A CompletableFuture containing the list of registered tools from the language server
    */
@@ -105,7 +104,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       registerToolsParams.addTool(tool.getToolInformation());
     }
 
-    return lsConnection.registerTools(registerToolsParams);
+    return lsConnection.registerTools(registerToolsParams).thenApply(toolList -> {
+      cachedBuiltInTools = toolList;
+      return toolList;
+    });
   }
 
   private void registerTerminalTools() {
