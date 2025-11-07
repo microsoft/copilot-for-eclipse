@@ -135,7 +135,7 @@
 		</page>
 		<page
 			id="com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage"
-			name="Custom Modes"
+			name="%page.preferencesPage.customAgents.name"
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			class="com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage">
 		</page>

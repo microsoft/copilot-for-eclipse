@@ -146,7 +146,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
   }
 
   /**
-   * Load custom modes into the table.
+   * Load custom agents into the table.
    */
   private void loadModes() {
     if (modesTable.isDisposed()) {
@@ -168,7 +168,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
   }
 
   /**
-   * Get the workspace name for a custom mode based on its file path.
+   * Get the workspace name for a custom agent based on its file path.
    */
   private String getWorkspaceNameForMode(CustomChatMode mode) {
     try {
@@ -253,7 +253,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
   }
 
   /**
-   * Dialog for creating a new custom mode with name and workspace folder selection.
+   * Dialog for creating a new custom agent with name and workspace folder selection.
    */
   private static class CreateModeDialog extends Dialog {
     private List<WorkspaceFolder> folders;
@@ -445,7 +445,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
   }
 
   /**
-   * Close any open editors for the custom mode file.
+   * Close any open editors for the custom agent file.
    */
   private void closeEditorForMode(String modeId) {
     try {
