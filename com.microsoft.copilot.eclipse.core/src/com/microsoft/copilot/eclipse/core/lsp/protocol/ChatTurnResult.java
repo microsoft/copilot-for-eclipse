@@ -10,11 +10,13 @@ import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
  */
 public class ChatTurnResult {
   @NonNull
-  String conversationId;
+  private String conversationId;
   @NonNull
-  String turnId;
-  String agentSlug;
-  String modelFamily;
+  private String turnId;
+  private String agentSlug;
+  private String modelName;
+  private String modelProviderName;
+  private double billingMultiplier;
 
   public String getConversationId() {
     return conversationId;
@@ -26,10 +28,6 @@ public class ChatTurnResult {
 
   public String getAgentSlug() {
     return agentSlug;
-  }
-
-  public String getModelFamily() {
-    return modelFamily;
   }
 
   public void setConversationId(String conversationId) {
@@ -44,26 +42,51 @@ public class ChatTurnResult {
     this.agentSlug = agentSlug;
   }
 
-  public void setModelFamily(String modelFamily) {
-    this.modelFamily = modelFamily;
+  public String getModelName() {
+    return modelName;
+  }
+
+  public void setModelName(String modelName) {
+    this.modelName = modelName;
+  }
+
+  public String getModelProviderName() {
+    return modelProviderName;
+  }
+
+  public void setModelProviderName(String modelProviderName) {
+    this.modelProviderName = modelProviderName;
+  }
+
+  public double getBillingMultiplier() {
+    return billingMultiplier;
+  }
+
+  public void setBillingMultiplier(double billingMultiplier) {
+    this.billingMultiplier = billingMultiplier;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(conversationId, turnId, agentSlug, modelFamily);
+    return Objects.hash(agentSlug, billingMultiplier, conversationId, modelName, modelProviderName, turnId);
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (obj == null) {
       return false;
     }
-    ChatTurnResult that = (ChatTurnResult) o;
-    return Objects.equals(conversationId, that.conversationId) && Objects.equals(turnId, that.turnId)
-        && Objects.equals(agentSlug, that.agentSlug) && Objects.equals(modelFamily, that.modelFamily);
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    ChatTurnResult other = (ChatTurnResult) obj;
+    return Objects.equals(agentSlug, other.agentSlug)
+        && Double.doubleToLongBits(billingMultiplier) == Double.doubleToLongBits(other.billingMultiplier)
+        && Objects.equals(conversationId, other.conversationId) && Objects.equals(modelName, other.modelName)
+        && Objects.equals(modelProviderName, other.modelProviderName) && Objects.equals(turnId, other.turnId);
   }
 
   @Override
@@ -72,7 +95,10 @@ public class ChatTurnResult {
     builder.add("conversationId", conversationId);
     builder.add("turnId", turnId);
     builder.add("agentSlug", agentSlug);
-    builder.add("modelFamily", modelFamily);
+    builder.add("modelName", modelName);
+    builder.add("modelProviderName", modelProviderName);
+    builder.add("billingMultiplier", billingMultiplier);
     return builder.toString();
   }
+
 }

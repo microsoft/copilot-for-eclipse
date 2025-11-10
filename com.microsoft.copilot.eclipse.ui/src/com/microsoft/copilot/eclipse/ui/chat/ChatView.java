@@ -21,6 +21,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 
@@ -237,6 +238,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             for (AbstractTurnData turn : historyConversation.getTurns()) {
               restoreTurn(turn);
             }
+          }
+
+          // Scroll to bottom after restoring all turns
+          if (chatContentViewer != null && !chatContentViewer.isDisposed()) {
+            // Use invokeOnDisplayThreadAsync to ensure layout is complete before scrolling
+            SwtUtils.invokeOnDisplayThreadAsync(() -> {
+              chatContentViewer.refreshScrollerLayout();
+              ScrollBar verticalBar = chatContentViewer.getVerticalBar();
+              if (verticalBar != null) {
+                chatContentViewer.setOrigin(0, verticalBar.getMaximum());
+              }
+            }, chatContentViewer);
           }
 
           // Hide chat history and show restored conversation
@@ -657,7 +670,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           agentJobWorkspaceFolder);
       conversationFutures.add(addConversationFuture);
 
-      addConversationFuture.exceptionally(th -> {
+      addConversationFuture.thenAccept(result -> {
+        // Render and persist model information in the Copilot turn widget
+        if (result != null && StringUtils.isNotBlank(result.getModelName())) {
+          renderModelInfoInTurnWidget(result.getTurnId(), conversationId, result.getModelName(),
+              result.getBillingMultiplier());
+
+          // Persist model information
+          if (persistenceManager != null) {
+            persistenceManager.persistModelInfo(result.getConversationId(), result.getTurnId(), result.getModelName(),
+                result.getBillingMultiplier());
+          }
+        }
+      }).exceptionally(th -> {
         if (!ConversationUtils.isConversationCancellationThrowable(th)) {
           CopilotCore.LOGGER.error("Error sending message to existing conversation with exception: ", th);
           displayErrorAndResetSendButton(workDoneToken, th.getMessage());
@@ -698,6 +723,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId).get();
         } catch (InterruptedException | ExecutionException e) {
           CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
+        }
+
+        // Render model information in the Copilot turn widget
+        if (result != null && StringUtils.isNotBlank(result.getModelName())) {
+          renderModelInfoInTurnWidget(result.getTurnId(), newConversationId, result.getModelName(),
+              result.getBillingMultiplier());
+
+          // Persist model information
+          if (persistenceManager != null) {
+            persistenceManager.persistModelInfo(newConversationId, result.getTurnId(), result.getModelName(),
+                result.getBillingMultiplier());
+          }
         }
       }).exceptionally(th -> {
         if (!ConversationUtils.isConversationCancellationThrowable(th)) {
@@ -989,6 +1026,29 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
+   * Render model information in the Copilot turn widget.
+   *
+   * @param turnId the turn ID
+   * @param conversationId the conversation ID to use for persistence
+   * @param modelName the model name
+   * @param billingMultiplier the billing multiplier
+   */
+  private void renderModelInfoInTurnWidget(String turnId, String conversationId, String modelName,
+      Double billingMultiplier) {
+    if (StringUtils.isBlank(modelName)) {
+      return;
+    }
+
+    BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(turnId);
+    if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
+      copilotWidget.renderModelInfo(modelName, billingMultiplier);
+
+      // Refresh the scroller layout to ensure the footer is visible
+      SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(), this.chatContentViewer);
+    }
+  }
+
+  /**
    * Restore a single turn from persisted conversation data.
    *
    * @param turn the turn data to restore
@@ -1067,6 +1127,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       copilotTurnWidget.notifyTurnEnd();
+
+      // Restore model info footer if model name is present
+      // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
+      if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
+        renderModelInfoInTurnWidget(turn.getTurnId(), this.conversationId, replyData.getModelName(),
+            replyData.getBillingMultiplier());
+      }
     }
   }
 }

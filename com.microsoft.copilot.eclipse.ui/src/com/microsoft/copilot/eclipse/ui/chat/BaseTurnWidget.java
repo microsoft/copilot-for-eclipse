@@ -58,6 +58,9 @@ public abstract class BaseTurnWidget extends Composite {
   protected Font boldFont = null;
   protected InvokeToolConfirmationDialog confirmDialog;
 
+  // Footer
+  protected Composite footer;
+
   // Event handling
   protected EventHandler cancelMsgEventHandler;
 
@@ -386,6 +389,15 @@ public abstract class BaseTurnWidget extends Composite {
    * Create the appropriate type of text block based on implementation.
    */
   protected abstract void createTextBlock();
+
+  /**
+   * Create an optional footer component. Subclasses can override this to define footer structure.
+   * The footer is placed at the bottom of the turn widget.
+   * This should be called only when there is content to display (e.g., model info is available).
+   */
+  protected void createFooter() {
+    // Base implementation - subclasses should override to create footer structure
+  }
 
   /**
    * Create a warning dialog to the turn widget.

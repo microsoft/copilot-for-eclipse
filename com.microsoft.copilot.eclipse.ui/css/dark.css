@@ -103,6 +103,10 @@
 	color: #A4A4A4;
 }
 
+#chat-content-viewer > Composite > CopilotTurnWidget > Composite > Label.model-info-label {
+	color: #A4A4A4;
+}
+
 #chat-content-viewer,
 #chat-content-viewer > Composite,
 #chat-content-viewer > Composite * {

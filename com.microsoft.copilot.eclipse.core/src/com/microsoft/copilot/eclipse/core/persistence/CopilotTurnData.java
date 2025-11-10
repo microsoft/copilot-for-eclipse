@@ -167,6 +167,8 @@ public class CopilotTurnData extends AbstractTurnData {
     private List<Object> steps;
     private List<AgentMessageData> agentMessages;
     private Map<String, Object> data;
+    private String modelName;
+    private double billingMultiplier;
 
     /**
      * Default constructor initializing lists and data maps.
@@ -288,10 +290,26 @@ public class CopilotTurnData extends AbstractTurnData {
       this.data = data;
     }
 
+    public String getModelName() {
+      return modelName;
+    }
+
+    public void setModelName(String modelName) {
+      this.modelName = modelName;
+    }
+
+    public double getBillingMultiplier() {
+      return billingMultiplier;
+    }
+
+    public void setBillingMultiplier(double billingMultiplier) {
+      this.billingMultiplier = billingMultiplier;
+    }
+
     @Override
     public int hashCode() {
       return Objects.hash(annotations, data, editAgentRounds, errorMessages, followups, hideText, notifications,
-          panelMessages, rating, references, steps, agentMessages, text);
+          panelMessages, rating, references, steps, agentMessages, text, modelName, billingMultiplier);
     }
 
     @Override
@@ -312,7 +330,9 @@ public class CopilotTurnData extends AbstractTurnData {
           && hideText == other.hideText && Objects.equals(notifications, other.notifications)
           && Objects.equals(panelMessages, other.panelMessages) && Objects.equals(rating, other.rating)
           && Objects.equals(references, other.references) && Objects.equals(steps, other.steps)
-          && Objects.equals(agentMessages, other.agentMessages) && Objects.equals(text, other.text);
+          && Objects.equals(agentMessages, other.agentMessages) && Objects.equals(text, other.text)
+          && Objects.equals(modelName, other.modelName)
+          && Double.compare(billingMultiplier, other.billingMultiplier) == 0;
     }
 
     @Override
@@ -331,6 +351,8 @@ public class CopilotTurnData extends AbstractTurnData {
       builder.add("steps", steps);
       builder.add("agentMessages", agentMessages);
       builder.add("data", data);
+      builder.add("modelName", modelName);
+      builder.add("billingMultiplier", billingMultiplier);
       return builder.toString();
     }
   }

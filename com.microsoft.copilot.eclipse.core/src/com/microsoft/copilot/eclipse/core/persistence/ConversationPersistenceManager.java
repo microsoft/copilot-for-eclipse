@@ -473,6 +473,38 @@ public class ConversationPersistenceManager {
   }
 
   /**
+   * Persists model information (model name and billing multiplier) for a Copilot turn.
+   *
+   * @param conversationId the ID of the conversation
+   * @param turnId the ID of the turn
+   * @param modelName the name of the model used
+   * @param billingMultiplier the billing multiplier for the model
+   */
+  public CompletableFuture<Void> persistModelInfo(String conversationId, String turnId, String modelName,
+      double billingMultiplier) {
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ConversationData conversation = getOrCreateNewConversationById(conversationId);
+        CopilotTurnData copilotTurn = findOrCreateCopilotTurn(conversation, turnId);
+
+        // Set model information in the reply data
+        if (copilotTurn.getReply() != null) {
+          copilotTurn.getReply().setModelName(modelName);
+          copilotTurn.getReply().setBillingMultiplier(billingMultiplier);
+        }
+
+        // Persist the updated conversation
+        persistAndCacheConversation(conversation);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to persist model info for conversation: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
    * Gets the data factory for data transformation operations.
    *
    * @return the ConversationDataFactory instance

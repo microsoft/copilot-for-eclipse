@@ -1,6 +1,5 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,7 +42,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
-import com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
@@ -66,8 +64,6 @@ public class ModelService extends ChatBaseService {
    * The extra padding that used for the combo on non-Windows platforms.
    */
   private static final int EXTRA_PADDING = 40;
-  private static final String MODEL_MULTIPLIER_SUFFIX = "x";
-  private static final String DEFAULT_MODEL_MULTIPLIER = "Included";
   private static final int MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER = 6;
 
   // models for the model picker
@@ -138,7 +134,7 @@ public class ModelService extends ChatBaseService {
     // TODO: need to remove this logic after group policy is available
     featureFlagsChangedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
-      if (property instanceof DidChangeFeatureFlagsParams params) {
+      if (property instanceof DidChangeFeatureFlagsParams) {
         ensureRealm(() -> {
           updateModelsForChatMode(currentChatMode);
         });
@@ -554,6 +550,7 @@ public class ModelService extends ChatBaseService {
       int spaceWidth = gc.textExtent(UiUtils.HAIR_SPACE).x;
 
       // Create properly aligned model names
+      List<String> otherModels = new ArrayList<>(); // preserved for auto model and will be shown on top
       List<String> standardModels = new ArrayList<>();
       List<String> premiumModels = new ArrayList<>();
       List<String> customModels = new ArrayList<>();
@@ -565,12 +562,17 @@ public class ModelService extends ChatBaseService {
           customModels.add(formattedModel);
           continue;
         }
-        if (model.getBilling().isPremium()) {
-          premiumModels.add(formattedModel);
+        if (model.getBilling() != null) {
+          if (model.getBilling().isPremium()) {
+            premiumModels.add(formattedModel);
+          } else {
+            standardModels.add(formattedModel);
+          }
         } else {
-          standardModels.add(formattedModel);
+          otherModels.add(formattedModel);
         }
       }
+
       if (!customModels.isEmpty()) {
         customModels.sort(String.CASE_INSENSITIVE_ORDER);
         customModels.add(0, addDashesAroundModelHeader(Messages.chat_customModels, maxWidth, gc));
@@ -589,7 +591,8 @@ public class ModelService extends ChatBaseService {
         }
       }
 
-      List<String> allModels = new ArrayList<>(standardModels);
+      List<String> allModels = new ArrayList<>(otherModels);
+      allModels.addAll(standardModels);
       allModels.addAll(premiumModels);
       allModels.addAll(customModels);
       if (this.authStatusManager.getQuotaStatus().getCopilotPlan() == CopilotPlan.free) {
@@ -621,14 +624,11 @@ public class ModelService extends ChatBaseService {
     if (model.getProviderName() != null) {
       suffix = model.getProviderName();
     } else if (model.getBilling() != null) {
-      BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
-      if (multiplier.toPlainString().equals("0")) {
-        suffix = DEFAULT_MODEL_MULTIPLIER;
-      } else {
-        suffix = multiplier.toPlainString() + MODEL_MULTIPLIER_SUFFIX;
-      }
+      suffix = ModelUtils.formatBillingMultiplier(model.getBilling().multiplier());
+    } else if (model.getBilling() == null && model.getModelName().equals("Auto")) {
+      // Special case for Auto model which has a variable multiplier
+      suffix = Messages.model_billing_multiplier_variable;
     }
-
     return UiUtils.getAlignedText(gc, modelName, UiUtils.HAIR_SPACE, suffix, spacesToAdd, maxWidth);
   }
 
@@ -654,12 +654,7 @@ public class ModelService extends ChatBaseService {
     if (model.getProviderName() != null) {
       multiplierText = model.getProviderName();
     } else if (model.getBilling() != null) {
-      BigDecimal multiplier = BigDecimal.valueOf(model.getBilling().multiplier()).stripTrailingZeros();
-      if (multiplier.toPlainString().equals("0")) {
-        multiplierText = DEFAULT_MODEL_MULTIPLIER;
-      } else {
-        multiplierText = multiplier.toPlainString() + MODEL_MULTIPLIER_SUFFIX;
-      }
+      multiplierText = ModelUtils.formatBillingMultiplier(model.getBilling().multiplier());
     } else {
       // Fallback for models without billing info
       multiplierText = "";
