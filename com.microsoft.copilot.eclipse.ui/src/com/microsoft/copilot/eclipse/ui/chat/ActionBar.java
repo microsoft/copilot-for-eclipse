@@ -52,6 +52,10 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
@@ -471,12 +475,12 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
     UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
     userPreferenceService.bindChatModePicker(this.cmbChatModePicker);
-    
+
     // Add a listener to reload modes when dropdown is about to be shown
     this.cmbChatModePicker.addListener(SWT.MouseDown, event -> {
       userPreferenceService.reloadChatModes();
     });
-    
+
     this.cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
@@ -532,15 +536,49 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   /**
-   * Update MCP tool button visibility based on chat mode. Only visible in Agent mode.
+   * Update MCP tool button visibility based on whether the current mode allows tool configuration.
+   * Shows the tool button only when the mode allows tool configuration:
+   * - Agent mode: Shows tool button
+   * - Plan mode: Hides tool button (Plan uses Agent UI but no tools)
+   * - Ask mode: Hides tool button
+   * - Custom modes: Shows tool button (all custom modes allow tools)
    */
   private void updateMcpToolButtonVisibility() {
     if (mcpToolButton == null || mcpToolButton.isDisposed()) {
       return;
     }
-    boolean isAgentMode = chatServiceManager.getUserPreferenceService().getActiveChatMode().equals(ChatMode.Agent);
-    mcpToolButton.setVisible(isAgentMode);
-    ((GridData) mcpToolButton.getLayoutData()).exclude = !isAgentMode;
+
+    boolean allowsToolConfiguration = false;
+
+    // Get the active mode name or ID from UserPreferenceService
+    String activeModeNameOrId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+
+    if (activeModeNameOrId != null) {
+      // First check if it's a built-in mode
+      BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(activeModeNameOrId);
+      if (builtInMode != null) {
+        // Use the allowsToolConfiguration() method from the built-in mode
+        allowsToolConfiguration = builtInMode.allowsToolConfiguration();
+      } else {
+        // Check if it's a custom mode
+        CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(activeModeNameOrId);
+        if (customMode != null) {
+          // Custom modes always allow tool configuration
+          allowsToolConfiguration = customMode.allowsToolConfiguration();
+        } else {
+          // Fallback: Check if current ChatMode enum equals Agent (backward compatibility)
+          ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
+          allowsToolConfiguration = ChatMode.Agent.equals(activeChatMode);
+        }
+      }
+    } else {
+      // Fallback when activeModeNameOrId is null
+      ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
+      allowsToolConfiguration = ChatMode.Agent.equals(activeChatMode);
+    }
+
+    mcpToolButton.setVisible(allowsToolConfiguration);
+    ((GridData) mcpToolButton.getLayoutData()).exclude = !allowsToolConfiguration;
     mcpToolButton.getParent().layout(true);
   }
 
@@ -861,18 +899,16 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void openMcpPreferences() {
     // Get the current chat mode name/ID from observable
     String currentModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
-    
+
     // Open MCP preference page with the current mode selected
-    org.eclipse.jface.preference.PreferenceDialog dialog =
-        org.eclipse.ui.dialogs.PreferencesUtil.createPreferenceDialogOn(
-            getShell(),
-            McpPreferencePage.ID,
+    org.eclipse.jface.preference.PreferenceDialog dialog = org.eclipse.ui.dialogs.PreferencesUtil
+        .createPreferenceDialogOn(getShell(), McpPreferencePage.ID,
             new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
                 CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
                 McpPreferencePage.ID, ByokPreferencePage.ID },
-            currentModeId  // Pass the current mode ID as data
+            currentModeId // Pass the current mode ID as data
         );
-    
+
     dialog.open();
   }
 }

@@ -50,21 +50,20 @@ public class FileBasedCustomModeService implements ICustomModeService {
     // Call LSP to get modes from all projects
     CopilotLanguageServerConnection lspConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
     if (lspConnection == null) {
-      return CompletableFuture.completedFuture(new ArrayList<CustomChatMode>());
+      return CompletableFuture.completedFuture(new ArrayList<>());
     }
 
     return lspConnection.listConversationModes(params).<List<CustomChatMode>>thenApply(conversationModes -> {
       if (conversationModes == null) {
-        return new ArrayList<CustomChatMode>();
+        return new ArrayList<>();
       }
 
-      // Convert ConversationMode[] to List<CustomChatMode>
-      // Merge modes from multiple projects by ID (deduplication)
-      Map<String, CustomChatMode> mergedModes = new HashMap<>();
+      // Merge custom modes from multiple projects by ID (deduplication)
+      Map<String, CustomChatMode> mergedCustomModes = new HashMap<>();
 
       for (ConversationMode mode : conversationModes) {
         if (mode == null || mode.isBuiltIn()) {
-          continue; // Skip built-in modes
+          continue;
         }
 
         String id = mode.getId();
@@ -72,36 +71,33 @@ public class FileBasedCustomModeService implements ICustomModeService {
           continue;
         }
 
-        // Merge: keep first occurrence by ID
-        if (!mergedModes.containsKey(id)) {
+        // Merge: keep first occurrence by ID for custom modes
+        if (!mergedCustomModes.containsKey(id)) {
           CustomChatMode customMode = convertToCustomChatMode(mode);
           if (customMode != null) {
-            mergedModes.put(id, customMode);
+            mergedCustomModes.put(id, customMode);
           }
         }
       }
 
-      return new ArrayList<CustomChatMode>(mergedModes.values());
+      return new ArrayList<>(mergedCustomModes.values());
     }).exceptionally(ex -> {
       CopilotCore.LOGGER.error("Failed to load custom modes from LSP", ex);
-      return new ArrayList<CustomChatMode>();
+      return new ArrayList<>();
     });
   }
 
   /**
    * Convert LSP ConversationMode to CustomChatMode.
+   *
+   * @param mode the ConversationMode from the LSP API
+   * @return CustomChatMode instance, or null if conversion fails
    */
   private CustomChatMode convertToCustomChatMode(ConversationMode mode) {
     try {
-      String id = mode.getId();
-      String name = mode.getName() != null ? mode.getName() : id;
-      String description = mode.getDescription();
-      List<String> tools = mode.getCustomTools() != null ? mode.getCustomTools() : new ArrayList<>();
-      String model = mode.getModel();
-
-      return new CustomChatMode(id, name, description, tools, model);
+      return new CustomChatMode(mode);
     } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to convert ConversationMode to CustomChatMode", e);
+      CopilotCore.LOGGER.error("Failed to convert ConversationMode to CustomChatMode: " + mode.getId(), e);
       return null;
     }
   }

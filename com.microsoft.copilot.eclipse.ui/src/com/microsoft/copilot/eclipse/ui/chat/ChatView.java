@@ -26,9 +26,12 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
@@ -639,12 +642,38 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // Persist the user input to history
     chatServiceManager.getUserPreferenceService().addInputToHistory(processedMessage);
 
-    CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
-    CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
-    String chatModeName = chatServiceManager.getUserPreferenceService().getActiveChatMode().toString();
-    ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
-    CustomChatMode customMode = getActiveCustomMode();
-    String customChatModeId = (customMode != null) ? customMode.getId() : null;
+    final ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
+
+    // Get mode information
+    String activeModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+
+    // Determine chat mode name and custom mode ID for LSP
+    String chatModeName;
+    String customChatModeId = null;
+
+    // Check if it's a custom mode
+    if (CustomChatModeManager.INSTANCE.isCustomMode(activeModeId)) {
+      chatModeName = ChatMode.Agent.toString(); // "Agent"
+      customChatModeId = activeModeId; // "file://..."
+    } else {
+      // Check if it's a built-in mode
+      BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(activeModeId);
+      if (builtInMode != null) {
+        // For Ask mode, use "Ask" with no custom ID
+        if (BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(builtInMode.getDisplayName())) {
+          chatModeName = ChatMode.Ask.toString(); // "Ask"
+          customChatModeId = null;
+        } else {
+          // For other built-in modes (Agent, Plan), use "Agent" with built-in mode ID as custom ID
+          chatModeName = ChatMode.Agent.toString(); // "Agent"
+          customChatModeId = builtInMode.getId(); // "Agent" or "Plan"
+        }
+      } else {
+        // Fallback to enum
+        chatModeName = activeChatMode.toString();
+        customChatModeId = null;
+      }
+    }
 
     if (!(this.hasHistory)) {
       this.hasHistory = true;
@@ -657,6 +686,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     IFile currentFile = fileService.getCurrentFile();
     List<IResource> references = fileService.getReferencedFiles();
+
+    final CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
+    final CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
 
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
       // Continue existing conversation - persist user message and send to existing conversation

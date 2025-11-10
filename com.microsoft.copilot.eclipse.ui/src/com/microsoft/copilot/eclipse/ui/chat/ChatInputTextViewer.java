@@ -26,6 +26,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
@@ -304,6 +306,14 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
         if (customMode != null && StringUtils.isNotBlank(customMode.getDescription())) {
           return customMode.getDescription();
         }
+        
+        // Check if a built-in mode (Agent/Plan) is active and use its description as placeholder
+        String activeModeId = userPreferenceService.getActiveModeNameOrId();
+        BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(activeModeId);
+        if (builtInMode != null && StringUtils.isNotBlank(builtInMode.getDescription())) {
+          return builtInMode.getDescription();
+        }
+        
         return Messages.chat_actionBar_initialContentForAgent;
       case Ask:
       default:
