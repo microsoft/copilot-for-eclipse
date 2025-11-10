@@ -165,7 +165,7 @@ class ConversationPersistenceManagerTests {
     when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
 
     CompletableFuture<ConversationData> result = persistenceManager.persistUserTurnInfo(conversationId, turnId, message,
-        model, chatMode, mockFile, references);
+        model, chatMode, null, mockFile, references);
 
     ConversationData actualData = result.get();
 

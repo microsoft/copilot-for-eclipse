@@ -58,7 +58,7 @@ public class ConversationDataFactory {
    * Creates a user turn from a message.
    */
   public UserTurnData createUserTurnData(String conversationId, String turnId, String message, String model,
-      String chatMode) {
+      String chatMode, String customChatModeId) {
     UserTurnData userTurn = new UserTurnData();
     userTurn.setTurnId(turnId);
     userTurn.setMessage(new MessageData(message));
@@ -70,6 +70,7 @@ public class ConversationDataFactory {
     userTurn.setTimestamp(Instant.now());
     userTurn.setModel(model);
     userTurn.setChatMode(chatMode);
+    userTurn.setCustomChatModeId(customChatModeId);
 
     return userTurn;
   }

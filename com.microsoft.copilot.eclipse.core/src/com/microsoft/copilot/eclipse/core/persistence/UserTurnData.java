@@ -22,6 +22,7 @@ public class UserTurnData extends AbstractTurnData {
   private String source;
   private String model;
   private String chatMode;
+  private String customChatModeId;
   private boolean needToolCallConfirmation;
 
   /**
@@ -116,6 +117,14 @@ public class UserTurnData extends AbstractTurnData {
     this.chatMode = chatMode;
   }
 
+  public String getCustomChatModeId() {
+    return customChatModeId;
+  }
+
+  public void setCustomChatModeId(String customChatModeId) {
+    this.customChatModeId = customChatModeId;
+  }
+
   public boolean isNeedToolCallConfirmation() {
     return needToolCallConfirmation;
   }
@@ -128,7 +137,7 @@ public class UserTurnData extends AbstractTurnData {
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + Objects.hash(chatMode, currentDocument, ignoredSkills, message, model,
+    result = prime * result + Objects.hash(chatMode, customChatModeId, currentDocument, ignoredSkills, message, model,
         needToolCallConfirmation, references, source, userLanguage);
     return result;
   }
@@ -145,7 +154,8 @@ public class UserTurnData extends AbstractTurnData {
       return false;
     }
     UserTurnData other = (UserTurnData) obj;
-    return Objects.equals(chatMode, other.chatMode) && Objects.equals(currentDocument, other.currentDocument)
+    return Objects.equals(chatMode, other.chatMode) && Objects.equals(customChatModeId, other.customChatModeId)
+        && Objects.equals(currentDocument, other.currentDocument)
         && Objects.equals(ignoredSkills, other.ignoredSkills) && Objects.equals(message, other.message)
         && Objects.equals(model, other.model) && needToolCallConfirmation == other.needToolCallConfirmation
         && Objects.equals(references, other.references) && Objects.equals(source, other.source)
@@ -169,6 +179,7 @@ public class UserTurnData extends AbstractTurnData {
     builder.add("source", source);
     builder.add("model", model);
     builder.add("chatMode", chatMode);
+    builder.add("customChatModeId", customChatModeId);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     return builder.toString();
   }
@@ -309,6 +320,17 @@ public class UserTurnData extends AbstractTurnData {
      */
     public Builder chatMode(String chatMode) {
       target.setChatMode(chatMode);
+      return this;
+    }
+
+    /**
+     * Sets the custom chat mode identifier.
+     *
+     * @param customChatModeId custom chat mode ID
+     * @return this builder
+     */
+    public Builder customChatModeId(String customChatModeId) {
+      target.setCustomChatModeId(customChatModeId);
       return this;
     }
 

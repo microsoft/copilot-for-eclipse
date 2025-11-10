@@ -243,6 +243,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             for (AbstractTurnData turn : historyConversation.getTurns()) {
               restoreTurn(turn);
             }
+            
+            // Restore the mode from the last user turn
+            restoreModeFromLastUserTurn(historyConversation.getTurns());
           }
 
           // Scroll to bottom after restoring all turns
@@ -618,13 +621,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         persistenceManager.cacheConversationProgress(this.conversationId, value);
         
         // Hide handoff container when new turn starts
-        if (handoffContainer != null && !handoffContainer.isDisposed()) {
-          Display.getDefault().asyncExec(() -> {
-            if (!handoffContainer.isDisposed()) {
-              handoffContainer.hide();
-            }
-          });
-        }
+        Display.getDefault().asyncExec(() -> {
+          if (handoffContainer != null && !handoffContainer.isDisposed()) {
+            handoffContainer.hide();
+          }
+        });
         break;
       case report:
         if (value.getSteps() != null) {
@@ -665,13 +666,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
         
         // Show handoff container when turn finishes
-        if (handoffContainer != null && !handoffContainer.isDisposed()) {
-          Display.getDefault().asyncExec(() -> {
-            if (!handoffContainer.isDisposed()) {
-              handoffContainer.show();
-            }
-          });
-        }
+        Display.getDefault().asyncExec(() -> {
+          if (handoffContainer != null && !handoffContainer.isDisposed()) {
+            handoffContainer.show();
+          }
+        });
         break;
       default:
         break;
@@ -748,7 +747,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
         persistenceManager.persistUserTurnInfo(conversationId, workDoneToken, processedMessage, activeModel,
-            activeChatMode.toString(), currentFile, references);
+            chatModeName, customChatModeId, currentFile, references);
       }
 
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
@@ -783,12 +782,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
         persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
-            activeChatMode.toString(), currentFile, references);
+            chatModeName, customChatModeId, currentFile, references);
       } else if (conversationState == ConversationState.NEW_CONVERSATION) {
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
         persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
-            activeChatMode.toString(), currentFile, references);
+            chatModeName, customChatModeId, currentFile, references);
       }
 
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
@@ -921,6 +920,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createAfterLoginWelcomePage();
     }
     chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
+    
+    // Hide handoff container when creating a new conversation
+    Display.getDefault().asyncExec(() -> {
+      if (handoffContainer != null && !handoffContainer.isDisposed()) {
+        handoffContainer.hide();
+      }
+    });
+    
     setFocus();
   }
 
@@ -1242,6 +1249,60 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
         renderModelInfoInTurnWidget(turn.getTurnId(), this.conversationId, replyData.getModelName(),
             replyData.getBillingMultiplier());
+      }
+    }
+  }
+
+  /**
+   * Restore the mode from the last user turn in the conversation.
+   *
+   * @param turns the list of turns to search for the last user turn
+   */
+  private void restoreModeFromLastUserTurn(List<AbstractTurnData> turns) {
+    if (turns == null || turns.isEmpty() || chatServiceManager == null) {
+      return;
+    }
+
+    // Find the last user turn by iterating backwards
+    UserTurnData lastUserTurn = null;
+    for (int i = turns.size() - 1; i >= 0; i--) {
+      if (turns.get(i) instanceof UserTurnData userTurn) {
+        lastUserTurn = userTurn;
+        break;
+      }
+    }
+
+    if (lastUserTurn == null) {
+      return;
+    }
+
+    String chatMode = lastUserTurn.getChatMode();
+    String customChatModeId = lastUserTurn.getCustomChatModeId();
+
+    // Restore the mode based on chatMode and customChatModeId
+    if (StringUtils.isNotBlank(customChatModeId)) {
+      // Custom mode or built-in mode with custom ID
+      if (CustomChatModeManager.INSTANCE.isCustomMode(customChatModeId)) {
+        // It's a custom mode
+        chatServiceManager.getUserPreferenceService().setActiveChatMode(customChatModeId);
+      } else {
+        // It's a built-in mode (Agent/Plan) stored as customChatModeId
+        BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeById(customChatModeId);
+        if (builtInMode != null) {
+          chatServiceManager.getUserPreferenceService().setActiveChatMode(builtInMode.getDisplayName());
+        }
+      }
+    } else if (StringUtils.isNotBlank(chatMode)) {
+      // Fall back to chatMode for backward compatibility or Ask mode
+      try {
+        ChatMode mode = ChatMode.valueOf(chatMode);
+        if (mode == ChatMode.Ask) {
+          chatServiceManager.getUserPreferenceService().setActiveChatMode(BuiltInChatMode.ASK_MODE_NAME);
+        } else if (mode == ChatMode.Agent) {
+          chatServiceManager.getUserPreferenceService().setActiveChatMode(BuiltInChatMode.AGENT_MODE_NAME);
+        }
+      } catch (IllegalArgumentException e) {
+        CopilotCore.LOGGER.error("Unknown chat mode: " + chatMode, e);
       }
     }
   }

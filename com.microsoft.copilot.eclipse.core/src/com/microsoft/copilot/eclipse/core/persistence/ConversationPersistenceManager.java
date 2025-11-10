@@ -149,9 +149,10 @@ public class ConversationPersistenceManager {
    * @param message the new message text for the user
    * @param model the model used for this turn
    * @param chatMode the chat mode for this turn
+   * @param customChatModeId the custom chat mode ID (if applicable)
    */
   public CompletableFuture<ConversationData> persistUserTurnInfo(String conversationId, String turnId, String message,
-      CopilotModel model, String chatMode, IFile currentFile, List<IResource> references) {
+      CopilotModel model, String chatMode, String customChatModeId, IFile currentFile, List<IResource> references) {
     return CompletableFuture.supplyAsync(() -> {
       lock.writeLock().lock();
       try {
@@ -166,6 +167,9 @@ public class ConversationPersistenceManager {
           }
           if (chatMode != null) {
             userTurnData.setChatMode(chatMode);
+          }
+          if (customChatModeId != null) {
+            userTurnData.setCustomChatModeId(customChatModeId);
           }
           if (currentFile != null) {
             userTurnData.setCurrentDocument(currentFile);
@@ -294,7 +298,7 @@ public class ConversationPersistenceManager {
       }
     }
 
-    UserTurnData turn = dataFactory.createUserTurnData(conversation.getConversationId(), turnId, "", null, null);
+    UserTurnData turn = dataFactory.createUserTurnData(conversation.getConversationId(), turnId, "", null, null, null);
     conversation.getTurns().add(turn);
     return turn;
   }

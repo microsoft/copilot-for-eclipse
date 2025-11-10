@@ -45,4 +45,14 @@ public enum BuiltInChatModeManager {
     return builtInModes.stream().filter(mode -> mode.getDisplayName().equalsIgnoreCase(displayName)).findFirst()
         .orElse(null);
   }
+
+  /**
+   * Retrieves a built-in chat mode by its ID.
+   *
+   * @param id the ID of the mode to retrieve
+   * @return the built-in chat mode with the matching ID, or null if not found
+   */
+  public BuiltInChatMode getBuiltInModeById(String id) {
+    return builtInModes.stream().filter(mode -> mode.getId().equals(id)).findFirst().orElse(null);
+  }
 }
