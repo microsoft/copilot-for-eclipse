@@ -71,16 +71,10 @@ import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.dialogs.jobs.GitHubCodingAgentDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.jobs.ProjectSelectionDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -902,10 +896,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Open MCP preference page with the current mode selected
     org.eclipse.jface.preference.PreferenceDialog dialog = org.eclipse.ui.dialogs.PreferencesUtil
-        .createPreferenceDialogOn(getShell(), McpPreferencePage.ID,
-            new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-                McpPreferencePage.ID, ByokPreferencePage.ID },
+        .createPreferenceDialogOn(getShell(), McpPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(),
             currentModeId // Pass the current mode ID as data
         );
 

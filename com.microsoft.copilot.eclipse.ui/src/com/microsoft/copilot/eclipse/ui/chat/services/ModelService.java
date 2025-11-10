@@ -44,14 +44,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -150,11 +144,11 @@ public class ModelService extends ChatBaseService {
         if (openParenIndex > 0) {
           modelName = modelNameWithFamily.substring(0, openParenIndex).trim();
         }
-        
+
         // First update chat mode to Agent to load Agent mode models
         currentChatMode = ChatMode.Agent;
         updateModelsForChatMode(ChatMode.Agent);
-        
+
         // Then switch to the specified model (setActiveModel will be called after models are loaded)
         setActiveModel(modelName);
       }
@@ -449,9 +443,7 @@ public class ModelService extends ChatBaseService {
                 ByokPreferencePage.ID);
 
             parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-                String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                    CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-                    McpPreferencePage.ID, ByokPreferencePage.ID));
+                String.join(",", PreferencesUtils.getAllPreferenceIds()));
 
             UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
           } else {

@@ -18,14 +18,8 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
-import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -149,13 +143,8 @@ public class ConfigureToolsCommandHandler extends CopilotHandler {
    */
   public static void openToolConfigurationDialog(Shell shell, String modeId) {
     try {
-      // Limit the preference dialog scope to only show Copilot-related preference pages
-      String[] copilotPageIds = new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID,
-          ChatPreferencesPage.ID, CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID,
-          CustomModesPreferencePage.ID, McpPreferencePage.ID, ByokPreferencePage.ID };
-
-      PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(shell, McpPreferencePage.ID, copilotPageIds,
-          modeId);
+      PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(shell, McpPreferencePage.ID,
+          PreferencesUtils.getAllPreferenceIds(), modeId);
 
       dialog.open();
     } catch (Exception e) {

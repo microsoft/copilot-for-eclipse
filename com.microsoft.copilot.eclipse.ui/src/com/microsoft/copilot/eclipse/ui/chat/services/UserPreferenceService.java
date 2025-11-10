@@ -39,6 +39,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 /**
  * Service for managing chat modes and input navigation.
@@ -571,7 +572,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
     // Open the Custom Modes preference page
     PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(combo.getShell(), CustomModesPreferencePage.ID,
-        null, null);
+        PreferencesUtils.getAllPreferenceIds(), null);
 
     dialog.open();
 

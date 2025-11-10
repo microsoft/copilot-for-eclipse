@@ -249,25 +249,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
 
           // Scroll to bottom after restoring all turns
-          if (chatContentViewer != null && !chatContentViewer.isDisposed()) {
-            // Use invokeOnDisplayThreadAsync to ensure layout is complete before scrolling
-            SwtUtils.invokeOnDisplayThreadAsync(() -> {
-              chatContentViewer.refreshScrollerLayout();
-              ScrollBar verticalBar = chatContentViewer.getVerticalBar();
-              if (verticalBar != null) {
-                chatContentViewer.setOrigin(0, verticalBar.getMaximum());
-              }
-            }, chatContentViewer);
-          }
+          SwtUtils.invokeOnDisplayThreadAsync(this::scrollContentToBottom, chatContentViewer);
 
           // Hide chat history and show restored conversation
           hideChatHistory();
         }, contentWrapper);
       }).exceptionally(ex -> {
         CopilotCore.LOGGER.error("Failed to load conversation: " + conversation.getConversationId(), ex);
-        SwtUtils.invokeOnDisplayThreadAsync(() -> {
-          hideChatHistory();
-        }, contentWrapper);
+        SwtUtils.invokeOnDisplayThreadAsync(this::hideChatHistory, contentWrapper);
         return null;
       });
     });
@@ -333,7 +322,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (!hasHistory) {
       createChatPage(chatMode);
     }
-    
+
     // Show handoffs when mode changes if there's history, otherwise hide
     if (handoffContainer != null && !handoffContainer.isDisposed()) {
       if (hasHistory) {
@@ -342,14 +331,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         handoffContainer.hide();
       }
     }
-    
+
     refreshActionBarTextViewerAndButtons();
-    
+
     // Update MCP tool button visibility when mode changes
     if (actionBar != null && !actionBar.isDisposed()) {
       actionBar.updateMcpToolButtonVisibility();
     }
-    
+
     this.parent.requestLayout();
     setFocus();
   }
@@ -619,7 +608,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
         // Cache conversation progress on begin
         persistenceManager.cacheConversationProgress(this.conversationId, value);
-        
+
         // Hide handoff container when new turn starts
         Display.getDefault().asyncExec(() -> {
           if (handoffContainer != null && !handoffContainer.isDisposed()) {
@@ -664,7 +653,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (persistenceManager != null) {
           persistenceManager.persistConversationProgress(this.conversationId, value);
         }
-        
+
         // Show handoff container when turn finishes
         Display.getDefault().asyncExec(() -> {
           if (handoffContainer != null && !handoffContainer.isDisposed()) {
@@ -1128,12 +1117,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (chatContentViewer == null || chatContentViewer.isDisposed()) {
       return;
     }
-    
+
     chatContentViewer.getDisplay().asyncExec(() -> {
       if (chatContentViewer.isDisposed()) {
         return;
       }
-      
+      chatContentViewer.refreshScrollerLayout();
       ScrollBar verticalBar = chatContentViewer.getVerticalBar();
       if (verticalBar != null && !verticalBar.isDisposed()) {
         chatContentViewer.setOrigin(0, verticalBar.getMaximum());

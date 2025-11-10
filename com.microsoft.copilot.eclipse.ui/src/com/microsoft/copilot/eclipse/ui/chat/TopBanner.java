@@ -27,16 +27,10 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -167,9 +161,7 @@ public class TopBanner extends Composite {
             CopilotPreferencesPage.ID);
 
         parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-            String.join(",", CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
-                CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-                McpPreferencePage.ID, ByokPreferencePage.ID));
+            String.join(",", PreferencesUtils.getAllPreferenceIds()));
 
         UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
       }

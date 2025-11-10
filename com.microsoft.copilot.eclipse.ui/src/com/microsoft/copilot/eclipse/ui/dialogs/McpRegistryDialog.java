@@ -48,6 +48,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -259,7 +260,9 @@ public class McpRegistryDialog extends Dialog {
     editButton.setToolTipText(Messages.mcpRegistryDialog_button_changeUrl_tooltip);
     editButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     editButton.addListener(SWT.Selection,
-        e -> PreferencesUtil.createPreferenceDialogOn(getShell(), McpPreferencePage.ID, null, null).open());
+        e -> PreferencesUtil
+            .createPreferenceDialogOn(getShell(), McpPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
+            .open());
     editButton.addDisposeListener(e -> {
       if (editIcon != null && !editIcon.isDisposed()) {
         editIcon.dispose();
@@ -452,7 +455,9 @@ public class McpRegistryDialog extends Dialog {
     GridData btnGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
     configButton.setLayoutData(btnGridData);
     configButton.addListener(SWT.Selection,
-        e -> PreferencesUtil.createPreferenceDialogOn(getShell(), McpPreferencePage.ID, null, null).open());
+        e -> PreferencesUtil
+            .createPreferenceDialogOn(getShell(), McpPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
+            .open());
 
     Label emptyUrlLabel = new Label(centeredComposite, SWT.WRAP);
     emptyUrlLabel.setText(Messages.mcpRegistryDialog_error_empty_url);

@@ -8,14 +8,8 @@ import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 
-import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
-import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
-import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -35,10 +29,7 @@ public class OpenPreferencesHandler extends AbstractHandler {
       dialog = PreferencesUtil.createPreferenceDialogOn(shell, activePageId, pageIds, null);
     } else {
       dialog = PreferencesUtil.createPreferenceDialogOn(shell, CopilotPreferencesPage.ID,
-          new String[] { GeneralPreferencesPage.ID, ChatPreferencesPage.ID, CompletionsPreferencesPage.ID,
-              CustomInstructionPreferencePage.ID, McpPreferencePage.ID, ByokPreferencePage.ID,
-              CustomModesPreferencePage.ID },
-          null);
+          PreferencesUtils.getAllPreferenceIds(), null);
     }
 
     dialog.open();
