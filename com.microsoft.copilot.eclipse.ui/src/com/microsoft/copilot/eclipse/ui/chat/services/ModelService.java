@@ -60,6 +60,8 @@ public class ModelService extends ChatBaseService {
   private static final int EXTRA_PADDING = 40;
   private static final int MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER = 6;
 
+  private static final String AUTO_MODEL_ID = "auto";
+
   // models for the model picker
   private IObservableValue<Map<String, CopilotModel>> modelObservable;
   private IObservableValue<CopilotModel> activeModelObservable;
@@ -129,9 +131,7 @@ public class ModelService extends ChatBaseService {
     featureFlagsChangedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof DidChangeFeatureFlagsParams) {
-        ensureRealm(() -> {
-          updateModelsForChatMode(currentChatMode);
-        });
+        initializeModels();
       }
     };
 
@@ -197,6 +197,11 @@ public class ModelService extends ChatBaseService {
     Map<String, CopilotModel> newModels = new HashMap<>();
 
     for (CopilotModel model : modelArray) {
+      // TODO: remove it once CLS supports filtering models by preview flag
+      if (!CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled()
+          && AUTO_MODEL_ID.equals(model.getId())) {
+        continue;
+      }
       boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
       boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
       if (supportsChat || supportsAgent) {
@@ -241,7 +246,11 @@ public class ModelService extends ChatBaseService {
       return preference.getChatModel();
     }
 
-    return defaultModel.getId();
+    if (defaultModel != null) {
+      return defaultModel.getId();
+    }
+
+    return null;
   }
 
   private void updateModelsForChatMode(ChatMode chatMode) {
@@ -291,8 +300,11 @@ public class ModelService extends ChatBaseService {
         ensureRealm(() -> activeModelObservable.setValue(modelsForCurrentMode.get(restoredModelId)));
         return;
       }
-      // fall back to default model
-      setActiveModelToDefault();
+      // fall back the first available model in the current mode
+      if (!modelsForCurrentMode.isEmpty()) {
+        CopilotModel firstModel = modelsForCurrentMode.values().iterator().next();
+        ensureRealm(() -> activeModelObservable.setValue(firstModel));
+      }
     }
   }
 
@@ -397,16 +409,6 @@ public class ModelService extends ChatBaseService {
   public boolean isVisionSupported() {
     CopilotModel model = getActiveModel();
     return model != null && model.getCapabilities().supports().vision();
-  }
-
-  private void setActiveModelToDefault() {
-    if (defaultModel != null) {
-      UserPreference preference = getUserPreference();
-      preference.setChatModel(defaultModel.getId());
-      persistUserPreference();
-
-      ensureRealm(() -> activeModelObservable.setValue(defaultModel));
-    }
   }
 
   /**
