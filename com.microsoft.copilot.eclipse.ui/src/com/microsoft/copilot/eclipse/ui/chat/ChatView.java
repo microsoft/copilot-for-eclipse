@@ -21,6 +21,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
@@ -82,6 +83,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private Composite parent;
   private TopBanner topBanner;
   private Composite contentWrapper;
+  private HandoffContainer handoffContainer;
   private ActionBar actionBar;
   private ChatContentViewer chatContentViewer;
   private Composite loadingViewer;
@@ -328,7 +330,23 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (!hasHistory) {
       createChatPage(chatMode);
     }
+    
+    // Show handoffs when mode changes if there's history, otherwise hide
+    if (handoffContainer != null && !handoffContainer.isDisposed()) {
+      if (hasHistory) {
+        handoffContainer.show();
+      } else {
+        handoffContainer.hide();
+      }
+    }
+    
     refreshActionBarTextViewerAndButtons();
+    
+    // Update MCP tool button visibility when mode changes
+    if (actionBar != null && !actionBar.isDisposed()) {
+      actionBar.updateMcpToolButtonVisibility();
+    }
+    
     this.parent.requestLayout();
     setFocus();
   }
@@ -373,7 +391,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createAgentModePage();
     }
 
-    // input field
+    // input field - Create ActionBar FIRST
     if (this.actionBar == null || this.actionBar.isDisposed()) {
       createActionBar();
     } else {
@@ -386,6 +404,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (this.contentWrapper != null && !this.contentWrapper.isDisposed()) {
         this.actionBar.moveBelow(this.contentWrapper);
       }
+    }
+
+    // Create HandoffContainer AFTER ActionBar (so actionBar exists when passed to constructor)
+    if (this.handoffContainer == null || this.handoffContainer.isDisposed()) {
+      createHandoffContainer();
+    }
+    if (this.actionBar != null && !this.actionBar.isDisposed()) {
+      // Ensure handoffContainer is positioned before actionBar
+      this.handoffContainer.moveAbove(this.actionBar);
     }
   }
 
@@ -468,6 +495,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.contentWrapper.setLayout(layout);
     this.contentWrapper.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     this.contentWrapper.setData(CssConstants.CSS_ID_KEY, "chat-content-wrapper");
+  }
+
+  private void createHandoffContainer() {
+    this.handoffContainer = new HandoffContainer(parent, chatServiceManager, actionBar, this);
+    this.handoffContainer.setVisible(false);
+    GridData gd = (GridData) this.handoffContainer.getLayoutData();
+    if (gd != null) {
+      gd.exclude = true;
+    }
   }
 
   private void createActionBar() {
@@ -580,6 +616,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
         // Cache conversation progress on begin
         persistenceManager.cacheConversationProgress(this.conversationId, value);
+        
+        // Hide handoff container when new turn starts
+        if (handoffContainer != null && !handoffContainer.isDisposed()) {
+          Display.getDefault().asyncExec(() -> {
+            if (!handoffContainer.isDisposed()) {
+              handoffContainer.hide();
+            }
+          });
+        }
         break;
       case report:
         if (value.getSteps() != null) {
@@ -617,6 +662,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Persist final conversation state and conversation title on end
         if (persistenceManager != null) {
           persistenceManager.persistConversationProgress(this.conversationId, value);
+        }
+        
+        // Show handoff container when turn finishes
+        if (handoffContainer != null && !handoffContainer.isDisposed()) {
+          Display.getDefault().asyncExec(() -> {
+            if (!handoffContainer.isDisposed()) {
+              handoffContainer.show();
+            }
+          });
         }
         break;
       default:
@@ -929,6 +983,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.topBanner.unregisterNewConversationListener(this);
       this.topBanner.dispose();
     }
+    if (this.handoffContainer != null) {
+      this.handoffContainer.dispose();
+    }
     if (this.chatContentViewer != null) {
       this.chatContentViewer.dispose();
     }
@@ -1055,6 +1112,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     isChatHistoryVisible = false;
     contentWrapper.requestLayout();
+  }
+
+  /**
+   * Scroll the chat content viewer to the bottom.
+   */
+  public void scrollContentToBottom() {
+    if (chatContentViewer == null || chatContentViewer.isDisposed()) {
+      return;
+    }
+    
+    chatContentViewer.getDisplay().asyncExec(() -> {
+      if (chatContentViewer.isDisposed()) {
+        return;
+      }
+      
+      ScrollBar verticalBar = chatContentViewer.getVerticalBar();
+      if (verticalBar != null && !verticalBar.isDisposed()) {
+        chatContentViewer.setOrigin(0, verticalBar.getMaximum());
+      }
+    });
   }
 
   /**

@@ -305,6 +305,7 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
+      param.setChatMode(chatModeName);
       param.setCustomChatModeId(customChatModeId);
 
       if (StringUtils.isBlank(agentSlug)) {

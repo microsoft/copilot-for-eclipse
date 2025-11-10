@@ -543,7 +543,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    * - Ask mode: Hides tool button
    * - Custom modes: Shows tool button (all custom modes allow tools)
    */
-  private void updateMcpToolButtonVisibility() {
+  public void updateMcpToolButtonVisibility() {
     if (mcpToolButton == null || mcpToolButton.isDisposed()) {
       return;
     }

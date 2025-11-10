@@ -70,6 +70,10 @@
 	color: #A4A4A4;
 }
 
+#chat-container > HandoffContainer > Label.text-secondary {
+	color: #A4A4A4;
+}
+
 #chat-action-bar,
 #chat-action-bar * {
 	color: #DEE1E5;
