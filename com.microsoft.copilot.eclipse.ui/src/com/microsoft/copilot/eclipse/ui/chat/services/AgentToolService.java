@@ -220,9 +220,14 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     if (turnWidget == null) {
       return null;
     }
+
+    // Get the active turn widget (may be a subagent widget if in subagent context)
+    BaseTurnWidget activeTurnWidget = turnWidget.getActiveTurnWidget();
+
     AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
-      ref.set(turnWidget.requestToolExecutionConfirmation(params.getTitle(), params.getMessage(), params.getInput()));
+      ref.set(
+          activeTurnWidget.requestToolExecutionConfirmation(params.getTitle(), params.getMessage(), params.getInput()));
       boundChatView.getChatContentViewer().refreshScrollerLayout();
     });
 
@@ -230,7 +235,15 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   }
 
   private boolean validToolConfirmInvokeParams(String conversationId, String turnId) {
-    if (boundChatView == null || !Objects.equals(conversationId, boundChatView.getConversationId())) {
+    if (boundChatView == null) {
+      return false;
+    }
+
+    // Check if the conversation ID matches either the main conversation ID or the subagent conversation ID
+    boolean conversationIdMatches = Objects.equals(conversationId, boundChatView.getConversationId())
+        || Objects.equals(conversationId, boundChatView.getSubagentConversationId());
+
+    if (!conversationIdMatches) {
       return false;
     }
 

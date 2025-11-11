@@ -99,6 +99,16 @@
 	background-color: #FFFFFF;
 }
 
+/* Override button and command panel styles inside subagent message block */
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block .bg-command-panel {
+	background-color: #F1F1F2;
+}
+
 #chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary {
 	color: #808080;
 }

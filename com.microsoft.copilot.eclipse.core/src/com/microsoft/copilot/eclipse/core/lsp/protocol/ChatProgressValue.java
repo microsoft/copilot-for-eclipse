@@ -16,6 +16,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
   private String title;
   private String conversationId;
   private String turnId;
+  private String parentTurnId;
   private String reply;
   private CopilotAnnotation[] annotations;
   private ChatReference[] references;
@@ -41,6 +42,10 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
 
   public String getTurnId() {
     return turnId;
+  }
+
+  public String getParentTurnId() {
+    return parentTurnId;
   }
 
   public String getReply() {
@@ -107,6 +112,10 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     this.turnId = turnId;
   }
 
+  public void setParentTurnId(String parentTurnId) {
+    this.parentTurnId = parentTurnId;
+  }
+
   public void setReply(String reply) {
     this.reply = reply;
   }
@@ -156,7 +165,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     result = prime * result + Arrays.hashCode(references);
     result = prime * result + Arrays.hashCode(steps);
     result = prime * result + Objects.hash(editAgentRounds, cancellationReason, conversationId, error, hideText, kind,
-        reply, title, turnId, suggestedTitle);
+        reply, title, turnId, parentTurnId, suggestedTitle);
     return result;
   }
 
@@ -178,7 +187,8 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
         && hideText == other.hideText && kind == other.kind && Arrays.equals(notifications, other.notifications)
         && Arrays.equals(references, other.references) && Objects.equals(reply, other.reply)
         && Arrays.equals(steps, other.steps) && Objects.equals(title, other.title)
-        && Objects.equals(turnId, other.turnId) && Objects.equals(suggestedTitle, other.suggestedTitle);
+        && Objects.equals(turnId, other.turnId) && Objects.equals(parentTurnId, other.parentTurnId)
+        && Objects.equals(suggestedTitle, other.suggestedTitle);
   }
 
   @Override
@@ -188,6 +198,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     builder.add("title", title);
     builder.add("conversationId", conversationId);
     builder.add("turnId", turnId);
+    builder.add("parentTurnId", parentTurnId);
     builder.add("reply", reply);
     builder.add("annotations", Arrays.toString(annotations));
     builder.add("references", Arrays.toString(references));

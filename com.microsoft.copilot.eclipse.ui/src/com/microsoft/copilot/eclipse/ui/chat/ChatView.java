@@ -93,6 +93,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private Composite agentModeViewer;
   private boolean hasHistory = false;
   private String conversationId = "";
+  private String subagentConversationId = null;
   private ConversationState conversationState = ConversationState.NEW_CONVERSATION;
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
@@ -592,19 +593,28 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer != null) {
           this.chatContentViewer.getLatestOrCreateNewTurnWidget(value.getTurnId(), true, false);
         }
-        // Update conversation ID when a new conversation is created
-        String newConversationId = value.getConversationId();
 
-        // Update persistence based on conversation state
-        try {
-          persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId).get();
-        } catch (InterruptedException | ExecutionException e) {
-          CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
+        // Handle subagent conversation ID management
+        if (StringUtils.isNotBlank(value.getParentTurnId())) {
+          // Entering a subagent context - store the subagent conversation ID
+          this.subagentConversationId = value.getConversationId();
+        } else {
+          // Not in subagent context - update the main conversation ID
+          String newConversationId = value.getConversationId();
+
+          // Update persistence only if conversation ID changed
+          if (!StringUtils.equals(newConversationId, this.conversationId)) {
+            try {
+              persistenceManager.updateConversationIdToHistoryRecord(newConversationId, this.conversationId).get();
+            } catch (InterruptedException | ExecutionException e) {
+              CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
+            }
+
+            // Set the new conversation ID and update state
+            this.conversationId = newConversationId;
+            this.conversationState = ConversationState.CONTINUED_CONVERSATION;
+          }
         }
-
-        // Set the new conversation ID and update state
-        this.conversationId = newConversationId;
-        this.conversationState = ConversationState.CONTINUED_CONVERSATION;
 
         // Cache conversation progress on begin
         persistenceManager.cacheConversationProgress(this.conversationId, value);
@@ -635,6 +645,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
+        }
+
+        // If exiting subagent context (no parentTurnId), clear the subagent conversation ID
+        if (StringUtils.isBlank(value.getParentTurnId()) && this.subagentConversationId != null) {
+          this.subagentConversationId = null;
         }
 
         // Cache conversation progress on report
@@ -890,6 +905,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onCancel() {
+    // Clear subagent conversation ID on cancel
+    this.subagentConversationId = null;
+
     if (persistenceManager != null && StringUtils.isNotBlank(this.conversationId)) {
       persistenceManager.persistCachedConversation(this.conversationId);
     }
@@ -925,6 +943,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   public String getConversationId() {
     return this.conversationId;
+  }
+
+  /**
+   * Get the current subagent conversation ID, or null if not in a subagent context.
+   */
+  public String getSubagentConversationId() {
+    return this.subagentConversationId;
   }
 
   /**

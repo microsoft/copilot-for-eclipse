@@ -108,6 +108,23 @@ public abstract class BaseTurnWidget extends Composite {
     return turnId;
   }
 
+  /**
+   * Get the active turn widget for tool execution.
+   * If we're in a subagent context, returns the subagent turn widget.
+   * Otherwise, returns this widget.
+   *
+   * @return the active turn widget for tool operations
+   */
+  public BaseTurnWidget getActiveTurnWidget() {
+    if (inSubagentBlock && currentSubagentBlock != null) {
+      BaseTurnWidget subagentWidget = currentSubagentBlock.getSubagentTurnWidget();
+      if (subagentWidget != null) {
+        return subagentWidget;
+      }
+    }
+    return this;
+  }
+
   private void createContent() {
     Composite cmpTitle = new Composite(this, SWT.NONE);
     GridLayout titleLayout = new GridLayout(2, false);
