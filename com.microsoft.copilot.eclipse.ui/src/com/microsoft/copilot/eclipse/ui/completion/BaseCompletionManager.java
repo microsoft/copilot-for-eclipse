@@ -10,6 +10,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPositionCategoryException;
 import org.eclipse.jface.text.DefaultPositionUpdater;
@@ -36,6 +37,7 @@ import org.eclipse.ui.contexts.IContextActivation;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.progress.WorkbenchJob;
 import org.eclipse.ui.texteditor.ITextEditor;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -43,8 +45,10 @@ import com.microsoft.copilot.eclipse.core.completion.AcceptSuggestionType;
 import com.microsoft.copilot.eclipse.core.completion.CompletionListener;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.completion.SuggestionUpdateManager;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionItem;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.nes.RenderManager;
@@ -80,6 +84,10 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
   // Whether NES suggestions are enabled
   protected boolean enableNes;
   protected LanguageServerSettingManager settingsManager;
+  
+  // Event handling
+  protected IEventBroker eventBroker;
+  protected EventHandler featureFlagsChangedEventHandler;
 
   /**
    * Creates a new completion manager. The manager is responsible for trigger the completion, apply suggestions to the
@@ -121,8 +129,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
     // initialize the auto show completion preference and add listener to update it.
     this.autoShowCompletion = settingsManager.getSettings().isEnableAutoCompletions();
 
-    // initialize NES preference
-    this.enableNes = CopilotUi.getBooleanPreference(Constants.ENABLE_NEXT_EDIT_SUGGESTION, false);
+    // initialize NES preference - only enable if both preference is true AND client preview features are enabled
+    this.enableNes = CopilotUi.getBooleanPreference(Constants.ENABLE_NEXT_EDIT_SUGGESTION, false) 
+        && CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled();
 
     // Cache the model offset to clear line vertical offset when the line is out of the visible range.
     // We cache the model offset here because the caret offset won't update when code blocks are collapsed.
@@ -130,7 +139,27 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       this.cachedModelOffset = UiUtils.widgetOffset2ModelOffset(textViewer, this.styledText.getCaretOffset());
     }, this.styledText);
 
+    // Initialize event handling for feature flags changes
+    initializeEventHandling();
+
     registerListeners();
+  }
+
+  private void initializeEventHandling() {
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    if (this.eventBroker != null) {
+      this.featureFlagsChangedEventHandler = event -> {
+        Object property = event.getProperty(IEventBroker.DATA);
+        if (property instanceof DidChangeFeatureFlagsParams params) {
+          // Update NES enablement based on both preference and feature flag
+          boolean nesPreference = CopilotUi.getBooleanPreference(Constants.ENABLE_NEXT_EDIT_SUGGESTION, false);
+          this.enableNes = nesPreference && params.isClientPreviewFeaturesEnabled();
+        }
+      };
+
+      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, 
+          this.featureFlagsChangedEventHandler);
+    }
   }
 
   private boolean initializeDocument() {
@@ -309,7 +338,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
     if (event.getProperty().equals(Constants.AUTO_SHOW_COMPLETION)) {
       this.autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
     } else if (event.getProperty().equals(Constants.ENABLE_NEXT_EDIT_SUGGESTION)) {
-      this.enableNes = Boolean.parseBoolean(event.getNewValue().toString());
+      // Only enable NES if both preference is true AND client preview features are enabled
+      this.enableNes = Boolean.parseBoolean(event.getNewValue().toString()) 
+          && CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled();
     }
   }
 
@@ -446,6 +477,12 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
     if (this.settingsManager != null) {
       this.settingsManager.unregisterPropertyChangeListener(this);
+    }
+
+    // Unsubscribe from event broker
+    if (this.eventBroker != null && this.featureFlagsChangedEventHandler != null) {
+      this.eventBroker.unsubscribe(this.featureFlagsChangedEventHandler);
+      this.featureFlagsChangedEventHandler = null;
     }
 
     if (this.document != null && this.documentUri != null) {

@@ -11,6 +11,7 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
@@ -56,13 +57,14 @@ public class CompletionsPreferencesPage extends FieldEditorPreferencePage implem
           Messages.preferences_page_completions_codeMiningNote, null, CODE_MINING_PREF_PAGE_ID);
     }
 
-
-    // add auto show nes field
-    Composite ctnAutoShowNes = new Composite(completionComposite, SWT.NONE);
-    ctnAutoShowNes.setLayout(gl);
-    BooleanFieldEditor bfeAutoShowNes = new BooleanFieldEditor(Constants.ENABLE_NEXT_EDIT_SUGGESTION,
-        Messages.preferences_page_completions_enableNes, ctnAutoShowNes);
-    addField(bfeAutoShowNes);
+    // add auto show nes field - only visible if client preview features are enabled
+    if (CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled()) {
+      Composite ctnAutoShowNes = new Composite(completionComposite, SWT.NONE);
+      ctnAutoShowNes.setLayout(gl);
+      BooleanFieldEditor bfeAutoShowNes = new BooleanFieldEditor(Constants.ENABLE_NEXT_EDIT_SUGGESTION,
+          Messages.preferences_page_completions_enableNes, ctnAutoShowNes);
+      addField(bfeAutoShowNes);
+    }
   }
 
   @Override

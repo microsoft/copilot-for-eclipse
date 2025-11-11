@@ -9,6 +9,7 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
@@ -145,13 +146,19 @@ public class EditorsManager {
    * Gets or creates the RenderManager for the given editor.
    *
    * @param editor The text editor
-   * @return The RenderManager instance, or null if creation fails
+   * @return The RenderManager instance, or null if creation fails or preview features are disabled
    */
   @Nullable
   public RenderManager getOrCreateNesRenderManager(ITextEditor editor) {
     if (editor == null) {
       return null;
     }
+    
+    // Only create NES RenderManager if client preview features are enabled
+    if (!CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled()) {
+      return null;
+    }
+    
     return nesRenderManagers.computeIfAbsent(editor,
         ed -> new RenderManager(this.languageServer, this.nesProvider, ed));
   }
