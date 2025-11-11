@@ -16,7 +16,7 @@ import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode.HandOff;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 
@@ -76,7 +76,7 @@ public class HandoffContainer extends Composite {
     clearHandoffs();
 
     // Get current mode and its handoffs
-    List<ConversationMode.HandOff> handoffs = getHandoffsForCurrentMode();
+    List<HandOff> handoffs = getHandoffsForCurrentMode();
 
     if (handoffs.isEmpty()) {
       this.setVisible(false);
@@ -120,7 +120,7 @@ public class HandoffContainer extends Composite {
       buttonsContainer.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 
       // Create handoff buttons in the buttons container
-      for (ConversationMode.HandOff handoff : handoffs) {
+      for (HandOff handoff : handoffs) {
         HandoffButtonWidget button = new HandoffButtonWidget(buttonsContainer, handoff, chatServiceManager, actionBar);
         handoffButtons.add(button);
       }
@@ -137,8 +137,8 @@ public class HandoffContainer extends Composite {
     }
   }
 
-  private List<ConversationMode.HandOff> getHandoffsForCurrentMode() {
-    List<ConversationMode.HandOff> handoffs = new ArrayList<>();
+  private List<HandOff> getHandoffsForCurrentMode() {
+    List<HandOff> handoffs = new ArrayList<>();
 
     // Check built-in mode
     String activeModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();

@@ -10,7 +10,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode.HandOff;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 
 /**
@@ -18,10 +18,10 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
  */
 public class HandoffButtonWidget extends Composite {
   private Label lblButtonText;
-  private ConversationMode.HandOff handoff;
+  private HandOff handoff;
   private ChatServiceManager chatServiceManager;
   private ActionBar actionBar;
-  
+
   /**
    * Creates a new HandoffButtonWidget.
    *
@@ -30,54 +30,54 @@ public class HandoffButtonWidget extends Composite {
    * @param chatServiceManager the chat service manager
    * @param actionBar the action bar
    */
-  public HandoffButtonWidget(Composite parent, ConversationMode.HandOff handoff,
-      ChatServiceManager chatServiceManager, ActionBar actionBar) {
+  public HandoffButtonWidget(Composite parent, HandOff handoff, ChatServiceManager chatServiceManager,
+      ActionBar actionBar) {
     super(parent, SWT.BORDER);
     this.handoff = handoff;
     this.chatServiceManager = chatServiceManager;
     this.actionBar = actionBar;
-    
+
     createWidget();
   }
-  
+
   private void createWidget() {
     // Use GridLayout similar to AddContextButton
     GridLayout layout = new GridLayout(1, false);
     layout.marginWidth = 4;
     layout.marginHeight = 2;
     this.setLayout(layout);
-    
+
     lblButtonText = new Label(this, SWT.NONE);
     lblButtonText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
     lblButtonText.setText(handoff.getLabel());
-    
+
     MouseAdapter clickListener = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
         handleHandoffClick();
       }
     };
-    
+
     // Add mouse listener to both the composite and label
     this.addMouseListener(clickListener);
     lblButtonText.addMouseListener(clickListener);
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
   }
-  
+
   private void handleHandoffClick() {
     try {
       String targetModeId = handoff.getAgent();
       String prompt = handoff.getPrompt();
       Boolean shouldSend = handoff.getSend();
-      
+
       // Switch to target mode
       chatServiceManager.getUserPreferenceService().setActiveChatMode(targetModeId);
-      
+
       // Populate input box with prompt
       if (prompt != null && !prompt.isEmpty()) {
         actionBar.setInputTextViewerContent(prompt);
       }
-      
+
       // Auto-send if specified
       if (shouldSend != null && shouldSend) {
         actionBar.handleSendMessage();

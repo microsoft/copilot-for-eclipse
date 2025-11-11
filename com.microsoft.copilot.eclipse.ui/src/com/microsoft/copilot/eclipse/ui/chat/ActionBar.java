@@ -20,6 +20,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextListener;
 import org.eclipse.jface.text.TextEvent;
@@ -49,6 +50,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -529,6 +531,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     updateMcpToolButtonVisibility();
   }
 
+  //@formatter:off
   /**
    * Update MCP tool button visibility based on whether the current mode allows tool configuration.
    * Shows the tool button only when the mode allows tool configuration:
@@ -537,6 +540,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    * - Ask mode: Hides tool button
    * - Custom modes: Shows tool button (all custom modes allow tools)
    */
+  //@formatter:on
   public void updateMcpToolButtonVisibility() {
     if (mcpToolButton == null || mcpToolButton.isDisposed()) {
       return;
@@ -573,7 +577,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     mcpToolButton.setVisible(allowsToolConfiguration);
     ((GridData) mcpToolButton.getLayoutData()).exclude = !allowsToolConfiguration;
-    mcpToolButton.getParent().layout(true);
+    mcpToolButton.requestLayout();
   }
 
   @Override
@@ -732,6 +736,15 @@ public class ActionBar extends Composite implements NewConversationListener {
         break;
       default:
         break;
+    }
+  }
+
+  /**
+   * Refreshes the placeholder text in the chat input text viewer.
+   */
+  public void refreshPlaceholder() {
+    if (inputTextViewer != null && !inputTextViewer.getTextWidget().isDisposed()) {
+      inputTextViewer.getTextWidget().redraw();
     }
   }
 
@@ -895,10 +908,9 @@ public class ActionBar extends Composite implements NewConversationListener {
     String currentModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
 
     // Open MCP preference page with the current mode selected
-    org.eclipse.jface.preference.PreferenceDialog dialog = org.eclipse.ui.dialogs.PreferencesUtil
-        .createPreferenceDialogOn(getShell(), McpPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(),
-            currentModeId // Pass the current mode ID as data
-        );
+    PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(getShell(), McpPreferencePage.ID,
+        PreferencesUtils.getAllPreferenceIds(), currentModeId // Pass the current mode ID as data
+    );
 
     dialog.open();
   }

@@ -1,7 +1,5 @@
 package com.microsoft.copilot.eclipse.core.chat;
 
-import java.util.List;
-
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 
 /**

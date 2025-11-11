@@ -31,7 +31,6 @@ import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
-import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -244,7 +243,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             for (AbstractTurnData turn : historyConversation.getTurns()) {
               restoreTurn(turn);
             }
-            
+
             // Restore the mode from the last user turn
             restoreModeFromLastUserTurn(historyConversation.getTurns());
           }
@@ -274,6 +273,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       Object messageData = event.getProperty(IEventBroker.DATA);
       if (messageData instanceof CodingAgentMessageRequestParams params) {
         handleCodingAgentMessage(params);
+      }
+    });
+
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, event -> {
+      Object chatModeData = event.getProperty(IEventBroker.DATA);
+      if (chatModeData instanceof ChatMode) {
+        if (actionBar != null && !actionBar.isDisposed()) {
+          actionBar.updateMcpToolButtonVisibility();
+          actionBar.refreshPlaceholder();
+        }
       }
     });
   }
@@ -335,11 +344,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     refreshActionBarTextViewerAndButtons();
 
-    // Update MCP tool button visibility when mode changes
-    if (actionBar != null && !actionBar.isDisposed()) {
-      actionBar.updateMcpToolButtonVisibility();
-    }
-
     this.parent.requestLayout();
     setFocus();
   }
@@ -359,15 +363,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         createAgentModeView();
         break;
     }
-  }
-
-  /**
-   * Get the active custom mode if one is selected.
-   *
-   * @return the custom mode or null if a built-in mode is active
-   */
-  private CustomChatMode getActiveCustomMode() {
-    return chatServiceManager.getUserPreferenceService().getActiveCustomMode();
   }
 
   private void createAgentModeView() {
@@ -927,14 +922,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       createAfterLoginWelcomePage();
     }
     chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
-    
+
     // Hide handoff container when creating a new conversation
     Display.getDefault().asyncExec(() -> {
       if (handoffContainer != null && !handoffContainer.isDisposed()) {
         handoffContainer.hide();
       }
     });
-    
+
     setFocus();
   }
 

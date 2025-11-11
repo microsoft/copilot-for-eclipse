@@ -301,14 +301,18 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   private String getPlaceholderText() {
     switch (userPreferenceService.getActiveChatMode()) {
       case Agent:
+        // Get the active mode name or ID from observable (not from disk to avoid stale data)
+        String activeModeId = userPreferenceService.getActiveModeNameOrId();
+        
         // Check if a custom mode is active and use its description as placeholder
-        CustomChatMode customMode = userPreferenceService.getActiveCustomMode();
-        if (customMode != null && StringUtils.isNotBlank(customMode.getDescription())) {
-          return customMode.getDescription();
+        if (CustomChatModeManager.INSTANCE.isCustomMode(activeModeId)) {
+          CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(activeModeId);
+          if (customMode != null && StringUtils.isNotBlank(customMode.getDescription())) {
+            return customMode.getDescription();
+          }
         }
         
         // Check if a built-in mode (Agent/Plan) is active and use its description as placeholder
-        String activeModeId = userPreferenceService.getActiveModeNameOrId();
         BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(activeModeId);
         if (builtInMode != null && StringUtils.isNotBlank(builtInMode.getDescription())) {
           return builtInMode.getDescription();

@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.chat;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode.HandOff;
 
 /**
  * Base class for all chat modes (built-in and custom).
@@ -15,7 +15,7 @@ public abstract class BaseChatMode {
   protected String description;
   protected List<String> tools;
   protected String model;
-  protected List<ConversationMode.HandOff> handOffs;
+  protected List<HandOff> handOffs;
 
   /**
    * Simple constructor with basic properties.
@@ -43,7 +43,7 @@ public abstract class BaseChatMode {
    * @param handOffs the list of hand-off configurations
    */
   protected BaseChatMode(String id, String displayName, String description,
-      List<String> tools, String model, List<ConversationMode.HandOff> handOffs) {
+      List<String> tools, String model, List<HandOff> handOffs) {
     this.id = id;
     this.displayName = displayName;
     this.description = description;
@@ -147,7 +147,7 @@ public abstract class BaseChatMode {
    *
    * @return a copy of the hand-offs list
    */
-  public List<ConversationMode.HandOff> getHandOffs() {
+  public List<HandOff> getHandOffs() {
     return handOffs != null ? new ArrayList<>(handOffs) : new ArrayList<>();
   }
 
@@ -156,7 +156,7 @@ public abstract class BaseChatMode {
    *
    * @param handOffs the hand-offs list to set
    */
-  public void setHandOffs(List<ConversationMode.HandOff> handOffs) {
+  public void setHandOffs(List<HandOff> handOffs) {
     this.handOffs = handOffs != null ? new ArrayList<>(handOffs) : new ArrayList<>();
   }
 

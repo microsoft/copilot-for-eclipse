@@ -48,8 +48,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   private static final int EXTRA_PADDING = 40;
   private static final String SEPARATOR_PREFIX = "---";
   private IObservableValue<String[]> chatModeObservable;
-  private IObservableValue<ChatMode> activeChatModeObservable;
-  private IObservableValue<String> activeModeNameOrIdObservable; // Tracks current mode (built-in or custom)
+  private IObservableValue<ChatMode> activeChatModeObservable; // Controls which view to show: Ask or Agent
+  private IObservableValue<String> activeModeNameOrIdObservable; // Tracks current mode name/ID for UI elements
   private InputNavigation inputNavigation = new InputNavigation();
 
   // Track side effects for chat mode combos only
@@ -122,49 +122,20 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     if (authStatusManager.isSignedIn()) {
       // Initialize chat mode preferences
       String chatModeName = restoreChatModeName();
-      ChatMode chatMode;
-
-      // Check if it's a custom mode ID
-      if (CustomChatModeManager.INSTANCE.isCustomMode(chatModeName)) {
-        // Custom mode - check if it still exists
-        CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(chatModeName);
-        if (customMode == null) {
-          // Custom mode no longer exists, fall back to Ask mode
-          CopilotCore.LOGGER.error(
-              new IllegalStateException("Custom mode " + chatModeName + " no longer exists, falling back to Ask mode"));
-          chatMode = ChatMode.Ask;
-        } else {
-          // Custom mode exists, use Agent mode for the observable (custom modes use Agent mode UI)
-          chatMode = ChatMode.Agent;
-        }
-      } else {
-        // Built-in mode - look it up by display name
-        BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModes().stream()
-            .filter(mode -> mode.getDisplayName().equals(chatModeName)).findFirst().orElse(null);
-
-        if (builtInMode != null) {
-          // Use Ask view only for Ask mode, everything else uses Agent view
-          if (BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(builtInMode.getDisplayName())) {
-            chatMode = ChatMode.Ask;
-          } else {
-            chatMode = ChatMode.Agent;
-          }
-        } else {
-          // Invalid mode name, fall back to Ask mode
-          CopilotCore.LOGGER.info("Invalid chat mode name: " + chatModeName + ", falling back to Ask mode");
-          chatMode = ChatMode.Ask;
-        }
-      }
-
+      
+      // Determine which view to use (Ask or Agent)
+      ChatMode rawViewMode = getViewModeForModeName(chatModeName);
+      
+      // Apply feature flags - if agent mode is disabled, force Ask view
       FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
       if (flags != null && !flags.isAgentModeEnabled()) {
-        chatMode = ChatMode.Ask; // Only Ask mode is available
+        rawViewMode = ChatMode.Ask;
       }
-      final ChatMode finalChatMode = chatMode;
-      final String finalChatModeName = chatModeName;
+
+      final ChatMode viewMode = rawViewMode;
       ensureRealm(() -> {
-        activeChatModeObservable.setValue(finalChatMode);
-        activeModeNameOrIdObservable.setValue(finalChatModeName);
+        activeChatModeObservable.setValue(viewMode);
+        activeModeNameOrIdObservable.setValue(chatModeName);
       });
       inputNavigation = new InputNavigation(restoreUserInputs());
     }
@@ -182,6 +153,27 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     }
 
     return ChatMode.Agent.toString();
+  }
+
+  /**
+   * Determines which UI view (Ask or Agent) should be used for a given mode name.
+   * Only the "Ask" built-in mode uses the Ask view; all other modes (Plan, Agent, custom) use the Agent view.
+   *
+   * @param modeNameOrId the mode name (for built-in modes) or ID (for custom modes)
+   * @return ChatMode.Ask or ChatMode.Agent representing which view to render
+   */
+  private ChatMode getViewModeForModeName(String modeNameOrId) {
+    if (StringUtils.isBlank(modeNameOrId)) {
+      return ChatMode.Agent; // Default to Agent view
+    }
+
+    // Check if it's a custom mode - all custom modes use Agent view
+    if (CustomChatModeManager.INSTANCE.isCustomMode(modeNameOrId)) {
+      return ChatMode.Agent;
+    }
+
+    // Built-in mode - only Ask mode uses Ask view, everything else uses Agent view
+    return BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(modeNameOrId) ? ChatMode.Ask : ChatMode.Agent;
   }
 
   private List<String> restoreUserInputs() {
@@ -373,28 +365,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       return;
     }
 
-    // Step 1: Determine UI view mode and validate existence
-    ChatMode uiViewMode;
+    // Step 1: Validate that the mode exists
     CustomChatMode customMode = null;
-    BuiltInChatMode builtInMode = null;
-    CustomChatModeManager customModeManager = CustomChatModeManager.INSTANCE;
-
-    // Check if it's a custom mode
-    if (customModeManager.isCustomMode(chatModeNameOrId)) {
-      customMode = customModeManager.getCustomModeById(chatModeNameOrId);
+    if (CustomChatModeManager.INSTANCE.isCustomMode(chatModeNameOrId)) {
+      customMode = CustomChatModeManager.INSTANCE.getCustomModeById(chatModeNameOrId);
       if (customMode == null) {
         CopilotCore.LOGGER
             .error(new IllegalStateException("Custom mode " + chatModeNameOrId + " no longer exists, ignoring"));
         return;
-      }
-      // Custom modes use Agent UI
-      uiViewMode = ChatMode.Agent;
-    } else {
-      // Use Ask view only for Ask mode, everything else uses Agent view
-      if (BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(chatModeNameOrId)) {
-        uiViewMode = ChatMode.Ask;
-      } else {
-        uiViewMode = ChatMode.Agent; // Plan, Agent, and any future modes use Agent view
       }
     }
 
@@ -404,19 +382,22 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       return;
     }
 
-    // Step 3: Persist user preference
+    // Step 3: Determine which UI view to use (Ask or Agent)
+    ChatMode uiViewMode = getViewModeForModeName(chatModeNameOrId);
+
+    // Step 4: Persist user preference
     UserPreference preference = getUserPreference();
     preference.setChatModeName(chatModeNameOrId);
     persistUserPreference();
 
-    // Step 4: Update observables atomically
+    // Step 5: Update observables atomically
     final ChatMode finalUiViewMode = uiViewMode;
     ensureRealm(() -> {
       activeChatModeObservable.setValue(finalUiViewMode);
       activeModeNameOrIdObservable.setValue(chatModeNameOrId);
     });
 
-    // Step 5: Post events
+    // Step 6: Post events
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, uiViewMode);
 
@@ -428,9 +409,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
-   * Get the active chat mode.
+   * Get the active chat mode (Ask or Agent view).
    *
-   * @return the active chat mode
+   * @return the active chat mode for UI rendering
    */
   public ChatMode getActiveChatMode() {
     ChatMode activeChatMode = activeChatModeObservable.getValue();
@@ -438,31 +419,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       return activeChatMode;
     }
 
-    // Try to restore from preferences
+    // Try to restore from preferences and determine the view mode
     String chatModeName = restoreChatModeName();
-
-    // Check if it's a custom mode ID
-    if (CustomChatModeManager.INSTANCE.isCustomMode(chatModeName)) {
-      // Custom modes use Agent mode for the UI
-      return ChatMode.Agent;
-    }
-
-    // Built-in mode - look it up by display name
-    BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModes().stream()
-        .filter(mode -> mode.getDisplayName().equals(chatModeName)).findFirst().orElse(null);
-
-    if (builtInMode != null) {
-      // Use Ask view only for Ask mode, everything else uses Agent view
-      if (BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(builtInMode.getDisplayName())) {
-        return ChatMode.Ask;
-      } else {
-        return ChatMode.Agent;
-      }
-    } else {
-      // Invalid mode name, fall back to Ask mode
-      CopilotCore.LOGGER.info("Invalid chat mode name: " + chatModeName + ", falling back to Ask mode");
-      return ChatMode.Ask;
-    }
+    return getViewModeForModeName(chatModeName);
   }
 
   /**
@@ -695,7 +654,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   /**
-   * Bind the chat view to the chat mode.
+   * Bind the chat view to automatically switch between Ask and Agent layouts when the active mode changes.
+   * This creates a side effect that rebuilds the view whenever activeChatModeObservable changes.
    */
   public void bindChatView(ChatView chatView) {
     if (chatView == null) {
@@ -705,29 +665,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     // Unbind any previously bound chat view
     unbindChatView();
 
-    // Observe activeModeNameOrIdObservable to detect switches between Agent and custom modes
+    // Create a side effect that watches activeChatModeObservable and rebuilds the view
     ensureRealm(() -> chatViewSideEffect = ISideEffect.create(() -> {
-      String modeNameOrId = this.activeModeNameOrIdObservable.getValue();
-      if (modeNameOrId == null) {
-        modeNameOrId = restoreChatModeName();
+      return this.activeChatModeObservable.getValue();
+    }, (ChatMode viewMode) -> {
+      if (viewMode != null) {
+        // Rebuild the view for Ask or Agent layout
+        chatView.buildViewFor(viewMode);
       }
-      return modeNameOrId;
-    }, (String modeNameOrId) -> {
-      // Determine which view to build based on the mode
-      ChatMode viewMode;
-      if (CustomChatModeManager.INSTANCE.isCustomMode(modeNameOrId)) {
-        // Custom modes use Agent mode view
-        viewMode = ChatMode.Agent;
-      } else {
-        // Use Ask view only for Ask mode, everything else uses Agent view
-        if (BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(modeNameOrId)) {
-          viewMode = ChatMode.Ask;
-        } else {
-          viewMode = ChatMode.Agent; // Plan, Agent, and any future modes use Agent view
-        }
-      }
-      // Always call buildViewFor when the observable changes - it will re-render if needed
-      chatView.buildViewFor(viewMode);
     }));
   }
 
