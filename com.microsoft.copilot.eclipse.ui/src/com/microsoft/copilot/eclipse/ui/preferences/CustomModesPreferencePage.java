@@ -596,11 +596,8 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
 
       for (IProject project : projects) {
         if (project.isOpen()) {
-          // Refresh the .github/agents folder if it exists
           IFolder agentsFolder = project.getFolder(".github/agents");
-          if (agentsFolder.exists()) {
-            agentsFolder.refreshLocal(IResource.DEPTH_ONE, new NullProgressMonitor());
-          }
+          agentsFolder.refreshLocal(IResource.DEPTH_ONE, new NullProgressMonitor());
         }
       }
     } catch (Exception e) {

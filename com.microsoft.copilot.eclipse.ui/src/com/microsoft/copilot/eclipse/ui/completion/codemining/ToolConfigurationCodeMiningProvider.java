@@ -88,7 +88,7 @@ public class ToolConfigurationCodeMiningProvider extends AbstractCodeMiningProvi
         throws BadLocationException {
       super(lineNumber, document, provider);
       this.viewer = viewer;
-      setLabel("🔧 Configure Tools...");
+      setLabel("Configure Tools...");
     }
 
     @Override
