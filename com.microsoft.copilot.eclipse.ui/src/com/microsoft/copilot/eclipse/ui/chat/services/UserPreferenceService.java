@@ -231,8 +231,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       customModes.forEach(mode -> modes.add(mode.getDisplayName()));
     }
 
-    // Add "Configure Modes" option
-    modes.add(Messages.configureModes);
+    // Add "Configure Modes" option only if custom agent feature is enabled
+    if (FeatureFlags.isCustomAgentEnabled()) {
+      modes.add(Messages.configureModes);
+    }
 
     // Calculate the longest mode name to size separators properly
     GC gc = new GC(PlatformUI.getWorkbench().getDisplay());
@@ -265,9 +267,11 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         }
       }
 
-      // Add "Configure Modes" section with separator
-      modesWithSeparators.add(separator);
-      modesWithSeparators.add(Messages.configureModes);
+      // Add "Configure Modes" section with separator only if custom agent feature is enabled
+      if (FeatureFlags.isCustomAgentEnabled()) {
+        modesWithSeparators.add(separator);
+        modesWithSeparators.add(Messages.configureModes);
+      }
 
       return modesWithSeparators.toArray(new String[0]);
     } finally {

@@ -1,11 +1,13 @@
 package com.microsoft.copilot.eclipse.core.chat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.FileBasedCustomModeService;
 import com.microsoft.copilot.eclipse.core.chat.service.ICustomModeService;
 
@@ -41,11 +43,14 @@ public enum CustomChatModeManager {
   }
 
   /**
-   * Get all custom modes.
+   * Get all custom modes. Returns empty list if custom agent feature is disabled by policy.
    *
-   * @return list of custom modes
+   * @return list of custom modes, or empty list if disabled by policy
    */
   public List<CustomChatMode> getCustomModes() {
+    if (!FeatureFlags.isCustomAgentEnabled()) {
+      return Collections.emptyList();
+    }
     return new ArrayList<>(customModes);
   }
 

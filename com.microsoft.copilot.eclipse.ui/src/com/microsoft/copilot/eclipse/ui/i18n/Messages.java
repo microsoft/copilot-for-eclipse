@@ -72,6 +72,7 @@ public final class Messages extends NLS {
   public static String preferences_page_watched_files_restart_question;
   public static String preferences_page_sub_agent;
   public static String preferences_page_sub_agent_note_content;
+  public static String preferences_page_sub_agent_disabled_by_policy;
   public static String preferences_page_mcp;
   public static String preferences_page_proxy_config_link;
   public static String preferences_page_proxy_settings;

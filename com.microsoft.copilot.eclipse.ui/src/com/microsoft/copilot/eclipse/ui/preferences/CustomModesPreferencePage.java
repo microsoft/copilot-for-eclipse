@@ -47,6 +47,7 @@ import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.FileEditorInput;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.service.ICustomModeService;
@@ -77,6 +78,17 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
     Composite container = new Composite(parent, SWT.NONE);
     GridLayout layout = new GridLayout(2, false);
     container.setLayout(layout);
+
+    // Check if custom agent is disabled by policy
+    if (!FeatureFlags.isCustomAgentEnabled()) {
+      Label disabledLabel = new Label(container, SWT.WRAP);
+      disabledLabel.setText(Messages.customModes_disabled_by_policy);
+      GridData gdLabel = new GridData(SWT.FILL, SWT.CENTER, true, false);
+      gdLabel.horizontalSpan = 2;
+      gdLabel.widthHint = 600;
+      disabledLabel.setLayoutData(gdLabel);
+      return container;
+    }
 
     // Table to show existing modes
     modesTable = new Table(container, SWT.BORDER | SWT.FULL_SELECTION | SWT.SINGLE);
