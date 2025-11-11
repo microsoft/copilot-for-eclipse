@@ -275,16 +275,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         handleCodingAgentMessage(params);
       }
     });
-
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, event -> {
-      Object chatModeData = event.getProperty(IEventBroker.DATA);
-      if (chatModeData instanceof ChatMode) {
-        if (actionBar != null && !actionBar.isDisposed()) {
-          actionBar.updateMcpToolButtonVisibility();
-          actionBar.refreshPlaceholder();
-        }
-      }
-    });
   }
 
   /**

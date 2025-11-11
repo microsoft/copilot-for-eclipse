@@ -110,6 +110,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   IEventBroker eventBroker;
   EventHandler updateSendButtonToCancelButtonHandler;
   EventHandler featureFlagsChangedEventHandler;
+  EventHandler updateMcpToolButtonAndPlaceHolderHandler;
 
   private static enum SendOrCancelButtonStates {
     SEND_ENABLED, SEND_DISABLED, CANCEL_ENABLED;
@@ -133,6 +134,13 @@ public class ActionBar extends Composite implements NewConversationListener {
     };
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, updateSendButtonToCancelButtonHandler);
+
+    this.updateMcpToolButtonAndPlaceHolderHandler = event -> {
+      updateMcpToolButtonVisibility();
+      refreshPlaceholder();
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, updateMcpToolButtonAndPlaceHolderHandler);
+    
     this.featureFlagsChangedEventHandler = event -> {
       // Update buttons layout when feature flags change
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
@@ -858,6 +866,10 @@ public class ActionBar extends Composite implements NewConversationListener {
     if (eventBroker != null && featureFlagsChangedEventHandler != null) {
       eventBroker.unsubscribe(featureFlagsChangedEventHandler);
       featureFlagsChangedEventHandler = null;
+    }
+    if (eventBroker != null && updateMcpToolButtonAndPlaceHolderHandler != null) {
+      eventBroker.unsubscribe(updateMcpToolButtonAndPlaceHolderHandler);
+      updateMcpToolButtonAndPlaceHolderHandler = null;
     }
   }
 
