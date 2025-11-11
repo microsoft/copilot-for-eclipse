@@ -66,7 +66,7 @@ public class CopilotTurnWidget extends BaseTurnWidget {
         if (StringUtils.isNotBlank(modelName)) {
           Label modelInfoLabel = new Label(footer, SWT.NONE);
           String formattedMultiplier = ModelUtils.formatBillingMultiplier(billingMultiplier);
-          String displayText = String.format("%s • %s", modelName, formattedMultiplier);
+          String displayText = String.format("%s - %s", modelName, formattedMultiplier);
           modelInfoLabel.setText(displayText);
           GridData labelGridData = new GridData(SWT.RIGHT, SWT.CENTER, true, false);
           modelInfoLabel.setLayoutData(labelGridData);
