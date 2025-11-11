@@ -85,6 +85,7 @@ class WatchedFileManagerTests {
       when(mockProject.members()).thenReturn(resources);
 
       when(mockFile.exists()).thenReturn(true);
+      when(mockFile.getLocation()).thenReturn(mockLocation);
       mockedUtil.when(() -> FileUtils.getResourceUri((IResource) any())).thenReturn("file:///test/file.txt");
 
       GetWatchedFilesRequest request = new GetWatchedFilesRequest();

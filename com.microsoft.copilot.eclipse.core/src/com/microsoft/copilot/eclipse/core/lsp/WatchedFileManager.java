@@ -214,6 +214,12 @@ class WatchedFileManager {
       return false;
     }
 
+    // Check if resource location is available
+    IPath resourceLocation = resource.getLocation();
+    if (resourceLocation == null) {
+      return false;
+    }
+
     String extension = resource.getFileExtension();
     if (!StringUtils.isEmptyOrNull(extension) && Constants.EXCLUDED_CURRENT_FILE_TYPE.contains(extension)) {
       return false;
@@ -221,12 +227,12 @@ class WatchedFileManager {
 
     for (Map.Entry<IPath, IgnoreNode> entry : gitignoreNodeMap.entrySet()) {
       IPath directoryPath = entry.getKey();
-      if (!directoryPath.isPrefixOf(resource.getLocation())) {
+      if (!directoryPath.isPrefixOf(resourceLocation)) {
         continue;
       }
 
       IgnoreNode ignoreNode = entry.getValue();
-      IPath relativePath = resource.getLocation().makeRelativeTo(directoryPath);
+      IPath relativePath = resourceLocation.makeRelativeTo(directoryPath);
       IgnoreNode.MatchResult matchResult = ignoreNode.isIgnored(relativePath.toString(), isDirectory);
 
       switch (matchResult) {
