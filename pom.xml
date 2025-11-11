@@ -11,7 +11,7 @@
 	<name>${base.name}</name>
 
 	<properties>
-		<copilot-plugin-version>0.12.0-SNAPSHOT</copilot-plugin-version>
+		<copilot-plugin-version>0.13.0-SNAPSHOT</copilot-plugin-version>
 		<base.name>GitHub Copilot</base.name>
 		<tycho-version>4.0.13</tycho-version>
 		<checkstyle-version>3.6.0</checkstyle-version>

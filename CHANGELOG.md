@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.13.0
+### Added
+- Support Next Edit Suggestion (NES). [PR#1283](https://github.com/microsoft/copilot-eclipse/pull/1283)
+- Support Custom Agent. [PR#1315](https://github.com/microsoft/copilot-eclipse/pull/1315), [PR#1329](https://github.com/microsoft/copilot-eclipse/pull/1329)
+- Support Plan mode. [PR#1344](https://github.com/microsoft/copilot-eclipse/pull/1344), [PR#1345](https://github.com/microsoft/copilot-eclipse/pull/1345)
+- Support Auto model. [#1303](https://github.com/microsoft/copilot-eclipse/issues/1303)
+- Support delegating tasks to coding agent and view the jobs. [#1327](https://github.com/microsoft/copilot-eclipse/pull/1327)
+- Support dynamic OAuth for MCP servers. [PR#1328](https://github.com/microsoft/copilot-eclipse/pull/1328)
+- Support allow list check for the MCP registry. [PR#1245](https://github.com/microsoft/copilot-eclipse/pull/1245), [PR#1255](https://github.com/microsoft/copilot-eclipse/pull/1255)
+
+### Changed
+- Update chat view icons. [PR#1274](https://github.com/microsoft/copilot-eclipse/pull/1274)
+
+### Fixed
+- MCP - Sync proxy bypass settings to CLS. [PR#1314](https://github.com/microsoft/copilot-eclipse/pull/1314)
+- MCP Registry - Cannot restore MCP registry URL. [PR#1248](https://github.com/microsoft/copilot-eclipse/pull/1248)
+- MCP Registry - Auto load more not working on MacOS. [#1252](https://github.com/microsoft/copilot-eclipse/issues/1252)
+- MCP Registry - Check server ID and base URL for MCP servers from registry. [PR#1263](https://github.com/microsoft/copilot-eclipse/pull/1263)
+- MCP Registry - Dynamically set the table row height for MCP registry dialog. [#1208](https://github.com/microsoft/copilot-eclipse/issues/1208)- MCP Registry - Only store the MCP registry URL to configuration scope. [PR#1291](https://github.com/microsoft/copilot-eclipse/pull/1291)
+- MCP Registry - Refresh the tool bar of MCP registry dialog after clicking. [PR#1290](https://github.com/microsoft/copilot-eclipse/pull/1290)
+- Chat History - Persisted chat history title contains line breaks. [#1250](https://github.com/microsoft/copilot-eclipse/issues/1250)
+- Chat History - Conversation with id does not exist. [#1261](https://github.com/microsoft/copilot-eclipse/issues/1261)
+- Chat View: Apply default TM theme for source viewer. [PR#1287](https://github.com/microsoft/copilot-eclipse/pull/1287)
+- Extension Point - Activate bundle when the checking the MCP registration. [PR#1262](https://github.com/microsoft/copilot-eclipse/pull/1262)
+- Extension Point - Allow plugin to remove the mcp registration. [PR#1277](https://github.com/microsoft/copilot-eclipse/pull/1277)
+- Extension Point - Displaying new MCP server registration found but none actually exists. [#1293](https://github.com/microsoft/copilot-eclipse/issues/1293)
+- Accessibility - Add name attribute to the widgets in chat view. [PR#1312](https://github.com/microsoft/copilot-eclipse/pull/1312)
+- Typo - typo in completion settings page. [#1270](https://github.com/microsoft/copilot-eclipse/issues/1270)
+
+
 ## 0.12.0
 ### Added
 - Support chat history. [#246](https://github.com/microsoft/copilot-eclipse/issues/246)
