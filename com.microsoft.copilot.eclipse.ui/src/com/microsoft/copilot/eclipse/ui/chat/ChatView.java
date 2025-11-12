@@ -133,6 +133,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
           chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
           chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
+          
+          // TODO: This is a workaround to fix https://github.com/microsoft/copilot-eclipse/issues/1387
+          // Rebuild the view based on current auth status after initialization
+          // Should be removed after we have groomed chatServiceManager and authStatusManager initialization flow
+          SwtUtils.invokeOnDisplayThreadAsync(() -> {
+            String authStatus = chatServiceManager.getAuthStatusManager().getCopilotStatus();
+            if (authStatus != null) {
+              buildViewFor(authStatus);
+            }
+          }, parent);
+          
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
