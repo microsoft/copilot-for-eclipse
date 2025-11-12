@@ -1,3 +1,39 @@
+# GitHub Copilot 0.13.0 Release Notes
+### Custom Agent
+Custom agents bring customization to your chat mode by letting you specify name, description, tools, and models. Create specialized AI teammates tailored to your workflows and coding standards in Eclipse. Define agents using Markdown files that specify prompts so you can pick them up and run in your Eclipse quickly.
+
+<video controls="true" src="./0.13.0/custom_agent.mp4" title="Custom Agent" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+### Plan
+`Plan` helps AI think before it acts. It creates a clear plan first, so you can review and adjust it to fit your needs — then let the AI get to work. Simple, smart, and under your control.
+
+<video controls="true" src="./0.13.0/plan.mp4" title="Plan" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+### Sub-agent
+With Sub-Agent, your custom agents can now work in harmony under the guidance of a main agent. Each sub-agent tackles a specific task within its own isolated context, free from distractions — delivering sharper, more accurate results. Think of it as a team of specialists, each focused on what they do best, all orchestrated for maximum impact.
+
+<video controls="true" src="./0.13.0/sub_agent.mp4" title="Sub-agent" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+### Copilot Coding Agent
+With Copilot coding agent, GitHub Copilot can work independently in the background to complete tasks, just like a human developer: creating pull requests to solve issues in your GitHub repos.
+
+<video controls="true" src="./0.13.0/coding_agent.mp4" title="Copilot Coding Agent" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+Note: [Click here to check more information](https://aka.ms/learn-copilot-coding-agent)
+
+---
+
+### Auto Model
+Auto optimizes for model availability, currently routing to GPT-5, GPT-5 mini, GPT-4.1, Sonnet 4.5, and Haiku 4.5, depending on your subscription type. More models are coming soon.
+
+---
+
 # GitHub Copilot 0.12.0 Release Notes
 ### Chat History is Here!
 Now you can easily revisit your past conversations anytime. And you can also rename a chat to give it a meaningful title, or remove it with just a click.
@@ -69,67 +105,3 @@ This opens up exciting possibilities for plugin developers to trigger contextual
 Here’s how the Spring Tools plug-in leverages the new API to launch a chat session:
 
 <video controls="true" src="./0.11.0/api.mp4" title="Spring Tools Plug-in Integration"></video>
-
----
-
-# GitHub Copilot 0.10.0 Release Notes
-### Custom Instructions Now Supported in Copilot
-You can now use custom instructions to provide Copilot with additional context tailored to your work. This helps Copilot deliver more relevant and personalized assistance.
-
-Check for [more details](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions).
-
-![Custom Instructions](./0.10.0/custom_instructions_1.png)
-
----
-
-### Image Support in Chat Context
-You can now add images directly to the chat context. Check below example how Copilot interpret a hand-drawn layout page, and generate corresponding HTML code:
-
-![Vision Demo](0.10.0/vision_demo_1.gif)
-
-Note: Some models do not support vision capabilities. In such cases, a warning will be displayed.
-
-![Model Not Support Images](0.10.0/image_not_support_1.png)
-
----
-
-### Folders Can Now Be Added to Chat Context
-In addition to images, you can now attach entire folders to enrich the chat context. This makes it easier to share structured content and collaborate more effectively.
-
-![Attach Folder](./0.10.0/attach_folder_1.png)
-
----
-
-### MCP Support Enhancements in Copilot
-Copilot now includes several enhancements for MCP support:
-
-#### GitHub MCP Server OAuth Integration
-You can now configure your GitHub MCP server using OAuth. Here's a sample configuration:
-
-```javascript
-{
-  "servers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    }
-  }
-}
-```
-
-#### MCP Feature Flag Support
-The Copilot plugin will automatically disable MCP features if it is turned off in the Copilot portal: https://github.com/settings/copilot/features, ensuring better alignment with your configuration settings.
-
----
-
-### Improved UX for Starting New Conversations in Agent Mode
-When creating a new conversation in agent mode, a confirmation dialog will now appear if there are any unhandled files in the current context. This helps prevent accidental data loss and ensures you don’t lose important changes unexpectedly.
-
-![Confirmation](./0.10.0/confirmation_1.png)
-
----
-
-### Chat View Banner Enhancements
-The top banner in the chat view has been improved to enhance usability. It now displays the conversation title and includes a convenient Edit Preferences... shortcut button.
-
-![Top Banner](./0.10.0/top_bar_1.png)
