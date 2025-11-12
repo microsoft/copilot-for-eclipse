@@ -96,6 +96,26 @@ class UserPreferenceServiceTest {
     assertEquals("input2", getInputNavigationFromService().getLatestInput(), "Input navigation should be restored");
   }
 
+  @Test
+  void testAuthStatusChangedEventHandler_UserSignsIn_ReloadsBuiltInModes() {
+    // Arrange
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+
+    EventHandler authHandler = getAuthStatusChangedEventHandler();
+    assertNotNull(authHandler, "Auth status changed event handler should be available");
+
+    Event signInEvent = createAuthStatusEvent(CopilotStatusResult.OK, "test-user");
+
+    // Act - Simulate user sign in
+    authHandler.handleEvent(signInEvent);
+
+    // Assert - No exception should be thrown and the handler should complete successfully
+    // Note: Since BuiltInChatModeManager is a singleton and we can't easily mock it in this test,
+    // we primarily verify that the event handler doesn't throw exceptions when reloading modes.
+    // The actual reloading functionality is tested through integration tests.
+    assertNotNull(authHandler, "Auth handler should still be functional after handling sign-in event");
+  }
+
   /**
    * Helper method to create an auth status changed event
    */

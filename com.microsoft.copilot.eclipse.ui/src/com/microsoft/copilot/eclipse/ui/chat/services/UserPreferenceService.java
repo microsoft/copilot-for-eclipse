@@ -88,6 +88,23 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         if (statusResult.isNotSignedIn()) {
           clearUserPreferenceCache();
           this.inputNavigation = null;
+        } else {
+          // User has signed in - reload built-in modes to ensure we have the latest modes for this user
+          try {
+            BuiltInChatModeManager.INSTANCE.reloadModes();
+            
+            // Update available chat modes in the observable to reflect any changes
+            ensureRealm(() -> {
+              if (!Arrays.deepEquals(getAvalibleChatModes(), chatModeObservable.getValue())) {
+                chatModeObservable.setValue(getAvalibleChatModes());
+              }
+            });
+            
+            // Reinitialize user preferences for the new user
+            init();
+          } catch (Exception e) {
+            CopilotCore.LOGGER.error("Failed to reload built-in modes on user switch", e);
+          }
         }
       }
     };
@@ -122,10 +139,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     if (authStatusManager.isSignedIn()) {
       // Initialize chat mode preferences
       String chatModeName = restoreChatModeName();
-      
+
       // Determine which view to use (Ask or Agent)
       ChatMode rawViewMode = getViewModeForModeName(chatModeName);
-      
+
       // Apply feature flags - if agent mode is disabled, force Ask view
       FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
       if (flags != null && !flags.isAgentModeEnabled()) {
@@ -583,6 +600,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
           combo.setItems(chatModes);
           if (chatModes.length == 1) {
             combo.select(0);
+          } else {
+            // Restore the current selection after updating items
+            String currentModeNameOrId = this.activeModeNameOrIdObservable.getValue();
+            if (currentModeNameOrId != null) {
+              restoreComboSelection(combo, currentModeNameOrId);
+            }
           }
         }
       });
@@ -599,34 +622,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         if (combo.isDisposed() || modeNameOrId == null) {
           return;
         }
-
-        String displayName;
-        // Check if it's a custom mode ID
-        if (CustomChatModeManager.INSTANCE.isCustomMode(modeNameOrId)) {
-          CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(modeNameOrId);
-          if (customMode != null) {
-            displayName = customMode.getDisplayName();
-          } else {
-            // Custom mode no longer exists, fall back to Ask
-            displayName = ChatMode.Ask.displayName();
-          }
-        } else {
-          // It's a built-in mode - look it up by display name
-          BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModes().stream()
-              .filter(mode -> mode.getDisplayName().equals(modeNameOrId)).findFirst().orElse(null);
-
-          if (builtInMode != null) {
-            displayName = builtInMode.getDisplayName();
-          } else {
-            // Mode not found, fall back to Ask
-            displayName = ChatMode.Ask.displayName();
-          }
-        }
-
-        int index = Arrays.asList(combo.getItems()).indexOf(displayName);
-        if (index >= 0) {
-          updateSelectedItem(combo, displayName, index);
-        }
+        restoreComboSelection(combo, modeNameOrId);
       });
 
       // Store the side effects for later disposal
@@ -683,6 +679,44 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     if (chatViewSideEffect != null) {
       chatViewSideEffect.dispose();
       chatViewSideEffect = null;
+    }
+  }
+
+  /**
+   * Restore the combo selection based on the current mode name or ID.
+   *
+   * @param combo the combo to restore selection for
+   *
+   * @param modeNameOrId the current mode name or custom mode ID
+   */
+  private void restoreComboSelection(Combo combo, String modeNameOrId) {
+    String displayName;
+
+    // Check if it's a custom mode ID
+    if (CustomChatModeManager.INSTANCE.isCustomMode(modeNameOrId)) {
+      CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(modeNameOrId);
+      if (customMode != null) {
+        displayName = customMode.getDisplayName();
+      } else {
+        // Custom mode no longer exists, fall back to Ask
+        displayName = ChatMode.Ask.displayName();
+      }
+    } else {
+      // It's a built-in mode - look it up by display name
+      BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModes().stream()
+          .filter(mode -> mode.getDisplayName().equals(modeNameOrId)).findFirst().orElse(null);
+
+      if (builtInMode != null) {
+        displayName = builtInMode.getDisplayName();
+      } else {
+        // Mode not found, fall back to Ask
+        displayName = ChatMode.Ask.displayName();
+      }
+    }
+
+    int index = Arrays.asList(combo.getItems()).indexOf(displayName);
+    if (index >= 0) {
+      updateSelectedItem(combo, displayName, index);
     }
   }
 

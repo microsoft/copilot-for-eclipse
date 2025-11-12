@@ -55,4 +55,12 @@ public enum BuiltInChatModeManager {
   public BuiltInChatMode getBuiltInModeById(String id) {
     return builtInModes.stream().filter(mode -> mode.getId().equals(id)).findFirst().orElse(null);
   }
+
+  /**
+   * Reloads built-in chat modes from the LSP API. This should be called when the user switches
+   * to ensure the latest modes are available for the current user context.
+   */
+  public void reloadModes() {
+    loadModesSync();
+  }
 }
