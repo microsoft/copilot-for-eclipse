@@ -166,7 +166,7 @@ public class CompletionProvider {
     protected IStatus run(IProgressMonitor monitor) {
       this.completions = null;
       IStatus status = runCompletion(monitor);
-      if (status.isOK() && this.completions != null) {
+      if (status.isOK()) {
         notifyCompletionResolved();
       }
       return status;

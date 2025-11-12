@@ -328,7 +328,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * @return true if there is an active suggestion, false otherwise
    */
   public boolean hasActiveSuggestion() {
-    return suggestionStartPosition != null && !suggestionStartPosition.isDeleted();
+    return diffModel != null;
   }
 
   /**
