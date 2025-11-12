@@ -131,8 +131,8 @@ public class HandoffContainer extends Composite {
 
     requestLayout();
 
-    // Scroll to bottom to ensure handoff buttons are visible
-    if (chatView != null) {
+    // Scroll to bottom only when handoffs are present
+    if (chatView != null && !handoffs.isEmpty()) {
       chatView.scrollContentToBottom();
     }
   }

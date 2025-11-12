@@ -36,6 +36,8 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  */
 public class ChatContentViewer extends ScrolledComposite {
 
+  private static final int SCROLL_THRESHOLD = 100;
+
   private ChatServiceManager serviceManager;
 
   private Composite cmpContent;
@@ -46,6 +48,8 @@ public class ChatContentViewer extends ScrolledComposite {
   private BaseTurnWidget latestUserTurn;
   private BaseTurnWidget latestCopilotTurn;
   private BaseTurnWidget latestTurnWidget;
+  // Auto-scroll state management
+  private boolean autoScrollEnabled;
 
   /**
    * Create the composite.
@@ -75,10 +79,29 @@ public class ChatContentViewer extends ScrolledComposite {
         refreshScrollerLayout();
       }
     });
+    
+    // Listen for user scroll events to manage auto-scroll behavior
+    ScrollBar verticalBar = this.getVerticalBar();
+    if (verticalBar != null) {
+      verticalBar.addListener(SWT.Selection, event -> {
+        int selection = verticalBar.getSelection();
+        int maximum = verticalBar.getMaximum();
+        int thumb = verticalBar.getThumb();
+
+        // If scrolled to bottom, keep auto-scroll enabled
+        // Otherwise disable it (user is viewing history)
+        int threshold = SCROLL_THRESHOLD;
+        int maxScrollPosition = maximum - thumb;
+        boolean isAtBottom = selection >= (maxScrollPosition - threshold);
+        autoScrollEnabled = isAtBottom;
+      });
+    }
 
     this.turns = new HashMap<>();
 
     this.serviceManager = serviceManager;
+
+    this.autoScrollEnabled = true;
   }
 
   /**
@@ -91,6 +114,9 @@ public class ChatContentViewer extends ScrolledComposite {
 
     refreshScrollerLayout();
     scrollToLatestUserTurn();
+    // Reset auto-scroll for new conversation turn
+    autoScrollEnabled = true;
+    
   }
 
   /**
@@ -168,6 +194,12 @@ public class ChatContentViewer extends ScrolledComposite {
         turnWidget.notifyTurnEnd();
       }
       refreshScrollerLayout();
+      
+      // Auto-scroll to bottom if enabled
+      if (shouldAutoScrollToBottom()) {
+        scrollToBottom();
+      }
+      
       String errMsg = value.getErrorMessage();
       String reason = value.getErrorReason();
       if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
@@ -276,6 +308,30 @@ public class ChatContentViewer extends ScrolledComposite {
     this.setMinHeight(contentHeight);
     this.setMinWidth(containerSize.x);
     this.layout(true, true);
+  }
+
+  /**
+   * Check if auto-scroll to bottom is needed.
+   * Only scroll when auto-scroll is enabled (user hasn't manually scrolled during response).
+   */
+  private boolean shouldAutoScrollToBottom() {
+    if (this.isDisposed() || latestUserTurn == null) {
+      return false;
+    }
+
+    if (!autoScrollEnabled) {
+      return false;
+    }
+    
+    Rectangle clientArea = this.getClientArea();
+    Point userTurnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    Point copilotTurnSize = latestCopilotTurn == null ? new Point(0, 0)
+        : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    
+    int roundedHeight = userTurnSize.y + copilotTurnSize.y;
+    
+    // Only auto-scroll when content height exceeds the visible area
+    return roundedHeight >= clientArea.height;
   }
 
   /**
