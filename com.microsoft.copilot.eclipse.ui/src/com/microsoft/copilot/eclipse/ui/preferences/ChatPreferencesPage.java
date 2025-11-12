@@ -1,5 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -131,14 +137,46 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
   @Override
   public void init(IWorkbench workbench) {
     setPreferenceStore(CopilotUi.getPlugin().getPreferenceStore());
+
+    // Ensure run_subagent tool configuration is consistent with sub-agent preference
+    // Only check if sub-agent is policy-enabled
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean policyAllowsSubAgent = flags != null && flags.isClientPreviewFeatureEnabled()
+        && flags.isSubAgentPolicyEnabled();
+
+    if (policyAllowsSubAgent) {
+      boolean subAgentEnabled = getPreferenceStore().getBoolean(Constants.SUB_AGENT_ENABLED);
+      updateSubAgentToolConfiguration(subAgentEnabled);
+    }
   }
 
   @Override
   public boolean performOk() {
-    boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
+    final boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
 
-    boolean result = super.performOk();
+    // Check if sub-agent is policy-enabled before handling sub-agent preferences
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean policyAllowsSubAgent = flags != null && flags.isClientPreviewFeatureEnabled()
+        && flags.isSubAgentPolicyEnabled();
+
+    boolean oldSubAgentValue = false;
+    if (policyAllowsSubAgent) {
+      oldSubAgentValue = getPreferenceStore().getBoolean(Constants.SUB_AGENT_ENABLED);
+    }
+
+    final boolean result = super.performOk();
     boolean newWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
+
+    boolean newSubAgentValue = false;
+    if (policyAllowsSubAgent) {
+      newSubAgentValue = getPreferenceStore().getBoolean(Constants.SUB_AGENT_ENABLED);
+    }
+
+    // Handle sub-agent preference change
+    if (policyAllowsSubAgent && (oldSubAgentValue ^ newSubAgentValue)) {
+      updateSubAgentToolConfiguration(newSubAgentValue);
+    }
+
     if (oldWorkspaceContextValue ^ newWorkspaceContextValue) {
       boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
           Messages.preferences_page_watched_files_restart_question);
@@ -161,5 +199,55 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     }
 
     return result;
+  }
+
+  /**
+   * Updates the MCP tool configuration to include or exclude the run_subagent tool for agent mode based on the
+   * sub-agent preference setting.
+   *
+   * @param subAgentEnabled true if sub-agent is enabled, false otherwise
+   */
+  private void updateSubAgentToolConfiguration(boolean subAgentEnabled) {
+    try {
+      // Load existing MCP tools mode status
+      String existingJson = getPreferenceStore().getString(Constants.MCP_TOOLS_MODE_STATUS);
+
+      // Parse existing configuration or create new one
+      Map<String, Map<String, Map<String, Boolean>>> modeToolStatus;
+      if (existingJson != null && !existingJson.trim().isEmpty()) {
+        Type type = new TypeToken<Map<String, Map<String, Map<String, Boolean>>>>() {
+        }.getType();
+        modeToolStatus = new Gson().fromJson(existingJson, type);
+      } else {
+        modeToolStatus = new HashMap<>();
+      }
+
+      // Ensure agent-mode map exists
+      if (!modeToolStatus.containsKey("agent-mode")) {
+        modeToolStatus.put("agent-mode", new HashMap<>());
+      }
+
+      // Get or create the Built-in Tools server map
+      Map<String, Map<String, Boolean>> agentModeTools = modeToolStatus.get("agent-mode");
+      String builtInToolsKey = Messages.preferences_page_mcp_tools_builtin;
+      if (!agentModeTools.containsKey(builtInToolsKey)) {
+        agentModeTools.put(builtInToolsKey, new HashMap<>());
+      }
+
+      // Update the run_subagent tool status
+      Map<String, Boolean> builtInTools = agentModeTools.get(builtInToolsKey);
+      if (subAgentEnabled) {
+        builtInTools.put("run_subagent", true);
+      } else {
+        builtInTools.remove("run_subagent");
+      }
+
+      // Save back to preferences
+      String updatedJson = new Gson().toJson(modeToolStatus);
+      getPreferenceStore().setValue(Constants.MCP_TOOLS_MODE_STATUS, updatedJson);
+
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to update sub-agent tool configuration", e);
+    }
   }
 }
