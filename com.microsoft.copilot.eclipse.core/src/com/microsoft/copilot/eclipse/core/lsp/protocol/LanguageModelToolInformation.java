@@ -15,9 +15,14 @@ public class LanguageModelToolInformation {
   private String name;
 
   /**
-   * A description of this tool that may be used by a language model to select it.
+   * A description with prompt of this tool that may be used by a language model to select it.
    */
   private String description;
+
+  /**
+   * A description of this tool that may be shown to a user.
+   */
+  private String displayDescription;
 
   /**
    * A JSON schema for the input this tool accepts. The input must be an object at the top level. A particular language
@@ -43,6 +48,14 @@ public class LanguageModelToolInformation {
     return description;
   }
 
+  public String getDisplayDescription() {
+    return displayDescription;
+  }
+
+  public void setDisplayDescription(String displayDescription) {
+    this.displayDescription = displayDescription;
+  }
+
   public void setDescription(String description) {
     this.description = description;
   }
@@ -65,7 +78,7 @@ public class LanguageModelToolInformation {
 
   @Override
   public int hashCode() {
-    return Objects.hash(confirmationMessages, description, inputSchema, name);
+    return Objects.hash(confirmationMessages, description, displayDescription, inputSchema, name);
   }
 
   @Override
@@ -81,8 +94,9 @@ public class LanguageModelToolInformation {
     }
     LanguageModelToolInformation other = (LanguageModelToolInformation) obj;
     return Objects.equals(confirmationMessages, other.confirmationMessages)
-        && Objects.equals(description, other.description) && Objects.equals(inputSchema, other.inputSchema)
-        && Objects.equals(name, other.name);
+        && Objects.equals(description, other.description)
+        && Objects.equals(displayDescription, other.displayDescription)
+        && Objects.equals(inputSchema, other.inputSchema) && Objects.equals(name, other.name);
   }
 
   @Override
@@ -90,6 +104,7 @@ public class LanguageModelToolInformation {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.add("name", name);
     builder.add("description", description);
+    builder.add("displayDescription", displayDescription);
     builder.add("inputSchema", inputSchema);
     builder.add("confirmationMessages", confirmationMessages);
     return builder.toString();

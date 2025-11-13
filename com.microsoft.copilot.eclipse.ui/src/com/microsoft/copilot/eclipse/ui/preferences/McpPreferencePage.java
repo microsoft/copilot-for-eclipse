@@ -665,7 +665,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         }
 
         TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
-        toolNode.setText(tool.getName() + " - " + tool.getDescription());
+        toolNode.setText(tool.getName() + " - " + tool.getDisplayDescription().trim());
 
         // For agent mode, default new tools to enabled; for custom agents default to disabled
         boolean shouldEnable = false;
@@ -1015,7 +1015,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Update current mode ID
     String selectedText = modeSelector.getText();
     currentModeId = extractModeIdFromSelection(selectedText);
-    
+
     // Load the tool status for the new mode (updates checkboxes on existing tree)
     loadModeToolStatus(currentModeId);
   }
@@ -1031,7 +1031,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       // Format: "workspace: displayName"
       String workspaceName;
       String displayName;
-      
+
       if (selectionText.contains(": ")) {
         int colonIndex = selectionText.indexOf(": ");
         workspaceName = selectionText.substring(0, colonIndex);
@@ -1351,7 +1351,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       }
 
       TreeItem toolNode = new TreeItem(builtInServerNode, SWT.NONE);
-      toolNode.setText(tool.getName() + " - " + tool.getDescription());
+      toolNode.setText(tool.getName() + " - " + tool.getDisplayDescription().trim());
       toolNode.setData("blocked", false);
       toolNode.setData("toolName", tool.getName());
 
