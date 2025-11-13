@@ -88,6 +88,7 @@ public final class Messages extends NLS {
   public static String preferences_page_mcp_tools_mode_selector;
   public static String preferences_page_mcp_tools_agent_mode;
   public static String preferences_page_mcp_tools_builtin;
+  public static String preferences_page_mcp_tools_unknown_tool;
   public static String preferences_page_mcp_server_init_error;
   public static String preferences_page_extMcp_title;
   public static String preferences_page_extMcp_button_edit;

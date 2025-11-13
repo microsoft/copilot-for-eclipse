@@ -92,6 +92,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Combo modeSelector;
   private Composite modeSelectorComposite;
   private String currentModeId = "agent-mode";
+
+  //formatter:off
   /**
    * Stores tool enable/disable status for each mode.
    * Structure: Map&lt;ModeId, Map&lt;ServerName, Map&lt;ToolName, IsEnabled&gt;&gt;&gt;
@@ -100,6 +102,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
    * - ToolName: The tool identifier within the server
    * - IsEnabled: Boolean indicating whether the tool is enabled for this mode
    */
+  //formatter:on
   private Map<String, Map<String, Map<String, Boolean>>> modeToolStatus = new HashMap<>();
   private StringFieldEditor mcpField;
   private Image redNotice;
@@ -665,7 +668,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         }
 
         TreeItem toolNode = new TreeItem(serverNode, SWT.NONE);
-        toolNode.setText(tool.getName() + " - " + tool.getDisplayDescription().trim());
+        toolNode.setText(parseToolNameAndDisplayDescription(tool));
 
         // For agent mode, default new tools to enabled; for custom agents default to disabled
         boolean shouldEnable = false;
@@ -772,24 +775,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
 
     serverNode.setGrayed(false);
-  }
-
-  private Map<String, Map<String, Boolean>> loadToolStatusFromPreferences() {
-    Map<String, Map<String, Boolean>> result = new HashMap<>();
-
-    IPreferenceStore preferenceStore = getPreferenceStore();
-    String jsonStatus = preferenceStore.getString(Constants.MCP_TOOLS_STATUS);
-
-    if (StringUtils.isNotBlank(jsonStatus)) {
-      try {
-        result = GSON.fromJson(jsonStatus, new com.google.gson.reflect.TypeToken<Map<String, Map<String, Boolean>>>() {
-        }.getType());
-      } catch (Exception e) {
-        CopilotCore.LOGGER.error("Failed to parse MCP tools status JSON", e);
-      }
-    }
-
-    return result;
   }
 
   private void saveToolStatusToPreferences() {
@@ -1351,7 +1336,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       }
 
       TreeItem toolNode = new TreeItem(builtInServerNode, SWT.NONE);
-      toolNode.setText(tool.getName() + " - " + tool.getDisplayDescription().trim());
+      toolNode.setText(parseToolNameAndDisplayDescription(tool));
       toolNode.setData("blocked", false);
       toolNode.setData("toolName", tool.getName());
 
@@ -1379,6 +1364,20 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     builtInServerNode.setExpanded(true);
     updateServerCheckStatus(builtInServerNode);
     toolsGroup.requestLayout();
+  }
+
+  private String parseToolNameAndDisplayDescription(LanguageModelToolInformation toolInfo) {
+    if (toolInfo == null || StringUtils.isBlank(toolInfo.getName())) {
+      return Messages.preferences_page_mcp_tools_unknown_tool;
+    }
+    String name = toolInfo.getName();
+
+    String description = toolInfo.getDisplayDescription();
+    if (StringUtils.isBlank(description)) {
+      return name;
+    }
+
+    return name + " - " + description.trim();
   }
 
   /**
