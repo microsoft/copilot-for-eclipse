@@ -29,6 +29,14 @@ Note: [Click here to check more information](https://aka.ms/learn-copilot-coding
 
 ---
 
+### Next Edit Suggestions (NES)
+
+Next Edit Suggestions (NES) in GitHub Copilot predicts your next changes based on recent edits. It suggests updates to code, comments, and tests, which you can preview and apply instantly. Use Tab to move through suggestions and press Tab again to accept—keeping your workflow smooth and uninterrupted.
+
+<video controls="true" src="./0.13.0/nes.mp4" title="NES" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
 ### Auto Model
 Auto optimizes for model availability, currently routing to GPT-5, GPT-5 mini, GPT-4.1, Sonnet 4.5, and Haiku 4.5, depending on your subscription type. More models are coming soon.
 
