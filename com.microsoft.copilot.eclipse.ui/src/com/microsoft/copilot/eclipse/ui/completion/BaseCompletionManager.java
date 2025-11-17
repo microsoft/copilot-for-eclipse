@@ -254,7 +254,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
     if (completions == null || completions.isEmpty()) {
       // Clear old completion items when receiving null or empty list (e.g., fallback to NES)
-      this.clearGhostTexts();
+      SwtUtils.invokeOnDisplayThread(() -> {
+        this.clearGhostTexts();
+      }, this.styledText);
       return;
     }
 
