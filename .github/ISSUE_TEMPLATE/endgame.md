@@ -25,9 +25,10 @@ tbd
   - [ ] @duzitong 
   - [ ] @ethanyhou 
   - [ ] @xinyi-gong
+- [ ] Create a new branch from `main`, named as `release/<version>`
 - [ ] Release Nightly: https://mseng.visualstudio.com/VSJava/_build?definitionId=20768
 - [ ] Update solution version for nightly on marketplace: https://marketplace.eclipse.org/content/github-copilot-nightly/edit
 - [ ] Release RC: https://mseng.visualstudio.com/VSJava/_build?definitionId=21364
 - [ ] Update solution version for stable on marketplace: https://marketplace.eclipse.org/content/github-copilot/edit
-- [ ] Add release in https://github.com/eclipse-copilot/eclipse-copilot/releases
+- [ ] Add release in https://github.com/microsoft/copilot-eclipse/releases, makes sure target branch is `release/<version>` for the tag
 - [ ] Add release in https://github.com/microsoft/GitHub-Copilot-for-Eclipse/releases
