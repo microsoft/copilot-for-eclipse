@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.13.1
+### Fixed
+- Chat View - NPE when rendering buttons in action bar. [PR#1411](https://github.com/microsoft/copilot-eclipse/pull/1411)
+- Completion - Invalid thread access when completion in Eclipse 2024-03. [PR#1412](https://github.com/microsoft/copilot-eclipse/pull/1412)
+
 ## 0.13.0
 ### Added
 - Support Next Edit Suggestion (NES). [PR#1283](https://github.com/microsoft/copilot-eclipse/pull/1283)

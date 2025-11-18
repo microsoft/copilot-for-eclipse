@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.core.agent.win32
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.core.agent.win32
 Automatic-Module-NAME: com.microsoft.copilot.eclipse.core.agent.win32
-Bundle-Version: 0.13.0.qualifier
+Bundle-Version: 0.13.1.qualifier
 Bundle-Vendor: GitHub Copilot
 Fragment-Host: com.microsoft.copilot.eclipse.core
 Bundle-RequiredExecutionEnvironment: JavaSE-17
