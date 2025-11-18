@@ -13,12 +13,6 @@ public class ConversationModesParams {
   private List<WorkspaceFolder> workspaceFolders;
 
   /**
-   * Creates a new ConversationModesParams.
-   */
-  public ConversationModesParams() {
-  }
-
-  /**
    * Creates a new ConversationModesParams with workspace folders.
    *
    * @param workspaceFolders the workspace folders

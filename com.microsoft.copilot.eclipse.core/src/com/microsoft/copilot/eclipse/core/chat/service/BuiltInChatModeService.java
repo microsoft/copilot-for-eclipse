@@ -2,17 +2,15 @@ package com.microsoft.copilot.eclipse.core.chat.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
-import org.eclipse.lsp4j.WorkspaceFolder;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
-import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 
 /**
  * Service for loading built-in chat modes from the LSP API. Built-in modes include Ask, Agent, and Plan.
@@ -29,9 +27,7 @@ public class BuiltInChatModeService {
    * don't depend on workspace context, the LSP API enforces this parameter.
    */
   public CompletableFuture<List<BuiltInChatMode>> loadBuiltInModes() {
-    // LSP requires workspace folders parameter even for built-in modes
-    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
-    ConversationModesParams params = new ConversationModesParams(workspaceFolders);
+    ConversationModesParams params = new ConversationModesParams(Collections.emptyList());
 
     CopilotLanguageServerConnection lspConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
     if (lspConnection == null) {
