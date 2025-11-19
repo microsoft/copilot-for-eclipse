@@ -133,7 +133,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
           chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
           chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
-          
+
           // TODO: This is a workaround to fix https://github.com/microsoft/copilot-eclipse/issues/1387
           // Rebuild the view based on current auth status after initialization
           // Should be removed after we have groomed chatServiceManager and authStatusManager initialization flow
@@ -143,7 +143,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
               buildViewFor(authStatus);
             }
           }, parent);
-          
+
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
@@ -757,9 +757,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       addConversationFuture.thenAccept(result -> {
         // Render and persist model information in the Copilot turn widget
-        if (result != null && StringUtils.isNotBlank(result.getModelName())) {
-          renderModelInfoInTurnWidget(result.getTurnId(), conversationId, result.getModelName(),
-              result.getBillingMultiplier());
+        if (result != null && StringUtils.isNotBlank(result.getModelName())
+            && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
+          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier());
 
           // Persist model information
           if (persistenceManager != null) {
@@ -811,9 +811,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
 
         // Render model information in the Copilot turn widget
-        if (result != null && StringUtils.isNotBlank(result.getModelName())) {
-          renderModelInfoInTurnWidget(result.getTurnId(), newConversationId, result.getModelName(),
-              result.getBillingMultiplier());
+        if (result != null && StringUtils.isNotBlank(result.getModelName())
+            && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
+          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier());
 
           // Persist model information
           if (persistenceManager != null) {
@@ -1159,12 +1159,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * @param modelName the model name
    * @param billingMultiplier the billing multiplier
    */
-  private void renderModelInfoInTurnWidget(String turnId, String conversationId, String modelName,
-      Double billingMultiplier) {
-    if (StringUtils.isBlank(modelName)) {
-      return;
-    }
-
+  private void renderModelInfoInTurnWidget(String turnId, String modelName, double billingMultiplier) {
     BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(turnId);
     if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
       copilotWidget.renderModelInfo(modelName, billingMultiplier);
@@ -1196,7 +1191,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       BaseTurnWidget copilotTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), true, true);
       ReplyData replyData = copilotTurn.getReply();
 
-      if ((replyData != null && StringUtils.isNotBlank(replyData.getText()))) {
+      if (replyData == null) {
+        return;
+      }
+
+      if (StringUtils.isNotBlank(replyData.getText())) {
         copilotTurnWidget.appendMessage(replyData.getText());
       }
 
@@ -1256,9 +1255,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       // Restore model info footer if model name is present
       // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
-      if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
-        renderModelInfoInTurnWidget(turn.getTurnId(), this.conversationId, replyData.getModelName(),
-            replyData.getBillingMultiplier());
+      if (StringUtils.isNotBlank(replyData.getModelName())) {
+        renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier());
       }
     }
   }
