@@ -17,6 +17,8 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.e4.core.di.annotations.Optional;
+import org.eclipse.e4.ui.di.UIEventTopic;
 import org.eclipse.e4.ui.di.UISynchronize;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
@@ -29,16 +31,12 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.ToolBar;
-import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -49,9 +47,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.GitHubPullReque
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrResponse;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
+import com.microsoft.copilot.eclipse.ui.jobs.events.JobsViewEvents;
 import com.microsoft.copilot.eclipse.ui.jobs.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.jobs.utils.UiUtils;
-import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 
 /**
  * The view to display coding agent jobs with PRs from GitHub. Shows a 2-level
@@ -72,11 +70,8 @@ public class JobsView {
       .synchronizedMap(new LinkedHashMap<>());
   private Map<String, IProject> projectNameToProjectMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
-  private Image refreshIcon;
   private Image directoryIcon;
   private Image informationIcon;
-  private Image collapseAllIcon;
-  private Image expandAllIcon;
 
   /**
    * Create the view part control.
@@ -85,51 +80,8 @@ public class JobsView {
   public void createPartControl(Composite parent) {
     parent.setLayout(new GridLayout(1, false));
 
-    this.refreshIcon = UiUtils.buildImageFromPngPath("/icons/refresh.png");
     this.directoryIcon = UiUtils.buildImageFromPngPath("/icons/repo.png");
     this.informationIcon = UiUtils.buildImageFromPngPath("/icons/information.png");
-    this.collapseAllIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_COLLAPSEALL);
-    this.expandAllIcon = UiUtils.buildImageFromPngPath("/icons/expandall_enable.png");
-
-    // Create toolbar
-    ToolBar toolBar = new ToolBar(parent, SWT.FLAT | SWT.RIGHT);
-    toolBar.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, true, false));
-
-    // Add accessibility support to toolbar
-    AccessibilityUtils.addAccessibilityNameForUiComponent(toolBar, "Agent Jobs Toolbar");
-
-    // Refresh toolbar item
-    ToolItem refreshItem = new ToolItem(toolBar, SWT.PUSH);
-    refreshItem.setImage(refreshIcon);
-    refreshItem.setToolTipText(Messages.jobsView_toolTip_refreshAgentJobs);
-    refreshItem.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        refreshPullRequests();
-      }
-    });
-
-    // Collapse All toolbar item
-    ToolItem collapseAllItem = new ToolItem(toolBar, SWT.PUSH);
-    collapseAllItem.setImage(collapseAllIcon);
-    collapseAllItem.setToolTipText(Messages.jobsView_toolTip_collapseAll);
-    collapseAllItem.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        treeViewer.collapseAll();
-      }
-    });
-
-    // Expand All toolbar item
-    ToolItem expandAllItem = new ToolItem(toolBar, SWT.PUSH);
-    expandAllItem.setImage(expandAllIcon);
-    expandAllItem.setToolTipText(Messages.jobsView_toolTip_expandAll);
-    expandAllItem.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        expandAllProjects();
-      }
-    });
 
     treeViewer = new TreeViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
     treeViewer.getTree().setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -153,19 +105,13 @@ public class JobsView {
       }
     });
 
-    // Add dispose listener to clean up images and set disposal flag
+    // Add dispose listener to clean up images
     treeViewer.getTree().addDisposeListener(e -> {
-      if (refreshIcon != null && !refreshIcon.isDisposed()) {
-        refreshIcon.dispose();
-      }
       if (directoryIcon != null && !directoryIcon.isDisposed()) {
         directoryIcon.dispose();
       }
       if (informationIcon != null && !informationIcon.isDisposed()) {
         informationIcon.dispose();
-      }
-      if (expandAllIcon != null && !expandAllIcon.isDisposed()) {
-        expandAllIcon.dispose();
       }
       if (treeViewer.getLabelProvider() instanceof PullRequestLabelProvider labelProvider) {
         labelProvider.disposeImages();
@@ -493,6 +439,50 @@ public class JobsView {
         });
       }
     }
+  }
+
+  /**
+   * Collapse all projects in the tree view.
+   */
+  private void collapseAll() {
+    sync.asyncExec(() -> {
+      if (!treeViewer.getControl().isDisposed()) {
+        treeViewer.collapseAll();
+      }
+    });
+  }
+
+  /**
+   * Event handler for refresh requests.
+   *
+   * @param event the event data (not used)
+   */
+  @Inject
+  @Optional
+  private void onRefreshEvent(@UIEventTopic(JobsViewEvents.TOPIC_REFRESH) Object event) {
+    refreshPullRequests();
+  }
+
+  /**
+   * Event handler for collapse all requests.
+   *
+   * @param event the event data (not used)
+   */
+  @Inject
+  @Optional
+  private void onCollapseAllEvent(@UIEventTopic(JobsViewEvents.TOPIC_COLLAPSE_ALL) Object event) {
+    collapseAll();
+  }
+
+  /**
+   * Event handler for expand all requests.
+   *
+   * @param event the event data (not used)
+   */
+  @Inject
+  @Optional
+  private void onExpandAllEvent(@UIEventTopic(JobsViewEvents.TOPIC_EXPAND_ALL) Object event) {
+    expandAllProjects();
   }
 
   /**

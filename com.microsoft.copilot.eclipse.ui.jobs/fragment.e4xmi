@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="ASCII"?>
-<fragment:ModelFragments xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/descriptor/basic" xmlns:fragment="http://www.eclipse.org/ui/2010/UIModel/fragment" xmi:id="_JobsViewFragment">
+<fragment:ModelFragments xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/descriptor/basic" xmlns:commands="http://www.eclipse.org/ui/2010/UIModel/application/commands" xmlns:fragment="http://www.eclipse.org/ui/2010/UIModel/fragment" xmlns:menu="http://www.eclipse.org/ui/2010/UIModel/application/ui/menu" xmi:id="_JobsViewFragment">
   <fragments xsi:type="fragment:StringModelFragment" xmi:id="_JobsViewStringFragment" featurename="descriptors" parentElementId="xpath:/">
-    <elements xsi:type="basic:PartDescriptor" xmi:id="_JobsViewPartDescriptor" elementId="com.microsoft.copilot.eclipse.ui.jobs.JobsView" label="GitHub Coding Agent Jobs" iconURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs/icons/bg_agents.png" tooltip="GitHub Coding Agent Jobs" category="GitHub Copilot" closeable="true" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.views.JobsView">
+    <elements xsi:type="basic:PartDescriptor" xmi:id="_JobsViewPartDescriptor" elementId="com.microsoft.copilot.eclipse.ui.jobs.JobsView" label="%view.jobsView.label" iconURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs/icons/bg_agents.png" tooltip="%view.jobsView.tooltip" category="%view.jobsView.category" closeable="true" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.views.JobsView">
       <tags>View</tags>
       <tags>categoryTag:GitHub Copilot</tags>
+      <toolbar xmi:id="_Fq2lUMOuEfCDwvP27WZquw" elementId="com.microsoft.copilot.eclipse.ui.jobs.toolbar.0">
+        <children xsi:type="menu:HandledToolItem" xmi:id="_RefreshAgentJobsToolItem" elementId="com.microsoft.copilot.eclipse.ui.jobs.handledtoolitem.refreshagentjobs" label="%command.refreshAgentJobs.name" iconURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs/icons/refresh.png" tooltip="%command.refreshAgentJobs.tooltip" command="_RefreshAgentJobsCommand"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_CollapseAllToolItem" elementId="com.microsoft.copilot.eclipse.ui.jobs.handledtoolitem.collapseall" label="%command.collapseAll.name" iconURI="platform:/plugin/org.eclipse.ui/icons/full/elcl16/collapseall.png" tooltip="%command.collapseAll.tooltip" command="_CollapseAllCommand"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_ExpandAllToolItem" elementId="com.microsoft.copilot.eclipse.ui.jobs.handledtoolitem.expandall" label="%command.expandAll.name" iconURI="platform:/plugin/org.eclipse.ui/icons/full/elcl16/expandall.png" tooltip="%command.expandAll.tooltip" command="_ExpandAllCommand"/>
+      </toolbar>
     </elements>
+  </fragments>
+  <fragments xsi:type="fragment:StringModelFragment" xmi:id="_CommandsFragment" featurename="commands" parentElementId="xpath:/">
+    <elements xsi:type="commands:Command" xmi:id="_RefreshAgentJobsCommand" elementId="com.microsoft.copilot.eclipse.ui.jobs.command.refreshagentjobs" commandName="%command.refreshAgentJobs.name"/>
+    <elements xsi:type="commands:Command" xmi:id="_CollapseAllCommand" elementId="com.microsoft.copilot.eclipse.ui.jobs.command.collapseall" commandName="%command.collapseAll.name"/>
+    <elements xsi:type="commands:Command" xmi:id="_ExpandAllCommand" elementId="com.microsoft.copilot.eclipse.ui.jobs.command.expandall" commandName="%command.expandAll.name"/>
+  </fragments>
+  <fragments xsi:type="fragment:StringModelFragment" xmi:id="_HandlersFragment" featurename="handlers" parentElementId="xpath:/">
+    <elements xsi:type="commands:Handler" xmi:id="_RefreshAgentJobsHandler" elementId="com.microsoft.copilot.eclipse.ui.jobs.handler.refreshagentjobs" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.handlers.RefreshAgentJobsHandler" command="_RefreshAgentJobsCommand"/>
+    <elements xsi:type="commands:Handler" xmi:id="_CollapseAllHandler" elementId="com.microsoft.copilot.eclipse.ui.jobs.handler.collapseall" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.handlers.CollapseAllHandler" command="_CollapseAllCommand"/>
+    <elements xsi:type="commands:Handler" xmi:id="_ExpandAllHandler" elementId="com.microsoft.copilot.eclipse.ui.jobs.handler.expandall" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.handlers.ExpandAllHandler" command="_ExpandAllCommand"/>
   </fragments>
 </fragment:ModelFragments>
