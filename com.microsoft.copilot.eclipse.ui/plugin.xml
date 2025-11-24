@@ -141,6 +141,21 @@
 		</page>
 	</extension>
 	
+	<!-- Content type for agent.md files
+	     Matches *.md files but the describer validates only *.agent.md -->
+	<extension
+		point="org.eclipse.core.contenttype.contentTypes">
+		<content-type
+			id="com.microsoft.copilot.eclipse.ui.agentFile"
+			name="Agent File"
+			base-type="org.eclipse.core.runtime.text"
+			file-extensions="md"
+			priority="high">
+			<describer class="com.microsoft.copilot.eclipse.ui.editors.AgentFileContentDescriber">
+			</describer>
+		</content-type>
+	</extension>
+	
 	<!-- Agent file editor registration -->
 	<extension
 		point="org.eclipse.ui.editors">
@@ -150,6 +165,8 @@
 			id="com.microsoft.copilot.eclipse.ui.editors.AgentFileEditor"
 			name="Agent File Editor"
 			icon="icons/github_copilot.png">
+			<contentTypeBinding
+				contentTypeId="com.microsoft.copilot.eclipse.ui.agentFile" />
 		</editor>
 	</extension>
 	
