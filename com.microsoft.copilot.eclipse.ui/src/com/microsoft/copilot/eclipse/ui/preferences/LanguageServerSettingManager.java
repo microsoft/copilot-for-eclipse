@@ -384,6 +384,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   public void updateProxySettings() {
     proxyData = getProxy();
     settings.getHttp().setProxy(createProxyString(proxyData));
+    settings.getHttp().setProxyAuthorization(createProxyAuthString(proxyData));
     settings.getHttp().setNoProxy(getNonProxiedHosts());
   }
 
@@ -429,7 +430,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * @param proxyData the proxy data
    * @return the proxy string
    */
-  public static String createProxyString(IProxyData proxyData) {
+  private String createProxyString(IProxyData proxyData) {
     if (proxyData == null) {
       return null;
     }
@@ -437,14 +438,16 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     String proxyString = proxyData.getType() + "://";
     String host = proxyData.getHost();
     int port = proxyData.getPort();
-    String user = proxyData.getUserId();
-    String password = proxyData.getPassword();
-
-    if (proxyData.isRequiresAuthentication()) {
-      proxyString += user + ":" + password + "@";
-    }
     proxyString += host + ":" + port;
     return proxyString;
+  }
+
+  private String createProxyAuthString(IProxyData proxyData) {
+    if (proxyData == null || !proxyData.isRequiresAuthentication()) {
+      return null;
+    }
+
+    return proxyData.getUserId() + ":" + proxyData.getPassword();
   }
 
   /**

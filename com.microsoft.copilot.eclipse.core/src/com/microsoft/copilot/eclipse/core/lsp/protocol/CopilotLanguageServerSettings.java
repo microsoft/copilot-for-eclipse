@@ -27,6 +27,8 @@ public class CopilotLanguageServerSettings {
   public static class Http {
 
     private String proxy;
+    private String proxyAuthorization;
+
     @SerializedName("proxyStrictSSL")
     private boolean proxyStrictSsl;
     private String proxyKerberosServicePrincipal;
@@ -48,6 +50,14 @@ public class CopilotLanguageServerSettings {
      */
     public void setProxy(String proxy) {
       this.proxy = proxy;
+    }
+
+    public String getProxyAuthorization() {
+      return proxyAuthorization;
+    }
+
+    public void setProxyAuthorization(String proxyAuthorization) {
+      this.proxyAuthorization = proxyAuthorization;
     }
 
     /**
@@ -98,15 +108,20 @@ public class CopilotLanguageServerSettings {
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.add("proxy", proxy);
+      builder.add("proxyAuthorization", proxyAuthorization);
       builder.add("proxyStrictSsl", proxyStrictSsl);
       builder.add("proxyKerberosServicePrincipal", proxyKerberosServicePrincipal);
-      builder.add("noProxy", noProxy);
+      builder.add("noProxy", Arrays.toString(noProxy));
       return builder.toString();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(proxy, proxyKerberosServicePrincipal, proxyStrictSsl, noProxy);
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Arrays.hashCode(noProxy);
+      result = prime * result + Objects.hash(proxy, proxyAuthorization, proxyKerberosServicePrincipal, proxyStrictSsl);
+      return result;
     }
 
     @Override
@@ -114,17 +129,14 @@ public class CopilotLanguageServerSettings {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof Http)) {
         return false;
       }
       Http other = (Http) obj;
-      return Objects.equals(proxy, other.proxy)
+      return Arrays.equals(noProxy, other.noProxy) && Objects.equals(proxy, other.proxy)
+          && Objects.equals(proxyAuthorization, other.proxyAuthorization)
           && Objects.equals(proxyKerberosServicePrincipal, other.proxyKerberosServicePrincipal)
-          && proxyStrictSsl == other.proxyStrictSsl
-          && Arrays.equals(noProxy, other.noProxy);
+          && proxyStrictSsl == other.proxyStrictSsl;
     }
 
   }

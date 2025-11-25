@@ -83,35 +83,6 @@ class LanguageServerSettingManagerTests {
     verify(mockLsConnection, times(1)).updateConfig(params);
   }
 
-  @Test
-  void testBasicAuthProxy() {
-    // basic auth proxy test
-    // arrange
-    IProxyData mockProxyData = mock(IProxyData.class);
-    when(mockProxyData.getHost()).thenReturn("localhost");
-    when(mockProxyData.getPort()).thenReturn(8080);
-    when(mockProxyData.getType()).thenReturn("HTTPS");
-    when(mockProxyData.isRequiresAuthentication()).thenReturn(true);
-    when(mockProxyData.getUserId()).thenReturn("user");
-    when(mockProxyData.getPassword()).thenReturn("password");
-    when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
-    when(mockProxyService.isProxiesEnabled()).thenReturn(true);
-    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-    var params = new DidChangeConfigurationParams();
-    var settings = new CopilotLanguageServerSettings();
-    settings.getHttp().setProxy("HTTPS://user:password@localhost:8080");
-    params.setSettings(settings);
-
-    // act
-    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
-        mockPreferenceStore);
-    manager.updateProxySettings();
-    manager.syncConfiguration();
-
-    // assert
-    verify(mockLsConnection, times(1)).updateConfig(params);
-  }
-
   private void setupWorkspaceInstructionsMocks(boolean enabled, String instructions) {
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     when(mockPreferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL)).thenReturn(false);
@@ -239,29 +210,56 @@ class LanguageServerSettingManagerTests {
   void testProxyWithNoProxyHosts() {
     // Verifies noProxy bypass list is transmitted when proxy is configured
     // This fixes the issue where internal MCP servers couldn't bypass proxy
-    
+
     // arrange
     IProxyData mockProxyData = mock(IProxyData.class);
     when(mockProxyData.getHost()).thenReturn("proxy.com");
     when(mockProxyData.getPort()).thenReturn(8080);
     when(mockProxyData.getType()).thenReturn("HTTP");
     when(mockProxyData.isRequiresAuthentication()).thenReturn(false);
-    
+
     String[] noProxyHosts = new String[] { "localhost", "*.internal.net" };
     when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
     when(mockProxyService.isProxiesEnabled()).thenReturn(true);
     when(mockProxyService.getNonProxiedHosts()).thenReturn(noProxyHosts);
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
-    
+
     // act
     LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
         mockPreferenceStore);
     manager.updateProxySettings();
-    
+
     // assert
     CopilotLanguageServerSettings settings = manager.getSettings();
     assertEquals("HTTP://proxy.com:8080", settings.getHttp().getProxy());
     assertEquals(2, settings.getHttp().getNoProxy().length);
     assertEquals("localhost", settings.getHttp().getNoProxy()[0]);
+  }
+
+  @Test
+  void testUpdateProxySettingsWithProxyAndAuth() {
+    // Test updateProxySettings() method to verify both proxy and auth are set correctly
+    // arrange
+    IProxyData mockProxyData = mock(IProxyData.class);
+    when(mockProxyData.getHost()).thenReturn("proxy.example.com");
+    when(mockProxyData.getPort()).thenReturn(3128);
+    when(mockProxyData.getType()).thenReturn("HTTPS");
+    when(mockProxyData.isRequiresAuthentication()).thenReturn(true);
+    when(mockProxyData.getUserId()).thenReturn("testuser");
+    when(mockProxyData.getPassword()).thenReturn("testpass");
+
+    when(mockProxyService.select(any())).thenReturn(new IProxyData[] { mockProxyData });
+    when(mockProxyService.isProxiesEnabled()).thenReturn(true);
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+
+    // act
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+    manager.updateProxySettings();
+
+    // assert
+    CopilotLanguageServerSettings settings = manager.getSettings();
+    assertEquals("HTTPS://proxy.example.com:3128", settings.getHttp().getProxy());
+    assertEquals("testuser:testpass", settings.getHttp().getProxyAuthorization());
   }
 }
