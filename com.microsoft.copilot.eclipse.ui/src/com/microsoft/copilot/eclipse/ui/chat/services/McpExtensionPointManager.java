@@ -3,7 +3,6 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -52,8 +51,6 @@ public class McpExtensionPointManager {
 
   private String approvedExtMcpServers;
   private Map<String, McpRegistrationInfo> extMcpInfoMap = new HashMap<>(); // Key: Plugin-Id(Bundle)
-  private Set<String> mcpRegTrustedPlugins = Set.of("com.microsoft.copilot.eclipse.ui",
-      "com.microsoft.azuretools.azuremcp");
 
   private McpConfigService mcpConfigService;
   private Gson gson;
@@ -162,11 +159,6 @@ public class McpExtensionPointManager {
     IExtension[] extensions = extensionPoint.getExtensions();
     for (IExtension extension : extensions) {
       String bundleName = extension.getContributor().getName();
-      if (!mcpRegTrustedPlugins.contains(bundleName)) {
-        CopilotCore.LOGGER.info("Plug-in: " + bundleName + " is not in the allowed list.");
-        continue; // Skip untrusted plug-ins
-      }
-
       Bundle bundle = Platform.getBundle(bundleName);
       if (bundle == null) {
         CopilotCore.LOGGER.error("Cannot find bundle: " + bundleName, null);
