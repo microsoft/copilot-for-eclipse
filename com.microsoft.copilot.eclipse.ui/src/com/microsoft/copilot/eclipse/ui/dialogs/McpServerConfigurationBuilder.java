@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.apache.commons.lang3.StringUtils;
 
 import com.microsoft.copilot.eclipse.core.lsp.mcp.Argument;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.KeyValueInput;
@@ -154,9 +155,13 @@ public class McpServerConfigurationBuilder {
    * Maps registry types to command names.
    *
    * @param registryType The registry type
-   * @return The corresponding command name
+   * @return The corresponding command name, or unknown string if registryType is null
    */
   public static String getCommandName(String registryType) {
+    if (StringUtils.isBlank(registryType)) {
+      return "unknown";
+    }
+
     switch (registryType) {
       case "npm":
         return "npx";
@@ -167,7 +172,7 @@ public class McpServerConfigurationBuilder {
       case "nuget":
         return "dnx";
       default:
-        return registryType;
+        return "unknown";
     }
   }
 
@@ -180,33 +185,50 @@ public class McpServerConfigurationBuilder {
   public static List<String> buildDefaultArguments(Package pkg) {
     List<String> args = new ArrayList<>();
 
+    if (StringUtils.isBlank(pkg.getRegistryType())) {
+      args.add(buildVersionedIdentifier(pkg, "@"));
+      return args;
+    }
+
     switch (pkg.getRegistryType()) {
       case "npm":
         args.add("-y");
-        args.add(!pkg.getVersion().isEmpty() ? pkg.getIdentifier() + "@" + pkg.getVersion() : pkg.getIdentifier());
+        args.add(buildVersionedIdentifier(pkg, "@"));
         break;
       case "pypi":
-        args.add(!pkg.getVersion().isEmpty() ? pkg.getIdentifier() + "==" + pkg.getVersion() : pkg.getIdentifier());
+        args.add(buildVersionedIdentifier(pkg, "=="));
         break;
       case "oci":
         args.add("run");
         args.add("-i");
         args.add("--rm");
-        args.add(!pkg.getVersion().isEmpty() ? pkg.getIdentifier() + ":" + pkg.getVersion() : pkg.getIdentifier());
+        args.add(buildVersionedIdentifier(pkg, ":"));
         break;
       case "nuget":
-        args.add(!pkg.getVersion().isEmpty() ? pkg.getIdentifier() + "@" + pkg.getVersion() : pkg.getIdentifier());
+        args.add(buildVersionedIdentifier(pkg, "@"));
         args.add("--yes");
         if (pkg.getPackageArguments() != null && !pkg.getPackageArguments().isEmpty()) {
           args.add("--");
         }
         break;
       default:
-        args.add(!pkg.getVersion().isEmpty() ? pkg.getIdentifier() + "@" + pkg.getVersion() : pkg.getIdentifier());
+        args.add(buildVersionedIdentifier(pkg, "@"));
         break;
     }
 
     return args;
+  }
+  
+  /**
+   * Builds a versioned package identifier with the given separator.
+   *
+   * @param pkg The package
+   * @param separator The separator between identifier and version
+   * @return The versioned package identifier
+   */
+  private static String buildVersionedIdentifier(Package pkg, String separator) {
+    return StringUtils.isNotBlank(pkg.getVersion()) ? pkg.getIdentifier() + separator + pkg.getVersion()
+        : pkg.getIdentifier();
   }
 
   /**
