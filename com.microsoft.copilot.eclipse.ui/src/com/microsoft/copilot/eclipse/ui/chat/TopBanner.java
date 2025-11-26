@@ -1,8 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -10,48 +8,29 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventHandler;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
-import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
-import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
-import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A custom widget that displays the top banner.
  */
 public class TopBanner extends Composite {
-  private Composite cmpActionArea;
-  private Button btnNewConversation;
-  private Image newChatIcon;
   private CLabel chatTitle;
   private LinkedHashSet<NewConversationListener> newConversationListeners = new LinkedHashSet<>();
-  private Button chatHistoryButton;
-  private Image chatHistoryIcon;
-  private Button openPreferenceButton;
-  private Image openPreferenceIcon;
-  private Button mcpRegistryButton;
-  private Image mcpRegistryIcon;
-  private Button gitHubJobsButton;
-  private Image gitHubJobsIcon;
   private IEventBroker eventBroker;
+  private EventHandler newConversationEventHandler;
 
   /**
    * Create the widget.
@@ -62,8 +41,18 @@ public class TopBanner extends Composite {
   public TopBanner(Composite parent, int style) {
     super(parent, style);
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    this.newConversationEventHandler = new EventHandler() {
+      @Override
+      public void handleEvent(Event event) {
+        if (ConversationUtils.confirmNewChat()) {
+          notifyNewConversationListeners();
+          updateTitle(Messages.chat_topBanner_defaultChatTitle);
+        }
+      }
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, newConversationEventHandler);
 
-    GridLayout gl = new GridLayout(2, false);
+    GridLayout gl = new GridLayout(1, false);
     gl.marginWidth = 0;
     gl.marginHeight = 4;
     gl.horizontalSpacing = 0;
@@ -80,94 +69,6 @@ public class TopBanner extends Composite {
     labelGridData.horizontalIndent = 10;
     this.chatTitle.setLayoutData(labelGridData);
 
-    this.cmpActionArea = new Composite(this, SWT.NONE);
-    GridLayout glGroupButton = new GridLayout(PlatformUtils.isNightly() ? 5 : 4, false);
-    glGroupButton.marginWidth = 0;
-    glGroupButton.marginHeight = 0;
-    this.cmpActionArea.setLayout(glGroupButton);
-    this.cmpActionArea.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false));
-
-    if (PlatformUtils.isNightly()) {
-      this.mcpRegistryIcon = UiUtils.buildImageFromPngPath("/icons/chat/mcp_registry.png");
-      this.mcpRegistryButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-      this.mcpRegistryButton.setImage(this.mcpRegistryIcon);
-      this.mcpRegistryButton.setToolTipText(Messages.chat_topBanner_mcpRegistry_Tooltip);
-      this.mcpRegistryButton.addSelectionListener(new SelectionAdapter() {
-        @Override
-        public void widgetSelected(SelectionEvent e) {
-          McpRegistryDialog dialog = new McpRegistryDialog(getShell());
-          dialog.open();
-        }
-      });
-      AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpRegistryButton,
-          Messages.chat_topBanner_mcpRegistry_Tooltip);
-    }
-
-    this.gitHubJobsIcon = UiUtils.buildImageFromPngPath("/icons/jobs/github_jobs.png");
-    this.gitHubJobsButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-    this.gitHubJobsButton.setImage(this.gitHubJobsIcon);
-    this.gitHubJobsButton.setToolTipText("GitHub Copilot Agent Jobs");
-    this.gitHubJobsButton.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        UiUtils.openE4Part(Constants.GITHUB_JOBS_VIEW_ID);
-      }
-    });
-
-    this.newChatIcon = UiUtils.buildImageFromPngPath("/icons/chat/new_chat.png");
-    this.btnNewConversation = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-    this.btnNewConversation.setImage(this.newChatIcon);
-    this.btnNewConversation.setToolTipText(Messages.chat_topBanner_newConversationButton_Tooltip);
-    this.btnNewConversation.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        if (ConversationUtils.confirmNewChat()) { // use shared utility
-          notifyNewConversationListeners();
-          updateTitle(Messages.chat_topBanner_defaultChatTitle);
-          if (eventBroker != null) {
-            eventBroker.post(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, null);
-          }
-        }
-      }
-    });
-    AccessibilityUtils.addAccessibilityNameForUiComponent(this.btnNewConversation,
-        Messages.chat_topBanner_newConversationButton_Tooltip);
-
-    this.chatHistoryIcon = UiUtils.buildImageFromPngPath("/icons/chat/chat_history.png");
-    this.chatHistoryButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-    this.chatHistoryButton.setImage(this.chatHistoryIcon);
-    this.chatHistoryButton.setToolTipText(Messages.chat_topBanner_chatHistoryButton_Tooltip);
-    this.chatHistoryButton.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        if (eventBroker != null) {
-          eventBroker.post(CopilotEventConstants.TOPIC_CHAT_SHOW_CHAT_HISTORY, null);
-        }
-      }
-    });
-    AccessibilityUtils.addAccessibilityNameForUiComponent(this.chatHistoryButton,
-        Messages.chat_topBanner_chatHistoryButton_Tooltip);
-
-    this.openPreferenceIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
-    this.openPreferenceButton = UiUtils.createIconButton(this.cmpActionArea, SWT.PUSH | SWT.FLAT);
-    this.openPreferenceButton.setImage(this.openPreferenceIcon);
-    this.openPreferenceButton.setToolTipText(Messages.menu_editPreferences);
-    this.openPreferenceButton.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        Map<String, Object> parameters = new HashMap<>();
-
-        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
-            CopilotPreferencesPage.ID);
-
-        parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-            String.join(",", PreferencesUtils.getAllPreferenceIds()));
-
-        UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
-      }
-    });
-    AccessibilityUtils.addAccessibilityNameForUiComponent(this.openPreferenceButton, Messages.menu_editPreferences);
-
     this.addPaintListener(new PaintListener() {
       @Override
       public void paintControl(PaintEvent e) {
@@ -181,25 +82,13 @@ public class TopBanner extends Composite {
       }
     });
 
-    // Add dispose listener to clean up icons
+    // Add dispose listener to clean up listeners
     this.addDisposeListener(e -> {
+      if (this.eventBroker != null && this.newConversationEventHandler != null) {
+        this.eventBroker.unsubscribe(this.newConversationEventHandler);
+      }
       if (this.newConversationListeners != null) {
         this.newConversationListeners.clear();
-      }
-      if (this.newChatIcon != null && !this.newChatIcon.isDisposed()) {
-        this.newChatIcon.dispose();
-      }
-      if (this.chatHistoryIcon != null && !this.chatHistoryIcon.isDisposed()) {
-        this.chatHistoryIcon.dispose();
-      }
-      if (this.openPreferenceIcon != null && !this.openPreferenceIcon.isDisposed()) {
-        this.openPreferenceIcon.dispose();
-      }
-      if (this.mcpRegistryIcon != null && !this.mcpRegistryIcon.isDisposed()) {
-        this.mcpRegistryIcon.dispose();
-      }
-      if (this.gitHubJobsIcon != null && !this.gitHubJobsIcon.isDisposed()) {
-        this.gitHubJobsIcon.dispose();
       }
     });
   }

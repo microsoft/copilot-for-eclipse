@@ -59,6 +59,45 @@
 				style="push">
 			</command>
 		</menuContribution>
+		<!-- ChatView toolbar contributions -->
+		<menuContribution locationURI="toolbar:com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.newConversation"
+				icon="icons/chat/new_chat.png"
+				tooltip="%command.newConversation.name"
+				style="push">
+			</command>
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.showChatHistory"
+				icon="icons/chat/chat_history.png"
+				tooltip="%command.showChatHistory.name"
+				style="push">
+			</command>
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.openPreferences"
+				icon="icons/edit_preferences.png"
+				tooltip="%command.openPreferencesPage.name"
+				style="push">
+			</command>
+		</menuContribution>
+		<!-- ChatView view menu contributions -->
+		<menuContribution locationURI="menu:com.microsoft.copilot.eclipse.ui.chat.ChatView">
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.openMcpRegistry"
+				icon="icons/mcp/mcp_registry.png"
+				label="%command.openMcpRegistry.name"
+				style="push">
+				<visibleWhen checkEnabled="false">
+					<test property="com.microsoft.copilot.eclipse.ui.isNightlyCopilotPlugin" value="true" />
+				</visibleWhen>
+			</command>
+			<command
+				commandId="com.microsoft.copilot.eclipse.commands.openGitHubJobs"
+				icon="icons/jobs/github_jobs.png"
+				label="%command.openGitHubJobs.name"
+				style="push">
+			</command>
+		</menuContribution>
 		<menuContribution
 			locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?after=additions">
 			<dynamic
@@ -72,7 +111,7 @@
 				id="com.microsoft.copilot.eclipse.ui.dynamicContextMenu.packageExplorer"
 				class="com.microsoft.copilot.eclipse.ui.handlers.ShowContextMenuHandler" />
 		</menuContribution>
-		
+
 		<!-- Configure Tools menu for .agent.md files in text editor context -->
 		<menuContribution
 			locationURI="popup:#TextEditorContext?after=additions">
@@ -83,7 +122,7 @@
 				<visibleWhen>
 					<with variable="activeEditorInput">
 						<adapt type="org.eclipse.core.resources.IFile">
-							<test property="org.eclipse.core.resources.name" value="*.agent.md"/>
+							<test property="org.eclipse.core.resources.name" value="*.agent.md" />
 						</adapt>
 					</with>
 				</visibleWhen>
@@ -140,7 +179,6 @@
 			class="com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage">
 		</page>
 	</extension>
-	
 	<!-- Content type for agent.md files
 	     Matches *.md files but the describer validates only *.agent.md -->
 	<extension
@@ -155,7 +193,7 @@
 			</describer>
 		</content-type>
 	</extension>
-	
+
 	<!-- Agent file editor registration -->
 	<extension
 		point="org.eclipse.ui.editors">
@@ -169,7 +207,7 @@
 				contentTypeId="com.microsoft.copilot.eclipse.ui.agentFile" />
 		</editor>
 	</extension>
-	
+
 	<extension
 		point="org.eclipse.core.runtime.preferences">
 		<initializer
@@ -266,6 +304,26 @@
 				name="%command.openPreferencesPage.parameter.name"
 				values="">
 			</commandParameter>
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.newConversation"
+			name="%command.newConversation.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.showChatHistory"
+			name="%command.showChatHistory.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.openMcpRegistry"
+			name="%command.openMcpRegistry.name">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.openGitHubJobs"
+			name="%command.openGitHubJobs.name">
 		</command>
 		<command
 			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
@@ -373,6 +431,22 @@
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.OpenPreferencesHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.openPreferences">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.NewConversationHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.newConversation">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.ShowChatHistoryHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.showChatHistory">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.OpenMcpRegistryHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.openMcpRegistry">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.OpenGitHubJobsHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.openGitHubJobs">
 		</handler>
 		<handler
 			class="com.microsoft.copilot.eclipse.ui.handlers.OpenEditKeyboardShortcutsHandler"
@@ -897,18 +971,25 @@
 			type="java.lang.Object"
 			class="com.microsoft.copilot.eclipse.ui.testers.PlatformVersionTester">
 		</propertyTester>
+		<propertyTester
+			id="com.microsoft.copilot.eclipse.ui.testers.IsCopilotNightlyTester"
+			namespace="com.microsoft.copilot.eclipse.ui"
+			properties="isNightlyCopilotPlugin"
+			type="java.lang.Object"
+			class="com.microsoft.copilot.eclipse.ui.testers.IsCopilotNightlyTester">
+		</propertyTester>
 	</extension>
 	<extension point="org.eclipse.help.contexts">
 		<contexts file="contexts.xml" />
 	</extension>
-	
+
 	<extension point="org.eclipse.ui.genericeditor.quickAssistProcessors">
 		<quickAssistProcessor
 			id="com.microsoft.copilot.eclipse.ui.quickfix.toolConfiguration"
 			name="Tool Configuration Quick Fix"
-			class="com.microsoft.copilot.eclipse.ui.quickfix.ToolConfigurationQuickFixProcessor"/>
+			class="com.microsoft.copilot.eclipse.ui.quickfix.ToolConfigurationQuickFixProcessor" />
 	</extension>
-	
+
 	<extension point="org.eclipse.ui.workbench.texteditor.rulerColumns">
 		<column
 			class="com.microsoft.copilot.eclipse.ui.nes.RulerColumn"

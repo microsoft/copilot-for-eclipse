@@ -95,7 +95,7 @@ public class McpRegistryDialog extends Dialog {
     super.configureShell(newShell);
     newShell.setText(Messages.mcpRegistryDialog_title);
 
-    Image dialogIcon = UiUtils.buildImageFromPngPath("/icons/chat/mcp_registry.png");
+    Image dialogIcon = UiUtils.buildImageFromPngPath("/icons/mcp/mcp_registry.png");
     if (dialogIcon != null) {
       newShell.setImage(dialogIcon);
     }
