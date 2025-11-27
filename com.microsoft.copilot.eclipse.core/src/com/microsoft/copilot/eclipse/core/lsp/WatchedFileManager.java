@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
@@ -55,7 +53,7 @@ class WatchedFileManager {
    * Currently the CLS only accept at-most 10000 files to index.
    */
   private static final int MAX_WATCHED_FILE_NUM = 10000;
-  
+
   /**
    * Batch size for reporting progress during file collection.
    */
@@ -95,9 +93,9 @@ class WatchedFileManager {
     }
 
     final List<String> fileSnapshot = new ArrayList<>(files);
-    
+
     Either<String, Integer> partialToken = params.getPartialResultToken();
-    
+
     // If no partial result token, return all files synchronously
     if (partialToken == null) {
       return CompletableFuture.completedFuture(new GetWatchedFilesResponse(fileSnapshot));
@@ -164,8 +162,7 @@ class WatchedFileManager {
     }
   }
 
-  private void collectFiles(IContainer container)
-      throws CoreException {
+  private void collectFiles(IContainer container) throws CoreException {
     if (files.size() >= MAX_WATCHED_FILE_NUM) {
       return;
     }
@@ -263,6 +260,10 @@ class WatchedFileManager {
       return true;
     }
 
+    if (container.isDerived() || container.isTeamPrivateMember()) {
+      return true;
+    }
+
     // Do not include .git content, this block list may need to expand per requirement.
     if (GIT.equals(container.getName())) {
       return true;
@@ -285,6 +286,10 @@ class WatchedFileManager {
     // Check if resource location is available
     IPath resourceLocation = resource.getLocation();
     if (resourceLocation == null) {
+      return false;
+    }
+
+    if (resource.isDerived() || resource.isTeamPrivateMember()) {
       return false;
     }
 
