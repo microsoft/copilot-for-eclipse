@@ -202,7 +202,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     if (watchedFileManager == null) {
       watchedFileManager = new WatchedFileManager();
     }
-    return CompletableFuture.completedFuture(new GetWatchedFilesResponse(watchedFileManager.getWatchedFiles(params)));
+    return watchedFileManager.getWatchedFilesWithProgress(params);
   }
 
   /**

@@ -12,7 +12,9 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.jsonrpc.Endpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -444,6 +446,20 @@ public class CopilotLanguageServerConnection {
    */
   public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
     this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
+  }
+  
+  /**
+   * Send $/progress notification to the language server.
+   * Used for reporting partial results during long-running operations like file indexing.
+   */
+  public CompletableFuture<Void> sendProgressNotification(ProgressParams progressParams) {
+    Function<LanguageServer, CompletableFuture<Void>> fn = server -> {
+      if (server instanceof Endpoint endpoint) {
+        endpoint.notify("$/progress", progressParams);
+      }
+      return CompletableFuture.completedFuture(null);
+    };
+    return this.languageServerWrapper.execute(fn);
   }
 
   /**

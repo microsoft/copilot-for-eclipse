@@ -8,6 +8,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
@@ -28,11 +31,14 @@ import org.eclipse.jgit.util.StringUtils;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.lsp4j.FileEvent;
+import org.eclipse.lsp4j.ProgressParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
@@ -49,6 +55,11 @@ class WatchedFileManager {
    * Currently the CLS only accept at-most 10000 files to index.
    */
   private static final int MAX_WATCHED_FILE_NUM = 10000;
+  
+  /**
+   * Batch size for reporting progress during file collection.
+   */
+  private static final int PROGRESS_BATCH_SIZE = 500;
 
   /**
    * the map of all the .gitignore, key is the folder path containing the .gitignore.
@@ -70,14 +81,55 @@ class WatchedFileManager {
   }
 
   /**
-   * Get the list of watched files.
+   * Get the watched files with support for progress reporting.
+   * If partialResultToken is provided, files will be sent in batches via $/progress notifications.
+   *
+   * @param params the request parameters
+   * @return CompletableFuture with the final response
    */
-  public synchronized List<String> getWatchedFiles(GetWatchedFilesRequest params) {
-    if (files != null) {
-      return new ArrayList<>(files);
+  public synchronized CompletableFuture<GetWatchedFilesResponse> getWatchedFilesWithProgress(
+      GetWatchedFilesRequest params) {
+    if (files == null) {
+      files = new LinkedHashSet<>();
+      scanWorkspace(params);
     }
-    files = new LinkedHashSet<>();
 
+    final List<String> fileSnapshot = new ArrayList<>(files);
+    
+    Either<String, Integer> partialToken = params.getPartialResultToken();
+    
+    // If no partial result token, return all files synchronously
+    if (partialToken == null) {
+      return CompletableFuture.completedFuture(new GetWatchedFilesResponse(fileSnapshot));
+    }
+
+    // Send files in batches via progress notifications
+    return CompletableFuture.supplyAsync(() -> {
+      CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
+      if (connection == null) {
+        return new GetWatchedFilesResponse(fileSnapshot);
+      }
+
+      List<String> batch = new ArrayList<>();
+      for (String uri : fileSnapshot) {
+        batch.add(uri);
+        if (batch.size() >= PROGRESS_BATCH_SIZE) {
+          emitProgressBatch(connection, partialToken, batch);
+          batch.clear();
+        }
+      }
+      if (!batch.isEmpty()) {
+        emitProgressBatch(connection, partialToken, batch);
+        batch.clear();
+      }
+      return new GetWatchedFilesResponse(Collections.emptyList());
+    }).exceptionally(ex -> {
+      CopilotCore.LOGGER.error("Error during watched files collection, returning empty response", ex);
+      return new GetWatchedFilesResponse(Collections.emptyList());
+    });
+  }
+
+  private void scanWorkspace(GetWatchedFilesRequest params) {
     IProject[] projects = ResourcesPlugin.getPlugin().getWorkspace().getRoot().getProjects();
 
     // Load ignore nodes
@@ -108,11 +160,54 @@ class WatchedFileManager {
         collectFiles(project);
       } catch (CoreException e) {
         CopilotCore.LOGGER.error("Error when collect files", e);
-        return Collections.emptyList();
       }
     }
+  }
 
-    return new ArrayList<>(files);
+  private void collectFiles(IContainer container)
+      throws CoreException {
+    if (files.size() >= MAX_WATCHED_FILE_NUM) {
+      return;
+    }
+
+    if (isInvalidToScan(container)) {
+      return;
+    }
+
+    for (IResource member : container.members()) {
+      String uri = FileUtils.getResourceUri(member);
+      if (uri == null) {
+        continue;
+      }
+      boolean isDirectory = member instanceof IContainer;
+      if (isDirectory) {
+        collectFiles((IContainer) member);
+      } else {
+        if (shouldCollect(member, false)) {
+          files.add(uri);
+        }
+      }
+    }
+  }
+
+  private void emitProgressBatch(CopilotLanguageServerConnection connection, Either<String, Integer> token,
+      List<String> batch) {
+    if (batch == null || batch.isEmpty()) {
+      return;
+    }
+    try {
+      ProgressParams progressParams = new ProgressParams();
+      progressParams.setToken(token);
+      // Use a copy of the batch to avoid concurrency issues as the batch list is cleared by the caller
+      progressParams.setValue(Either.forRight(new GetWatchedFilesResponse(new ArrayList<>(batch))));
+
+      connection.sendProgressNotification(progressParams).get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      CopilotCore.LOGGER.error("Interrupted while sending progress", e);
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to send progress notification (may be shutting down)", e);
+    }
   }
 
   private List<IFile> findGitignoreFiles(IProject project) {
@@ -159,34 +254,6 @@ class WatchedFileManager {
         }
       } catch (IOException | CoreException e) {
         CopilotCore.LOGGER.error("Error when parse git ignore file: ", e);
-      }
-    }
-  }
-
-  private void collectFiles(IContainer container) throws CoreException {
-    if (files.size() >= MAX_WATCHED_FILE_NUM) {
-      return;
-    }
-
-    if (isInvalidToScan(container)) {
-      return;
-    }
-
-    // Process all resources in the container
-    for (IResource member : container.members()) {
-      String uri = FileUtils.getResourceUri(member);
-      if (uri == null) {
-        continue;
-      }
-      boolean isDirectory = member instanceof IContainer;
-      if (isDirectory) {
-        // Recursively process subdirectory
-        collectFiles((IContainer) member);
-      } else {
-        // Add file to the list
-        if (shouldCollect(member, false)) {
-          files.add(uri);
-        }
       }
     }
   }

@@ -52,7 +52,7 @@ class WatchedFileManagerTests {
   }
 
   @Test
-  void emptyWorkspaceReturnsEmptyFileList() {
+  void emptyWorkspaceReturnsEmptyFileList() throws Exception {
     try (MockedStatic<ResourcesPlugin> mockedPlugin = mockStatic(ResourcesPlugin.class)) {
       mockedPlugin.when(ResourcesPlugin::getPlugin).thenReturn(mockResourcesPlugin);
       when(mockResourcesPlugin.getWorkspace()).thenReturn(mockWorkspace);
@@ -62,14 +62,14 @@ class WatchedFileManagerTests {
       GetWatchedFilesRequest request = new GetWatchedFilesRequest();
       request.setExcludeGitignoredFiles(false);
 
-      List<String> results = watchedFileManager.getWatchedFiles(request);
+      List<String> results = watchedFileManager.getWatchedFilesWithProgress(request).get().getFiles();
 
       assertEquals(0, results.size());
     }
   }
 
   @Test
-  void collectsFilesFromProject() throws CoreException {
+  void collectsFilesFromProject() throws Exception {
     try (MockedStatic<ResourcesPlugin> mockedPlugin = mockStatic(ResourcesPlugin.class);
         MockedStatic<FileUtils> mockedUtil = mockStatic(FileUtils.class)) {
       IProject[] projects = new IProject[] { mockProject };
@@ -91,7 +91,7 @@ class WatchedFileManagerTests {
       GetWatchedFilesRequest request = new GetWatchedFilesRequest();
       request.setExcludeGitignoredFiles(false);
 
-      List<String> results = watchedFileManager.getWatchedFiles(request);
+      List<String> results = watchedFileManager.getWatchedFilesWithProgress(request).get().getFiles();
 
       assertEquals(1, results.size());
       assertEquals("file:///test/file.txt", results.get(0));

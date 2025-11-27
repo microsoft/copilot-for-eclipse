@@ -2,6 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
@@ -15,6 +16,11 @@ public class GetWatchedFilesRequest {
   private boolean excludeGitignoredFiles;
 
   private boolean excludeIdeIgnoredFiles;
+  
+  /**
+   * An optional token for reporting partial results via $/progress notifications.
+   */
+  private Either<String, Integer> partialResultToken;
 
   public String getWorkspaceUri() {
     return workspaceUri;
@@ -39,10 +45,18 @@ public class GetWatchedFilesRequest {
   public void setExcludeIdeIgnoredFiles(boolean excludeIdeIgnoredFiles) {
     this.excludeIdeIgnoredFiles = excludeIdeIgnoredFiles;
   }
+  
+  public Either<String, Integer> getPartialResultToken() {
+    return partialResultToken;
+  }
+  
+  public void setPartialResultToken(Either<String, Integer> partialResultToken) {
+    this.partialResultToken = partialResultToken;
+  }
 
   @Override
   public int hashCode() {
-    return Objects.hash(excludeGitignoredFiles, excludeIdeIgnoredFiles, workspaceUri);
+    return Objects.hash(excludeGitignoredFiles, excludeIdeIgnoredFiles, workspaceUri, partialResultToken);
   }
 
   @Override
@@ -58,7 +72,9 @@ public class GetWatchedFilesRequest {
     }
     GetWatchedFilesRequest other = (GetWatchedFilesRequest) obj;
     return excludeGitignoredFiles == other.excludeGitignoredFiles
-        && excludeIdeIgnoredFiles == other.excludeIdeIgnoredFiles && Objects.equals(workspaceUri, other.workspaceUri);
+        && excludeIdeIgnoredFiles == other.excludeIdeIgnoredFiles 
+        && Objects.equals(workspaceUri, other.workspaceUri)
+        && Objects.equals(partialResultToken, other.partialResultToken);
   }
 
   @Override
@@ -67,6 +83,7 @@ public class GetWatchedFilesRequest {
     builder.add("uri", workspaceUri);
     builder.add("excludeGitignoredFiles", excludeGitignoredFiles);
     builder.add("excludeIdeIgnoredFiles", excludeIdeIgnoredFiles);
+    builder.add("partialResultToken", partialResultToken);
     return builder.toString();
   }
 
