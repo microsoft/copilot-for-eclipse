@@ -15,6 +15,7 @@ import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.compare.CompareUI;
 import org.eclipse.compare.IEditableContent;
+import org.eclipse.compare.IEncodedStreamContentAccessor;
 import org.eclipse.compare.IStreamContentAccessor;
 import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffNode;
@@ -286,7 +287,7 @@ public abstract class FileToolBase extends BaseTool {
   /**
    * Editable file compare input class to handle file content editing on the compare editor.
    */
-  public class EditableFileCompareInput implements ITypedElement, IStreamContentAccessor, IEditableContent {
+  public class EditableFileCompareInput implements ITypedElement, IEncodedStreamContentAccessor, IEditableContent {
     private IFile file;
     private byte[] modifiedContent = null;
 
@@ -327,6 +328,11 @@ public abstract class FileToolBase extends BaseTool {
     }
 
     @Override
+    public String getCharset() throws CoreException {
+      return file.getCharset();
+    }
+
+    @Override
     public boolean isEditable() {
       return true;
     }
@@ -353,7 +359,7 @@ public abstract class FileToolBase extends BaseTool {
   /**
    * A class for the compare editor string input with edit support.
    */
-  public class EditableStringCompareInput implements ITypedElement, IStreamContentAccessor, IEditableContent {
+  public class EditableStringCompareInput implements ITypedElement, IEncodedStreamContentAccessor, IEditableContent {
     private String content;
     private String name;
     private String type;
@@ -365,6 +371,7 @@ public abstract class FileToolBase extends BaseTool {
      * @param content The content of the string.
      * @param name The name of the string.
      * @param type The type of the file, should be same as the compared file type.
+     * @param charset The charset to use for encoding/decoding the content.
      */
     public EditableStringCompareInput(String content, String name, String type, String charset) {
       this.content = content;
@@ -398,6 +405,11 @@ public abstract class FileToolBase extends BaseTool {
       } catch (UnsupportedEncodingException e) {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
       }
+    }
+
+    @Override
+    public String getCharset() throws CoreException {
+      return charset;
     }
 
     @Override

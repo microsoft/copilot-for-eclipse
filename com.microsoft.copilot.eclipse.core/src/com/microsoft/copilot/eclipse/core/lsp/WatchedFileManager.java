@@ -25,6 +25,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jgit.ignore.FastIgnoreRule;
 import org.eclipse.jgit.ignore.IgnoreNode;
 import org.eclipse.jgit.util.StringUtils;
+import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.lsp4j.FileEvent;
 
@@ -303,6 +304,9 @@ class WatchedFileManager {
             changes.add(createFileEvent(uri, FileChangeType.Deleted));
           } else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
             changes.add(createFileEvent(uri, FileChangeType.Changed));
+          } else if ((delta.getFlags() & IResourceDelta.ENCODING) != 0) {
+            // File encoding changed - notify CLS to invalidate cache
+            notifyEncodingChange(uri);
           }
         }
       }
@@ -360,6 +364,24 @@ class WatchedFileManager {
       event.setUri(uri);
       event.setType(type);
       return event;
+    }
+
+    /**
+     * Notify the language server about encoding changes for specific files.
+     * This triggers cache invalidation in CLS for the affected files.
+     *
+     * @param fileUri the URI of the file whose encoding changed
+     */
+    private void notifyEncodingChange(String fileUri) {
+      CopilotLanguageServerConnection connection = CopilotCore.getPlugin().getCopilotLanguageServer();
+      if (connection != null) {
+        Map<String, Object> copilotSettings = Map.of(
+            "encodingChanges", List.of(fileUri)
+        );
+        DidChangeConfigurationParams params = new DidChangeConfigurationParams();
+        params.setSettings(Map.of("copilot", copilotSettings));
+        connection.updateConfig(params);
+      }
     }
   }
 }

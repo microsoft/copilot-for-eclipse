@@ -9,6 +9,7 @@ import java.nio.file.Path;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -58,6 +59,9 @@ public class PlatformUtils {
 
   /**
    * Read the content of a file.
+   *
+   * @param path the file path
+   * @return the file content
    */
   public static String readFileContent(Path path) {
     String content = "";
@@ -74,6 +78,9 @@ public class PlatformUtils {
 
   /**
    * Write the content to a file.
+   *
+   * @param path the file path
+   * @param content the content to write
    */
   public static void writeFileContent(@NonNull Path path, String content) {
     try {
@@ -88,6 +95,9 @@ public class PlatformUtils {
 
   /**
    * Escapes spaces in a URL string.
+   *
+   * @param urlString the URL string to escape
+   * @return the escaped URL string
    */
   public static String escapeSpaceInUrl(String urlString) {
     char[] chars = urlString.toCharArray();
@@ -124,6 +134,10 @@ public class PlatformUtils {
 
   /**
    * get the property value of the object with reflection.
+   *
+   * @param object the object
+   * @param propertyName the property name
+   * @return the property value
    */
   public static Object getPropertyWithReflection(Object object, String propertyName) {
     if (object == null) {
@@ -168,6 +182,66 @@ public class PlatformUtils {
       CopilotCore.LOGGER.error("Failed to get charset for file: " + file.getFullPath(), e);
     }
     return ResourcesPlugin.getEncoding();
+  }
+
+  /**
+   * Convert Eclipse/Java charset names to Node.js BufferEncoding names.
+   * CLS expects Node.js-compatible encoding names.
+   *
+   * @param javaCharset Eclipse/Java charset name
+   * @return Node.js BufferEncoding name, defaults to "utf8" for unknown charsets
+   */
+  public static String convertToNodeEncoding(String javaCharset) {
+    if (javaCharset == null || javaCharset.isEmpty()) {
+      return "utf8";
+    }
+
+    // Normalize to lowercase for case-insensitive matching
+    String normalized = javaCharset.toLowerCase().replace("_", "-");
+
+    // Map Java/Eclipse charset names to Node.js BufferEncoding names
+    // Note: Node.js only supports: utf8, utf16le, latin1 (ISO-8859-1), ascii, base64, hex
+    return switch (normalized) {
+      // UTF-8 (most common, full Unicode support)
+      case "utf-8", "utf8" -> "utf8";
+      // UTF-16 Little Endian (Node.js only supports LE variant)
+      case "utf-16", "utf-16le", "utf16le" -> "utf16le";
+      // ASCII (7-bit, subset of latin1)
+      case "us-ascii", "ascii" -> "ascii";
+      // ISO-8859-1 / Latin-1 (Western European, 8-bit single-byte)
+      case "iso-8859-1", "iso8859-1" -> "latin1";
+      // Windows-1252 (superset of ISO-8859-1, but Node.js only has latin1)
+      case "cp1252", "windows-1252" -> "latin1";
+      // Fallback to UTF-8 for incompatible/unsupported charsets
+      // - UTF-16 BE: Node.js doesn't support big-endian UTF-16
+      // - ISO-8859-15: Has Euro symbol, but Node.js latin1 is ISO-8859-1 only
+      // - CP1250 and other codepages: Not compatible with latin1
+      default -> {
+        CopilotCore.LOGGER.info("Charset '" + javaCharset
+            + "' not directly compatible with Node.js BufferEncoding, falling back to utf8");
+        yield "utf8";
+      }
+    };
+  }
+
+  /**
+   * Get the Node.js-compatible encoding for a file URI.
+   * Uses Eclipse's built-in fallback chain via {@link #getFileCharset(IFile)}.
+   *
+   * @param fileUri LSP file URI (e.g., "file:///path/to/file.txt")
+   * @return Node.js BufferEncoding name (e.g., "latin1", "utf8")
+   */
+  public static String getEncodingForFileUri(String fileUri) {
+    IFile file = FileUtils.getFileFromUri(fileUri);
+    String charset;
+    
+    if (file != null && file.exists()) {
+      charset = getFileCharset(file);
+    } else {
+      charset = ResourcesPlugin.getEncoding();
+    }
+    
+    return convertToNodeEncoding(charset);
   }
 
 }

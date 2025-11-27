@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.utils;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -8,10 +9,12 @@ import java.util.stream.Collectors;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
@@ -109,5 +112,29 @@ public class FileUtils {
       return false; // If the file has no extension, we do not exclude it.
     }
     return Constants.EXCLUDED_CURRENT_FILE_TYPE.contains(file.getFileExtension());
+  }
+
+  /**
+   * Convert an LSP file URI to an Eclipse IFile.
+   *
+   * @param fileUri LSP file URI (e.g., "file:///path/to/file.txt")
+   * @return IFile instance, or null if not found
+   */
+  @Nullable
+  public static IFile getFileFromUri(String fileUri) {
+    if (fileUri == null || fileUri.isEmpty()) {
+      return null;
+    }
+    
+    try {
+      URI uri = new URI(fileUri);
+      IFile[] files = ResourcesPlugin.getWorkspace().getRoot().findFilesForLocationURI(uri);
+      if (files != null && files.length > 0) {
+        return files[0];
+      }
+    } catch (URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid file URI: " + fileUri, e);
+    }
+    return null;
   }
 }

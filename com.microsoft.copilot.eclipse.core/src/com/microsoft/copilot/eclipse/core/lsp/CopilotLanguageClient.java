@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -14,6 +15,8 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.contexts.EclipseContextFactory;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4e.LanguageClientImpl;
+import org.eclipse.lsp4j.ConfigurationItem;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
@@ -60,6 +63,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 public class CopilotLanguageClient extends LanguageClientImpl {
 
   private static final String HTTP = "http"; //$NON-NLS-1$
+  private static final String COPILOT_FILE_ENCODING_SECTION = "copilot.file.encoding"; //$NON-NLS-1$
 
   private WatchedFileManager watchedFileManager;
 
@@ -165,6 +169,29 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     folder.setUri(PlatformUtils.getWorkspaceRootUri());
     folder.setName("workspace-root"); // $NON-NLS-1$
     return CompletableFuture.completedFuture(List.of(folder));
+  }
+
+  @Override
+  public CompletableFuture<List<Object>> configuration(ConfigurationParams params) {
+    return CompletableFuture.supplyAsync(() -> {
+      List<Object> results = new ArrayList<>();
+      
+      for (ConfigurationItem item : params.getItems()) {
+        String section = item.getSection();
+        
+        if (COPILOT_FILE_ENCODING_SECTION.equals(section)) {
+          // Get encoding for specific file using multi-project resolution
+          String fileUri = item.getScopeUri();
+          String nodeEncoding = PlatformUtils.getEncodingForFileUri(fileUri);
+          results.add(nodeEncoding);
+        } else {
+          // Unknown section - return null
+          results.add(null);
+        }
+      }
+      
+      return results;
+    });
   }
 
   /**
