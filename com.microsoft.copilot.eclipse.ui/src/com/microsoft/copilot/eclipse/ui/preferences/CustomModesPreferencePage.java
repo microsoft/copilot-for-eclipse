@@ -81,12 +81,14 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
 
     // Check if custom agent is disabled by policy
     if (!FeatureFlags.isCustomAgentEnabled()) {
-      Label disabledLabel = new Label(container, SWT.WRAP);
-      disabledLabel.setText(Messages.customModes_disabled_by_policy);
-      GridData gdLabel = new GridData(SWT.FILL, SWT.CENTER, true, false);
-      gdLabel.horizontalSpan = 2;
-      gdLabel.widthHint = 600;
-      disabledLabel.setLayoutData(gdLabel);
+      Composite disabledComposite = new Composite(container, SWT.NONE);
+      GridLayout disabledCompositeLayout = new GridLayout(1, false);
+      disabledCompositeLayout.marginWidth = 0;
+      disabledCompositeLayout.marginHeight = 0;
+      disabledComposite.setLayout(disabledCompositeLayout);
+      disabledComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+      WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
+          Messages.setting_disabled_by_organization);
       return container;
     }
 

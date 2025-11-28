@@ -12,9 +12,6 @@ import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ControlAdapter;
-import org.eclipse.swt.events.ControlEvent;
-import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -68,70 +65,41 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix,
         Messages.preferences_page_watched_files_note_content);
 
+    // add separator
+    Label separator = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
+    separator.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+    // Add sub-agent toggle
+    Composite subAgentComposite = new Composite(parent, SWT.NONE);
+    subAgentComposite.setLayout(gl);
+    gdf.applyTo(subAgentComposite);
     // Check if sub-agent is disabled by policy
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     boolean policyAllowsSubAgent = flags != null && flags.isClientPreviewFeatureEnabled()
         && flags.isSubAgentPolicyEnabled();
-
     if (!policyAllowsSubAgent) {
-      Label disabledLabel = new Label(parent, SWT.WRAP);
-      disabledLabel.setText(Messages.preferences_page_sub_agent_disabled_by_policy);
-      GridData disabledLabelData = new GridData(SWT.FILL, SWT.FILL, true, false);
-      disabledLabelData.widthHint = 400;
-      disabledLabel.setLayoutData(disabledLabelData);
-    } else {
-      // Add sub-agent toggle
-      Composite subAgentComposite = new Composite(parent, SWT.NONE);
-      subAgentComposite.setLayout(gl);
-      gdf.applyTo(subAgentComposite);
-      BooleanFieldEditor subAgentField = new BooleanFieldEditor(Constants.SUB_AGENT_ENABLED,
-          Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
-      GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-      subAgentFieldGridData.widthHint = 400;
-      subAgentField.getDescriptionControl(subAgentComposite).setLayoutData(subAgentFieldGridData);
-
-      addField(subAgentField);
-
-      // add sub-agent note using WrappableNoteLabel
-      new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix,
-          Messages.preferences_page_sub_agent_note_content);
-
-      // Update control listener to handle field resizing only if subAgentField exists
-      ControlListener controlListener = new ControlAdapter() {
-        @Override
-        public void controlResized(ControlEvent e) {
-          // resize the workspace context field and sub-agent field descriptions
-          ChatPreferencesPage pg = ChatPreferencesPage.this;
-          int width = pg.getFieldEditorParent().getSize().x - 20;
-          ((GridData) workspaceContextField.getDescriptionControl(workspaceContextComposite)
-              .getLayoutData()).widthHint = width;
-          ((GridData) subAgentField.getDescriptionControl(subAgentComposite).getLayoutData()).widthHint = width;
-          pg.getFieldEditorParent().layout();
-        }
-      };
-      parent.addControlListener(controlListener);
-      parent.addDisposeListener(e -> {
-        parent.removeControlListener(controlListener);
-      });
-      return;
+      Composite disabledComposite = new Composite(subAgentComposite, SWT.NONE);
+      GridLayout disabledCompositeLayout = new GridLayout(1, false);
+      disabledCompositeLayout.marginWidth = 0;
+      disabledCompositeLayout.marginHeight = 0;
+      disabledComposite.setLayout(disabledCompositeLayout);
+      disabledComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+      WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
+          com.microsoft.copilot.eclipse.ui.preferences.Messages.setting_managed_by_organization);
     }
 
-    // Add control listener to handle field resizing for workspace context only when subagent is disabled
-    ControlListener controlListener = new ControlAdapter() {
-      @Override
-      public void controlResized(ControlEvent e) {
-        // resize the workspace context field description
-        ChatPreferencesPage pg = ChatPreferencesPage.this;
-        int width = pg.getFieldEditorParent().getSize().x - 20;
-        ((GridData) workspaceContextField.getDescriptionControl(workspaceContextComposite)
-            .getLayoutData()).widthHint = width;
-        pg.getFieldEditorParent().layout();
-      }
-    };
-    parent.addControlListener(controlListener);
-    parent.addDisposeListener(e -> {
-      parent.removeControlListener(controlListener);
-    });
+    BooleanFieldEditor subAgentField = new BooleanFieldEditor(Constants.SUB_AGENT_ENABLED,
+        Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
+    subAgentField.setEnabled(policyAllowsSubAgent, subAgentComposite);
+    GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    subAgentFieldGridData.widthHint = 400;
+    subAgentField.getDescriptionControl(subAgentComposite).setLayoutData(subAgentFieldGridData);
+    addField(subAgentField);
+
+    // add sub-agent note using WrappableNoteLabel
+    new WrappableNoteLabel(subAgentComposite, Messages.preferences_page_note_prefix,
+        Messages.preferences_page_sub_agent_note_content);
+
   }
 
   @Override

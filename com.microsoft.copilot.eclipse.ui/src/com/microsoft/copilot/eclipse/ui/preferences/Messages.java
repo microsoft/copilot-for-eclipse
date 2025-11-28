@@ -81,6 +81,9 @@ public class Messages extends NLS {
   public static String customModes_error_deleteFailed_message;
   public static String customModes_disabled_by_policy;
 
+  public static String setting_managed_by_organization;
+  public static String setting_disabled_by_organization;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);
