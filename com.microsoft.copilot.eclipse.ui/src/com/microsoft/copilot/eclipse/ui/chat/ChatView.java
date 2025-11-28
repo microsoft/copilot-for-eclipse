@@ -129,30 +129,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             CopilotCore.LOGGER.error(new IllegalStateException("Chat service manager is not ready."));
             return;
           }
-          ChatView.this.persistenceManager = ChatView.this.chatServiceManager.getPersistenceManager();
-          chatServiceManager.getUserPreferenceService().bindChatView(ChatView.this);
-          chatServiceManager.getAgentToolService().bindChatView(ChatView.this);
-          chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
-
-          // TODO: This is a workaround to fix https://github.com/microsoft/copilot-eclipse/issues/1387
-          // Rebuild the view based on current auth status after initialization
-          // Should be removed after we have groomed chatServiceManager and authStatusManager initialization flow
-          SwtUtils.invokeOnDisplayThreadAsync(() -> {
-            String authStatus = chatServiceManager.getAuthStatusManager().getCopilotStatus();
-            if (authStatus != null) {
-              buildViewFor(authStatus);
-            }
-          }, parent);
-
+          initializeChatServices();
           Job.getJobManager().removeJobChangeListener(this);
         }
       };
       Job.getJobManager().addJobChangeListener(adapter);
     } else {
-      this.persistenceManager = this.chatServiceManager.getPersistenceManager();
-      this.chatServiceManager.getUserPreferenceService().bindChatView(this);
-      this.chatServiceManager.getAgentToolService().bindChatView(this);
-      this.chatServiceManager.getFileToolService().bindFileChangeSummaryBar(ChatView.this);
+      initializeChatServices();
     }
 
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, event -> {
@@ -286,6 +269,25 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         handleCodingAgentMessage(params);
       }
     });
+  }
+
+  /**
+   * Initialize chat services and bind the chat view to various service components.
+   * This method sets up the persistence manager, binds the chat view to user preference,
+   * agent tool, and file tool services, and triggers view building based on auth status.
+   */
+  private void initializeChatServices() {
+    this.persistenceManager = this.chatServiceManager.getPersistenceManager();
+    chatServiceManager.getUserPreferenceService().bindChatView(this);
+    chatServiceManager.getAgentToolService().bindChatView(this);
+    chatServiceManager.getFileToolService().bindFileChangeSummaryBar(this);
+
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      String authStatus = chatServiceManager.getAuthStatusManager().getCopilotStatus();
+      if (authStatus != null) {
+        buildViewFor(authStatus);
+      }
+    }, parent);
   }
 
   /**
