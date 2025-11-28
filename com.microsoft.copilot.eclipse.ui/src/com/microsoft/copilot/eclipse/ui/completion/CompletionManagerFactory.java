@@ -23,7 +23,7 @@ public class CompletionManagerFactory {
    */
   public static BaseCompletionManager createCompletionManager(CopilotLanguageServerConnection lsConnection,
       CompletionProvider provider, ITextEditor editor, LanguageServerSettingManager settingsManager) {
-      
+
     if (IdeCapabilities.canUseCodeMining()) {
       return new CompletionManager(lsConnection, provider, editor, settingsManager);
     } else {

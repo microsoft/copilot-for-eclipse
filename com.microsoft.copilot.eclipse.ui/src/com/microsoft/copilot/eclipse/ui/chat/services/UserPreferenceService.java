@@ -92,14 +92,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
           // User has signed in - reload built-in modes to ensure we have the latest modes for this user
           try {
             BuiltInChatModeManager.INSTANCE.reloadModes();
-            
+
             // Update available chat modes in the observable to reflect any changes
             ensureRealm(() -> {
               if (!Arrays.deepEquals(getAvalibleChatModes(), chatModeObservable.getValue())) {
                 chatModeObservable.setValue(getAvalibleChatModes());
               }
             });
-            
+
             // Reinitialize user preferences for the new user
             init();
           } catch (Exception e) {

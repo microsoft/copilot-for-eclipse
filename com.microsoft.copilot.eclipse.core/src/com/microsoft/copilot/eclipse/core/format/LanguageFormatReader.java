@@ -16,7 +16,7 @@ import org.eclipse.lsp4j.FormattingOptions;
 abstract class LanguageFormatReader implements IPreferenceChangeListener {
   public static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
   public static final String PREFERENCE_DEFAULT_TAB_CHAR = "space";
-  
+
   protected final IPreferenceChangeListener preferencesChangeListener = this;
   protected static final IScopeContext[] DEFAULT_SCOPE_CONTEXTS = new IScopeContext[] { InstanceScope.INSTANCE,
       ConfigurationScope.INSTANCE, DefaultScope.INSTANCE };
@@ -37,7 +37,7 @@ abstract class LanguageFormatReader implements IPreferenceChangeListener {
           DefaultScope.INSTANCE };
     }
   }
-  
+
   /**
    * Register a preference change listener for the given project.
    *

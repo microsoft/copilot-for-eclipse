@@ -72,7 +72,7 @@ public final class Messages extends NLS {
 
   public static String mcpServerInstallManager_overrideServer_title;
   public static String mcpServerInstallManager_overrideServer_message;
-  
+
   public static String githubCodingAgentDialog_title;
   public static String githubCodingAgentDialog_info_description;
   public static String githubCodingAgentDialog_checkbox_dontAskAgain;

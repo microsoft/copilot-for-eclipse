@@ -33,7 +33,7 @@ public class ShowContextMenuHandler extends CompoundContributionItem {
     if (!(sel instanceof IStructuredSelection s) || s.isEmpty()) {
       return new IContributionItem[0];
     }
-    
+
     IStructuredSelection selection = (IStructuredSelection) sel;
 
     ResourceUtils.SelectionStats stats = ResourceUtils.analyzeSelection(selection);
@@ -49,7 +49,7 @@ public class ShowContextMenuHandler extends CompoundContributionItem {
     ImageDescriptor menuIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png");
 
     MenuManager submenu = new MenuManager("Copilot", menuIcon, "com.microsoft.copilot.eclipse.ui.contextMenu");
-    
+
     // Add "Add to References" command item
     CommandContributionItemParameter p = new CommandContributionItemParameter(
         win, null, "com.microsoft.copilot.eclipse.commands.addToReferences", CommandContributionItem.STYLE_PUSH);

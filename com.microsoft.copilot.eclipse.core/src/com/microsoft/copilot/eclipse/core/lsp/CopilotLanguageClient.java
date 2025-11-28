@@ -175,10 +175,10 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public CompletableFuture<List<Object>> configuration(ConfigurationParams params) {
     return CompletableFuture.supplyAsync(() -> {
       List<Object> results = new ArrayList<>();
-      
+
       for (ConfigurationItem item : params.getItems()) {
         String section = item.getSection();
-        
+
         if (COPILOT_FILE_ENCODING_SECTION.equals(section)) {
           // Get encoding for specific file using multi-project resolution
           String fileUri = item.getScopeUri();
@@ -189,7 +189,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
           results.add(null);
         }
       }
-      
+
       return results;
     });
   }

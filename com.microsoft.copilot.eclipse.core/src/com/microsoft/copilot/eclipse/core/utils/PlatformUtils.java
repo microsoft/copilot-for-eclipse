@@ -234,13 +234,13 @@ public class PlatformUtils {
   public static String getEncodingForFileUri(String fileUri) {
     IFile file = FileUtils.getFileFromUri(fileUri);
     String charset;
-    
+
     if (file != null && file.exists()) {
       charset = getFileCharset(file);
     } else {
       charset = ResourcesPlugin.getEncoding();
     }
-    
+
     return convertToNodeEncoding(charset);
   }
 

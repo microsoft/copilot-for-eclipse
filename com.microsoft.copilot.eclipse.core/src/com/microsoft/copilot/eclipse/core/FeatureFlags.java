@@ -66,7 +66,7 @@ public class FeatureFlags {
    */
   public void setSubAgentPolicyEnabled(boolean subAgentPolicyEnabled) {
     this.subAgentPolicyEnabled = subAgentPolicyEnabled;
-    
+
     // When policy disables subagent, also disable the user preference
     if (!subAgentPolicyEnabled) {
       disableSubAgentPreference();
@@ -93,7 +93,7 @@ public class FeatureFlags {
    */
   public void setClientPreviewFeatureEnabled(boolean clientPreviewFeatureEnabled) {
     this.clientPreviewFeatureEnabled = clientPreviewFeatureEnabled;
-    
+
     // When client preview feature is disabled, also disable the user preference for subagent
     if (!clientPreviewFeatureEnabled) {
       disableSubAgentPreference();

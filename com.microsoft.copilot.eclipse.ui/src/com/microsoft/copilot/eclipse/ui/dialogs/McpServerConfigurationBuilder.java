@@ -218,7 +218,7 @@ public class McpServerConfigurationBuilder {
 
     return args;
   }
-  
+
   /**
    * Builds a versioned package identifier with the given separator.
    *

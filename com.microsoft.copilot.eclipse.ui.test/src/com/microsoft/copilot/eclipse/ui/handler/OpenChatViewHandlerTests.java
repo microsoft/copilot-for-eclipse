@@ -79,16 +79,16 @@ public class OpenChatViewHandlerTests {
   void testExecute_SuccessfullyOpensAndConfiguresChatView() throws ExecutionException, PartInitException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
-      
+
       setupCopilotUiMocks(mockedCopilotUi);
-      
+
       // Setup mocks for successful chat view opening
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(mockWindow);
       when(mockWindow.getActivePage()).thenReturn(mockPage);
       when(mockPage.showView(Constants.CHAT_VIEW_ID)).thenReturn(mockChatView);
       when(mockChatView.getActionBar()).thenReturn(mockActionBar);
-      
+
       // Setup parameters
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn("Test message");
@@ -111,16 +111,16 @@ public class OpenChatViewHandlerTests {
   void testExecute_WithInputValueButNoAutoSend() throws ExecutionException, PartInitException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
-      
+
       setupCopilotUiMocks(mockedCopilotUi);
-      
+
       // Setup mocks for successful chat view opening
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(mockWindow);
       when(mockWindow.getActivePage()).thenReturn(mockPage);
       when(mockPage.showView(Constants.CHAT_VIEW_ID)).thenReturn(mockChatView);
       when(mockChatView.getActionBar()).thenReturn(mockActionBar);
-      
+
       // Setup parameters - no auto send
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn("Test message");
@@ -143,13 +143,13 @@ public class OpenChatViewHandlerTests {
   void testExecute_NoParameters() throws ExecutionException, PartInitException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
-      
+
       // Setup mocks for successful chat view opening
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(mockWindow);
       when(mockWindow.getActivePage()).thenReturn(mockPage);
       when(mockPage.showView(Constants.CHAT_VIEW_ID)).thenReturn(mockChatView);
-      
+
       // Setup parameters as null/empty
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn(null);
@@ -170,9 +170,9 @@ public class OpenChatViewHandlerTests {
   void testExecute_NoActiveWorkbenchWindow() throws ExecutionException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
-      
+
     	mockedCopilotUi.when(() -> CopilotUi.getPlugin()).thenReturn(mockCopilotUi);
-      
+
       // Setup mocks with no active window
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(null);
@@ -191,7 +191,7 @@ public class OpenChatViewHandlerTests {
   void testExecute_NoActivePage() throws ExecutionException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
-      
+
       // Setup mocks with no active page
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(mockWindow);
@@ -220,7 +220,7 @@ public class OpenChatViewHandlerTests {
       when(mockWindow.getActivePage()).thenReturn(mockPage);
       when(mockPage.showView(Constants.CHAT_VIEW_ID)).thenReturn(mockChatView);
       when(mockChatView.getActionBar()).thenReturn(null);
-      
+
       // Setup parameters
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn("Test message");
@@ -241,16 +241,16 @@ public class OpenChatViewHandlerTests {
   void testExecute_SwitchesFromAgentToAskMode() throws ExecutionException, PartInitException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
-      
+
       setupCopilotUiMocks(mockedCopilotUi);
-      
+
       // Setup mocks for successful chat view opening
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(mockWindow);
       when(mockWindow.getActivePage()).thenReturn(mockPage);
       when(mockPage.showView(Constants.CHAT_VIEW_ID)).thenReturn(mockChatView);
       when(mockChatView.getActionBar()).thenReturn(mockActionBar);
-      
+
       // Setup parameters - no auto send
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn("Test message");

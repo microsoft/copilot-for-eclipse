@@ -96,7 +96,7 @@ public class InlineHighlighter {
         }
       });
     }, this.text);
-    
+
   }
 
   /** Apply annotation + line highlight based on diff spans. */
@@ -112,11 +112,11 @@ public class InlineHighlighter {
     if (doc == null) {
       return;
     }
-    
+
     // Determine diff type using DiffModel methods
     boolean pureDelete = diffModel.isPureDelete();
     boolean pureInsert = diffModel.isPureInsert();
-    
+
     // For pure insert, startOffset == endOffset is valid (insertion point)
     // For delete/replace, require endOffset > startOffset
     if (startOffset < 0) {
@@ -125,7 +125,7 @@ public class InlineHighlighter {
     if (!pureInsert && endOffset <= startOffset) {
       return;
     }
-    
+
     IAnnotationModel model = sv.getAnnotationModel();
     if (model != null && !pureInsert) {
       // Pure insert: no annotation
@@ -162,7 +162,7 @@ public class InlineHighlighter {
           Position changePos = new Position(start, len);
           annotations.add(changeAnn);
           positions.add(changePos);
-          
+
           // For pure delete, also add delete annotation
           if (pureDelete) {
             Annotation deleteAnn = new Annotation(SUGGESTION_DELETE, false,

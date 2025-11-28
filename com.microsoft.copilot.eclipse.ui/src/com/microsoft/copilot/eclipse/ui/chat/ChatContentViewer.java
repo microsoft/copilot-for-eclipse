@@ -79,7 +79,7 @@ public class ChatContentViewer extends ScrolledComposite {
         refreshScrollerLayout();
       }
     });
-    
+
     // Listen for user scroll events to manage auto-scroll behavior
     ScrollBar verticalBar = this.getVerticalBar();
     if (verticalBar != null) {
@@ -116,7 +116,7 @@ public class ChatContentViewer extends ScrolledComposite {
     scrollToLatestUserTurn();
     // Reset auto-scroll for new conversation turn
     autoScrollEnabled = true;
-    
+
   }
 
   /**
@@ -194,12 +194,12 @@ public class ChatContentViewer extends ScrolledComposite {
         turnWidget.notifyTurnEnd();
       }
       refreshScrollerLayout();
-      
+
       // Auto-scroll to bottom if enabled
       if (shouldAutoScrollToBottom()) {
         scrollToBottom();
       }
-      
+
       String errMsg = value.getErrorMessage();
       String reason = value.getErrorReason();
       if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
@@ -322,14 +322,14 @@ public class ChatContentViewer extends ScrolledComposite {
     if (!autoScrollEnabled) {
       return false;
     }
-    
+
     Rectangle clientArea = this.getClientArea();
     Point userTurnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
     Point copilotTurnSize = latestCopilotTurn == null ? new Point(0, 0)
         : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-    
+
     int roundedHeight = userTurnSize.y + copilotTurnSize.y;
-    
+
     // Only auto-scroll when content height exceeds the visible area
     return roundedHeight >= clientArea.height;
   }

@@ -75,15 +75,15 @@ public class BottomBar {
     }
 
     bar = new Composite(parent, SWT.DOUBLE_BUFFERED | SWT.NO_FOCUS);
- 
+
     bar.setData(CssConstants.CSS_ID_KEY, "nes-bottom-bar");
-    
+
     bar.addPaintListener(e -> {
       e.gc.setForeground(CssConstants.getNesBottomBarBorderColor(bar.getDisplay()));
       e.gc.setLineWidth(1);
       e.gc.drawRectangle(0, 0, e.width - 1, e.height - 1);
     });
-    
+
     GridLayout outer = new GridLayout(1, false);
     outer.marginWidth = 2;
     outer.marginHeight = 2;
@@ -99,27 +99,27 @@ public class BottomBar {
     Composite content = new Composite(bar, SWT.NO_FOCUS);
     content.setLayout(contentLayout);
     content.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
-    
+
     Label pressLabel = new Label(content, SWT.NONE);
     pressLabel.setText(Messages.bottomBar_press);
     pressLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
-    
+
     Label keyLabel = new Label(content, SWT.NONE);
     keyLabel.setText("Tab");
-    
+
     FontData baseFd = keyLabel.getFont().getFontData()[0];
     baseFd.setStyle(SWT.BOLD);
     Display display = parent.getDisplay();
     keyFont = new Font(display, baseFd);
     keyLabel.setFont(keyFont);
-    
+
     bar.addDisposeListener(e -> {
       if (keyFont != null && !keyFont.isDisposed()) {
         keyFont.dispose();
         keyFont = null;
       }
     });
-    
+
     keyLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
 
     notificationLabel = new Label(content, SWT.NONE);

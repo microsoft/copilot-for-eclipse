@@ -4,7 +4,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 
 /**
  * Represents a built-in chat mode from the conversation/modes API.
- * 
+ *
  * <p>Built-in modes include:
  * <ul>
  * <li><b>Ask</b>: General-purpose conversational mode for coding assistance.

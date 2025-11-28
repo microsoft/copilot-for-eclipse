@@ -48,7 +48,7 @@ public class Messages extends NLS {
   public static String preferences_page_customModes_defaultDescription;
   public static String preferences_page_customModes_defaultInstructions;
   public static String preferences_page_completions_enableNes;
-  
+
   // CustomModesPreferencePage
   public static String customModes_page_description;
   public static String customModes_table_column_modeName;
@@ -80,7 +80,7 @@ public class Messages extends NLS {
   public static String customModes_error_deleteFailed_title;
   public static String customModes_error_deleteFailed_message;
   public static String customModes_disabled_by_policy;
- 
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

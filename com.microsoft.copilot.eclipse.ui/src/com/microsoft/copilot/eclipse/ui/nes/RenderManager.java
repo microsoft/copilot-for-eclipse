@@ -92,7 +92,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   private Position suggestionEndPosition; // end offset of suggestion range
   private Position indentLinePosition; // track the actual line where indent is applied
   private DefaultPositionUpdater positionUpdater;
-  private static final String POSITION_CATEGORY = 
+  private static final String POSITION_CATEGORY =
       "com.microsoft.copilot.eclipse.ui.suggest.RenderManager.SuggestionPosition";
 
   private ActionMenu actionMenu;

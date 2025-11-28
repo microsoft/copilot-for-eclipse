@@ -14,8 +14,8 @@ public class DidChangeFeatureFlagsParams {
   /**
    * The token containing feature flags and some other configurations.
    * e.g.:
-   * token={tid=xxx, ol=xxx,xxx, exp=1753241024, sku=copilot_enterprise_seat_multi_quota, 
-   * proxy-ep=proxy.enterprise.githubcopilot.com, st=dotcom, ssc=1, chat=1, cit=1, malfil=1, 
+   * token={tid=xxx, ol=xxx,xxx, exp=1753241024, sku=copilot_enterprise_seat_multi_quota,
+   * proxy-ep=proxy.enterprise.githubcopilot.com, st=dotcom, ssc=1, chat=1, cit=1, malfil=1,
    * editor_preview_features=1, mcp=1, ccr=1, rt=1, 8kp=1, ip=167.220.255.64, asn=AS3598}
    */
   @SerializedName("token")

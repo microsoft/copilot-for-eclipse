@@ -36,9 +36,9 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 public class TerminalServiceManager {
 
   private static final String TERMINAL_BUNDLES_PATH = "terminal-bundles/";
-  private static final String MODERN_TERMINAL_BUNDLE_JAR = 
+  private static final String MODERN_TERMINAL_BUNDLE_JAR =
       "com.microsoft.copilot.eclipse.ui.terminal.jar";
-  private static final String TM_TERMINAL_BUNDLE_JAR = 
+  private static final String TM_TERMINAL_BUNDLE_JAR =
       "com.microsoft.copilot.eclipse.ui.terminal.tm.jar";
   private static final String MODERN_TERMINAL_BUNDLE_NAME = "com.microsoft.copilot.eclipse.ui.terminal";
   private static final String TM_TERMINAL_BUNDLE_NAME = "com.microsoft.copilot.eclipse.ui.terminal.tm";
@@ -49,7 +49,7 @@ public class TerminalServiceManager {
    */
   private static class InstanceHolder {
     private static final TerminalServiceManager INSTANCE = createInstance();
-    
+
     private static TerminalServiceManager createInstance() {
       Bundle apiBundle = FrameworkUtil.getBundle(TerminalServiceManager.class);
       if (apiBundle != null) {

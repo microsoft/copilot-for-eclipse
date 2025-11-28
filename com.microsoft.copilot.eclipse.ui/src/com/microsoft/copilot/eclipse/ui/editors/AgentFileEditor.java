@@ -32,16 +32,16 @@ public class AgentFileEditor extends TextEditor {
    * Provides content assist for the model: field in YAML frontmatter.
    */
   private static class AgentFileSourceViewerConfiguration extends SourceViewerConfiguration {
-    
+
     @Override
     public IContentAssistant getContentAssistant(ISourceViewer sourceViewer) {
       ContentAssistant assistant = new ContentAssistant();
-      
+
       // Set our custom processor for all content types
       AgentFileContentAssistProcessor processor = new AgentFileContentAssistProcessor();
       assistant.setContentAssistProcessor(processor, IDocument.DEFAULT_CONTENT_TYPE);
       assistant.setContentAssistProcessor(processor, "__dftl_partition_content_type");
-      
+
       // Configure the assistant with Eclipse-typical settings
       assistant.enableAutoActivation(true);
       assistant.setAutoActivationDelay(0);
@@ -54,17 +54,17 @@ public class AgentFileEditor extends TextEditor {
       assistant.setRepeatedInvocationTrigger(
           KeySequence.getInstance(KeyStroke.getInstance(SWT.CTRL, ' ')));
       assistant.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
-      
+
       return assistant;
     }
-    
+
     @Override
     public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
       // Return null to disable syntax highlighting that might interfere
       // Let the underlying editor handle basic text presentation
       return super.getPresentationReconciler(sourceViewer);
     }
-    
+
     @Override
     public String[] getConfiguredContentTypes(ISourceViewer sourceViewer) {
       return new String[] {

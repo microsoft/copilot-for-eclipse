@@ -14,9 +14,9 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsStatusCollection
 public class UpdateMcpToolsStatusParams {
 
   private List<McpServerToolsStatusCollection> servers;
-  
+
   private String customChatModeId;
-  
+
   private List<WorkspaceFolder> workspaceFolders;
 
   public List<McpServerToolsStatusCollection> getServers() {
@@ -26,19 +26,19 @@ public class UpdateMcpToolsStatusParams {
   public void setServers(List<McpServerToolsStatusCollection> servers) {
     this.servers = servers;
   }
-  
+
   public String getCustomChatModeId() {
     return customChatModeId;
   }
-  
+
   public void setCustomChatModeId(String customChatModeId) {
     this.customChatModeId = customChatModeId;
   }
-  
+
   public List<WorkspaceFolder> getWorkspaceFolders() {
     return workspaceFolders;
   }
-  
+
   public void setWorkspaceFolders(List<WorkspaceFolder> workspaceFolders) {
     this.workspaceFolders = workspaceFolders;
   }

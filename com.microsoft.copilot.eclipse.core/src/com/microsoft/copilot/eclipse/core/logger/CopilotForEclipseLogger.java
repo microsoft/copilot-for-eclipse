@@ -22,7 +22,7 @@ public class CopilotForEclipseLogger {
    * Constructor.
    *
    * @param name the name of the logger
-   * 
+   *
    */
   public CopilotForEclipseLogger(String name) {
     logger = Logger.getLogger(name);

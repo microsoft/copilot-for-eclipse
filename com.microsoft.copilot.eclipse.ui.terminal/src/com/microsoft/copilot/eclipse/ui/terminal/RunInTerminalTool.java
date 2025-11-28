@@ -325,7 +325,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     }
     return null;
   }
-  
+
 
   @Override
   public void setTerminalIconDescriptor(ImageDescriptor iconDescriptor) {

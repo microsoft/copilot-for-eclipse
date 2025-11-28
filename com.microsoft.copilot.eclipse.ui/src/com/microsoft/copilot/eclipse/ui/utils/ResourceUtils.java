@@ -105,7 +105,7 @@ public final class ResourceUtils {
     }
     return false;
   }
-  
+
   /**
    * Statistics about the selection of resources.
    */

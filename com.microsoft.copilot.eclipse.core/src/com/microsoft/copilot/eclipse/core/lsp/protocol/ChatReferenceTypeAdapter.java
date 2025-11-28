@@ -59,7 +59,7 @@ public class ChatReferenceTypeAdapter extends TypeAdapter<ChatReference> {
     if (typeEl != null && typeEl.isJsonPrimitive()) {
       type = typeEl.getAsString();
     }
- 
+
     if ("file".equalsIgnoreCase(type)) {
       return gson.fromJson(obj, FileChatReference.class);
     }

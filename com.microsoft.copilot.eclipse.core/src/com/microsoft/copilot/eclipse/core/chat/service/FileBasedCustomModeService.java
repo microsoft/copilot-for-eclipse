@@ -129,13 +129,13 @@ public class FileBasedCustomModeService implements ICustomModeService {
         String defaultDescription = "Describe what this custom agent does and when to use it.";
         String defaultInstructions = "Write instructions for this custom agent. "
             + "These will guide Copilot on how to respond when this mode is selected.";
-        
-        String content = "---\n" 
-            + "description: " + defaultDescription + "\n" 
-            + "tools: []\n" 
-            + "---\n" 
+
+        String content = "---\n"
+            + "description: " + defaultDescription + "\n"
+            + "tools: []\n"
+            + "---\n"
             + defaultInstructions + "\n";
-        
+
         Files.writeString(filePath, content);
 
         // Use file URI as the ID to match LSP behavior

@@ -61,6 +61,9 @@
 				</dependencies>
 				<configuration>
 					<configLocation>checkstyle.xml</configLocation>
+					<sourceDirectories>
+						<sourceDirectory>src</sourceDirectory>
+					</sourceDirectories>
 					<encoding>UTF-8</encoding>
 					<consoleOutput>true</consoleOutput>
 					<failsOnError>true</failsOnError>

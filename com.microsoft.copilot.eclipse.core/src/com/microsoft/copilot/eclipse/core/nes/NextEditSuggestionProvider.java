@@ -66,9 +66,9 @@ public class NextEditSuggestionProvider {
     if (file == null || position == null) {
       return;
     }
-    
+
     cancelCurrentRequest();
-    
+
     VersionedTextDocumentIdentifier doc = new VersionedTextDocumentIdentifier();
     String uriString = FileUtils.getResourceUri(file);
     doc.setUri(uriString);

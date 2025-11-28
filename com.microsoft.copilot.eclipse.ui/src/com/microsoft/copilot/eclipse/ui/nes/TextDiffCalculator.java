@@ -356,7 +356,7 @@ public class TextDiffCalculator {
 
         // Merge DELETE followed by INSERT at same position into REPLACE
         if (current.type == DiffSegment.Type.DELETE && next.type == DiffSegment.Type.INSERT
-            && current.origStart + current.origLength == next.origStart 
+            && current.origStart + current.origLength == next.origStart
             && current.newStart == next.newStart) {
           // Merge into REPLACE
           result.add(

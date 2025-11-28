@@ -410,7 +410,7 @@ public class UiUtils {
 
   /**
    * Returns the theme color with the given ID.
-   * 
+   *
    */
   public static Color getThemeColor(String colorId) {
     return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry().get(colorId);

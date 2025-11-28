@@ -12,7 +12,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 public class ImageContentPart implements ChatCompletionContentPart {
   private final String type = ContentType.IMAGE_URL.getValue();
   private final ImageUrl imageUrl;
-  
+
   /**
    * Constructs an ImageContentPart with the specified image URL and detail.
    *
@@ -59,7 +59,7 @@ public class ImageContentPart implements ChatCompletionContentPart {
     builder.add("image_url", imageUrl);
     return builder.toString();
   }
-  
+
   /**
    * Enum representing the detail level of an image.
    * LOW for low-resolution images, HIGH for high-resolution images.
@@ -72,7 +72,7 @@ public class ImageContentPart implements ChatCompletionContentPart {
       return name().toLowerCase();
     }
   }
-  
+
   /**
    * Represents the URL and detail level of an image.
    * This class is used to encapsulate the image URL and its detail level.
@@ -80,7 +80,7 @@ public class ImageContentPart implements ChatCompletionContentPart {
   public class ImageUrl {
     private final String url;
     private final String detail;
-    
+
     /**
      * Constructs an ImageUrl with the specified URL and detail.
      *

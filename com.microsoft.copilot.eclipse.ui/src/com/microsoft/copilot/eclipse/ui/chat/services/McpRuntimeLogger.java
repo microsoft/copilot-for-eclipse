@@ -122,25 +122,25 @@ public class McpRuntimeLogger {
   public void println(McpRuntimeLog mcpRuntimeLog) {
     Objects.requireNonNull(mcpRuntimeLog, "McpRuntimeLog entry cannot be null");
     StringBuilder logBuilder = new StringBuilder();
-    
+
     if (mcpRuntimeLog.getTime() != null) {
       LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(mcpRuntimeLog.getTime()),
           ZoneId.systemDefault());
       logBuilder.append('[').append(dateFormat.format(dateTime)).append("] ");
     }
-    
+
     if (mcpRuntimeLog.getLevel() != null) {
       logBuilder.append('[').append(mcpRuntimeLog.getLevel()).append("] ");
     }
-    
+
     if (mcpRuntimeLog.getServer() != null) {
       logBuilder.append("[Server: ").append(mcpRuntimeLog.getServer()).append("] ");
     }
-    
+
     if (mcpRuntimeLog.getTool() != null) {
       logBuilder.append("[Tool: ").append(mcpRuntimeLog.getTool()).append("]");
     }
-    
+
     logBuilder.append("\nMessage: " + mcpRuntimeLog.getMessage() + "\n");
 
     MessageConsoleStream stream = getConsoleStream();

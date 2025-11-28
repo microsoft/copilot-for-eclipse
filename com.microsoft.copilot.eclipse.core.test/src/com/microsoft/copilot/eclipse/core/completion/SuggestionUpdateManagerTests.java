@@ -38,7 +38,7 @@ class SuggestionUpdateManagerTests {
     manager.setCompletionItems(completions);
     assertEquals("line1", manager.getFirstLine());
   }
-  
+
   @Test
   void getFirstLineReturnsCorrectStringWhenTextHasCRLFLineBreaks() {
     CompletionItem mockItem = mock(CompletionItem.class);
@@ -58,7 +58,7 @@ class SuggestionUpdateManagerTests {
     manager.setCompletionItems(completions);
     assertEquals("line2\nline3", manager.getRemainingLines());
   }
-  
+
   @Test
   void getRemainingLineReturnsCorrectStringWhenTextHasCRLFLineBreaks() {
     CompletionItem mockItem = mock(CompletionItem.class);

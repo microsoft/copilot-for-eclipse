@@ -26,7 +26,7 @@ class EditorManagerTests {
 
   @Mock
   private CompletionProvider mockProvider;
-  
+
   @Mock
   private NextEditSuggestionProvider mockNesProvider;
 

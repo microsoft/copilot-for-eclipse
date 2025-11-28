@@ -37,7 +37,7 @@ public interface IRunInTerminalTool {
    * @return A StringBuilder containing the output of the command.
    */
   public StringBuilder getBackgroundCommandOutput(String executionId);
-  
+
   /**
    * Sets the terminal icon descriptor for the tool.
    */

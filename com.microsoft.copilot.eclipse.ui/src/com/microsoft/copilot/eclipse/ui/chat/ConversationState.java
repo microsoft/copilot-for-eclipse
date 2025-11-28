@@ -8,12 +8,12 @@ public enum ConversationState {
      * A brand new conversation with no history.
      */
     NEW_CONVERSATION,
-    
+
     /**
      * Continuing an existing conversation.
      */
     CONTINUED_CONVERSATION,
-    
+
     /**
      * A new conversation based on a history conversation.
      */

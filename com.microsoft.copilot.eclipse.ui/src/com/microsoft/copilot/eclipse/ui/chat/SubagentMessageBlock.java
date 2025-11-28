@@ -19,7 +19,7 @@ public class SubagentMessageBlock extends Composite {
   private String turnId;
   private Composite contentArea;
   private AgentToolCall toolCall;
-  
+
   // Track the current content widget for message processing
   private BaseTurnWidget currentSubagentTurnWidget;
 
@@ -38,10 +38,10 @@ public class SubagentMessageBlock extends Composite {
     this.serviceManager = serviceManager;
     this.turnId = turnId;
     this.toolCall = toolCall;
-    
+
     // Set CSS class for styling
     this.setData(CssConstants.CSS_CLASS_NAME_KEY, "subagent-message-block");
-    
+
     // Layout for the block
     GridLayout layout = new GridLayout(1, true);
     layout.marginWidth = 8;
@@ -49,7 +49,7 @@ public class SubagentMessageBlock extends Composite {
     layout.verticalSpacing = 0;
     setLayout(layout);
     setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    
+
     // Create content area
     contentArea = new Composite(this, SWT.NONE);
     GridLayout contentLayout = new GridLayout(1, true);
@@ -58,7 +58,7 @@ public class SubagentMessageBlock extends Composite {
     contentLayout.verticalSpacing = 0;
     contentArea.setLayout(contentLayout);
     contentArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    
+
     // Create the internal turn widget to handle messages
     currentSubagentTurnWidget = new SubagentTurnWidget(contentArea, SWT.NONE, serviceManager, turnId, toolCall);
   }

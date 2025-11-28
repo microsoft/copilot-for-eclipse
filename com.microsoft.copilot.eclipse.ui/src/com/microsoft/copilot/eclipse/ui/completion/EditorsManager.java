@@ -153,12 +153,12 @@ public class EditorsManager {
     if (editor == null) {
       return null;
     }
-    
+
     // Only create NES RenderManager if client preview features are enabled
     if (!CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled()) {
       return null;
     }
-    
+
     return nesRenderManagers.computeIfAbsent(editor,
         ed -> new RenderManager(this.languageServer, this.nesProvider, ed));
   }

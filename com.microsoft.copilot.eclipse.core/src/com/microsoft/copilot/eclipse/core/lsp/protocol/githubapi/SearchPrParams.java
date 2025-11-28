@@ -73,7 +73,7 @@ public class SearchPrParams {
     return Objects.equals(query, other.query) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
-  
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);

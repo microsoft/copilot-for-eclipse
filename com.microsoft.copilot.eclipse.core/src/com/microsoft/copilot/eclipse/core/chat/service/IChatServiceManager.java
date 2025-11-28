@@ -9,7 +9,7 @@ public interface IChatServiceManager {
    * Get the referenced file service.
    */
   IReferencedFileService getReferencedFileService();
-  
+
   /**
    * Get the MCP config service.
    */

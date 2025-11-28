@@ -396,7 +396,7 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<List<LanguageModelToolInformation>> registerTools(RegisterToolsParams params) {
     // @formatter:off
-    Function<LanguageServer, CompletableFuture<List<LanguageModelToolInformation>>> fn = 
+    Function<LanguageServer, CompletableFuture<List<LanguageModelToolInformation>>> fn =
         server -> ((CopilotLanguageServer) server).registerTools(params);
     // @formatter:on
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
@@ -420,7 +420,7 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams params) {
     // @formatter:off
-    Function<LanguageServer, CompletableFuture<List<McpServerToolsCollection>>> fn = 
+    Function<LanguageServer, CompletableFuture<List<McpServerToolsCollection>>> fn =
         server -> ((CopilotLanguageServer) server).updateMcpToolsStatus(params);
     // @formatter:on
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
@@ -447,7 +447,7 @@ public class CopilotLanguageServerConnection {
   public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
     this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
   }
-  
+
   /**
    * Send $/progress notification to the language server.
    * Used for reporting partial results during long-running operations like file indexing.
@@ -589,7 +589,7 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<NextEditSuggestionsResult> getNextEditSuggestions(NextEditSuggestionsParams params) {
     // @formatter:off
-    Function<LanguageServer, CompletableFuture<NextEditSuggestionsResult>> fn = 
+    Function<LanguageServer, CompletableFuture<NextEditSuggestionsResult>> fn =
         server -> ((CopilotLanguageServer) server).getNextEditSuggestions(params);
     // @formatter:on
     return this.languageServerWrapper.execute(fn);

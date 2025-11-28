@@ -214,10 +214,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     mcpField.getLabelControl(mcpFieldContainer).setToolTipText(Messages.preferences_page_mcp_tooltip);
     // @formatter:off
     mcpField.getLabelControl(mcpFieldContainer).setLayoutData(new GridData(
-        SWT.LEFT, 
-        SWT.TOP, 
-        false, 
-        false, 
+        SWT.LEFT,
+        SWT.TOP,
+        false,
+        false,
         2, // The label-control will take up 2 column cells itself, so the text-control will be underneath it.
         1));
     // @formatter:on

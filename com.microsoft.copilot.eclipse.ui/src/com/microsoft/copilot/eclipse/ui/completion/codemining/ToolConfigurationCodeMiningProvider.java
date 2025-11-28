@@ -47,7 +47,7 @@ public class ToolConfigurationCodeMiningProvider extends AbstractCodeMiningProvi
 
       List<ICodeMining> minings = new ArrayList<>();
       String content = document.get();
-      
+
       // Find the tools: line in the YAML frontmatter
       Matcher matcher = TOOLS_LINE_PATTERN.matcher(content);
       if (matcher.find()) {
@@ -83,7 +83,7 @@ public class ToolConfigurationCodeMiningProvider extends AbstractCodeMiningProvi
 
     private final ITextViewer viewer;
 
-    public ToolConfigurationCodeMining(int lineNumber, IDocument document, 
+    public ToolConfigurationCodeMining(int lineNumber, IDocument document,
         ToolConfigurationCodeMiningProvider provider, ITextViewer viewer)
         throws BadLocationException {
       super(lineNumber, document, provider);
@@ -110,7 +110,7 @@ public class ToolConfigurationCodeMiningProvider extends AbstractCodeMiningProvi
           if (getProvider() instanceof ToolConfigurationCodeMiningProvider) {
             ToolConfigurationCodeMiningProvider tcProvider = (ToolConfigurationCodeMiningProvider) getProvider();
             ITextEditor editor = tcProvider.getAdapter(ITextEditor.class);
-            
+
             if (editor != null) {
               IFile file = UiUtils.getFileFromTextEditor(editor);
               if (file != null) {

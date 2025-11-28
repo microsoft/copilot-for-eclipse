@@ -56,7 +56,7 @@ import com.microsoft.copilot.eclipse.ui.jobs.utils.UiUtils;
  * hierarchy: Repository -> Pull Requests
  */
 public class JobsView {
-  private static final String SEARCH_PR_QUERY = 
+  private static final String SEARCH_PR_QUERY =
       "repo:${owner}/${repository} is:open author:@copilot involves:${user} is:pull-request";
   private static final Set<String> SPECIAL_STATUS_LABELS = Set.of(Messages.jobsView_label_noOpenProjects,
       Messages.jobsView_label_copilotNotInitialized, Messages.jobsView_label_noAgentJobsFound,

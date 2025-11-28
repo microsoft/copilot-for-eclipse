@@ -108,7 +108,7 @@ public class CssConstants {
       return new Color(display, 255, 161, 161);
     }
   }
-  
+
   /**
    * Returns the highlight color used to highlight insert text for next edit suggestions.
    */

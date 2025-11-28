@@ -193,7 +193,7 @@ public class CompletionProvider {
         try {
           CompletionResult result = this.lsConnection.getCompletions(params).get(COMPLETION_TIMEOUT_MILLIS,
               TimeUnit.MILLISECONDS);
-          
+
           // Check if we should fallback to NES (empty or useless completions)
           if (this.enableNes && file instanceof IFile f && shouldFallbackToNes(result)) {
             fetchNes(f, params.getDoc().getPosition());
@@ -260,7 +260,7 @@ public class CompletionProvider {
           String displayText = item.getDisplayText();
           if (displayText == null || displayText.isEmpty()) {
             continue;
-          }    
+          }
           int offset = LSPEclipseUtils.toOffset(item.getPosition(), document);
           int availableLength = document.getLength() - offset;
           // If displayText is longer than the available text in document, it must be providing new content

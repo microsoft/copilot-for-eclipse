@@ -29,7 +29,7 @@ public class UiConstants {
   public static final String COPILOT_UPGRADE_PLAN_URL = "https://aka.ms/github-copilot-upgrade-plan";
   public static final String MANAGE_COPILOT_URL = "https://aka.ms/github-copilot-settings";
   public static final String MANAGE_COPILOT_OVERAGE_URL = "https://aka.ms/github-copilot-manage-overage";
-  public static final String OPEN_CHAT_VIEW_INPUT_VALUE = 
+  public static final String OPEN_CHAT_VIEW_INPUT_VALUE =
       "com.microsoft.copilot.eclipse.commands.openChatView.inputValue";
   public static final String OPEN_CHAT_VIEW_AUTO_SEND = "com.microsoft.copilot.eclipse.commands.openChatView.autoSend";
 

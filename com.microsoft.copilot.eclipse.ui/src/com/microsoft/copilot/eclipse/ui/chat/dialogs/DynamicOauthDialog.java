@@ -32,7 +32,7 @@ public class DynamicOauthDialog extends Dialog {
   private Map<String, String> resultValues = null;
   private Font hintFont;
   private Font headerFont;
-  private Button okButton; 
+  private Button okButton;
   private Image icon;
 
   /**
@@ -58,7 +58,7 @@ public class DynamicOauthDialog extends Dialog {
     if (icon != null) {
       newShell.setImage(icon);
     }
-    
+
     newShell.addDisposeListener(e -> {
       disposeResources();
     });
@@ -84,7 +84,7 @@ public class DynamicOauthDialog extends Dialog {
       }
       headerFont = new Font(headerLabel.getDisplay(), fontData);
       headerLabel.setFont(headerFont);
-      
+
       GridData gd = new GridData(SWT.FILL, SWT.TOP, true, false);
       headerLabel.setLayoutData(gd);
     }
@@ -119,12 +119,12 @@ public class DynamicOauthDialog extends Dialog {
     GridData rowData = new GridData(SWT.FILL, SWT.TOP, true, false);
     rowData.verticalIndent = 5;
     fieldRow.setLayoutData(rowData);
-    
+
     String labelText = input.getTitle();
     if (Boolean.TRUE.equals(input.getRequired())) {
       labelText += " *";
     }
-    
+
     Label fieldLabel = new Label(fieldRow, SWT.NONE);
     fieldLabel.setText(labelText);
     GridData labelData = new GridData(SWT.LEFT, SWT.TOP, false, false);
@@ -144,10 +144,10 @@ public class DynamicOauthDialog extends Dialog {
     if (input.getPlaceholder() != null && !input.getPlaceholder().isEmpty()) {
       textField.setMessage(input.getPlaceholder());
     }
-    
+
     GridData textData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     textField.setLayoutData(textData);
-    
+
     String fieldKey = input.getValue();
     inputFields.put(fieldKey, textField);
 
@@ -171,7 +171,7 @@ public class DynamicOauthDialog extends Dialog {
       hintLabel.setLayoutData(hintData);
     }
   }
-  
+
   /**
    * Validates all required fields and enables/disables the OK button accordingly.
    */
@@ -179,7 +179,7 @@ public class DynamicOauthDialog extends Dialog {
     if (okButton == null || okButton.isDisposed()) {
       return;
     }
-    
+
     // Check if all required fields have non-empty values
     if (request.getInputs() != null) {
       for (DynamicOauthInput input : request.getInputs()) {
@@ -193,11 +193,11 @@ public class DynamicOauthDialog extends Dialog {
         }
       }
     }
-    
+
     // All required fields are filled
     okButton.setEnabled(true);
   }
-  
+
   /**
    * Disposes all resources to prevent resource leaks.
    */
@@ -238,7 +238,7 @@ public class DynamicOauthDialog extends Dialog {
     resultValues = null;
     super.cancelPressed();
   }
-  
+
   @Override
   public boolean close() {
     disposeResources();

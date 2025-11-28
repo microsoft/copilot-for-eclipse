@@ -140,7 +140,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       refreshPlaceholder();
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, updateMcpToolButtonAndPlaceHolderHandler);
-    
+
     this.featureFlagsChangedEventHandler = event -> {
       // Update buttons layout when feature flags change
       SwtUtils.invokeOnDisplayThreadAsync(() -> {

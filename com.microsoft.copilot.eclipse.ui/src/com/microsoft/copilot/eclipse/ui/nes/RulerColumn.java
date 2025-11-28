@@ -164,12 +164,12 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
       return;
     }
     lastIconBounds = bounds;
-    
+
     // Get original icon dimensions for scaling source
     Rectangle iconBounds = icon.getBounds();
-    
+
     // Draw icon with scaling from original size to actual drawn bounds
-    gc.drawImage(icon, 0, 0, iconBounds.width, iconBounds.height, 
+    gc.drawImage(icon, 0, 0, iconBounds.width, iconBounds.height,
                  bounds.x, bounds.y, bounds.width, bounds.height);
   }
 
@@ -180,7 +180,7 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
     }
 
     // getSuggestionIconBounds already calculated the exact drawn bounds
-    return x >= bounds.x && x <= bounds.x + bounds.width 
+    return x >= bounds.x && x <= bounds.x + bounds.width
         && y >= bounds.y && y <= bounds.y + bounds.height;
   }
 
@@ -248,7 +248,7 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
 
     // Get the available space for icon
     int iconSize = Math.max(iconBounds.width, iconBounds.height);
-    
+
     // Center the icon within the column and line
     int drawX = Math.max(1, (getWidth() - iconSize) / 2);
     int offsetX = (iconSize - actualWidth) / 2;

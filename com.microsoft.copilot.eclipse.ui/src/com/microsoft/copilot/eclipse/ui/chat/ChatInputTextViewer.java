@@ -303,7 +303,7 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
       case Agent:
         // Get the active mode name or ID from observable (not from disk to avoid stale data)
         String activeModeId = userPreferenceService.getActiveModeNameOrId();
-        
+
         // Check if a custom mode is active and use its description as placeholder
         if (CustomChatModeManager.INSTANCE.isCustomMode(activeModeId)) {
           CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(activeModeId);
@@ -311,13 +311,13 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
             return customMode.getDescription();
           }
         }
-        
+
         // Check if a built-in mode (Agent/Plan) is active and use its description as placeholder
         BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(activeModeId);
         if (builtInMode != null && StringUtils.isNotBlank(builtInMode.getDescription())) {
           return builtInMode.getDescription();
         }
-        
+
         return Messages.chat_actionBar_initialContentForAgent;
       case Ask:
       default:

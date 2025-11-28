@@ -23,7 +23,7 @@ public class NewConversationHandler extends CopilotHandler {
       if (eventBroker != null) {
         eventBroker.post(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, null);
         eventBroker.post(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, null);
-        
+
         // Reset the title to default
         Map<String, Object> titleData = new HashMap<>();
         titleData.put(IEventBroker.DATA, Messages.chat_topBanner_defaultChatTitle);

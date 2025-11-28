@@ -12,7 +12,7 @@ import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 public class TextContentPart implements ChatCompletionContentPart {
   private final String type = ContentType.TEXT.getValue();
   private final String text;
-  
+
   /**
    * Constructs a TextContentPart with the specified text.
    *

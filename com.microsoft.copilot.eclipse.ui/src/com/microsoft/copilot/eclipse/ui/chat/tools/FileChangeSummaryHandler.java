@@ -26,7 +26,7 @@ public interface FileChangeSummaryHandler {
    * Handles the action of undoing changes to a file.
    *
    * @param file the file to undo changes for
-   * 
+   *
    * @throws CoreException if an error occurs during the undo operation, such as a failure to delete a file
    */
   void onUndoChange(IFile file) throws CoreException;

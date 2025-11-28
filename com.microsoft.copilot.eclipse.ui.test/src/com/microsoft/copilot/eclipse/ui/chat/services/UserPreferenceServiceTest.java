@@ -90,7 +90,7 @@ class UserPreferenceServiceTest {
     InputNavigation initialNavigation = new InputNavigation(List.of("input1", "input2"));
     setInputNavigationForService(initialNavigation);
     assertNotNull(getInputNavigationFromService(), "Input navigation should be set initially");
-    
+
     // Assert - After sign in, input navigation should be restored
     assertNotNull(getInputNavigationFromService(), "Input navigation should be restored after sign in");
     assertEquals("input2", getInputNavigationFromService().getLatestInput(), "Input navigation should be restored");
@@ -132,7 +132,7 @@ class UserPreferenceServiceTest {
     if (user != null) {
       statusResult.setUser(user);
     }
-    
+
     Map<String, Object> eventProperties = new HashMap<>();
     eventProperties.put(IEventBroker.DATA, statusResult);
     return new Event(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, eventProperties);

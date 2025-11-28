@@ -84,7 +84,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
   // Whether NES suggestions are enabled
   protected boolean enableNes;
   protected LanguageServerSettingManager settingsManager;
-  
+
   // Event handling
   protected IEventBroker eventBroker;
   protected EventHandler featureFlagsChangedEventHandler;
@@ -130,7 +130,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
     this.autoShowCompletion = settingsManager.getSettings().isEnableAutoCompletions();
 
     // initialize NES preference - only enable if both preference is true AND client preview features are enabled
-    this.enableNes = CopilotUi.getBooleanPreference(Constants.ENABLE_NEXT_EDIT_SUGGESTION, false) 
+    this.enableNes = CopilotUi.getBooleanPreference(Constants.ENABLE_NEXT_EDIT_SUGGESTION, false)
         && CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled();
 
     // Cache the model offset to clear line vertical offset when the line is out of the visible range.
@@ -157,7 +157,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
         }
       };
 
-      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, 
+      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS,
           this.featureFlagsChangedEventHandler);
     }
   }
@@ -343,7 +343,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       this.autoShowCompletion = Boolean.parseBoolean(event.getNewValue().toString());
     } else if (event.getProperty().equals(Constants.ENABLE_NEXT_EDIT_SUGGESTION)) {
       // Only enable NES if both preference is true AND client preview features are enabled
-      this.enableNes = Boolean.parseBoolean(event.getNewValue().toString()) 
+      this.enableNes = Boolean.parseBoolean(event.getNewValue().toString())
           && CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled();
     }
   }

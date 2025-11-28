@@ -211,7 +211,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   private @Nullable Path findAgentBinaryDirectoryPath() throws IOException {
     URL url = findBinaryFromFragment();
-  
+
     if (url == null) {
       return null;
     }
@@ -223,7 +223,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       return null;
     }
   }
-  
+
   /**
    * Find binary from platform-specific fragment bundles.
    * This method attempts to locate the native binary from the appropriate fragment bundle
@@ -235,30 +235,30 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       CopilotCore.LOGGER.info("No platform-specific fragment bundle ID found for current platform");
       return null;
     }
-    
+
     try {
       Bundle[] bundles = Platform.getBundles(fragmentBundleId, null);
       if (bundles == null || bundles.length == 0) {
         CopilotCore.LOGGER.info("Fragment bundle not found: " + fragmentBundleId);
         return null;
       }
-      
+
       Bundle fragmentBundle = bundles[0];
       URL url = fragmentBundle.getEntry("copilot-agent");
-      
+
       if (url != null) {
         CopilotCore.LOGGER.info("Found native binary in fragment bundle: " + fragmentBundleId);
       } else {
         CopilotCore.LOGGER.info("Fragment bundle found but no native directory: " + fragmentBundleId);
       }
-      
+
       return url;
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Error finding fragment bundle: " + fragmentBundleId, e);
       return null;
     }
   }
-  
+
   /**
    * Get the bundle ID of the platform-specific fragment based on current OS and architecture. Returns null if the
    * current platform is not supported. Supported platforms: darwin-arm64, darwin-x64, linux-arm64, linux-x64, win32-x64

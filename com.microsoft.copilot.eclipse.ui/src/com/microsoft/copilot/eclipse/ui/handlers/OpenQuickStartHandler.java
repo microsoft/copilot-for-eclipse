@@ -102,7 +102,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
         @Override
         public void mouseDown(MouseEvent e) {
           close();
-          
+
           IWorkbench workBench = PlatformUI.getWorkbench();
 
           // Close the Eclipse welcome view if it's open
@@ -110,7 +110,7 @@ public class OpenQuickStartHandler extends AbstractHandler {
           if (introPart != null) {
             workBench.getIntroManager().closeIntro(introPart);
           }
-          
+
           // Open the Copilot chat view
           workBench.getDisplay().asyncExec(() -> {
             IHandlerService handlerService = (IHandlerService) PlatformUI.getWorkbench()

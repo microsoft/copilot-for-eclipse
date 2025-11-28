@@ -148,7 +148,7 @@ public class ConversationUtils {
         return false; // Close / Cancel
     }
   }
-  
+
   /**
    * Checks if the given throwable is an instance of cancellation exception, either directly or wrapped in a
    * CompletionException.

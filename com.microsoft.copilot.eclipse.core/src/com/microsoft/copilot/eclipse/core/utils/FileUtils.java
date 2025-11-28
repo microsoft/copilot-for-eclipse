@@ -125,7 +125,7 @@ public class FileUtils {
     if (fileUri == null || fileUri.isEmpty()) {
       return null;
     }
-    
+
     try {
       URI uri = new URI(fileUri);
       IFile[] files = ResourcesPlugin.getWorkspace().getRoot().findFilesForLocationURI(uri);
