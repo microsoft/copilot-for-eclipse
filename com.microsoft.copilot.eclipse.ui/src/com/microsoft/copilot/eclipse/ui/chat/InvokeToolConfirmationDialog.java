@@ -5,7 +5,11 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -75,8 +79,13 @@ public class InvokeToolConfirmationDialog extends Composite {
       // following code only works for the run in terminal tool.
       Map<String, Object> inputMap = (Map<String, Object>) input;
       if (inputMap.containsKey(COMMAND_KEY)) {
-        Label commandLbl = new Label(this, SWT.LEFT | SWT.WRAP);
-        commandLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
+        // Create a scrollable container for the command text
+        ScrolledComposite commandScroll = new ScrolledComposite(this, SWT.H_SCROLL);
+        commandScroll.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+        commandScroll.setExpandHorizontal(true);
+        commandScroll.setExpandVertical(true);
+
+        Label commandLbl = new Label(commandScroll, SWT.LEFT);
         String command = (String) inputMap.get(COMMAND_KEY);
         // Escape & characters that are followed by non-space characters, needed for SWT labels where & is used as a
         // mnemonic character
@@ -84,6 +93,20 @@ public class InvokeToolConfirmationDialog extends Composite {
         commandLbl.setText(escapedCommand);
         commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
         this.cancelMessage = escapedCommand;
+
+        commandScroll.setContent(commandLbl);
+        commandScroll.addControlListener(new ControlAdapter() {
+          @Override
+          public void controlResized(ControlEvent e) {
+            Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+            commandLbl.setSize(size);
+            commandScroll.setMinSize(size);
+          }
+        });
+        // Initial size computation
+        Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+        commandLbl.setSize(size);
+        commandScroll.setMinSize(size);
       }
 
       if (inputMap.containsKey(EXPLANATION_KEY)) {
