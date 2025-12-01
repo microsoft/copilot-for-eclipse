@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
@@ -59,7 +60,7 @@ public class McpExtensionPointManager {
    * Constructor for McpExtensionPointManager.
    */
   public McpExtensionPointManager(McpConfigService mcpConfigService) {
-    gson = new Gson();
+    gson = new GsonBuilder().disableHtmlEscaping().create();
     this.mcpConfigService = mcpConfigService;
     // TODO: enable it when group policy is ready
     if (PlatformUtils.isNightly() && CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {

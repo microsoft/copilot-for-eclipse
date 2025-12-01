@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
@@ -446,7 +447,7 @@ public class CopilotLanguageServerSettings {
       } else {
         // merge the existing and new MCP servers
         try {
-          Gson gson = new Gson();
+          Gson gson = new GsonBuilder().disableHtmlEscaping().create();
           Map<String, Object> existingMap = gson.fromJson(existingMcpServers, new TypeToken<Map<String, Object>>() {
           }.getType());
           Map<String, Object> newMap = gson.fromJson(mcpServers, new TypeToken<Map<String, Object>>() {
@@ -469,7 +470,7 @@ public class CopilotLanguageServerSettings {
     }
 
     try {
-      Gson gson = new Gson();
+      Gson gson = new GsonBuilder().disableHtmlEscaping().create();
       Map<String, Object> jsonMap = gson.fromJson(mcpServersPreference, new TypeToken<Map<String, Object>>() {
       }.getType());
 

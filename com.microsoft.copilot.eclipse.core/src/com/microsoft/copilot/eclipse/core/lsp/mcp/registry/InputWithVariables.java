@@ -1,10 +1,9 @@
-package com.microsoft.copilot.eclipse.core.lsp.mcp;
+package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Represents an input parameter that can contain nested variables for an MCP package or runtime. Extends the Input
@@ -12,24 +11,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class InputWithVariables extends Input {
   private Map<String, Input> variables;
-
-  /**
-   * Parameterized constructor.
-   *
-   * @param description Description of the input
-   * @param isRequired Whether the input is required
-   * @param format Format of the input
-   * @param value Value of the input
-   * @param isSecret Whether the input is secret
-   * @param defaultValue Default value of the input
-   * @param choices List of valid choices for the input
-   * @param variables Map of variable inputs
-   */
-  public InputWithVariables(String description, Boolean isRequired, String format, String value, Boolean isSecret,
-      String defaultValue, List<String> choices, Map<String, Input> variables) {
-    super(description, isRequired, format, value, isSecret, defaultValue, choices);
-    this.variables = variables;
-  }
 
   public Map<String, Input> getVariables() {
     return variables;
@@ -65,7 +46,7 @@ public class InputWithVariables extends Input {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.append("variables", variables);
+    builder.add("variables", variables);
     return builder.toString();
   }
 

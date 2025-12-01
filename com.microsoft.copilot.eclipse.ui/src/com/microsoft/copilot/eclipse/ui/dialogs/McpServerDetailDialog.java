@@ -40,9 +40,10 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Package;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Package;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Remote;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpServerInstallManager.ButtonState;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
@@ -52,28 +53,28 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Dialog to display detailed information about an MCP server using event-driven architecture.
  */
 public class McpServerDetailDialog extends Dialog implements EventHandler {
-  private ServerDetail serverDetail;
+  private ServerResponse serverResponse;
   private Combo installOptionsCombo;
   private SourceViewer configurationPreviewViewer;
   private List<InstallOption> installOptions;
   private Button actionButton;
   private IEventBroker eventBroker;
   private McpServerInstallManager installManager;
-  private String mcpRegistryUrl;
+  private String mcpRegistryBaseUrl;
 
   /**
    * Create a new MCP Server Detail Dialog with a shared install manager.
    *
    * @param parentShell The parent shell.
-   * @param serverDetail The server detail to display.
+   * @param serverResponse The server response to display.
    * @param installManager Install manager from parent dialog.
    */
-  public McpServerDetailDialog(Shell parentShell, ServerDetail serverDetail, McpServerInstallManager installManager,
-      String mcpRegistryUrl) {
+  public McpServerDetailDialog(Shell parentShell, ServerResponse serverResponse, McpServerInstallManager installManager,
+      String mcpRegistryBaseUrl) {
     super(parentShell);
-    this.serverDetail = serverDetail;
+    this.serverResponse = serverResponse;
     this.installManager = installManager;
-    this.mcpRegistryUrl = mcpRegistryUrl;
+    this.mcpRegistryBaseUrl = mcpRegistryBaseUrl;
     setShellStyle(getShellStyle() | SWT.RESIZE | SWT.MAX);
 
     try {
@@ -87,6 +88,15 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     }
   }
 
+  /**
+   * Convenience method to get the server detail from the server response.
+   *
+   * @return the server detail, or null if serverResponse is null
+   */
+  private ServerDetail getServerDetail() {
+    return serverResponse != null ? serverResponse.getDetail() : null;
+  }
+
   @Override
   public void handleEvent(Event event) {
     String eventServerName = (String) event.getProperty(McpServerInstallManager.EVENT_DATA_SERVER_NAME);
@@ -95,7 +105,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     McpServerInstallManager.ActionResult actionResult = (McpServerInstallManager.ActionResult) event
         .getProperty(McpServerInstallManager.EVENT_DATA_ACTION_RESULT);
 
-    if (Objects.equals(serverDetail.getName(), eventServerName)
+    ServerDetail serverDetail = getServerDetail();
+    if (serverDetail != null && Objects.equals(serverDetail.name(), eventServerName)
         && CopilotEventConstants.TOPIC_MCP_SERVER_STATE_CHANGE.equals(event.getTopic())) {
       // Determine button state based on action type + action result
       ButtonState buttonState = determineButtonState(actionType, actionResult);
@@ -189,12 +200,13 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   @Override
   protected void configureShell(Shell newShell) {
     super.configureShell(newShell);
-    String title = serverDetail != null && serverDetail.getName() != null
-        ? Messages.mcpServerDetailDialog_title + " - " + serverDetail.getName()
+    ServerDetail serverDetail = getServerDetail();
+    String title = serverDetail != null && serverDetail.name() != null
+        ? Messages.mcpServerDetailDialog_title + " - " + serverDetail.name()
         : Messages.mcpServerDetailDialog_title;
     newShell.setText(title);
 
-    Image dialogIcon = UiUtils.buildImageFromPngPath("/icons/chat/mcp_registry.png");
+    Image dialogIcon = UiUtils.buildImageFromPngPath("/icons/mcp/mcp_registry.png");
     if (dialogIcon != null) {
       newShell.setImage(dialogIcon);
     }
@@ -228,6 +240,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   protected Control createDialogArea(Composite parent) {
     Composite area = (Composite) super.createDialogArea(parent);
 
+    ServerDetail serverDetail = getServerDetail();
     if (serverDetail == null) {
       createErrorContent(area);
       return area;
@@ -241,7 +254,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     area.setLayout(areaLayout);
 
     // Server name and meta information section
-    createSectionHeader(area, serverDetail.getName());
+    createSectionHeader(area, serverDetail.name());
     createInfoContent(area);
 
     // Description section
@@ -313,26 +326,29 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private boolean hasVersion() {
-    return serverDetail != null && StringUtils.isNotBlank(serverDetail.getVersion());
+    return serverResponse != null && serverResponse.getDetail() != null
+        && StringUtils.isNotBlank(serverResponse.getDetail().version());
   }
 
   private boolean hasPublishedDate() {
-    return serverDetail != null && serverDetail.getMeta() != null && serverDetail.getMeta().getOfficial() != null
-        && StringUtils.isNotBlank(serverDetail.getMeta().getOfficial().getPublishedAt());
+    return serverResponse != null && serverResponse.meta() != null && serverResponse.meta().official() != null
+        && StringUtils.isNotBlank(serverResponse.meta().official().publishedAt());
   }
 
   private boolean hasUpdatedDate() {
-    return serverDetail != null && serverDetail.getMeta() != null && serverDetail.getMeta().getOfficial() != null
-        && StringUtils.isNotBlank(serverDetail.getMeta().getOfficial().getUpdatedAt());
+    return serverResponse != null && serverResponse.meta() != null && serverResponse.meta().official() != null
+        && StringUtils.isNotBlank(serverResponse.meta().official().updatedAt());
   }
 
   private boolean hasRepositoryLink() {
-    return serverDetail != null && serverDetail.getRepository() != null
-        && StringUtils.isNotBlank(serverDetail.getRepository().getUrl());
+    return serverResponse != null && serverResponse.getDetail() != null
+        && serverResponse.getDetail().repository() != null
+        && StringUtils.isNotBlank(serverResponse.getDetail().repository().url());
   }
 
   private void createDescriptionContent(Composite parent) {
-    String description = serverDetail.getDescription();
+    ServerDetail serverDetail = getServerDetail();
+    String description = serverDetail == null ? "" : serverDetail.description();
     Label descLabel = new Label(parent, SWT.WRAP);
     descLabel.setText(StringUtils.isBlank(description) ? Messages.mcpServerDetailDialog_noDescription : description);
     GridData descData = new GridData(SWT.FILL, SWT.TOP, true, false);
@@ -341,14 +357,15 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private void createVersionContent(Composite parent) {
-    String version = serverDetail.getVersion();
+    ServerDetail serverDetail = getServerDetail();
+    String version = serverDetail == null ? Messages.mcpServerDetailDialog_unknownVersion : serverDetail.version();
     createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/versions_dark.png" : "/icons/mcp/versions.png",
         Messages.mcpServerDetailDialog_version + " " + version, Messages.mcpServerDetailDialog_version + " " + version);
   }
 
   private void createPublishedContent(Composite parent) {
-    String relativeTime = getFormattedRelativeTime(serverDetail.getMeta().getOfficial().getPublishedAt());
-    String detailedDate = getDetailedFormattedDate(serverDetail.getMeta().getOfficial().getPublishedAt());
+    String relativeTime = getFormattedRelativeTime(serverResponse.meta().official().publishedAt());
+    String detailedDate = getDetailedFormattedDate(serverResponse.meta().official().publishedAt());
     String text = relativeTime != null ? Messages.mcpServerDetailDialog_published + " " + relativeTime
         : Messages.mcpServerDetailDialog_noPublishedDate;
     createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/history_dark.png" : "/icons/mcp/history.png", text,
@@ -356,8 +373,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private void createUpdatedContent(Composite parent) {
-    String relativeTime = getFormattedRelativeTime(serverDetail.getMeta().getOfficial().getUpdatedAt());
-    String detailedDate = getDetailedFormattedDate(serverDetail.getMeta().getOfficial().getUpdatedAt());
+    String relativeTime = getFormattedRelativeTime(serverResponse.meta().official().updatedAt());
+    String detailedDate = getDetailedFormattedDate(serverResponse.meta().official().updatedAt());
     String text = relativeTime != null ? Messages.mcpServerDetailDialog_updated + " " + relativeTime
         : Messages.mcpServerDetailDialog_noUpdatedDate;
     createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/update_dark.png" : "/icons/mcp/update.png", text,
@@ -374,7 +391,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     repoLink.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
     repoLink.addListener(SWT.Selection, ex -> {
-      String url = serverDetail.getRepository().getUrl();
+      ServerDetail serverDetail = getServerDetail();
+      String url = (serverDetail == null || serverDetail.repository() == null) ? "" : serverDetail.repository().url();
       if (url != null) {
         Program.launch(url);
       }
@@ -483,13 +501,14 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   private void populateInstallationOptions() {
     installOptions = new ArrayList<>();
 
+    ServerDetail serverDetail = getServerDetail();
     if (serverDetail == null) {
       return;
     }
 
     // Cache lists locally and compute presence flags
-    List<Remote> remotes = serverDetail.getRemotes();
-    List<Package> packages = serverDetail.getPackages();
+    List<Remote> remotes = serverDetail.remotes();
+    List<Package> packages = serverDetail.packages();
     boolean hasRemotes = remotes != null && !remotes.isEmpty();
     boolean hasPackages = packages != null && !packages.isEmpty();
 
@@ -497,13 +516,12 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     if (hasRemotes) {
       for (Remote remote : remotes) {
         JsonObject config = McpServerConfigurationBuilder.createRemoteServerConfiguration(remote, serverDetail,
-            this.mcpRegistryUrl);
-        String typeSuffix = (remote.getTransportType() != null
-            && StringUtils.isNotBlank(remote.getTransportType().toString())
-                ? " (" + remote.getTransportType().toString() + ")"
-                : "");
+            this.mcpRegistryBaseUrl);
+        String typeSuffix = (remote.transportType() != null && StringUtils.isNotBlank(remote.transportType().toString())
+            ? " (" + remote.transportType().toString() + ")"
+            : "");
         InstallOption option = new InstallOption(
-            NLS.bind(Messages.mcpServerDetailDialog_remote_prefix, remote.getUrl(), typeSuffix), config);
+            NLS.bind(Messages.mcpServerDetailDialog_remote_prefix, remote.url(), typeSuffix), config);
 
         installOptions.add(option);
         installOptionsCombo.add(option.getDisplayName());
@@ -514,15 +532,20 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     if (hasPackages) {
       for (Package pkg : packages) {
         JsonObject config = McpServerConfigurationBuilder.createPackageServerConfiguration(pkg, serverDetail,
-            this.mcpRegistryUrl);
-        InstallOption option = new InstallOption(pkg.getRegistryType() + ": " + pkg.getIdentifier(), config);
+            this.mcpRegistryBaseUrl);
+        InstallOption option = new InstallOption(pkg.registryType() + ": " + pkg.identifier(), config);
         installOptions.add(option);
         installOptionsCombo.add(option.getDisplayName());
       }
     }
 
-    // Select first option by default
-    if (!installOptions.isEmpty()) {
+    if (installOptions.isEmpty()) {
+      // Set placeholder text when no install options available
+      installOptionsCombo.add(Messages.mcpServerDetailDialog_no_install_options);
+      installOptionsCombo.select(0);
+      installOptionsCombo.setEnabled(false);
+    } else {
+      // Select first option by default
       installOptionsCombo.select(0);
     }
   }
@@ -539,13 +562,18 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
       return;
     }
 
+    if (installOptions == null || installOptions.isEmpty()) {
+      configurationPreviewViewer.setDocument(new Document(Messages.mcpServerDetailDialog_no_configuration_available));
+      return;
+    }
+
     int selectedIndex = installOptionsCombo.getSelectionIndex();
     if (selectedIndex >= 0 && selectedIndex < installOptions.size()) {
       InstallOption selectedOption = installOptions.get(selectedIndex);
       JsonObject config = selectedOption.getConfiguration();
 
       // Format the JSON for display
-      Gson gson = new GsonBuilder().setPrettyPrinting().create();
+      Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
       String jsonString = gson.toJson(config);
       configurationPreviewViewer.setDocument(new Document(jsonString));
     } else {
@@ -559,6 +587,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private void onInstallSelected() {
+    ServerDetail serverDetail = getServerDetail();
     if (installOptionsCombo == null || serverDetail == null || installOptions == null) {
       return;
     }
@@ -570,18 +599,19 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
       JsonObject config = selectedOption.getConfiguration();
 
       if (installManager != null) {
-        installManager.installServer(serverDetail.getName(), config);
+        installManager.installServer(serverDetail.name(), config);
       }
     }
   }
 
   private void onUninstall() {
+    ServerDetail serverDetail = getServerDetail();
     if (serverDetail == null) {
       return;
     }
 
     if (installManager != null) {
-      installManager.uninstallServer(serverDetail.getName());
+      installManager.uninstallServer(serverDetail.name());
     }
   }
 
@@ -614,44 +644,26 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     }
   }
 
-  /**
-   * Extracts URL from ServerDetail, preferring the first remote server's URL.
-   *
-   * @param serverDetail The server detail
-   * @return The URL or null if not available
-   */
-  private String getUrlFromServerDetail(ServerDetail serverDetail) {
-    if (serverDetail == null) {
-      return null;
-    }
-
-    List<Remote> remotes = serverDetail.getRemotes();
-    if (remotes != null && !remotes.isEmpty() && remotes.get(0) != null) {
-      return remotes.get(0).getUrl();
-    }
-    return null;
-  }
-
   @Override
   protected void createButtonsForButtonBar(Composite parent) {
-    // Determine initial button state based on whether server is installed
-    String serverId = McpServerConfigurationBuilder.getServerId(serverDetail);
-    String url = getUrlFromServerDetail(serverDetail);
-    ButtonState initialState = this.installManager.getInitialState(serverId, url);
-    boolean isInstalled = initialState == ButtonState.UNINSTALL;
+    ServerDetail serverDetail = getServerDetail();
 
-    // Create Install/Uninstall button
-    actionButton = createButton(parent, 1000, initialState.getText(), true);
+    // Create action button only if server detail exists and has valid installation options
+    if (serverDetail != null && this.installOptions != null && !this.installOptions.isEmpty()) {
+      ButtonState initialState = this.installManager.getInitialState(serverDetail.name(), this.mcpRegistryBaseUrl);
+      boolean isInstalled = initialState == ButtonState.UNINSTALL;
 
-    if (isInstalled) {
-      // If installed, set up uninstall functionality
-      actionButton.addListener(SWT.Selection, e -> onUninstall());
-    } else {
-      // If not installed, set up install functionality
-      actionButton.addListener(SWT.Selection, e -> onInstallSelected());
+      actionButton = createButton(parent, 1000, initialState.getText(), true);
+      actionButton.addListener(SWT.Selection, e -> {
+        if (isInstalled) {
+          onUninstall();
+        } else {
+          onInstallSelected();
+        }
+      });
     }
 
-    // Create Close button
+    // Always create Close button
     createButton(parent, CANCEL, Messages.mcpServerDetailDialog_close, false);
   }
 }

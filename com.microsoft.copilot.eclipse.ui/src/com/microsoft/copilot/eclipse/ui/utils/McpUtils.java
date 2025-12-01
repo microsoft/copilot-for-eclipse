@@ -20,8 +20,6 @@ import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer
  * Utility class for handling MCP related operations.
  */
 public class McpUtils {
-  public static final String MCP_REGISTRY_VERSION_SUFFIX = "/v0/servers";
-
   /**
    * Get the MCP allowlist from the Copilot Language Server connection. This method retrieves the allowlist which
    * contains the MCP registry entries and their access modes.
@@ -42,7 +40,7 @@ public class McpUtils {
   }
 
   /**
-   * Get the MCP registry URL from the allowlist. This method processes the allowlist to determine the appropriate
+   * Get the MCP registry base URL from the allowlist. This method processes the allowlist to determine the appropriate
    * registry URL based on the access mode and local preferences.
    *
    * <p>URL selection logic based on admin settings:
@@ -56,25 +54,26 @@ public class McpUtils {
    *
    * @return The selected MCP registry URL, or an empty string if no valid URL is available
    */
-  public static String parseMcpRegistryUrlFromAllowList(McpRegistryAllowList allowList) {
+  public static String parseMcpRegistryBaseUrlFromAllowList(McpRegistryAllowList allowList) {
     String localUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
-        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL);
+        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_BASE_URL);
+    String registryBaseUrl = extractBaseUrl(localUrl.replaceAll("/+$", ""));
 
     // If no allowlist data exists, fall back to local preference
     if (allowList == null || allowList.getMcpRegistries() == null || allowList.getMcpRegistries().isEmpty()) {
-      return localUrl;
+      return registryBaseUrl;
     }
 
     // Process first registry entry
     McpRegistryEntry entry = allowList.getMcpRegistries().get(0);
     RegistryAccess registryAccess = entry.getRegistryAccess();
-    String allowlistUrl = entry.getUrl() != null ? entry.getUrl().replaceAll("/+$", "") + MCP_REGISTRY_VERSION_SUFFIX
-        : "";
+    String allowlistBaseUrl = extractBaseUrl(entry.getUrl() != null ? entry.getUrl().replaceAll("/+$", "")
+        : "");
 
     // Determine URL based on access mode (registry_only takes precedence)
     if (registryAccess == RegistryAccess.registry_only) {
-      // Use only allowlist URL
-      if (StringUtils.isBlank(allowlistUrl)) {
+      // Use only allowlist base URL
+      if (StringUtils.isBlank(allowlistBaseUrl)) {
         SwtUtils.getDisplay().asyncExec(() -> {
           MessageDialog.openWarning(SwtUtils.getDisplay().getActiveShell(),
               Messages.mcpRegistryDialog_emptyUrlForRegistryOnly_title,
@@ -82,14 +81,14 @@ public class McpUtils {
         });
         return "";
       }
-      return allowlistUrl;
+      return allowlistBaseUrl;
     } else if (RegistryAccess.allow_all == registryAccess) {
       // Prefer local URL, fallback to allowlist URL
-      return StringUtils.isNotBlank(localUrl) ? localUrl : allowlistUrl;
+      return StringUtils.isNotBlank(registryBaseUrl) ? registryBaseUrl : allowlistBaseUrl;
     }
 
     // Default fallback to local preference for unknown access modes
-    return localUrl;
+    return registryBaseUrl;
   }
 
   /**

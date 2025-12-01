@@ -20,12 +20,12 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.GetServerParams;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.GetServerParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ListServersParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCompletionContentPart;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
@@ -554,17 +554,14 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ServerList> listMcpServers(ListServersParams params) {
     Function<LanguageServer, CompletableFuture<ServerList>> fn = server -> ((CopilotLanguageServer) server)
         .listMcpServers(params);
-    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
-      CopilotCore.LOGGER.error(ex);
-      return null;
-    });
+    return this.languageServerWrapper.execute(fn);
   }
 
   /**
    * Get the details of a specific MCP server.
    */
-  public CompletableFuture<ServerDetail> getMcpServer(GetServerParams params) {
-    Function<LanguageServer, CompletableFuture<ServerDetail>> fn = server -> ((CopilotLanguageServer) server)
+  public CompletableFuture<ServerResponse> getMcpServer(GetServerParams params) {
+    Function<LanguageServer, CompletableFuture<ServerResponse>> fn = server -> ((CopilotLanguageServer) server)
         .getMcpServer(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);

@@ -6,12 +6,12 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageServer;
 
-import com.microsoft.copilot.eclipse.core.lsp.mcp.GetServerParams;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.GetServerParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ListServersParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
@@ -242,7 +242,7 @@ public interface CopilotLanguageServer extends LanguageServer {
    * Get the details of a specific MCP server.
    */
   @JsonRequest("mcp/registry/getServer")
-  CompletableFuture<ServerDetail> getMcpServer(GetServerParams params);
+  CompletableFuture<ServerResponse> getMcpServer(GetServerParams params);
 
   /**
    * Get the MCP registry allowlist for the current user or organization.

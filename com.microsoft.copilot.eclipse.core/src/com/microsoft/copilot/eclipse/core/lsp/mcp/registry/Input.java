@@ -1,66 +1,24 @@
-package com.microsoft.copilot.eclipse.core.lsp.mcp;
+package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.List;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents an input parameter for an MCP package or runtime.
  */
 public class Input {
   private String description;
-
-  @SerializedName("is_required")
   private Boolean isRequired;
-  private InputFormat format;
+  private Format format;
   private String value;
-
-  @SerializedName("is_secret")
   private Boolean isSecret;
 
   @SerializedName("default")
   private String defaultValue;
+  private String placeholder;
   private List<String> choices;
-
-  /**
-   * Parameterized constructor.
-   *
-   * @param description Description of the input
-   * @param isRequired Whether the input is required
-   * @param format Format of the input
-   * @param value Value of the input
-   * @param isSecret Whether the input is secret
-   * @param defaultValue Default value of the input
-   * @param choices List of valid choices for the input
-   */
-  public Input(String description, Boolean isRequired, InputFormat format, String value, Boolean isSecret,
-      String defaultValue, List<String> choices) {
-    this.description = description;
-    this.isRequired = isRequired;
-    this.format = format;
-    this.value = value;
-    this.isSecret = isSecret;
-    this.defaultValue = defaultValue;
-    this.choices = choices;
-  }
-
-  /**
-   * Parameterized constructor that accepts format as a string.
-   *
-   * @param description Description of the input
-   * @param isRequired Whether the input is required
-   * @param format Format of the input as a string
-   * @param value Value of the input
-   * @param isSecret Whether the input is secret
-   * @param defaultValue Default value of the input
-   * @param choices List of valid choices for the input
-   */
-  public Input(String description, Boolean isRequired, String format, String value, Boolean isSecret,
-      String defaultValue, List<String> choices) {
-    this(description, isRequired, InputFormat.fromString(format), value, isSecret, defaultValue, choices);
-  }
 
   public String getDescription() {
     return description;
@@ -78,11 +36,11 @@ public class Input {
     this.isRequired = isRequired;
   }
 
-  public InputFormat getFormat() {
+  public Format getFormat() {
     return format;
   }
 
-  public void setFormat(InputFormat format) {
+  public void setFormat(Format format) {
     this.format = format;
   }
 
@@ -110,6 +68,14 @@ public class Input {
     this.defaultValue = defaultValue;
   }
 
+  public String getPlaceholder() {
+    return placeholder;
+  }
+
+  public void setPlaceholder(String placeholder) {
+    this.placeholder = placeholder;
+  }
+
   public List<String> getChoices() {
     return choices;
   }
@@ -120,7 +86,7 @@ public class Input {
 
   @Override
   public int hashCode() {
-    return Objects.hash(choices, defaultValue, description, format, isRequired, isSecret, value);
+    return Objects.hash(choices, defaultValue, description, format, isRequired, isSecret, placeholder, value);
   }
 
   @Override
@@ -136,35 +102,33 @@ public class Input {
     }
     Input other = (Input) obj;
     return Objects.equals(choices, other.choices) && Objects.equals(defaultValue, other.defaultValue)
-        && Objects.equals(description, other.description) && Objects.equals(format, other.format)
+        && Objects.equals(description, other.description) && format == other.format
         && Objects.equals(isRequired, other.isRequired) && Objects.equals(isSecret, other.isSecret)
-        && Objects.equals(value, other.value);
+        && Objects.equals(placeholder, other.placeholder) && Objects.equals(value, other.value);
   }
 
   @Override
   public String toString() {
-    ToStringBuilder builder = new ToStringBuilder(this);
-    builder.append("description", description);
-    builder.append("isRequired", isRequired);
-    builder.append("format", format);
-    builder.append("value", value);
-    builder.append("isSecret", isSecret);
-    builder.append("defaultValue", defaultValue);
-    builder.append("choices", choices);
+    org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder builder = new org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder(this);
+    builder.add("description", description);
+    builder.add("isRequired", isRequired);
+    builder.add("format", format);
+    builder.add("value", value);
+    builder.add("isSecret", isSecret);
+    builder.add("defaultValue", defaultValue);
+    builder.add("placeholder", placeholder);
+    builder.add("choices", choices);
     return builder.toString();
   }
 
   /**
    * Enum representing the possible input formats.
    */
-  public static enum InputFormat {
+  public static enum Format {
     @SerializedName("string")
-    STRING,
-    @SerializedName("number")
-    NUMBER,
-    @SerializedName("boolean")
-    BOOLEAN,
-    @SerializedName("filepath")
+    STRING, @SerializedName("number")
+    NUMBER, @SerializedName("boolean")
+    BOOLEAN, @SerializedName("filepath")
     FILEPATH;
 
     /**
@@ -178,13 +142,13 @@ public class Input {
     }
 
     /**
-     * Converts a string to an InputFormat enum value.
+     * Converts a string to an Format enum value.
      *
      * @param value The string representation of the format
-     * @return The corresponding InputFormat enum value, or null if value is null
+     * @return The corresponding Format enum value, or null if value is null
      * @throws IllegalArgumentException if the format is unknown
      */
-    public static InputFormat fromString(String value) {
+    public static Format fromString(String value) {
       if (value == null) {
         return null;
       }

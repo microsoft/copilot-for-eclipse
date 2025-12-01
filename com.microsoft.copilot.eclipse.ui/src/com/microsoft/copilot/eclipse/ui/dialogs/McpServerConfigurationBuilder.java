@@ -9,13 +9,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Argument;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.KeyValueInput;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.NamedArgument;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Package;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.PositionalArgument;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
+import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Argument;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.KeyValueInput;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.NamedArgument;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Package;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.PositionalArgument;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Remote;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
 
 /**
  * Utility class for building MCP server configuration JSON objects. Contains common configuration building logic shared
@@ -35,14 +36,14 @@ public class McpServerConfigurationBuilder {
       String mcpProviderUrl) {
     JsonObject serverConfig = new JsonObject();
     serverConfig.addProperty("type", "http");
-    serverConfig.addProperty("url", remote.getUrl());
+    serverConfig.addProperty("url", remote.url());
 
     // Handle optional headers for remote servers
-    if (remote.getHeaders() != null && !remote.getHeaders().isEmpty()) {
+    if (remote.headers() != null && !remote.headers().isEmpty()) {
       JsonObject requestInit = new JsonObject();
       JsonObject headersObject = new JsonObject();
 
-      remote.getHeaders().forEach(header -> {
+      remote.headers().forEach(header -> {
         if (header.getName() != null && header.getValue() != null) {
           headersObject.addProperty(header.getName(), header.getValue());
         }
@@ -63,25 +64,24 @@ public class McpServerConfigurationBuilder {
    *
    * @param pkg The package configuration
    * @param serverDetail The server detail (optional, for metadata)
-   * @param mcpProviderUrl The MCP provider URL
+   * @param mcpRegistryBaseUrl The MCP Registry Base URL
    * @return JSON configuration object
    */
   public static JsonObject createPackageServerConfiguration(Package pkg, ServerDetail serverDetail,
-      String mcpProviderUrl) {
+      String mcpRegistryBaseUrl) {
     JsonObject serverConfig = new JsonObject();
-
     serverConfig.addProperty("type", "stdio");
 
     // Determine command: use runtimeHint if available, otherwise use registryType-based logic
-    String command = pkg.getRuntimeHint() != null ? pkg.getRuntimeHint() : getCommandName(pkg.getRegistryType());
+    String command = pkg.runtimeHint() != null ? pkg.runtimeHint() : getCommandName(pkg.registryType());
     serverConfig.addProperty("command", command);
 
     // Handle arguments
     JsonArray argsArray = new JsonArray();
 
     // If runtime arguments exist, use them; otherwise, build arguments based on registry type
-    if (pkg.getRuntimeArguments() != null && !pkg.getRuntimeArguments().isEmpty()) {
-      for (Argument argument : pkg.getRuntimeArguments()) {
+    if (pkg.runtimeArguments() != null && !pkg.runtimeArguments().isEmpty()) {
+      for (Argument argument : pkg.runtimeArguments()) {
         for (String value : extractArgumentValues(argument)) {
           argsArray.add(value);
         }
@@ -94,8 +94,8 @@ public class McpServerConfigurationBuilder {
     }
 
     // Add package arguments if they exist
-    if (pkg.getPackageArguments() != null && !pkg.getPackageArguments().isEmpty()) {
-      for (Argument argument : pkg.getPackageArguments()) {
+    if (pkg.packageArguments() != null && !pkg.packageArguments().isEmpty()) {
+      for (Argument argument : pkg.packageArguments()) {
         for (String value : extractArgumentValues(argument)) {
           argsArray.add(value);
         }
@@ -105,16 +105,16 @@ public class McpServerConfigurationBuilder {
     serverConfig.add("args", argsArray);
 
     // Handle environment variables
-    if (pkg.getEnvironmentVariables() != null && !pkg.getEnvironmentVariables().isEmpty()) {
+    if (pkg.environmentVariables() != null && !pkg.environmentVariables().isEmpty()) {
       JsonObject envObject = new JsonObject();
-      for (KeyValueInput envVar : pkg.getEnvironmentVariables()) {
+      for (KeyValueInput envVar : pkg.environmentVariables()) {
         envObject.addProperty(envVar.getName(), envVar.getValue() != null ? envVar.getValue() : "");
       }
       serverConfig.add("env", envObject);
     }
 
     // Add x-metadata section with registry information if requested
-    addMetadata(serverConfig, serverDetail, mcpProviderUrl);
+    addMetadata(serverConfig, serverDetail, mcpRegistryBaseUrl);
 
     return serverConfig;
   }
@@ -124,31 +124,24 @@ public class McpServerConfigurationBuilder {
    *
    * @param serverConfig The server configuration JSON object
    * @param serverDetail The server detail containing metadata
-   * @param mcpProviderUrl The MCP provider URL
+   * @param mcpRegistryBaseUrl The MCP Registry Base URL
    */
-  public static void addMetadata(JsonObject serverConfig, ServerDetail serverDetail, String mcpProviderUrl) {
-    JsonObject metadata = new JsonObject();
+  public static void addMetadata(JsonObject serverConfig, ServerDetail serverDetail, String mcpRegistryBaseUrl) {
     JsonObject registry = new JsonObject();
-    registry.addProperty("url", mcpProviderUrl);
-    String serverId = getServerId(serverDetail);
-    if (serverId != null) {
-      registry.addProperty("serverId", serverId);
-    }
+
+    JsonObject api = new JsonObject();
+    api.addProperty("baseUrl", mcpRegistryBaseUrl);
+    api.addProperty("version", Constants.MCP_REGISTRY_VERSION);
+    registry.add("api", api);
+
+    JsonObject mcpServer = new JsonObject();
+    mcpServer.addProperty("name", serverDetail.name());
+    mcpServer.addProperty("version", serverDetail.version());
+    registry.add("mcpServer", mcpServer);
+
+    JsonObject metadata = new JsonObject();
     metadata.add("registry", registry);
     serverConfig.add("x-metadata", metadata);
-  }
-
-  /**
-   * Gets the server ID from server detail.
-   *
-   * @param serverDetail The server detail
-   * @return The server ID or null if not available
-   */
-  public static String getServerId(ServerDetail serverDetail) {
-    if (serverDetail.getMeta() != null && serverDetail.getMeta().getOfficial() != null) {
-      return serverDetail.getMeta().getOfficial().getId();
-    }
-    return null;
   }
 
   /**
@@ -185,12 +178,12 @@ public class McpServerConfigurationBuilder {
   public static List<String> buildDefaultArguments(Package pkg) {
     List<String> args = new ArrayList<>();
 
-    if (StringUtils.isBlank(pkg.getRegistryType())) {
+    if (StringUtils.isBlank(pkg.registryType())) {
       args.add(buildVersionedIdentifier(pkg, "@"));
       return args;
     }
 
-    switch (pkg.getRegistryType()) {
+    switch (pkg.registryType()) {
       case "npm":
         args.add("-y");
         args.add(buildVersionedIdentifier(pkg, "@"));
@@ -207,7 +200,7 @@ public class McpServerConfigurationBuilder {
       case "nuget":
         args.add(buildVersionedIdentifier(pkg, "@"));
         args.add("--yes");
-        if (pkg.getPackageArguments() != null && !pkg.getPackageArguments().isEmpty()) {
+        if (pkg.packageArguments() != null && !pkg.packageArguments().isEmpty()) {
           args.add("--");
         }
         break;
@@ -227,8 +220,7 @@ public class McpServerConfigurationBuilder {
    * @return The versioned package identifier
    */
   private static String buildVersionedIdentifier(Package pkg, String separator) {
-    return StringUtils.isNotBlank(pkg.getVersion()) ? pkg.getIdentifier() + separator + pkg.getVersion()
-        : pkg.getIdentifier();
+    return StringUtils.isNotBlank(pkg.version()) ? pkg.identifier() + separator + pkg.version() : pkg.identifier();
   }
 
   /**

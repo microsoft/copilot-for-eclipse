@@ -16,6 +16,7 @@ public final class Messages extends NLS {
   public static String mcpRegistryDialog_loading;
   public static String mcpRegistryDialog_empty;
   public static String mcpRegistryDialog_errorLoading;
+  public static String mcpRegistryDialog_invalidResponse;
   public static String mcpRegistryDialog_button_refresh;
   public static String mcpRegistryDialog_button_refresh_tooltip;
   public static String mcpRegistryDialog_button_changeUrl;
@@ -45,6 +46,9 @@ public final class Messages extends NLS {
   public static String mcpServerDetailDialog_installation_options;
   public static String mcpServerDetailDialog_configuration_preview;
   public static String mcpServerDetailDialog_remote_prefix;
+  public static String mcpServerDetailDialog_no_install_options;
+  public static String mcpServerDetailDialog_no_configuration_available;
+  public static String mcpServerDetailDialog_unknownVersion;
 
   public static String mcpApprovalDialog_title;
   public static String mcpApprovalDialog_description;

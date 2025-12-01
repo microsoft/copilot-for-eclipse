@@ -30,10 +30,12 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Package;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.Remote;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Package;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Remote;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog.ServerItem;
 import com.microsoft.copilot.eclipse.ui.dialogs.McpServerInstallManager.ButtonState;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -43,7 +45,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class McpServerAction implements EventHandler {
   private final List<TableEditor> editors = new ArrayList<>();
-  private final Map<String, ToolItem> serverInstallButtons = new HashMap<>();
+  private final Map<String, ToolItem> serverActionButtons = new HashMap<>();
   private final Map<String, ServerDetail> serverDetailsCache = new HashMap<>();
 
   // Dependencies
@@ -51,23 +53,42 @@ public class McpServerAction implements EventHandler {
   private final McpServerInstallManager installManager;
   private final IEventBroker eventBroker;
   private IStylingEngine stylingEngine;
-  private String mcpRegistryUrl;
+  private String mcpRegistryBaseUrl;
 
   /**
    * Constructor for ActionItems.
    *
    * @param parentShell The parent shell for dialog interactions.
    */
-  public McpServerAction(Shell parentShell, String mcpRegistryUrl) {
+  public McpServerAction(Shell parentShell, String mcpRegistryBaseUrl) {
     this.parentShell = parentShell;
+    this.mcpRegistryBaseUrl = mcpRegistryBaseUrl;
     this.installManager = new McpServerInstallManager();
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-    this.mcpRegistryUrl = mcpRegistryUrl;
 
     if (this.eventBroker != null) {
       this.eventBroker.subscribe(CopilotEventConstants.TOPIC_MCP_SERVER_STATE_CHANGE, this);
     }
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
+  }
+
+  /**
+   * Builds action editors for each server item in the provided table.
+   *
+   * @param table The table to populate with action editors.
+   * @param items The list of server items to create actions for.
+   */
+  public void buildActionEditors(Table table, List<ServerItem> items) {
+    for (int i = 0; i < table.getItemCount(); i++) {
+      TableItem item = table.getItem(i);
+      Composite actionCell = createActionEditor(table, item);
+      // only add measurement listener once
+      if (i == 0 && actionCell != null) {
+        TableMeasurementListener listener = new TableMeasurementListener(actionCell);
+        table.addListener(SWT.MeasureItem, listener);
+        actionCell.addDisposeListener(e -> table.removeListener(SWT.MeasureItem, listener));
+      }
+    }
   }
 
   @Override
@@ -124,25 +145,6 @@ public class McpServerAction implements EventHandler {
   }
 
   /**
-   * Builds action editors for each server item in the provided table.
-   *
-   * @param table The table to populate with action editors.
-   * @param items The list of server items to create actions for.
-   */
-  public void buildActionEditors(Table table, List<McpRegistryDialog.ServerItem> items) {
-    for (int i = 0; i < table.getItemCount(); i++) {
-      TableItem item = table.getItem(i);
-      Composite actionCell = createActionEditor(table, item);
-      // only add measurement listener once
-      if (i == 0 && actionCell != null) {
-        TableMeasurementListener listener = new TableMeasurementListener(actionCell);
-        table.addListener(SWT.MeasureItem, listener);
-        actionCell.addDisposeListener(e -> table.removeListener(SWT.MeasureItem, listener));
-      }
-    }
-  }
-
-  /**
    * Disposes all editors and clears associated resources.
    */
   public void disposeAllEditors() {
@@ -158,19 +160,19 @@ public class McpServerAction implements EventHandler {
     editors.clear();
 
     // Clear the button cache when disposing editors to prevent stale references
-    serverInstallButtons.clear();
+    serverActionButtons.clear();
     serverDetailsCache.clear();
   }
 
   private void updateButtonState(String serverName, ButtonState state) {
-    ToolItem button = serverInstallButtons.get(serverName);
+    ToolItem button = serverActionButtons.get(serverName);
     if (button != null && !button.isDisposed()) {
       switch (state) {
         case INSTALL:
         case UNINSTALL:
           Composite toolBar = button.getParent();
           button.dispose();
-          createInstallUninstallButton((ToolBar) toolBar, serverDetailsCache.get(serverName));
+          createActionButton((ToolBar) toolBar, serverDetailsCache.get(serverName));
           toolBar.requestLayout();
           break;
         case INSTALLING:
@@ -184,23 +186,23 @@ public class McpServerAction implements EventHandler {
     }
   }
 
-  private boolean shouldSkipActionButtons(McpRegistryDialog.ServerItem serverItem) {
+  private boolean shouldSkipActionButtons(ServerItem serverItem) {
     return serverItem == null || isStatusRow(serverItem)
         || McpRegistryDialog.LOADING_SPINNER_ROW_NAME.equals(serverItem.name);
   }
 
   private Composite createActionEditor(Table table, TableItem item) {
-    McpRegistryDialog.ServerItem serverItem = (McpRegistryDialog.ServerItem) item.getData();
+    ServerItem serverItem = (ServerItem) item.getData();
     if (shouldSkipActionButtons(serverItem)) {
       return null;
     }
-    ServerDetail serverDetail = serverItem.details;
-    if (serverDetail == null) {
+    ServerResponse serverResponse = serverItem.serverResponse;
+    if (serverResponse == null) {
       return null;
     }
 
     Composite cell = createActionCell(table);
-    createActionToolBar(cell, serverDetail);
+    createActionToolBar(cell, serverResponse);
 
     TableEditor editor = new TableEditor(table);
     editor.grabHorizontal = true;
@@ -222,56 +224,65 @@ public class McpServerAction implements EventHandler {
     return cell;
   }
 
-  private void createActionToolBar(Composite parent, ServerDetail serverDetail) {
+  private void createActionToolBar(Composite parent, ServerResponse serverResponse) {
     ToolBar toolBar = new ToolBar(parent, SWT.FLAT);
     toolBar.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
-    createDetailsButton(toolBar, serverDetail);
+    createDetailsButton(toolBar, serverResponse);
     ToolItem separator = new ToolItem(toolBar, SWT.SEPARATOR);
     separator.setWidth(1);
-    createInstallUninstallButton(toolBar, serverDetail);
+    createActionButton(toolBar, serverResponse.getDetail());
   }
 
-  private void createDetailsButton(ToolBar toolBar, ServerDetail serverDetail) {
+  private void createDetailsButton(ToolBar toolBar, ServerResponse serverResponse) {
     ToolItem detailsButton = new ToolItem(toolBar, SWT.PUSH);
     detailsButton.setText(Messages.mcpRegistryDialog_details);
-    detailsButton.addListener(SWT.Selection, e -> onDetails(serverDetail));
+    detailsButton.addListener(SWT.Selection, e -> onDetails(serverResponse));
     UiUtils.applyCssClass(detailsButton, "mcp-registry-dialog-actions", stylingEngine);
   }
 
-  private void createInstallUninstallButton(ToolBar toolBar, ServerDetail serverDetail) {
-    ToolItem installButton;
+  private void createActionButton(ToolBar toolBar, ServerDetail serverDetail) {
+    if (serverDetail == null) {
+      return;
+    }
+
+    ToolItem actionButton;
 
     // Determine initial button state based on whether server is installed
-    String serverId = McpServerConfigurationBuilder.getServerId(serverDetail);
-    ButtonState initialState = this.installManager.getInitialState(serverId, this.mcpRegistryUrl);
+    ButtonState initialState = this.installManager.getInitialState(serverDetail.name(), this.mcpRegistryBaseUrl);
     boolean isInstalled = initialState == ButtonState.UNINSTALL;
 
     if (isInstalled) {
       // If installed, show uninstall button
-      installButton = new ToolItem(toolBar, SWT.FLAT);
-      installButton.addListener(SWT.Selection, e -> onUninstall(serverDetail));
+      actionButton = new ToolItem(toolBar, SWT.FLAT);
+      actionButton.addListener(SWT.Selection, e -> onUninstall(serverDetail));
     } else {
       // If not installed, show install dropdown
-      installButton = new ToolItem(toolBar, SWT.DROP_DOWN);
-      Menu installMenu = createInstallMenu(parentShell, installButton, serverDetail, this.mcpRegistryUrl);
-      setupInstallButtonHandler(installButton, installMenu, serverDetail);
+      actionButton = new ToolItem(toolBar, SWT.DROP_DOWN);
+      Menu installMenu = createInstallMenu(parentShell, actionButton, serverDetail);
+
+      if (installMenu.getItemCount() == 0) {
+        // No install options available; disable button
+        actionButton.setEnabled(false);
+        actionButton.setToolTipText("No installation options available for this server.");
+      } else {
+        setupActionButtonHandler(actionButton, installMenu);
+      }
     }
 
-    String serverName = serverDetail.getName();
-    installButton.setText(initialState.getText());
-    serverInstallButtons.put(serverName, installButton);
+    String serverName = serverDetail.name();
+    actionButton.setText(initialState.getText());
+    serverActionButtons.put(serverName, actionButton);
     serverDetailsCache.put(serverName, serverDetail);
-    UiUtils.applyCssClass(installButton, "mcp-registry-dialog-actions", stylingEngine);
+    UiUtils.applyCssClass(actionButton, "mcp-registry-dialog-actions", stylingEngine);
   }
 
-  private Menu createInstallMenu(Shell shell, ToolItem installButton, ServerDetail serverDetail,
-      String mcpProviderUrl) {
+  private Menu createInstallMenu(Shell shell, ToolItem actionButton, ServerDetail serverDetail) {
     Menu installMenu = new Menu(shell);
 
     // Cache lists locally and compute presence flags once
-    List<Remote> remotes = serverDetail.getRemotes();
-    List<Package> packages = serverDetail.getPackages();
+    List<Remote> remotes = serverDetail.remotes();
+    List<Package> packages = serverDetail.packages();
     boolean hasRemotes = remotes != null && !remotes.isEmpty();
     boolean hasPackages = packages != null && !packages.isEmpty();
 
@@ -283,22 +294,21 @@ public class McpServerAction implements EventHandler {
       for (int index = 0; index < remotes.size(); index++) {
         Remote remote = remotes.get(index);
         JsonObject config = McpServerConfigurationBuilder.createRemoteServerConfiguration(remote, serverDetail,
-            mcpProviderUrl);
+            this.mcpRegistryBaseUrl);
         boolean isDefault = !defaultAssigned && index == 0;
         if (isDefault) {
-          installButton.addListener(SWT.Selection, e -> {
+          actionButton.addListener(SWT.Selection, e -> {
             if (e.detail != SWT.ARROW) {
               onInstall(serverDetail, config);
             }
           });
           defaultAssigned = true;
         }
-        String typeSuffix = (remote.getTransportType() != null
-            && StringUtils.isNotBlank(remote.getTransportType().toString())
-                ? " (" + remote.getTransportType().toString() + ")"
-                : "");
-        createMenuItem(installMenu, "remote: " + remote.getUrl() + typeSuffix,
-            "Connect to remote server at " + remote.getUrl() + typeSuffix, () -> onInstall(serverDetail, config));
+        String typeSuffix = (remote.transportType() != null && StringUtils.isNotBlank(remote.transportType().toString())
+            ? " (" + remote.transportType().toString() + ")"
+            : "");
+        createMenuItem(installMenu, "remote: " + remote.url() + typeSuffix,
+            "Connect to remote server at " + remote.url() + typeSuffix, () -> onInstall(serverDetail, config));
       }
     }
 
@@ -312,18 +322,18 @@ public class McpServerAction implements EventHandler {
       for (int index = 0; index < packages.size(); index++) {
         Package pkg = packages.get(index);
         JsonObject config = McpServerConfigurationBuilder.createPackageServerConfiguration(pkg, serverDetail,
-            this.mcpRegistryUrl);
+            this.mcpRegistryBaseUrl);
         boolean isDefault = !defaultAssigned && index == 0;
         if (isDefault) {
-          installButton.addListener(SWT.Selection, e -> {
+          actionButton.addListener(SWT.Selection, e -> {
             if (e.detail != SWT.ARROW) {
               onInstall(serverDetail, config);
             }
           });
           defaultAssigned = true;
         }
-        createMenuItem(installMenu, pkg.getRegistryType() + ": " + pkg.getIdentifier(),
-            "Install " + pkg.getIdentifier() + " from " + pkg.getRegistryType(), () -> onInstall(serverDetail, config));
+        createMenuItem(installMenu, pkg.registryType() + ": " + pkg.identifier(),
+            "Install " + pkg.identifier() + " from " + pkg.registryType(), () -> onInstall(serverDetail, config));
       }
     }
 
@@ -331,21 +341,21 @@ public class McpServerAction implements EventHandler {
   }
 
   // Action handlers - now handle everything internally
-  private void onDetails(ServerDetail serverDetail) {
-    McpServerDetailDialog detailDialog = new McpServerDetailDialog(parentShell, serverDetail, installManager,
-        this.mcpRegistryUrl);
+  private void onDetails(ServerResponse serverResponse) {
+    McpServerDetailDialog detailDialog = new McpServerDetailDialog(parentShell, serverResponse, installManager,
+        this.mcpRegistryBaseUrl);
     detailDialog.open();
   }
 
   private void onInstall(ServerDetail serverDetail, JsonObject config) {
-    String serverName = serverDetail.getName();
+    String serverName = serverDetail != null ? serverDetail.name() : "";
     if (installManager != null) {
       installManager.installServer(serverName, config);
     }
   }
 
   private void onUninstall(ServerDetail serverDetail) {
-    String serverName = serverDetail.getName();
+    String serverName = serverDetail != null ? serverDetail.name() : "";
     if (installManager != null) {
       installManager.uninstallServer(serverName);
     }
@@ -358,10 +368,10 @@ public class McpServerAction implements EventHandler {
     item.addListener(SWT.Selection, e -> action.run());
   }
 
-  private void setupInstallButtonHandler(ToolItem installButton, Menu installMenu, ServerDetail serverDetail) {
-    installButton.addListener(SWT.Selection, e -> {
+  private void setupActionButtonHandler(ToolItem actionButton, Menu installMenu) {
+    actionButton.addListener(SWT.Selection, e -> {
       if (e.detail == SWT.ARROW) {
-        showDropdownMenu(installButton, installMenu);
+        showDropdownMenu(actionButton, installMenu);
       }
     });
   }
@@ -374,7 +384,7 @@ public class McpServerAction implements EventHandler {
     menu.setVisible(true);
   }
 
-  private boolean isStatusRow(McpRegistryDialog.ServerItem serverItem) {
+  private boolean isStatusRow(ServerItem serverItem) {
     // Heuristic: status rows use translated marker keys or have empty description.
     String n = serverItem.name != null ? serverItem.name : "";
     return n.equals(Messages.mcpRegistryDialog_loading) || n.equals(Messages.mcpRegistryDialog_errorLoading)

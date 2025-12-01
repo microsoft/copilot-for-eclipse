@@ -18,8 +18,7 @@ import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
-import org.eclipse.jface.viewers.Viewer;
-import org.eclipse.jface.viewers.ViewerFilter;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
@@ -39,11 +38,13 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ListServersParams;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerDetail;
-import com.microsoft.copilot.eclipse.core.lsp.mcp.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ListServersParams;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerList;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponseMeta;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
@@ -57,7 +58,9 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class McpRegistryDialog extends Dialog {
   public static final String LOADING_SPINNER_ROW_NAME = "__LOADING_SPINNER__";
+  public static final String MCP_REGISTRY_VERSION_SUFFIX = "/" + Constants.MCP_REGISTRY_VERSION + "/servers";
 
+  private static final String LATEST = "latest";
   private static final int PAGE_SIZE = 30;
   private static final int SEARCH_DEBOUNCE_MS = 200;
 
@@ -65,7 +68,8 @@ public class McpRegistryDialog extends Dialog {
   private boolean hasMoreData = true;
   private boolean isLoading = false;
   private List<ServerItem> allItems = new ArrayList<>();
-  private String mcpRegistryUrl = "";
+  private String mcpRegistryBaseUrl = "";
+  private String mcpRegistryFullUrl = "";
   private McpRegistryAllowList mcpAllowList = null;
   private int loadingSpinnerIndex = -1;
 
@@ -192,7 +196,13 @@ public class McpRegistryDialog extends Dialog {
     pendingSearchRefresh = () -> {
       try {
         if (viewer != null && !viewer.getControl().isDisposed()) {
+          // Reset pagination and reload with new search text
+          nextCursor = "";
+          hasMoreData = true;
+          isLoading = false;
+          allItems.clear();
           refresh();
+          loadServers(txtSearch.getText().trim());
         }
       } finally {
         pendingSearchRefresh = null;
@@ -315,7 +325,7 @@ public class McpRegistryDialog extends Dialog {
     int bottomVisibleIndex = Math.min(topIndex + visibleRows, totalItems - 1);
 
     // Trigger loading when near the end (within 10 items)
-    if (totalItems - bottomVisibleIndex <= 10) {
+    if (totalItems - bottomVisibleIndex <= 1) {
       loadServers(txtSearch.getText().trim());
     }
   }
@@ -338,7 +348,7 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void continueRefresh() {
-    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
+    if (StringUtils.isBlank(this.mcpRegistryBaseUrl)) {
       return;
     } else if (viewer == null) {
       // URL state changed - recreate the dialog content
@@ -381,7 +391,7 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void createContent(Composite parent) {
-    if (StringUtils.isBlank(this.mcpRegistryUrl)) {
+    if (StringUtils.isBlank(this.mcpRegistryBaseUrl)) {
       createWelcomeView(parent);
     } else {
       createLoadingView(parent);
@@ -408,11 +418,20 @@ public class McpRegistryDialog extends Dialog {
   }
 
   private void loadServersPage(String cursor, String searchText) {
-    ListServersParams params = new ListServersParams(this.mcpRegistryUrl, PAGE_SIZE, cursor);
+    ListServersParams params = new ListServersParams(this.mcpRegistryFullUrl, cursor, PAGE_SIZE, searchText, LATEST);
     CompletableFuture<ServerList> future = copilotLanguageServerConnection.listMcpServers(params);
     future.thenAccept(serverList -> {
-      List<ServerItem> newItems = processServerList(serverList, searchText, true);
-      showTableItems(newItems);
+      if (serverList == null) {
+        String errorMessage = NLS.bind(Messages.mcpRegistryDialog_invalidResponse, mcpRegistryBaseUrl,
+            Messages.mcpRegistryDialog_button_changeUrl);
+        disposeTableAndShowErrorView(errorMessage);
+      } else {
+        List<ServerItem> newItems = processServerList(serverList, true);
+        showTableItems(newItems);
+      }
+    }).exceptionally(ex -> {
+      disposeTableAndShowErrorView(ex.getMessage());
+      return null;
     });
   }
 
@@ -495,9 +514,12 @@ public class McpRegistryDialog extends Dialog {
     }
 
     isLoading = true;
-    ListServersParams params = new ListServersParams(this.mcpRegistryUrl, PAGE_SIZE, "");
+    ListServersParams params = new ListServersParams(this.mcpRegistryFullUrl, "", PAGE_SIZE, searchText, LATEST);
     copilotLanguageServerConnection.listMcpServers(params).thenAccept(serverList -> {
       initializeTableWithHeader(serverList, searchText);
+    }).exceptionally(ex -> {
+      disposeTableAndShowErrorView(ex.getMessage());
+      return null;
     });
   }
 
@@ -505,6 +527,12 @@ public class McpRegistryDialog extends Dialog {
    * Handle the server list response and show the UI with header and table.
    */
   private void initializeTableWithHeader(ServerList serverList, String searchText) {
+    if (serverList == null) {
+      String errorMessage = NLS.bind(Messages.mcpRegistryDialog_invalidResponse, mcpRegistryBaseUrl,
+          Messages.mcpRegistryDialog_button_changeUrl);
+      disposeTableAndShowErrorView(errorMessage);
+      return;
+    }
     SwtUtils.getDisplay().asyncExec(() -> {
       // Get the container (should be the first child of the dialog area)
       Composite dialogArea = (Composite) getDialogArea();
@@ -528,7 +556,7 @@ public class McpRegistryDialog extends Dialog {
       container.requestLayout();
 
       // Process the server list data
-      processServerList(serverList, searchText, false);
+      processServerList(serverList, false);
 
       isLoading = false;
       refresh();
@@ -552,7 +580,6 @@ public class McpRegistryDialog extends Dialog {
     setupTableResize();
 
     viewer.setContentProvider(ArrayContentProvider.getInstance());
-    viewer.addFilter(new SearchFilter());
 
     allItems.clear();
     viewer.setInput(allItems);
@@ -588,7 +615,9 @@ public class McpRegistryDialog extends Dialog {
       public String getText(Object element) {
         ServerItem item = (ServerItem) element;
         return LOADING_SPINNER_ROW_NAME.equals(item.name) ? ""
-            : item.details != null ? item.details.getDescription() : "";
+            : (item.serverResponse != null && item.serverResponse.getDetail() != null)
+                ? item.serverResponse.getDetail().description()
+                : "";
       }
     });
   }
@@ -614,29 +643,24 @@ public class McpRegistryDialog extends Dialog {
    * @param append true to append items, false to replace with error on null
    * @return the list of new items added
    */
-  private List<ServerItem> processServerList(ServerList serverList, String searchText, boolean append) {
+  private List<ServerItem> processServerList(ServerList serverList, boolean append) {
     List<ServerItem> newItems = new ArrayList<>();
-    if (serverList == null) {
-      disposeTableAndShowErrorView();
-      allItems.clear();
+    if (serverList != null && serverList.servers() != null && serverList.servers().size() == 0) {
       hasMoreData = false;
     } else {
-      List<ServerDetail> servers = serverList.getServers();
+      List<ServerResponse> servers = serverList.servers();
       if (servers != null) {
-        for (ServerDetail details : servers) {
-          if (details != null) {
-            // Filter based on search text before adding
-            if (StringUtils.isBlank(searchText) || StringUtils.containsIgnoreCase(details.getName(), searchText)
-                || StringUtils.containsIgnoreCase(details.getDescription(), searchText)) {
-              // Only add latest official servers
-              if (details.getMeta() != null && details.getMeta().getOfficial() != null
-                  && details.getMeta().getOfficial().isLatest()) {
-                ServerItem item = new ServerItem(details.getName(), details);
-                if (append) {
-                  newItems.add(item);
-                } else {
-                  allItems.add(item);
-                }
+        for (ServerResponse serverResponse : servers) {
+          if (serverResponse != null) {
+            ServerDetail detail = serverResponse.getDetail();
+            ServerResponseMeta meta = serverResponse.meta();
+            // Only add latest official servers
+            if (detail != null && meta != null) {
+              ServerItem item = new ServerItem(detail.name(), serverResponse);
+              if (append) {
+                newItems.add(item);
+              } else {
+                allItems.add(item);
               }
             }
           }
@@ -648,31 +672,48 @@ public class McpRegistryDialog extends Dialog {
     return newItems;
   }
 
-  private void disposeTableAndShowErrorView() {
+  private void disposeTableAndShowErrorView(String errorMessage) {
     SwtUtils.getDisplay().asyncExec(() -> {
-      if (viewer != null && !viewer.getControl().isDisposed()) {
-        Composite dialogArea = (Composite) getDialogArea();
-        if (dialogArea != null && dialogArea.getChildren().length > 0) {
-          Composite container = (Composite) dialogArea.getChildren()[0];
-          if (!container.isDisposed()) {
-            // Dispose only the table and keep action header
+      // Stop spinner if running
+      stopSpinner();
+      removeSpinnerRow();
+
+      // Check if we're still in initial loading phase (no viewer created yet)
+      Composite dialogArea = (Composite) getDialogArea();
+      if (dialogArea != null && dialogArea.getChildren().length > 0) {
+        Composite container = (Composite) dialogArea.getChildren()[0];
+        if (!container.isDisposed()) {
+          boolean isInitialLoadingPhase = viewer == null || viewer.getControl().isDisposed();
+
+          if (isInitialLoadingPhase) {
+            // Initial loading phase - dispose all children and create header
+            for (Control child : container.getChildren()) {
+              child.dispose();
+            }
+            createHeader(container);
+          } else {
+            // Table exists - dispose children after header (keep header)
             Control[] children = container.getChildren();
             for (int i = 1; i < children.length; i++) {
               children[i].dispose();
             }
             viewer = null;
-
-            createErrorView(container, Messages.mcpRegistryDialog_errorLoading);
-            container.requestLayout();
           }
+
+          createErrorView(container, errorMessage);
+          container.requestLayout();
+
+          isLoading = false;
+          hasMoreData = false;
+          allItems.clear();
         }
       }
     });
   }
 
   private void updatePaginationState(ServerList serverList) {
-    if (serverList != null && serverList.getMetadata() != null) {
-      nextCursor = serverList.getMetadata().getNextCursor();
+    if (serverList != null && serverList.metadata() != null) {
+      nextCursor = serverList.metadata().nextCursor();
       hasMoreData = StringUtils.isNotEmpty(nextCursor);
     } else {
       hasMoreData = false;
@@ -680,15 +721,17 @@ public class McpRegistryDialog extends Dialog {
   }
 
   /**
-   * Load the MCP registry allowlist and URL, and set them to this.mcpAllowList & this.mcpRegistryUrl.
+   * Load the MCP registry allowlist and URL, and set them to this.mcpAllowList & this.mcpRegistryBaseUrl.
    */
   private CompletableFuture<Void> loadMcpRegistryAllowListAndUrl() {
     return McpUtils.getMcpAllowList(copilotLanguageServerConnection).thenAccept(allowList -> {
       this.mcpAllowList = allowList;
-      this.mcpRegistryUrl = McpUtils.parseMcpRegistryUrlFromAllowList(allowList);
+      this.mcpRegistryBaseUrl = McpUtils.parseMcpRegistryBaseUrlFromAllowList(allowList);
+      this.mcpRegistryFullUrl = this.mcpRegistryBaseUrl + MCP_REGISTRY_VERSION_SUFFIX;
+
       // Initialize mcpServerAction now that mcpAllowList is resolved
       if (this.mcpServerAction == null) {
-        this.mcpServerAction = new McpServerAction(getShell(), this.mcpRegistryUrl);
+        this.mcpServerAction = new McpServerAction(getShell(), this.mcpRegistryBaseUrl);
       }
     });
   }
@@ -716,11 +759,6 @@ public class McpRegistryDialog extends Dialog {
 
     // Check if we need to continue loading more data when filtered results don't fill the table
     loadMoreIfNearEnd();
-  }
-
-  @Override
-  public Shell getShell() {
-    return super.getShell();
   }
 
   @Override
@@ -752,45 +790,16 @@ public class McpRegistryDialog extends Dialog {
     return super.close();
   }
 
-  private class SearchFilter extends ViewerFilter {
-    @Override
-    public boolean select(Viewer viewer, Object parentElement, Object element) {
-      // Always show status rows (including loading spinner) regardless of search text
-      if (element instanceof ServerItem) {
-        ServerItem si = (ServerItem) element;
-        if (isStatusRow(si)) {
-          return true;
-        }
-      }
-
-      String query = txtSearch == null ? null : txtSearch.getText();
-      if (StringUtils.isBlank(query)) {
-        return true;
-      }
-
-      ServerItem serverItem = (ServerItem) element;
-      return StringUtils.contains(serverItem.name, query)
-          || serverItem.details != null && StringUtils.containsIgnoreCase(serverItem.details.getDescription(), query);
-    }
-
-    private boolean isStatusRow(ServerItem serverItem) {
-      // Heuristic: status rows use translated marker keys or have empty description.
-      String n = serverItem.name != null ? serverItem.name : "";
-      return n.equals(Messages.mcpRegistryDialog_loading) || n.equals(Messages.mcpRegistryDialog_errorLoading)
-          || LOADING_SPINNER_ROW_NAME.equals(n);
-    }
-  }
-
   /**
    * Data model for each server item in the table.
    */
   public static class ServerItem {
     final String name;
-    final ServerDetail details;
+    final ServerResponse serverResponse;
 
-    ServerItem(String name, ServerDetail details) {
+    ServerItem(String name, ServerResponse serverResponse) {
       this.name = Objects.toString(name, "");
-      this.details = details;
+      this.serverResponse = serverResponse;
     }
   }
 

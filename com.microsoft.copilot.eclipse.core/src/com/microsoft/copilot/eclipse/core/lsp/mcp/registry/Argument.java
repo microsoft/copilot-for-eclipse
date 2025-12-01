@@ -1,11 +1,9 @@
-package com.microsoft.copilot.eclipse.core.lsp.mcp;
+package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import com.google.gson.annotations.JsonAdapter;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Base class for different types of arguments in the MCP Registry API. Can be extended by PositionalArgument or
@@ -14,25 +12,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 @JsonAdapter(ArgumentTypeAdapter.class)
 public class Argument extends InputWithVariables {
   protected String type;
-
-  /**
-   * Parameterized constructor.
-   *
-   * @param description Description of the argument
-   * @param isRequired Whether the argument is required
-   * @param format Format of the argument
-   * @param value Value of the argument
-   * @param isSecret Whether the argument is secret
-   * @param defaultValue Default value of the argument
-   * @param choices List of valid choices for the argument
-   * @param variables Map of variable inputs associated with the argument
-   * @param type Type of the argument ("positional" or "named")
-   */
-  public Argument(String description, Boolean isRequired, String format, String value, Boolean isSecret,
-      String defaultValue, List<String> choices, Map<String, Input> variables, String type) {
-    super(description, isRequired, format, value, isSecret, defaultValue, choices, variables);
-    this.type = type;
-  }
 
   /**
    * Get the type of this argument.
@@ -78,7 +57,7 @@ public class Argument extends InputWithVariables {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.append("type", type);
+    builder.add("type", type);
     return builder.toString();
   }
 

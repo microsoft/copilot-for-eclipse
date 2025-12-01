@@ -26,6 +26,7 @@ public class Constants {
   public static final String SUB_AGENT_ENABLED = "subAgentEnabled";
   public static final String MCP = "mcp";
   public static final String MCP_REGISTRY_URL = "mcpRegistryUrl";
+  public static final String MCP_REGISTRY_VERSION = "v0.1";
   public static final String MCP_TOOLS_STATUS = "mcpToolsStatus";
   public static final String MCP_TOOLS_MODE_STATUS = "mcpToolsModeStatus";
   public static final String MCP_EXTENSION_POINT_CONTRIB = "mcpExtensionPointContrib";

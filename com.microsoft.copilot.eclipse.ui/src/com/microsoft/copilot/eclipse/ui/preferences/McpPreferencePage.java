@@ -268,13 +268,13 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
             SwtUtils.invokeOnDisplayThreadAsync(() -> {
               if (allowList == null || allowList.mcpRegistries.isEmpty()) {
                 getTextControl().setText(CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
-                    CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
+                    CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_BASE_URL));
               } else {
                 // Use the first registry URL from the allowlist
-                String registryUrl = McpUtils.parseMcpRegistryUrlFromAllowList(allowList);
+                String registryUrl = McpUtils.parseMcpRegistryBaseUrlFromAllowList(allowList);
                 getTextControl().setText(registryUrl != null ? registryUrl
                     : CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
-                        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL));
+                        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_BASE_URL));
                 if (allowList.mcpRegistries.get(0).getRegistryAccess() == RegistryAccess.registry_only) {
                   // Disable the field
                   getTextControl().setEnabled(false);
@@ -309,7 +309,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
         @Override
         protected void doLoadDefault() {
-          getTextControl().setText(CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL);
+          getTextControl().setText(CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_BASE_URL);
           updateRegistryButtonState();
         }
       };
@@ -1281,7 +1281,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Get the current value from the text field instead of the preference store
     String newMcpRegistryUrl = mcpRegistryField.getStringValue();
     String oldMcpRegistryUrl = CopilotUi.getStringPreference(Constants.MCP_REGISTRY_URL,
-        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_URL);
+        CopilotPreferenceInitializer.DEFAULT_MCP_REGISTRY_BASE_URL);
 
     // Ensure the preference change is updated in configuration scope too
     if (!oldMcpRegistryUrl.equals(newMcpRegistryUrl)) {

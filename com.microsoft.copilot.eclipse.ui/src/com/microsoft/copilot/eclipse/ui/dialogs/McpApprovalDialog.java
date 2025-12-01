@@ -307,7 +307,7 @@ public class McpApprovalDialog extends Dialog {
     }
 
     try {
-      Gson gson = new GsonBuilder().setPrettyPrinting().create();
+      Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
       JsonElement jsonElement = JsonParser.parseString(jsonString);
       return gson.toJson(jsonElement);
     } catch (JsonSyntaxException e) {

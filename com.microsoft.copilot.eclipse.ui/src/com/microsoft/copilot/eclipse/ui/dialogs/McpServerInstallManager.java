@@ -95,9 +95,9 @@ public class McpServerInstallManager {
         JsonElement serverElement = serversObject.get(serverName);
         if (serverElement.isJsonObject()) {
           JsonObject serverConfig = serverElement.getAsJsonObject();
-          String serverId = getServerIdFromLocalConfig(serverConfig);
-          String url = getUrlFromLocalConfig(serverConfig);
-          String identity = createRegistryServerKey(serverId, url);
+          String registryBaseUrl = getBaseUrlFromLocalConfig(serverConfig);
+          String mcpServerName = getMcpServerNameFromLocalConfig(serverConfig);
+          String identity = createRegistryServerKey(registryBaseUrl, mcpServerName);
           if (identity != null) {
             installedMcpServerIdentities.add(identity);
           }
@@ -109,13 +109,13 @@ public class McpServerInstallManager {
   }
 
   /**
-   * Creates a server identity string from serverId and URL. Returns "baseUrl|serverId" format.
+   * Creates a server identity string from serverId and URL. Returns "registryBaseUrl|serverName" format.
    */
-  private static String createRegistryServerKey(String serverId, String url) {
-    if (StringUtils.isBlank(serverId) || StringUtils.isBlank(url)) {
+  private static String createRegistryServerKey(String registryBaseUrl, String serverName) {
+    if (StringUtils.isBlank(registryBaseUrl) || StringUtils.isBlank(serverName)) {
       return null;
     }
-    return McpUtils.extractBaseUrl(url) + IDENTITY_SEPARATOR + serverId;
+    return registryBaseUrl + IDENTITY_SEPARATOR + serverName;
   }
 
   /**
@@ -315,7 +315,7 @@ public class McpServerInstallManager {
   }
 
   /**
-   * Checks if a server is already installed by comparing URL and serverId. Uses a pre-built set for O(1) lookup
+   * Checks if a server is already installed by comparing baseUrl and serverId. Uses a pre-built set for O(1) lookup
    * performance.
    *
    * @param serverId The serverId to check
@@ -323,7 +323,7 @@ public class McpServerInstallManager {
    * @return true if a server with the same serverId and URL is already installed
    */
   public boolean isServerInstalled(String serverId, String url) {
-    return installedMcpServerIdentities.contains(createRegistryServerKey(serverId, McpUtils.extractBaseUrl(url)));
+    return installedMcpServerIdentities.contains(createRegistryServerKey(McpUtils.extractBaseUrl(url), serverId));
   }
 
   /**
@@ -353,23 +353,29 @@ public class McpServerInstallManager {
   }
 
   /**
-   * Gets the serverId from server configuration's x-metadata.registry.
+   * Gets the baseUrl from server configuration's x-metadata.registry.api.baseUrl.
    */
-  private static String getServerIdFromLocalConfig(JsonObject serverConfig) {
+  private static String getBaseUrlFromLocalConfig(JsonObject serverConfig) {
     JsonObject registry = getRegistryFromConfig(serverConfig);
-    if (registry != null && registry.has("serverId")) {
-      return registry.get("serverId").getAsString();
+    if (registry != null && registry.has("api") && registry.get("api").isJsonObject()) {
+      JsonObject api = registry.getAsJsonObject("api");
+      if (api.has("baseUrl")) {
+        return api.get("baseUrl").getAsString();
+      }
     }
     return null;
   }
 
   /**
-   * Gets the URL from server configuration's x-metadata.registry or from the server config itself.
+   * Gets the MCP server name from server configuration's x-metadata.registry.mcpServer.name.
    */
-  private static String getUrlFromLocalConfig(JsonObject serverConfig) {
+  private static String getMcpServerNameFromLocalConfig(JsonObject serverConfig) {
     JsonObject registry = getRegistryFromConfig(serverConfig);
-    if (registry != null && registry.has("url")) {
-      return registry.get("url").getAsString();
+    if (registry != null && registry.has("mcpServer") && registry.get("mcpServer").isJsonObject()) {
+      JsonObject mcpServer = registry.getAsJsonObject("mcpServer");
+      if (mcpServer.has("name")) {
+        return mcpServer.get("name").getAsString();
+      }
     }
     return null;
   }
