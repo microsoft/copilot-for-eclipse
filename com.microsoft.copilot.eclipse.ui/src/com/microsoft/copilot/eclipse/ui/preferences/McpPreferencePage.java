@@ -611,6 +611,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       return;
     }
 
+    // Sync custom modes from service to ensure we have the latest agent configurations
+    // This handles external modifications to .agent.md files
+    syncCustomModesAndRefreshModeSelector();
+
     // Clear existing children except mode selector composite
     for (var child : toolsGroup.getChildren()) {
       if (child != null && !child.isDisposed() && child != modeSelectorComposite) {
@@ -898,6 +902,36 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   }
 
   /**
+   * Sync custom modes from service and refresh the mode selector dropdown. This ensures the tool configuration page
+   * reflects the latest custom agent definitions when .agent.md files are modified externally.
+   */
+  private void syncCustomModesAndRefreshModeSelector() {
+    // Sync custom modes from the service asynchronously to pick up external file changes
+    CustomChatModeManager.INSTANCE.syncCustomModesFromService().thenAccept(v -> {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (modeSelector == null || modeSelector.isDisposed()) {
+          return;
+        }
+
+        try {
+          // Re-initialize mode tool status from the updated custom modes
+          // This reads the tools: [] list from the updated .agent.md files
+          initializeModeToolStatusFromCustomModes();
+
+          // Reload mode options - this will also call selectModeById and loadModeToolStatus internally
+          // which updates the checkboxes to reflect the new tool configuration
+          loadModeOptions();
+        } catch (Exception e) {
+          CopilotCore.LOGGER.error("Failed to refresh mode selector after sync", e);
+        }
+      });
+    }).exceptionally(ex -> {
+      CopilotCore.LOGGER.error("Failed to sync custom modes from service", ex);
+      return null;
+    });
+  }
+
+  /**
    * Create mode selector dropdown for selecting which mode to configure tools for.
    */
   private void createModeSelector(Composite parent) {
@@ -1090,8 +1124,10 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   }
 
   /**
-   * Initialize mode tool status for custom agents based on their .agent.md file definitions. This ensures that tools
-   * defined in the .agent.md files are properly synced to the preference page.
+   * Initialize mode tool status for custom agents based on their .agent.md file definitions.
+   * This method fully synchronizes the tool configuration from the LSP response, overwriting
+   * any existing user preferences to ensure the preference page always reflects the current
+   * agent definition from .agent.md files.
    */
   private void initializeModeToolStatusFromCustomModes() {
     try {
@@ -1116,60 +1152,31 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
           continue; // No tools defined in this mode
         }
 
-        // Check if we already have preferences saved for this mode
-        Map<String, Map<String, Boolean>> existingModeStatus = modeToolStatus.get(modeId);
-        if (existingModeStatus != null) {
-          // We have saved preferences, but we need to ensure tools from the .agent.md file are included
-          // Mark tools from .agent.md as enabled if not already present in preferences
-          for (String toolSpec : toolsFromFile) {
-            String serverName;
-            String toolName;
+        // Always sync tool status from .agent.md file, overwriting any existing preferences
+        // This ensures the preference page always reflects the current agent definition from LSP
+        Map<String, Map<String, Boolean>> newModeStatus = new HashMap<>();
 
-            // Parse tool specification: either "tool" or "server/tool"
-            if (toolSpec.contains("/")) {
-              String[] parts = toolSpec.split("/", 2);
-              serverName = parts[0];
-              toolName = parts[1];
-            } else {
-              // Built-in tool
-              serverName = Messages.preferences_page_mcp_tools_builtin;
-              toolName = toolSpec;
-            }
+        for (String toolSpec : toolsFromFile) {
+          String serverName;
+          String toolName;
 
-            // Get or create server map
-            Map<String, Boolean> serverTools = existingModeStatus.computeIfAbsent(serverName, k -> new HashMap<>());
-
-            // Only add if not already present (respect existing preferences)
-            if (!serverTools.containsKey(toolName)) {
-              serverTools.put(toolName, true); // Enable tools from .agent.md by default
-            }
-          }
-        } else {
-          // No saved preferences for this mode - initialize from .agent.md file
-          Map<String, Map<String, Boolean>> newModeStatus = new HashMap<>();
-
-          for (String toolSpec : toolsFromFile) {
-            String serverName;
-            String toolName;
-
-            // Parse tool specification: either "tool" or "server/tool"
-            if (toolSpec.contains("/")) {
-              String[] parts = toolSpec.split("/", 2);
-              serverName = parts[0];
-              toolName = parts[1];
-            } else {
-              // Built-in tool
-              serverName = Messages.preferences_page_mcp_tools_builtin;
-              toolName = toolSpec;
-            }
-
-            // Get or create server map
-            Map<String, Boolean> serverTools = newModeStatus.computeIfAbsent(serverName, k -> new HashMap<>());
-            serverTools.put(toolName, true); // Enable tools from .agent.md
+          // Parse tool specification: either "tool" or "server/tool"
+          if (toolSpec.contains("/")) {
+            String[] parts = toolSpec.split("/", 2);
+            serverName = parts[0];
+            toolName = parts[1];
+          } else {
+            // Built-in tool
+            serverName = Messages.preferences_page_mcp_tools_builtin;
+            toolName = toolSpec;
           }
 
-          modeToolStatus.put(modeId, newModeStatus);
+          // Get or create server map
+          Map<String, Boolean> serverTools = newModeStatus.computeIfAbsent(serverName, k -> new HashMap<>());
+          serverTools.put(toolName, true); // Enable tools from .agent.md
         }
+
+        modeToolStatus.put(modeId, newModeStatus);
       }
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to initialize mode tool status from custom agents", e);
