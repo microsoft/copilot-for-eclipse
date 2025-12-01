@@ -3,7 +3,6 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -195,17 +194,7 @@ public class ModelService extends ChatBaseService {
 
   private void fetchCopilotModels() throws InterruptedException, ExecutionException {
     CopilotModel[] modelArray = lsConnection.listModels().get();
-
-    // Move auto model to the end if it's at the beginning
-    // TODO: remove this logic once default auto model is fixed.
-    if (modelArray.length > 0 && AUTO_MODEL_ID.equals(modelArray[0].getId())) {
-      CopilotModel autoModel = modelArray[0];
-      modelArray[0] = modelArray[modelArray.length - 1];
-      modelArray[modelArray.length - 1] = autoModel;
-    }
-
-    // TODO: revert newModels to HashMap after default auto model is fixed.
-    Map<String, CopilotModel> newModels = new LinkedHashMap<>();
+    Map<String, CopilotModel> newModels = new HashMap<>();
 
     for (CopilotModel model : modelArray) {
       // TODO: remove it once CLS supports filtering models by preview flag
@@ -218,9 +207,7 @@ public class ModelService extends ChatBaseService {
       if (supportsChat || supportsAgent) {
         newModels.put(model.getId(), model);
       }
-      // Skip auto model when setting default model
-      // TODO: remove !AUTO_MODEL_ID.equals(model.getId()) once default auto model is fixed.
-      if (model.isChatDefault() && !AUTO_MODEL_ID.equals(model.getId())) {
+      if (model.isChatDefault()) {
         defaultModel = model;
       }
       if (model.isChatFallback()) {
@@ -270,8 +257,7 @@ public class ModelService extends ChatBaseService {
     String scope = modeToScope(chatMode);
 
     // Filter models for the current mode from combined models
-    // TODO: revert modelsForCurrentMode to HashMap after default auto model is fixed.
-    final Map<String, CopilotModel> modelsForCurrentMode = new LinkedHashMap<>();
+    final Map<String, CopilotModel> modelsForCurrentMode = new HashMap<>();
     Map<String, CopilotModel> allModels = new HashMap<>();
     allModels.putAll(copilotModels);
     // TODO: need to remove this logic after group policy is available
