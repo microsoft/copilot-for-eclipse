@@ -141,26 +141,26 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     }
 
     // Handle sub-agent preference change
-    if (policyAllowsSubAgent && (oldSubAgentValue ^ newSubAgentValue)) {
+    boolean isSubAgentChanged = policyAllowsSubAgent && (oldSubAgentValue ^ newSubAgentValue);
+    if (isSubAgentChanged) {
       updateSubAgentToolConfiguration(newSubAgentValue);
     }
 
-    if (oldWorkspaceContextValue ^ newWorkspaceContextValue) {
+    boolean isWorkspaceContextChanged = oldWorkspaceContextValue ^ newWorkspaceContextValue;
+    if (isWorkspaceContextChanged) {
+      try {
+        InstanceScope.INSTANCE.getNode(CopilotUi.getPlugin().getBundle().getSymbolicName()).flush();
+      } catch (BackingStoreException e) {
+        CopilotCore.LOGGER.error("Failed to save preference 'Enable workspace context'", e);
+      }
+    }
+
+    if (isSubAgentChanged || isWorkspaceContextChanged) {
       boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
-          Messages.preferences_page_watched_files_restart_question);
+          Messages.preferences_page_restart_question);
 
       if (restart) {
-        try {
-          // Explicitly save the preferences to disk to ensure they persist across the restart
-          // CopilotUi.getPlugin().savePluginPreferences() is deprecated, flush is recommended
-          InstanceScope.INSTANCE.getNode(CopilotUi.getPlugin().getBundle().getSymbolicName()).flush();
-        } catch (BackingStoreException e) {
-          CopilotCore.LOGGER.error("Failed to save preference 'Enable workspace context'", e);
-        }
-
-        // Close the preference dialog properly before restarting
         getShell().getDisplay().asyncExec(() -> {
-          // Using asyncExec ensures the preference dialog completes its current operations
           PlatformUI.getWorkbench().restart();
         });
       }
