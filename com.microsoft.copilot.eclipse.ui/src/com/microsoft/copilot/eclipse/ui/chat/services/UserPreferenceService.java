@@ -16,6 +16,7 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.event.EventHandler;
@@ -556,14 +557,11 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
     dialog.open();
 
-    // After dialog closes, reload modes synchronously and restore the current selection
-    try {
-      CustomChatModeManager customModeManager = CustomChatModeManager.INSTANCE;
-      // Wait for sync to complete
-      customModeManager.syncCustomModesFromService().join();
-
+    // After dialog closes, reload modes asynchronously and restore the current selection
+    CustomChatModeManager customModeManager = CustomChatModeManager.INSTANCE;
+    customModeManager.syncCustomModesFromService().thenAccept(v -> {
       // Update UI on UI thread
-      ensureRealm(() -> {
+      Display.getDefault().asyncExec(() -> {
         if (!combo.isDisposed()) {
           // Update the chatModeObservable - this triggers the side effect that calls combo.setItems()
           String[] updatedModes = getAvalibleChatModes();
@@ -578,9 +576,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
           });
         }
       });
-    } catch (Exception ex) {
-      CopilotCore.LOGGER.error("Failed to reload modes after configuration", ex);
-    }
+    });
   }
 
   /**

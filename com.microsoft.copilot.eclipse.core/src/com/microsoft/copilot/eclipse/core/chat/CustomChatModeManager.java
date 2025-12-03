@@ -25,21 +25,24 @@ public enum CustomChatModeManager {
   CustomChatModeManager() {
     this.customModeService = new FileBasedCustomModeService();
     this.customModes = new CopyOnWriteArrayList<>();
-    // Load custom modes from files on initialization
-    loadCustomModesSync();
+    // Start async loading of custom modes - do not block the UI thread
+    startAsyncLoad();
   }
 
   /**
-   * Load custom modes synchronously on initialization. This is called in the constructor to ensure modes are available
-   * immediately.
+   * Start loading custom modes asynchronously. This is called in the constructor to begin loading modes without
+   * blocking the UI thread.
    */
-  private void loadCustomModesSync() {
-    try {
-      customModes = customModeService.loadCustomModes().get();
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to load custom modes on initialization", e);
-      customModes = new CopyOnWriteArrayList<>();
-    }
+  private void startAsyncLoad() {
+    CompletableFuture.runAsync(() -> {
+      try {
+        List<CustomChatMode> modes = customModeService.loadCustomModes().join();
+        customModes = new CopyOnWriteArrayList<>(modes);
+      } catch (Exception e) {
+        CopilotCore.LOGGER.error("Failed to load custom modes on initialization", e);
+        customModes = new CopyOnWriteArrayList<>();
+      }
+    });
   }
 
   /**
@@ -55,15 +58,17 @@ public enum CustomChatModeManager {
   }
 
   /**
-   * Synchronize custom modes from the remote service. TODO: This should be called when the user signs in or when modes
-   * need to be refreshed.
+   * Synchronize custom modes from the remote service. If the sync fails, the previous mode list is preserved.
    *
    * @return a future indicating completion
-   * @throws RuntimeException if the remote service call fails
    */
   public CompletableFuture<Void> syncCustomModesFromService() {
     return customModeService.loadCustomModes().thenAccept(modes -> {
-      customModes = modes;
+      customModes = new CopyOnWriteArrayList<>(modes);
+    }).exceptionally(ex -> {
+      CopilotCore.LOGGER.error("Failed to sync custom modes, keeping previous list", ex);
+      // Return null to complete the future normally, preserving the previous mode list
+      return null;
     });
   }
 

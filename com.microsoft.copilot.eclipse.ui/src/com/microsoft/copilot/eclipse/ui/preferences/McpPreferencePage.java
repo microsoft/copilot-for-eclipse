@@ -925,9 +925,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
           CopilotCore.LOGGER.error("Failed to refresh mode selector after sync", e);
         }
       });
-    }).exceptionally(ex -> {
-      CopilotCore.LOGGER.error("Failed to sync custom modes from service", ex);
-      return null;
     });
   }
 
