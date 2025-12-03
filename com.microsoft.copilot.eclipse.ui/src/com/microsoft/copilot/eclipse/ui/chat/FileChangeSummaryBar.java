@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CLabel;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -19,6 +21,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
@@ -40,6 +43,7 @@ public class FileChangeSummaryBar extends Composite {
   private ChangedFiles changedFiles;
   private Composite parent;
   private boolean enableButtons = false;
+  private boolean isExpanded = true;
 
   /**
    * Constructs a new FileChangeSummaryBar with the given parent and style.
@@ -116,6 +120,22 @@ public class FileChangeSummaryBar extends Composite {
   }
 
   /**
+   * Toggles the visibility of the changed files section.
+   */
+  private void toggleExpanded() {
+    isExpanded = !isExpanded;
+    if (changedFiles != null && !changedFiles.isDisposed()) {
+      GridData layoutData = (GridData) changedFiles.getLayoutData();
+      layoutData.exclude = !isExpanded;
+      changedFiles.setVisible(isExpanded);
+    }
+    if (titleBar != null && !titleBar.isDisposed()) {
+      titleBar.updateExpandCollapseState();
+    }
+    requestLayout();
+  }
+
+  /**
    * Disposes of the FileChangeSummaryBar and its resources.
    */
   @Override
@@ -134,20 +154,30 @@ public class FileChangeSummaryBar extends Composite {
   }
 
   class FileChangeSummaryTitleBar extends Composite {
+    private Label expandIcon;
+    private Image downArrowImage;
+    private Image rightArrowImage;
     private Label titleLabel;
     private Button keepButton;
     private Button undoButton;
     private Button doneButton;
+    private String changeFilesTitle;
 
     public FileChangeSummaryTitleBar(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
       super(parent, style);
-      GridLayout gl = new GridLayout(2, false);
+      GridLayout gl = new GridLayout(3, false);
       gl.marginWidth = 0;
       gl.horizontalSpacing = 0;
       gl.verticalSpacing = 0;
       gl.marginHeight = 0;
       setLayout(gl);
       setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+      setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+
+      // Create the expand/collapse icon
+      expandIcon = new Label(this, SWT.NONE);
+      expandIcon.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+      expandIcon.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
 
       // Create the title label with left alignment
       titleLabel = new Label(this, SWT.NONE);
@@ -157,12 +187,74 @@ public class FileChangeSummaryBar extends Composite {
           fileChangeCount++;
         }
       }
-      String titlePostfix = fileChangeCount > 1 ? " Files Changed" : " File Changed";
-      titleLabel.setText(fileChangeCount + titlePostfix);
+      String titlePostfix = fileChangeCount > 1 ? Messages.fileChangeSummary_filesChanged
+          : Messages.fileChangeSummary_fileChanged;
+      changeFilesTitle = fileChangeCount + titlePostfix;
+      titleLabel.setText(changeFilesTitle);
       GridData labelGridData = new GridData(SWT.BEGINNING, SWT.CENTER, true, false);
       titleLabel.setLayoutData(labelGridData);
+      titleLabel.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+
+      // Initialize icon and tooltips
+      updateExpandCollapseState();
+
+      // Add click listeners to toggle expansion
+      MouseAdapter clickListener = new MouseAdapter() {
+        @Override
+        public void mouseUp(MouseEvent e) {
+          toggleExpanded();
+        }
+      };
+      expandIcon.addMouseListener(clickListener);
+      titleLabel.addMouseListener(clickListener);
+      addMouseListener(clickListener);
 
       updateTitleBarButtons(filesMap.values().stream().filter(value -> !value.isHandled()).count() == 0);
+
+      this.addDisposeListener(e -> {
+        if (downArrowImage != null && !downArrowImage.isDisposed()) {
+          downArrowImage.dispose();
+        }
+        if (rightArrowImage != null && !rightArrowImage.isDisposed()) {
+          rightArrowImage.dispose();
+        }
+      });
+    }
+
+    /**
+     * Updates the expand/collapse icon and tooltips based on the current expanded state. Sets appropriate icons and
+     * tooltip messages for both the expand icon and title label.
+     */
+    private void updateExpandCollapseState() {
+      if (expandIcon == null || expandIcon.isDisposed()) {
+        return;
+      }
+
+      String tooltipMessage;
+      if (isExpanded) {
+        // Expanded state: show down arrow and collapse tooltip
+        if (downArrowImage == null) {
+          downArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/down_arrow.png");
+        }
+        expandIcon.setImage(downArrowImage);
+        tooltipMessage = NLS.bind(Messages.fileChangeSummary_collapseTooltip, changeFilesTitle);
+      } else {
+        // Collapsed state: show right arrow and expand tooltip
+        if (rightArrowImage == null) {
+          rightArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/right_arrow.png");
+        }
+        expandIcon.setImage(rightArrowImage);
+        tooltipMessage = NLS.bind(Messages.fileChangeSummary_expandTooltip, changeFilesTitle);
+      }
+
+      // Set the same tooltip for both icon, tile label, and the whole title bar
+      expandIcon.setToolTipText(tooltipMessage);
+      if (titleLabel != null && !titleLabel.isDisposed()) {
+        titleLabel.setToolTipText(tooltipMessage);
+      }
+      if (this != null && !this.isDisposed()) {
+        this.setToolTipText(tooltipMessage);
+      }
     }
 
     private void updateTitleBarButtons(boolean isExecutionFinished) {
@@ -183,7 +275,7 @@ public class FileChangeSummaryBar extends Composite {
       if (isExecutionFinished) {
         // Create the "Done" button
         doneButton = new Button(this, SWT.PUSH | SWT.FLAT);
-        doneButton.setText("Done");
+        doneButton.setText(Messages.fileChangeSummary_doneButton);
         GridData keepButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
         doneButton.setLayoutData(keepButtonGridData);
         doneButton.addSelectionListener(new SelectionAdapter() {
@@ -195,7 +287,7 @@ public class FileChangeSummaryBar extends Composite {
       } else {
         // Create the "Keep" button
         keepButton = new Button(this, SWT.PUSH | SWT.FLAT);
-        keepButton.setText("Keep");
+        keepButton.setText(Messages.fileChangeSummary_keepButton);
         GridData keepButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
         keepButton.setLayoutData(keepButtonGridData);
         keepButton.addSelectionListener(new SelectionAdapter() {
@@ -207,7 +299,7 @@ public class FileChangeSummaryBar extends Composite {
 
         // Create the "Undo" button
         undoButton = new Button(this, SWT.PUSH | SWT.FLAT);
-        undoButton.setText("Undo");
+        undoButton.setText(Messages.fileChangeSummary_undoButton);
         GridData undoButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
         undoButton.setLayoutData(undoButtonGridData);
         undoButton.addSelectionListener(new SelectionAdapter() {
@@ -223,7 +315,9 @@ public class FileChangeSummaryBar extends Composite {
   }
 
   class ChangedFiles extends Composite {
+    private static final int MAX_VISIBLE_FILES = 5;
     private final Composite contentArea;
+    private final ScrolledComposite scrolledComposite;
     private List<FileRow> fileRows; // List to keep track of file rows
 
     public ChangedFiles(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
@@ -237,10 +331,38 @@ public class FileChangeSummaryBar extends Composite {
       setLayout(layout);
       setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
-      // TODO: add scroll bar when list is too big, in vscode, it will have scroll bar when the size > 6
-      contentArea = new Composite(this, SWT.NONE);
-      contentArea.setLayout(new GridLayout(1, false));
-      contentArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+      // Count non-removed files
+      long fileCount = filesMap.values().stream().filter(value -> !value.isRemoved()).count();
+
+      // Create ScrolledComposite if we have more than MAX_VISIBLE_FILES
+      if (fileCount > MAX_VISIBLE_FILES) {
+        scrolledComposite = new ScrolledComposite(this, SWT.V_SCROLL);
+        GridLayout scrollLayout = new GridLayout(1, false);
+        scrollLayout.marginWidth = 0;
+        scrollLayout.marginHeight = 0;
+        scrolledComposite.setLayout(scrollLayout);
+        scrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        scrolledComposite.setExpandHorizontal(true);
+        scrolledComposite.setExpandVertical(true);
+
+        contentArea = new Composite(scrolledComposite, SWT.NONE);
+        GridLayout contentLayout = new GridLayout(1, false);
+        contentLayout.marginWidth = 0;
+        contentLayout.marginHeight = 0;
+        contentLayout.verticalSpacing = 0;
+        contentArea.setLayout(contentLayout);
+
+        scrolledComposite.setContent(contentArea);
+      } else {
+        scrolledComposite = null;
+        contentArea = new Composite(this, SWT.NONE);
+        GridLayout contentLayout = new GridLayout(1, false);
+        contentLayout.marginWidth = 0;
+        contentLayout.marginHeight = 0;
+        contentLayout.verticalSpacing = 0;
+        contentArea.setLayout(contentLayout);
+        contentArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+      }
 
       // TODO: Should share a same instance with ReferencedFile
       WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
@@ -254,8 +376,25 @@ public class FileChangeSummaryBar extends Composite {
         fileRows.add(new FileRow(contentArea, SWT.NONE, image, file, filesMap.get(file).isHandled()));
       }
 
-      // Update layout
+      // Update layout and calculate scroll height if needed
       contentArea.layout(true, true);
+
+      if (scrolledComposite != null && !fileRows.isEmpty()) {
+        // Calculate the height of a single FileRow to estimate scroll area height
+        FileRow firstRow = fileRows.get(0);
+        int singleRowHeight = firstRow.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+
+        // Set the minimum height to show MAX_VISIBLE_FILES rows
+        int scrollHeight = singleRowHeight * MAX_VISIBLE_FILES;
+
+        // Set the scrolled composite's minimum size
+        scrolledComposite.setMinHeight(contentArea.computeSize(SWT.DEFAULT, SWT.DEFAULT).y);
+
+        // Set layout data with height hint for the scrolled composite
+        GridData scrollData = new GridData(SWT.FILL, SWT.FILL, true, false);
+        scrollData.heightHint = scrollHeight;
+        scrolledComposite.setLayoutData(scrollData);
+      }
     }
 
     private void setButtonStatus(boolean enable) {
@@ -316,6 +455,7 @@ public class FileChangeSummaryBar extends Composite {
       // File name (bold)
       Label nameLabel = new Label(fileInfo, SWT.NONE);
       nameLabel.setText(file.getName());
+      nameLabel.setToolTipText(file.getFullPath().toString());
       nameLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
       nameLabel.addMouseListener(new MouseAdapter() {
         @Override
@@ -334,7 +474,7 @@ public class FileChangeSummaryBar extends Composite {
       nameLabel.addDisposeListener(e -> boldFont.dispose());
 
       // File path
-      Label pathLabel = new Label(fileInfo, SWT.NONE);
+      CLabel pathLabel = new CLabel(fileInfo, SWT.NONE);
       pathLabel.setText(file.getFullPath().toString());
       pathLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, true, false));
       pathLabel.addMouseListener(new MouseAdapter() {
@@ -351,7 +491,10 @@ public class FileChangeSummaryBar extends Composite {
       actionsLayout.marginHeight = 0;
       actionsLayout.horizontalSpacing = 0;
       actionsArea.setLayout(actionsLayout);
-      actionsArea.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
+      GridData actionsData = new GridData(SWT.END, SWT.CENTER, false, false);
+      actionsData.exclude = true;
+      actionsArea.setLayoutData(actionsData);
+      actionsArea.setVisible(false);
 
       // Create action buttons only when the file is not handled
       if (!fileIsHandled) {
@@ -363,7 +506,7 @@ public class FileChangeSummaryBar extends Composite {
           }
         });
         keepButton.setImage(keepImg);
-        keepButton.setToolTipText("Keep");
+        keepButton.setToolTipText(Messages.fileChangeSummary_keepButton);
         GridData keepGridData = new GridData(SWT.END, SWT.CENTER, false, false);
         keepGridData.widthHint = keepImg.getImageData().width + 2 * UiConstants.BTN_PADDING;
         keepGridData.heightHint = keepImg.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -378,7 +521,7 @@ public class FileChangeSummaryBar extends Composite {
         undoButton = UiUtils.createIconButton(actionsArea, SWT.PUSH | SWT.FLAT);
         Image undoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_UNDO);
         undoButton.setImage(undoImage);
-        undoButton.setToolTipText("Undo");
+        undoButton.setToolTipText(Messages.fileChangeSummary_undoButton);
         GridData undoGridData = new GridData(SWT.END, SWT.CENTER, false, false);
         undoGridData.widthHint = undoImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
         undoGridData.heightHint = undoImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -394,7 +537,7 @@ public class FileChangeSummaryBar extends Composite {
       removeButton = UiUtils.createIconButton(actionsArea, SWT.PUSH | SWT.FLAT);
       Image removeImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
       removeButton.setImage(removeImage);
-      removeButton.setToolTipText("Remove");
+      removeButton.setToolTipText(Messages.fileChangeSummary_removeButton);
       GridData removeGridData = new GridData(SWT.END, SWT.CENTER, false, false);
       removeGridData.widthHint = removeImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       removeGridData.heightHint = removeImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -409,22 +552,29 @@ public class FileChangeSummaryBar extends Composite {
       // Hide actions initially
       actionsArea.setVisible(false);
 
-      MouseTrackAdapter hoverAdapter = new MouseTrackAdapter() {
-        @Override
-        public void mouseEnter(MouseEvent e) {
-          actionsArea.setVisible(true);
-          requestLayout();
-        }
+      // Create hover listeners
+      Listener enterListener = event -> {
+        GridData layoutData = (GridData) actionsArea.getLayoutData();
+        layoutData.exclude = false;
+        actionsArea.setVisible(true);
+        requestLayout();
+      };
 
-        @Override
-        public void mouseExit(MouseEvent e) {
-          actionsArea.setVisible(false);
-          requestLayout();
-        }
+      Listener exitListener = event -> {
+        GridData layoutData = (GridData) actionsArea.getLayoutData();
+        layoutData.exclude = true;
+        actionsArea.setVisible(false);
+        requestLayout();
       };
 
       // Handle hover events
-      addHoverAdapterRecursively(this, hoverAdapter);
+      addHoverListenersRecursively(this, enterListener, exitListener);
+      actionsArea.addListener(SWT.MouseEnter, enterListener);
+      actionsArea.addListener(SWT.MouseExit, exitListener);
+      for (Control child : actionsArea.getChildren()) {
+        child.addListener(SWT.MouseEnter, enterListener);
+        child.addListener(SWT.MouseExit, exitListener);
+      }
 
       addMouseListener(new MouseAdapter() {
         @Override
@@ -435,16 +585,17 @@ public class FileChangeSummaryBar extends Composite {
     }
 
     /**
-     * Recursively adds the hover adapter to all child controls.
+     * Recursively adds the hover listeners to all child controls.
      */
-    private void addHoverAdapterRecursively(Control control, MouseTrackAdapter hoverAdapter) {
+    private void addHoverListenersRecursively(Control control, Listener enterListener, Listener exitListener) {
       // Add listener to the control itself first
-      control.addMouseTrackListener(hoverAdapter);
+      control.addListener(SWT.MouseEnter, enterListener);
+      control.addListener(SWT.MouseExit, exitListener);
 
       // Then recursively add to all children if it's a composite
       if (control instanceof Composite composite) {
         for (Control child : composite.getChildren()) {
-          addHoverAdapterRecursively(child, hoverAdapter);
+          addHoverListenersRecursively(child, enterListener, exitListener);
         }
       }
     }

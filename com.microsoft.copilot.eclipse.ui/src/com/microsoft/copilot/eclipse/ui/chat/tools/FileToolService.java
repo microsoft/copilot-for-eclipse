@@ -161,6 +161,11 @@ public class FileToolService extends ChatBaseService {
       }
       filesMap.put(file, new FileChangeProperty(filesMap.get(file).getChangeType(), action, true));
       filesObservable.setValue(filesMap);
+
+      boolean allFilesRemoved = filesMap.values().stream().allMatch(FileChangeProperty::isRemoved);
+      if (allFilesRemoved) {
+        onResolveAllChanges();
+      }
     });
   }
 

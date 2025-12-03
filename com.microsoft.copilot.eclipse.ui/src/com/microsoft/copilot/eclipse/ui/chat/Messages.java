@@ -23,6 +23,14 @@ public final class Messages extends NLS {
   public static String agentMessageWidget_openJobListTooltip;
   public static String agentMessageWidget_openJobListError;
   public static String handoffContainer_proceedFrom;
+  public static String fileChangeSummary_filesChanged;
+  public static String fileChangeSummary_fileChanged;
+  public static String fileChangeSummary_doneButton;
+  public static String fileChangeSummary_keepButton;
+  public static String fileChangeSummary_undoButton;
+  public static String fileChangeSummary_removeButton;
+  public static String fileChangeSummary_collapseTooltip;
+  public static String fileChangeSummary_expandTooltip;
 
   static {
     // initialize resource bundle
