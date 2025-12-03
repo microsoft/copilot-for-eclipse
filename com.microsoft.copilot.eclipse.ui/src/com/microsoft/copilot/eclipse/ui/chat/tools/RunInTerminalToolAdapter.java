@@ -12,6 +12,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
@@ -28,6 +29,45 @@ public class RunInTerminalToolAdapter extends BaseTool {
    */
   public RunInTerminalToolAdapter() {
     this.name = TOOL_NAME;
+  }
+
+  private String buildToolDescription() {
+    if (PlatformUtils.isWindows()) {
+      return """
+          Shell: powershell.exe
+
+          This tool allows you to execute PowerShell commands in a persistent terminal session, \
+          preserving environment variables, working directory, and other context across multiple commands.
+          Use this tool instead of printing a shell codeblock and asking the user to run it.
+
+          Command Execution:
+          - Use semicolons ; to chain commands on one line.
+          - Never create a sub-shell (e.g., powershell -c "command") unless explicitly asked
+          - Prefer pipelines | for data flow
+          - Must use absolute paths to avoid navigation issues
+          - If a command may use a pager, disable it with command flags (e.g., `git --no-pager`)
+
+          Background Processes:
+          - For long-running tasks (e.g., servers), set isBackground=true
+          - Returns a terminal ID for checking output later with get_terminal_output
+          """;
+    }
+    return """
+        This tool allows you to execute shell commands in a persistent terminal session, \
+        preserving environment variables, working directory, and other context across multiple commands.
+        Use this tool instead of printing a shell codeblock and asking the user to run it.
+
+        Command Execution:
+        - Use && to chain commands on one line
+        - Never create a sub-shell (e.g., bash -c "command") unless explicitly asked
+        - Prefer pipelines | for data flow
+        - Must use absolute paths to avoid navigation issues
+        - If a command may use a pager, disable it (e.g., `git --no-pager` or add `| cat`)
+
+        Background Processes:
+        - For long-running tasks (e.g., servers), set isBackground=true
+        - Returns a terminal ID for checking output later with get_terminal_output
+        """;
   }
 
   @Override
@@ -48,16 +88,7 @@ public class RunInTerminalToolAdapter extends BaseTool {
 
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
-    toolInfo.setDescription("""
-        Run a shell command in a terminal. State is persistent across tool calls.
-        - Use this tool instead of printing a shell codeblock and asking the user to run it.
-        - If the command is a long-running background process, you MUST pass isBackground=true.
-        Background terminals will return a terminal ID which you can use to check the output
-        of a background process with copilot_getTerminalOutput.
-        - If a command may use a pager, you must something to disable it.
-        For example, you can use `git --no-pager`.
-        Otherwise you should add something like ` | cat`. Examples: git, less, man, etc.
-        """);
+    toolInfo.setDescription(buildToolDescription());
 
     // Define the input schema for the tool
     InputSchema inputSchema = new InputSchema();

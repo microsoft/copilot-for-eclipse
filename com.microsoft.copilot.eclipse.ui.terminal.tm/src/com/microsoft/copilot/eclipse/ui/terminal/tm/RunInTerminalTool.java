@@ -130,7 +130,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
     // Only set target terminal for Windows - using Platform directly instead of PlatformUtils
     if (Platform.getOS().equals(Platform.OS_WIN32)) {
-      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "cmd.exe");
+      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "powershell.exe");
     } else {
       // Only set the process args if not already set by user preferences
       String args = UIPlugin.getScopedPreferences()
