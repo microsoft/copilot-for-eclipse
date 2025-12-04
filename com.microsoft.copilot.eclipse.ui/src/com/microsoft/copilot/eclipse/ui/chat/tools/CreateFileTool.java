@@ -24,6 +24,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
@@ -88,12 +89,6 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
-    String content = (String) input.get("content");
-    if (StringUtils.isBlank(content)) {
-      result.addContent("Invalid input: content is required");
-      return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
-    }
-
     try {
       // Resolve file in workspace
       IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
@@ -115,7 +110,9 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
       createParentFolders(file.getParent());
 
       // Create file with content
-      try (ByteArrayInputStream contentStream = new ByteArrayInputStream(content.getBytes())) {
+      String content = StringUtils.isBlank((String) input.get("content")) ? "" : (String) input.get("content");
+      try (ByteArrayInputStream contentStream = new ByteArrayInputStream(
+          content.getBytes(PlatformUtils.getFileCharset(file)))) {
         file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
         cacheTheOriginalFileContent(file);
       }
@@ -154,9 +151,7 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
 
   @Override
   public void onKeepAllChanges(List<IFile> files) {
-    for (IFile file : files) {
-      onKeepChange(file);
-    }
+    files.forEach(this::onKeepChange);
   }
 
   @Override
