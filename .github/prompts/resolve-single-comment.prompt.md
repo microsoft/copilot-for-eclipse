@@ -21,6 +21,7 @@ Apply this instruction when resolving an individual PR review comment. This is t
 - `comment_id`: The comment ID from the comments.json file
 
 Read the comment details from `.github/pullrequests/{pr_number}/comments.json` using the `comment_id`:
+- `id`: The comment ID
 - `path`: The file path where the comment was made
 - `line`: The line number in the file
 - `body`: The review comment content
@@ -126,9 +127,9 @@ Once the user accepts the changes:
    ```shell
    git push
    ```
-3. Reply to the PR comment with the commit ID:
+3. Reply to the PR comment:
    ```shell
-   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies -f body="Addressed in commit <commit_sha>"
+   gh api -X POST /repos/microsoft/copilot-eclipse/pulls/{pr_number}/comments/{comment_id}/replies -f body="Done. <description of what was changed and why>"
    ```
 
 **Only after step 9 completes successfully should this comment be marked as "completed" in the TODO list.**

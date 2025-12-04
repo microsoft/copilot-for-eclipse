@@ -769,4 +769,37 @@ public class UiUtils {
   public static boolean isAgentFile(String fileName) {
     return fileName != null && fileName.endsWith(".agent.md");
   }
+
+  /**
+   * Find all open .agent.md files across all workbench windows.
+   * This method must be called from the UI thread.
+   *
+   * @return a list of editor parts containing open agent files
+   */
+  public static List<IEditorPart> findAllOpenAgentFiles() {
+    List<IEditorPart> result = new ArrayList<>();
+
+    IWorkbench workbench = PlatformUI.getWorkbench();
+    if (workbench == null) {
+      return result;
+    }
+
+    for (IWorkbenchWindow window : workbench.getWorkbenchWindows()) {
+      if (window == null || window.getActivePage() == null) {
+        continue;
+      }
+
+      for (IEditorReference editorRef : window.getActivePage().getEditorReferences()) {
+        IEditorPart editor = editorRef.getEditor(false);
+        if (editor != null) {
+          String editorName = editorRef.getName();
+          if (isAgentFile(editorName)) {
+            result.add(editor);
+          }
+        }
+      }
+    }
+
+    return result;
+  }
 }

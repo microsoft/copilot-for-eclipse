@@ -17,8 +17,12 @@ import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
@@ -848,10 +852,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
    * Update tool status for all modes (agent mode and custom agents) via LSP.
    */
   private void updateAllModesToolStatus() {
-    // Save all open .agent.md files before updating tool status
-    // This ensures the language server reads the latest file contents
-    saveAllAgentFiles();
-
     LanguageServerSettingManager lsManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
 
     // Update tool status for each mode
@@ -865,40 +865,46 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       // Update via LSP with mode context
       lsManager.updateToolStatusForMode(toolStatusJson, modeId);
     }
+
+    reloadAgentFilesFromDisk();
   }
 
   /**
-   * Save all open .agent.md files to ensure the language server reads the latest content.
-   * This is necessary because tool configurations in .agent.md files need to be persisted
-   * before sending tool status updates to the language server.
+   * Reload all open .agent.md files from disk to pick up changes made by the language server.
    */
-  private void saveAllAgentFiles() {
-    try {
-      IWorkbench workbench = PlatformUI.getWorkbench();
-      if (workbench == null) {
-        return;
+  private void reloadAgentFilesFromDisk() {
+    // Collect agent files on UI thread
+    List<IFile> filesToRefresh = new ArrayList<>();
+    for (IEditorPart editor : UiUtils.findAllOpenAgentFiles()) {
+      IFile file = UiUtils.getFileFromEditorPart(editor);
+      if (file != null && file.exists()) {
+        filesToRefresh.add(file);
       }
+    }
 
-      for (IWorkbenchWindow window : workbench.getWorkbenchWindows()) {
-        if (window == null || window.getActivePage() == null) {
-          continue;
-        }
+    if (filesToRefresh.isEmpty()) {
+      return;
+    }
 
-        for (IEditorReference editorRef : window.getActivePage().getEditorReferences()) {
-          IEditorPart editor = editorRef.getEditor(false);
-          if (editor != null && editor.isDirty()) {
-            String editorInput = editorRef.getName();
-            // Check if this is an .agent.md file
-            if (UiUtils.isAgentFile(editorInput)) {
-              // Save the editor - already in UI thread from performOk()
-              window.getActivePage().saveEditor(editor, false);
-            }
+    // Refresh files in background thread since refreshLocal can be long-running
+    Job refreshJob = new Job("Refreshing agent files") {
+      @Override
+      protected IStatus run(IProgressMonitor monitor) {
+        for (IFile file : filesToRefresh) {
+          try {
+            file.refreshLocal(IResource.DEPTH_ZERO, monitor);
+          } catch (CoreException e) {
+            CopilotCore.LOGGER.error("Failed to refresh " + file.getName(), e);
+          } catch (OperationCanceledException e) {
+            // User cancelled, stop refreshing remaining files
+            break;
           }
         }
+        return Status.OK_STATUS;
       }
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to save .agent.md files", e);
-    }
+    };
+    refreshJob.setSystem(true);
+    refreshJob.schedule();
   }
 
   /**

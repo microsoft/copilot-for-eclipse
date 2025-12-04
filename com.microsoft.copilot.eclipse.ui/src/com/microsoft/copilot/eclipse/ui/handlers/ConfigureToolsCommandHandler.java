@@ -12,6 +12,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IFileEditorInput;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.eclipse.ui.handlers.HandlerUtil;
 
@@ -127,10 +128,17 @@ public class ConfigureToolsCommandHandler extends CopilotHandler {
    * Open the tool configuration dialog for a specific file. This is a public static method that can be called from code
    * mining or other UI components.
    *
+   * <p>This method saves all dirty .agent.md files before opening the dialog to ensure
+   * the language server reads the latest file contents when updating tool configurations.
+   *
    * @param shell the parent shell
    * @param file the .agent.md file
    */
   public static void openToolConfigurationDialog(Shell shell, IFile file) {
+    // Save all dirty .agent.md files before opening the preference page
+    // This ensures the language server reads the latest content when tool status is updated
+    saveAllDirtyAgentFiles();
+
     String modeId = extractModeIdFromFile(file);
     openToolConfigurationDialog(shell, modeId);
   }
@@ -149,6 +157,22 @@ public class ConfigureToolsCommandHandler extends CopilotHandler {
       dialog.open();
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Error opening tool configuration dialog", e);
+    }
+  }
+
+  /**
+   * Save all open .agent.md files that have unsaved changes.
+   * This ensures the language server reads the latest content when updating tool configurations.
+   * This method must be called from the UI thread.
+   */
+  private static void saveAllDirtyAgentFiles() {
+    for (IEditorPart editor : UiUtils.findAllOpenAgentFiles()) {
+      if (editor != null && editor.isDirty()) {
+        IWorkbenchPage page = editor.getSite().getPage();
+        if (page != null) {
+          page.saveEditor(editor, false);
+        }
+      }
     }
   }
 }

@@ -28,20 +28,27 @@ mkdir -p .github/pullrequests/${input:pr_number}
 gh api repos/microsoft/copilot-eclipse/pulls/${input:pr_number}/comments --paginate --jq '.[] | {id: .id, path: .path, line: .line, body: .body, diff_hunk: .diff_hunk}' > .github/pullrequests/${input:pr_number}/comments.json
 ```
 
-### 3. For Each Comment, Extract:
-- `id`: The comment ID (needed for resolving)
+### 3. Filter and Classify Comments
+After loading the comments file:
+1. **Skip developer response comments** - Ignore comments where `body` starts with "Done." or "Checked:" or contains phrases like "This was addressed"
+2. **Skip already resolved comments** - If you see a reply pattern indicating resolution, mark as completed in TODO
+3. **Focus on actionable review comments** - Only create TODOs for comments requesting changes
+
+### 4. For Each Actionable Comment, Extract:
+- `id`: The comment ID (needed for replying)
 - `path`: The file path where the comment was made
 - `line`: The line number in the file
 - `body`: The actual review comment content
 - `diff_hunk`: The code context around the comment
 
-### 4. Create TODO List for All Comments
-**IMMEDIATELY after fetching comments**, create a TODO list with one item per comment:
-- Title format: "Comment #N: <brief description from body>"
+### 5. Create TODO List for Actionable Commentsomments
+**IMMEDIATELY after fetching and filtering comments**, create a TODO list with one item per actionable comment:
+- Title format: "Comment #{id}: <brief description from body>"
 - All items start as "not-started"
 - This provides visibility to the user on overall progress
+- Exclude comments that are developer responses or already resolved
 
-### 5. Address Comments ONE AT A TIME (Sequential Processing)
+### 6. Address Comments ONE AT A TIME (Sequential Processing)
 
 **⚠️ CRITICAL: Do NOT batch process. Do NOT skip ahead. Complete each comment FULLY before moving to the next.**
 
@@ -62,7 +69,7 @@ For each comment in order:
 - ❌ Mark a comment as complete before committing and replying
 - ❌ Process multiple comments in parallel
 
-### 6. After Fixing All Comments
+### 7. After Fixing All Comments
 Run full verification:
 ```shell
 .\mvnw clean verify
@@ -70,23 +77,23 @@ Run full verification:
 
 ## Example TODO List Management
 
-After fetching 3 comments, create:
+After fetching and filtering 3 actionable comments (e.g., skipping 2 "Done" responses), create:ionable comments (e.g., skipping 2 "Done" responses), create:
 ```
-TODO 1: "Comment #1: Use StringUtils.isNotBlank()" - not-started
-TODO 2: "Comment #2: Add null check for parameter" - not-started  
-TODO 3: "Comment #3: Extract method for reuse" - not-started
+TODO 1: "Comment #2580177053: Use StringUtils.isNotBlank()" - not-started
+TODO 2: "Comment #2580180721: Add null check for parameter" - not-started  
+TODO 3: "Comment #2580191136: Extract method for reuse" - not-started
 ```
 
 When starting comment #1:
 ```
-TODO 1: "Comment #1: Use StringUtils.isNotBlank()" - in-progress ← ONLY this one
-TODO 2: "Comment #2: Add null check for parameter" - not-started
-TODO 3: "Comment #3: Extract method for reuse" - not-started
+TODO 1: "Comment #2580177053: Use StringUtils.isNotBlank()" - in-progress ← ONLY this one
+TODO 2: "Comment #2580180721: Add null check for parameter" - not-started
+TODO 3: "Comment #2580191136: Extract method for reuse" - not-started
 ```
 
 Only after commit/push/reply for comment #1:
 ```
-TODO 1: "Comment #1: Use StringUtils.isNotBlank()" - completed ✓
-TODO 2: "Comment #2: Add null check for parameter" - in-progress ← Now start this
-TODO 3: "Comment #3: Extract method for reuse" - not-started
+TODO 1: "Comment #2580177053: Use StringUtils.isNotBlank()" - completed ✓
+TODO 2: "Comment #2580180721: Add null check for parameter" - in-progress ← Now start this
+TODO 3: "Comment #2580191136: Extract method for reuse" - not-started
 ```
