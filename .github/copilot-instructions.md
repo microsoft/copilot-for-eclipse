@@ -48,6 +48,20 @@ You MUST verify compilation and code quality before declaring work complete!
 - Checkstyle validation runs during `verify` phase
 - Target platform defined in `base.target`, `target-terminal.target`, `target-tm-terminal.target`
 
+### Code Change Review Trigger
+
+**When** code changes are complete (after creating, editing, or refactoring code files), automatically verify that the changes follow project best practices:
+
+1. Review changes against the **Best Practices Summary** section above
+2. Verify **Code Style Preferences** are followed (formatting, naming, imports)
+3. **When modifying a function's behavior** (error handling, return type, async pattern) → check all callers using `list_code_usages` or `grep_search` to ensure they handle the new behavior correctly
+4. Run build verification:
+   - `.\mvnw checkstyle:check` to verify Checkstyle compliance
+   - `.\mvnw clean verify` to ensure compilation succeeds
+   - `.\mvnw test` to verify tests pass
+
+**Action**: After completing code changes, review against this checklist and fix any violations before declaring work complete.
+
 ## Project Architecture
 
 ### Bundle Structure (OSGi Modules)
@@ -174,19 +188,17 @@ Each contains `copilot-agent/` directory with Node.js binary and agent code.
 3. **Message Rendering**: Custom SWT widgets for markdown, code blocks, tool invocations
 4. **Context Management**: File context, selection context, workspace context
 
-## Coding Standards
+## Code Style Preferences
 
-### Java Coding Style
+**Google Java Style with Customizations** (enforced by Checkstyle)
 
-**Google Java Style with Customizations** (enforced by Checkstyle):
+### Formatting
 
-#### Indentation and Formatting
-- **Indentation**: 2 spaces (NOT tabs)
-- **Line length**: 100 characters maximum
-- **Block indentation**: +2 spaces
-- **Continuation indentation**: +4 spaces for wrapped lines
-- **Braces**: Required for all control structures (if, else, for, while, do)
-- **Brace style**: K&R style (opening brace on same line)
+**When** indenting code → use 2 spaces (NOT tabs), +4 spaces for continuation lines
+
+**When** writing lines → keep under 120 characters maximum
+
+**When** using braces → always include them for control structures (if, else, for, while, do); use K&R style (opening brace on same line)
 
 ```java
 // ✓ Correct
@@ -203,28 +215,25 @@ if (condition)
   doSomething();
 ```
 
-#### Naming Conventions
-- **Classes/Interfaces**: `PascalCase` (e.g., `CopilotLanguageClient`, `BaseTool`)
-- **Methods/Variables**: `camelCase` (e.g., `getToolInformation`, `lsConnection`)
-- **Constants**: `UPPER_SNAKE_CASE` (e.g., `MAX_RETRIES`, `DEFAULT_TIMEOUT`)
-- **Packages**: lowercase, no underscores (e.g., `com.microsoft.copilot.eclipse.core.lsp`)
-- **Type parameters**: Single capital letter (e.g., `<T>`, `<E>`)
+### Naming
 
-#### Annotations
-- **Override**: Always use `@Override` for overridden methods
-- **Deprecated**: Use `@Deprecated` with Javadoc `@deprecated` tag
+**When** naming classes/interfaces → use `PascalCase` (e.g., `CopilotLanguageClient`, `BaseTool`)
 
-```java
-@Override
-public String getName() {
-  return name;
-}
-```
+**When** naming methods/variables → use `camelCase`, prefer descriptive names over abbreviations (e.g., `getToolInformation` not `getToolInfo`)
 
-#### Javadoc
-- **Required** for all public classes, interfaces, and methods
-- **Format**: Standard Javadoc with `@param`, `@return`, `@throws` as needed
-- Use `/**` for Javadoc, `//` for implementation comments
+**When** naming constants → use `UPPER_SNAKE_CASE` (e.g., `MAX_RETRIES`, `DEFAULT_TIMEOUT`)
+
+**When** naming packages → use lowercase, no underscores (e.g., `com.microsoft.copilot.eclipse.core.lsp`)
+
+### Annotations & Documentation
+
+**When** overriding methods → always use `@Override` annotation
+
+**When** deprecating → use `@Deprecated` annotation with Javadoc `@deprecated` tag explaining the alternative
+
+**When** writing public APIs → add Javadoc with `@param`, `@return`, `@throws` as needed
+
+**When** adding comments → only when the "why" isn't obvious from code; use `//` for implementation comments
 
 ```java
 /**
@@ -232,51 +241,47 @@ public String getName() {
  *
  * @return the tool information describing this tool's capabilities
  */
+@Override
 public LanguageModelToolInformation getToolInformation() {
   // Implementation
 }
 ```
 
-#### Imports
-- No wildcard imports (except in tests)
-- Organize: Static imports → Java standard library → Third-party → Eclipse → Project
-- Remove unused imports
+### Imports
 
-#### File Organization
+**When** adding imports → group by: static imports → java/javax → third-party → Eclipse → project (blank line between groups)
+
+**When** importing → use explicit imports, never wildcards (except in tests)
+
+**When** reviewing code → remove unused imports
+
+### File Organization
+
+**When** organizing a class file → follow this order:
 1. License header (if required)
 2. Package statement
-3. Import statements (organized)
+3. Import statements (organized as above)
 4. Class Javadoc
 5. Class declaration
-6. Static fields
-7. Instance fields
-8. Constructors
-9. Methods (public → protected → private)
-10. Static methods
-11. Inner classes/interfaces
+6. Static fields → Instance fields → Constructors → Methods (public → protected → private) → Inner classes
 
 ### Eclipse Plugin Best Practices
 
-#### Bundle Dependencies
-- Minimize dependencies - only add what's necessary
-- Use `Require-Bundle` for essential dependencies
-- Use `Import-Package` for optional or version-flexible dependencies
-- Avoid circular dependencies between bundles
+#### Dependencies
 
-#### OSGi Services
-- Use Declarative Services (DS) when possible
-- Register services in plugin activator if DS not suitable
-- Clean up service registrations in `stop()` method
-- Use `ServiceTracker` for dynamic service dependencies
+**When** adding bundle dependencies → minimize them; only add what's necessary
+
+**When** declaring dependencies → use `Require-Bundle` for essential dependencies, `Import-Package` for optional or version-flexible ones
+
+**When** designing bundles → avoid circular dependencies between bundles
 
 #### Threading
-- **UI Thread**: All SWT operations must run on UI thread
-  - Use `Display.asyncExec()` or `Display.syncExec()` from background threads
-  - Use `Display.getDefault()` to get display instance
-- **Background Jobs**: Use Eclipse `Job` API for long-running operations
-  - Set appropriate job priority and scheduling rules
-  - Report progress with `IProgressMonitor`
-- **CompletableFuture**: Use for async tool operations and LSP requests
+
+**When** updating SWT widgets → always run on UI thread using `Display.asyncExec()` or `Display.syncExec()`
+
+**When** performing I/O or long operations → use Eclipse `Job` API or `CompletableFuture.runAsync()`, never block UI thread
+
+**When** chaining async operations → use `.thenCompose()`, `.thenAccept()`, `.exceptionally()`; avoid `.join()`
 
 ```java
 // ✓ Correct - UI update from background thread
@@ -292,68 +297,38 @@ CompletableFuture.supplyAsync(() -> {
 ```
 
 #### Resource Management
-- Dispose SWT resources that you create (fonts, images)
-- Note: Colors do not need disposal in modern SWT versions
-- Do not dispose shared resources (e.g., images from other bundles)
-- Resources with a defined parent (e.g., Label with parent Composite) do not need explicit disposal
-- Use try-with-resources for Eclipse resources (IFile, IDocument)
-- Close streams and dispose listeners in finally blocks or with try-with-resources
+
+**When** creating SWT resources (fonts, images) → dispose them when done; Colors do not need disposal in modern SWT
+
+**When** using shared resources → do not dispose resources from other bundles
+
+**When** child has a parent → resources with a defined parent (e.g., Label with parent Composite) do not need explicit disposal
+
+**When** using streams/files → use try-with-resources for Eclipse resources (IFile, IDocument)
 
 #### Error Handling
-- Use Eclipse `IStatus` and `Status` for error reporting
-- Log errors using plugin logger: `CopilotCore.getPlugin().logError(message, exception)`
-- Show user-facing errors with `ErrorDialog` or `MessageDialog`
-- Never swallow exceptions silently
+
+**When** reporting errors → use Eclipse `IStatus` and `Status` objects
+
+**When** logging errors → use `CopilotCore.getPlugin().logError(message, exception)`
+
+**When** showing errors to users → use `ErrorDialog` or `MessageDialog`
+
+**When** catching exceptions → never swallow silently; always log or handle appropriately
 
 ### Testing Standards
 
-#### Unit Tests
-- Use JUnit 5 (Jupiter) for new tests
-- Test class naming: `<ClassName>Test` or `<ClassName>Tests`
-- One test class per production class (generally)
-- Use descriptive test method names: `testMethodName_scenario_expectedOutcome`
+**When** writing new tests → use JUnit 5 (Jupiter)
 
-#### UI Tests
-- Use SWTBot for UI testing
-- Run tests in dedicated test fragments
-- Clean up resources after tests
-- Use appropriate timeouts for async operations
+**When** naming test classes → use `<ClassName>Test` or `<ClassName>Tests`
 
-#### Integration Tests
-- Test bundle activation and service registration
-- Test LSP communication with mock server
-- Test tool invocation end-to-end
+**When** naming test methods → use descriptive names: `testMethodName_scenario_expectedOutcome`
 
-## Key APIs and Integrations
+**When** testing UI → use SWTBot; run in dedicated test fragments; clean up resources after tests
 
-### Eclipse Platform APIs
-- **Resources**: `IWorkspace`, `IProject`, `IFile`, `IFolder`
-- **Text Editing**: `IDocument`, `ITextViewer`, `ITextEditor`
-- **UI**: `IViewPart`, `IEditorPart`, `IWorkbenchPage`, `IWorkbenchWindow`
-- **Jobs**: `Job`, `IJobManager`, `IProgressMonitor`
-- **Preferences**: `IPreferenceStore`, `IEclipsePreferences`
+**When** testing async operations → use appropriate timeouts
 
-### Java Development Tools (JDT)
-- **Debug**: `IJavaDebugTarget`, `IJavaStackFrame`, `IJavaVariable`
-- **Core Model**: `IJavaProject`, `ICompilationUnit`, `IType`, `IMethod`
-- **UI**: `JavaUI`, editor integration APIs
-
-### Language Server Protocol (LSP4E)
-- **Client**: `LanguageClientImpl` - base class for custom client
-- **Server Connection**: `ProcessStreamConnectionProvider` - for process-based servers
-- **Document Sync**: Automatic document synchronization
-- **Custom Requests**: Use `LanguageServer.getTextDocumentService()` for custom LSP requests
-
-### SWT (Standard Widget Toolkit)
-- **Widgets**: `Composite`, `Label`, `Text`, `Button`, `Browser`
-- **Layouts**: `GridLayout`, `RowLayout`, `FillLayout`
-- **Events**: `SelectionListener`, `ModifyListener`, `PaintListener`
-- **Resources**: `Color`, `Font`, `Image` - must be disposed!
-
-### External Integrations
-- **GitHub**: OAuth authentication, API access
-- **Copilot Language Server**: Custom LSP extensions for agent tools and chat
-- **Telemetry**: Usage analytics (if enabled)
+**When** integration testing → test bundle activation, service registration, LSP communication with mock server
 
 ## Development Workflow
 
@@ -361,14 +336,19 @@ CompletableFuture.supplyAsync(() -> {
 
 **Always use GitHub CLI (`gh`) for interacting with the repository at https://github.com/microsoft/copilot-eclipse**
 
-Use `gh` commands for:
-- Viewing PRs: `gh pr view <number>`, `gh pr list`, `gh pr status`
-- Creating PRs: `gh pr create`
-- Reviewing PRs: `gh pr review <number>`, `gh pr checks <number>`
-- Viewing issues: `gh issue view <number>`, `gh issue list`
-- Fetching PR diffs: `gh pr diff <number>`
-- Checking out PRs: `gh pr checkout <number>`
-- Commenting: `gh pr comment <number>`, `gh issue comment <number>`
+**When** viewing PRs → use `gh pr view <number>`, `gh pr list`, `gh pr status`
+
+**When** creating PRs → use `gh pr create`
+
+**When** reviewing PRs → use `gh pr review <number>`, `gh pr checks <number>`
+
+**When** viewing issues → use `gh issue view <number>`, `gh issue list`
+
+**When** fetching PR diffs → use `gh pr diff <number>`
+
+**When** checking out PRs → use `gh pr checkout <number>`
+
+**When** commenting → use `gh pr comment <number>`, `gh issue comment <number>`
 
 ### Setup and Build
 
@@ -412,45 +392,39 @@ Use `gh` commands for:
 
 ### Key Entry Points for Edits
 
-**Language Server Integration:**
-- **LSP client extensions**: Modify `com.microsoft.copilot.eclipse.core/src/.../core/lsp/CopilotLanguageClient.java`
-- **LSP connection management**: Update `com.microsoft.copilot.eclipse.core/src/.../core/lsp/LsStreamConnectionProvider.java`
-- **Custom LSP protocol**: Add types to `com.microsoft.copilot.eclipse.core/src/.../core/lsp/protocol/`
+**When** extending LSP client → modify `core/lsp/CopilotLanguageClient.java`
 
-**Chat Features:**
-- **Chat UI**: Modify widgets in `com.microsoft.copilot.eclipse.ui/src/.../ui/chat/`
-- **Chat modes**: Update `com.microsoft.copilot.eclipse.core/src/.../core/chat/` for chat mode logic
-- **Message rendering**: Edit `com.microsoft.copilot.eclipse.ui/src/.../ui/swt/` for markdown/code blocks
-- **Conversation storage**: Modify `com.microsoft.copilot.eclipse.core/src/.../core/persistence/`
+**When** changing LSP connection → update `core/lsp/LsStreamConnectionProvider.java`
 
-**Code Completion:**
-- **Completion logic**: Update `com.microsoft.copilot.eclipse.core/src/.../core/completion/CompletionProvider.java`
-- **Ghost text rendering**: Modify `com.microsoft.copilot.eclipse.ui/src/.../ui/completion/` for visual presentation
-- **Completion managers**: Edit completion managers for different Eclipse versions (legacy vs modern)
-- **Next Edit Suggestions (NES)**: Modify `com.microsoft.copilot.eclipse.ui/src/.../ui/completion/` for NES-related features
+**When** adding LSP protocol types → add to `core/lsp/protocol/`
 
-**Agent Tools:**
-- **Tool implementations**: Add/modify tools in `com.microsoft.copilot.eclipse.ui/src/.../ui/chat/tools/`
-- **Tool registration**: Update `com.microsoft.copilot.eclipse.ui/src/.../ui/chat/services/AgentToolService.java`
-- **Tool API**: Modify `com.microsoft.copilot.eclipse.ui/src/.../ui/chat/tools/BaseTool.java` for tool framework
+**When** modifying chat UI → edit widgets in `ui/chat/`
 
-**Authentication:**
-- **Auth flow**: Update `com.microsoft.copilot.eclipse.core/src/.../core/AuthStatusManager.java`
-- **Status management**: Modify `com.microsoft.copilot.eclipse.ui/src/.../ui/CopilotStatusManager.java`
+**When** changing chat modes → update `core/chat/` for mode logic
 
-**Terminal Integration:**
-- **Terminal API**: Modify `com.microsoft.copilot.eclipse.terminal.api/`
-- **Terminal implementations**: Update specific terminal bundles (`ui.terminal` or `ui.terminal.tm`)
+**When** editing message rendering → modify `ui/swt/` for markdown/code blocks
 
-**Preferences and Settings:**
-- **Preference pages**: Update `com.microsoft.copilot.eclipse.ui/src/.../ui/preferences/`
-- **Core preferences**: Modify `com.microsoft.copilot.eclipse.core/` preference constants
+**When** changing conversation storage → edit `core/persistence/`
 
-**Bundle Manifests and Configuration:**
-- **Dependencies**: Edit `META-INF/MANIFEST.MF` in respective bundles
-- **Extension points**: Update `plugin.xml` files
-- **Feature definition**: Modify `com.microsoft.copilot.eclipse.feature/feature.xml`
-- **Update site**: Edit `com.microsoft.copilot.eclipse.repository/category.xml`
+**When** modifying completion logic → update `core/completion/CompletionProvider.java`
+
+**When** changing ghost text → modify `ui/completion/` for visual presentation
+
+**When** adding/modifying agent tools → edit `ui/chat/tools/`
+
+**When** registering tools → update `ui/chat/services/AgentToolService.java`
+
+**When** changing auth flow → update `core/AuthStatusManager.java`
+
+**When** modifying terminal integration → edit `terminal.api/` or specific terminal bundles
+
+**When** adding preferences → update `ui/preferences/`
+
+**When** changing bundle dependencies → edit `META-INF/MANIFEST.MF`
+
+**When** adding extension points → update `plugin.xml` files
+
+**When** modifying feature → edit `feature/feature.xml`
 
 ## Common Development Tasks
 
@@ -504,17 +478,26 @@ Use `gh` commands for:
 5. **Code Style**: Follow Google Java Style enforced by Checkstyle; use simple class names with imports (avoid fully qualified names)
 
 ### API & Code Quality
-- **Utility Methods**: Use `StringUtils.isNotBlank()` instead of manual null/empty checks
-- **Eclipse Terminology**: Use "Project" not "Workspace folder" in UI and code
-- **Resource Depth**: Use `IResource.DEPTH_ONE` instead of `DEPTH_INFINITE` when not recursing
-- **Progress Monitors**: Use `new NullProgressMonitor()` instead of `null`
-- **Extension Points**: Consolidate registrations in `plugin.xml`; verify extension point IDs are correct
+
+**When** checking strings → use `StringUtils.isNotBlank()` instead of manual null/empty checks
+
+**When** referring to workspace folders → use "Project" terminology in UI and code
+
+**When** querying resources → use `IResource.DEPTH_ONE` instead of `DEPTH_INFINITE` when not recursing
+
+**When** passing progress monitors → use `new NullProgressMonitor()` instead of `null`
+
+**When** registering extensions → consolidate in `plugin.xml`; verify extension point IDs are correct
 
 ### Threading & Async Patterns
-- **No Blocking**: Avoid `.join()` on CompletableFutures; chain with `.thenCompose()`, `.thenAccept()`, `.exceptionally()`
-- **UI Updates**: Wrap in `Display.asyncExec()` when updating from async callbacks
-- **Thread-Safe Collections**: Use `CopyOnWriteArrayList` instead of `ArrayList` for concurrent access
-- **Document Concurrency**: Explain why synchronous operations are needed
+
+**When** chaining futures → avoid `.join()`; use `.thenCompose()`, `.thenAccept()`, `.exceptionally()`
+
+**When** updating UI from async → wrap in `Display.asyncExec()`
+
+**When** using shared collections → use `CopyOnWriteArrayList` instead of `ArrayList` for concurrent access
+
+**When** using synchronous operations → document why they are needed
 
 ```java
 // ✓ Correct async pattern
@@ -528,29 +511,52 @@ CompletableFuture.runAsync(() -> {
 ```
 
 ### UI/UX Best Practices
-- **Externalize Strings**: All user-facing text in `Messages.properties` using Eclipse NLS pattern
-- **Simplify Logic**: Don't over-complicate context menu visibility; prefer simple, predictable behavior
-- **Limit Dialog Scope**: Show only relevant preference pages when opening programmatically
-- **Refresh Workspace**: Call `IResource.refreshLocal()` after external file modifications
-- **Optimize Refreshes**: Use `requestLayout()` instead of `layout()`; avoid redundant refresh calls before disposal
+
+**When** adding user-facing text → externalize in `Messages.properties` using Eclipse NLS pattern
+
+**When** implementing context menus → prefer simple, predictable visibility logic
+
+**When** opening preference dialogs → show only relevant pages
+
+**When** modifying files externally → call `IResource.refreshLocal()` after changes
+
+**When** refreshing layouts → use `requestLayout()` instead of `layout()`; avoid redundant refresh calls before disposal
 
 ### Code Organization
-- **Extract Utilities**: Create centralized methods to avoid duplication (e.g., `UiUtils.isAgentFile()`)
-- **Method Visibility**: Keep methods `private` if only used internally; avoid unnecessary `public`
-- **Remove Dead Code**: Delete unreachable code (e.g., after dialog close)
-- **Validate Inputs**: Check existence before use; handle multi-project scenarios
+
+**When** duplicating logic → extract to centralized utility methods (e.g., `UiUtils.isAgentFile()`)
+
+**When** declaring methods → keep `private` if only used internally; avoid unnecessary `public`
+
+**When** refactoring → remove unreachable/dead code
+
+**When** handling inputs → check existence before use; handle multi-project scenarios
 
 ### Documentation
-- **Clarify Decisions**: Explain why blocking calls or fully qualified names are used
-- **Document Structures**: Add JavaDoc for complex nested data structures
-- **Explain Deviations**: When breaking rules, document the reason
+
+**When** making non-obvious decisions → explain why blocking calls or fully qualified names are used
+
+**When** creating complex structures → add JavaDoc for nested data structures
+
+**When** breaking conventions → document the reason for the deviation
 
 ### Testing & Dependencies
-- **Unit Tests**: Write tests for core logic using JUnit 5; integration tests for Eclipse integration
-- **Minimize Dependencies**: Only add necessary bundles; check `base.target` for Eclipse 2024-03 version constraints
-- **Backward Compatibility**: Support multiple Eclipse versions when possible
-- **Performance**: Use jobs for long operations, cache expensive computations, dispose resources promptly
+
+**When** writing tests → use JUnit 5 for core logic; integration tests for Eclipse integration
+
+**When** adding dependencies → only add necessary bundles; check `base.target` for Eclipse 2024-03 version constraints
+
+**When** targeting Eclipse versions → support multiple versions when possible
+
+**When** optimizing performance → use jobs for long operations, cache expensive computations, dispose resources promptly
+
+## Continuous Improvement
+
+**When** the user provides feedback, correction, or identifies a reusable pattern:
+1. Apply the fix or improvement immediately
+2. **Proactively suggest** adding the lesson to this instructions file if it's a pattern that should be remembered
+3. Ask: "Would you like me to add this to the copilot instructions so it's remembered for future sessions?"
 
 ---
 
-This plugin brings the power of GitHub Copilot to Eclipse users through a robust, well-architected extension that follows Eclipse best practices and integrates deeply with the Eclipse platform. Understanding the OSGi bundle structure, Eclipse APIs, and LSP integration patterns is crucial for making effective contributions.
+This plugin brings the power of GitHub Copilot to Eclipse users through a robust, well-architected extension that follows Eclipse best practices and integrates deeply with the Eclipse platform.
