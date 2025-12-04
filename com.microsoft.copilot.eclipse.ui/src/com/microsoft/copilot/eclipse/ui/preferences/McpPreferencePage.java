@@ -1164,10 +1164,11 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
           String toolName;
 
           // Parse tool specification: either "tool" or "server/tool"
+          // For server names containing "/", use lastIndexOf to split from the rightmost "/"
           if (toolSpec.contains("/")) {
-            String[] parts = toolSpec.split("/", 2);
-            serverName = parts[0];
-            toolName = parts[1];
+            int lastSlashIndex = toolSpec.lastIndexOf("/");
+            serverName = toolSpec.substring(0, lastSlashIndex);
+            toolName = toolSpec.substring(lastSlashIndex + 1);
           } else {
             // Built-in tool
             serverName = Messages.preferences_page_mcp_tools_builtin;
