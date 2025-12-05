@@ -35,4 +35,5 @@ public class UiConstants {
 
   public static final String GITHUB_COPILOT_CODING_AGENT_SLUG = "github-copilot-coding-agent";
   public static final String GITHUB_COPILOT_CODING_AGENT_LEARN_MORE_URL = "https://aka.ms/learn-copilot-coding-agent";
+  public static final String TERMINAL_DEPENDENCY_GUIDE_URL = "https://aka.ms/terminal-dependency-guide";
 }

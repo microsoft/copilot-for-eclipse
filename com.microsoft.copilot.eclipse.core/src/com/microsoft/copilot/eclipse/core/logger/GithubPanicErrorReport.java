@@ -203,7 +203,7 @@ public class GithubPanicErrorReport {
       properties.put("common_uikind", "desktop");
 
       // ide version
-      properties.put(VERSION, "Eclipse/" + PlatformUtils.getEclipseVersion());
+      properties.put(VERSION, "Eclipse/" + PlatformUtils.getEclipseVersionString());
       properties.put("common_extname", "copilot-eclipse");
 
       String bundleVersion = PlatformUtils.getBundleVersion();

@@ -32,6 +32,7 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter.GetTerminalOutputTool;
+import com.microsoft.copilot.eclipse.ui.dialogs.MissingTerminalDependenciesDialog;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -71,6 +72,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     }
   }
 
+  @Override
+  public void onMissingDependencies(String terminalType, List<String> missingDependencies) {
+    MissingTerminalDependenciesDialog.showIfNotSuppressed(terminalType, missingDependencies);
+  }
+
   /**
    * Register default tools.
    */
@@ -92,9 +98,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   }
 
   /**
-   * Register tools to the language server and get the list of registered tools.
-   * This is called with different tool sets depending on the chat mode.
-   * The cached built-in tools are updated every time this method is called.
+   * Register tools to the language server and get the list of registered tools. This is called with different tool sets
+   * depending on the chat mode. The cached built-in tools are updated every time this method is called.
    *
    * @return A CompletableFuture containing the list of registered tools from the language server
    */
@@ -154,8 +159,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   }
 
   /**
-   * Get the cached built-in tools information.
-   * This method is intended for MCP preference service and always returns the cached result.
+   * Get the cached built-in tools information. This method is intended for MCP preference service and always returns
+   * the cached result.
    *
    * @return An unmodifiable list of built-in tool information, or empty list if not yet initialized
    */

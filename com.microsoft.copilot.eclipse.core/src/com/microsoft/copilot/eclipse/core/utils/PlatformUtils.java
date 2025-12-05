@@ -18,6 +18,7 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.Version;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 
@@ -32,14 +33,26 @@ public class PlatformUtils {
   }
 
   /**
-   * Get the version of the Eclipse platform.
+   * Get the version of the Eclipse platform as a string.
+   *
+   * @return the Eclipse platform version string, or "unknown" if not available
    */
-  public static String getEclipseVersion() {
+  public static String getEclipseVersionString() {
+    Version version = getEclipseVersion();
+    return version != null ? version.toString() : "unknown";
+  }
+
+  /**
+   * Get the version of the Eclipse platform.
+   *
+   * @return the Eclipse platform version, or null if not available
+   */
+  public static Version getEclipseVersion() {
     Bundle bundle = Platform.getBundle(EC_PLATFORM_BUNDLE_NAME);
     if (bundle == null) {
-      return "unknown";
+      return null;
     }
-    return bundle.getVersion().toString();
+    return bundle.getVersion();
   }
 
   /**
@@ -185,8 +198,7 @@ public class PlatformUtils {
   }
 
   /**
-   * Convert Eclipse/Java charset names to Node.js BufferEncoding names.
-   * CLS expects Node.js-compatible encoding names.
+   * Convert Eclipse/Java charset names to Node.js BufferEncoding names. CLS expects Node.js-compatible encoding names.
    *
    * @param javaCharset Eclipse/Java charset name
    * @return Node.js BufferEncoding name, defaults to "utf8" for unknown charsets
@@ -217,16 +229,16 @@ public class PlatformUtils {
       // - ISO-8859-15: Has Euro symbol, but Node.js latin1 is ISO-8859-1 only
       // - CP1250 and other codepages: Not compatible with latin1
       default -> {
-        CopilotCore.LOGGER.info("Charset '" + javaCharset
-            + "' not directly compatible with Node.js BufferEncoding, falling back to utf8");
+        CopilotCore.LOGGER.info(
+            "Charset '" + javaCharset + "' not directly compatible with Node.js BufferEncoding, falling back to utf8");
         yield "utf8";
       }
     };
   }
 
   /**
-   * Get the Node.js-compatible encoding for a file URI.
-   * Uses Eclipse's built-in fallback chain via {@link #getFileCharset(IFile)}.
+   * Get the Node.js-compatible encoding for a file URI. Uses Eclipse's built-in fallback chain via
+   * {@link #getFileCharset(IFile)}.
    *
    * @param fileUri LSP file URI (e.g., "file:///path/to/file.txt")
    * @return Node.js BufferEncoding name (e.g., "latin1", "utf8")
