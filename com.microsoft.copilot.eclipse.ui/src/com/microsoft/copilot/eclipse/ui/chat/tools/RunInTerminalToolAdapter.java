@@ -34,16 +34,16 @@ public class RunInTerminalToolAdapter extends BaseTool {
   private String buildToolDescription() {
     if (PlatformUtils.isWindows()) {
       return """
-          Shell: powershell.exe
+          Shell: cmd.exe
 
-          This tool allows you to execute PowerShell commands in a persistent terminal session, \
+          This tool allows you to execute Windows Command Prompt commands in a persistent terminal session, \
           preserving environment variables, working directory, and other context across multiple commands.
           Use this tool instead of printing a shell codeblock and asking the user to run it.
 
           Command Execution:
-          - Use semicolons ; to chain commands on one line.
-          - Never create a sub-shell (e.g., powershell -c "command") unless explicitly asked
-          - Prefer pipelines | for data flow
+          - Use & to chain commands on one line (or && for conditional execution on success)
+          - Never create a sub-shell (e.g., cmd /c "command") unless explicitly asked
+          - Use pipelines | for data flow
           - Must use absolute paths to avoid navigation issues
           - If a command may use a pager, disable it with command flags (e.g., `git --no-pager`)
 
