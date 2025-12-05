@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.net.proxy.IProxyChangeEvent;
@@ -32,6 +32,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSett
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.GitHubSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.utils.GsonUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
@@ -208,16 +209,15 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
 
     if (StringUtils.isNotBlank(savedModeToolsStatus)) {
       try {
-        Gson gson = new Gson();
-        Map<String, Map<String, Map<String, Boolean>>> modeToolStatus = gson.fromJson(savedModeToolsStatus,
-            new TypeToken<Map<String, Map<String, Map<String, Boolean>>>>() {
+        Map<String, Map<String, Map<String, Boolean>>> modeToolStatus = GsonUtils.getDefault()
+            .fromJson(savedModeToolsStatus, new TypeToken<Map<String, Map<String, Map<String, Boolean>>>>() {
             }.getType());
 
         // Initialize tool status for each mode (same approach as updateAllModesToolStatus in McpPreferencePage)
         for (Map.Entry<String, Map<String, Map<String, Boolean>>> modeEntry : modeToolStatus.entrySet()) {
           String modeId = modeEntry.getKey();
           Map<String, Map<String, Boolean>> toolStatus = modeEntry.getValue();
-          String toolStatusJson = gson.toJson(toolStatus);
+          String toolStatusJson = GsonUtils.getDefault().toJson(toolStatus);
           updateToolStatusForMode(toolStatusJson, modeId);
         }
       } catch (Exception e) {
@@ -262,120 +262,104 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       return;
     }
 
+    final Map<String, Map<String, Boolean>> toolStatusMap;
     try {
-      Gson gson = new Gson();
-      final Map<String, Map<String, Boolean>> toolStatusMap = gson.fromJson(mcpToolsStatus,
+      toolStatusMap = GsonUtils.getDefault().fromJson(mcpToolsStatus,
           new TypeToken<Map<String, Map<String, Boolean>>>() {
           }.getType());
+    } catch (JsonSyntaxException e) {
+      CopilotCore.LOGGER.error("Failed to parse MCP tools status JSON", e);
+      return;
+    }
 
-      UpdateMcpToolsStatusParams mcpParams = new UpdateMcpToolsStatusParams();
-      List<McpServerToolsStatusCollection> serverList = new ArrayList<>();
-      mcpParams.setServers(serverList);
-      mcpParams.setWorkspaceFolders(WorkspaceUtils.listWorkspaceFolders());
+    UpdateMcpToolsStatusParams mcpParams = new UpdateMcpToolsStatusParams();
+    List<McpServerToolsStatusCollection> serverList = new ArrayList<>();
+    mcpParams.setServers(serverList);
+    mcpParams.setWorkspaceFolders(WorkspaceUtils.listWorkspaceFolders());
+
+    // Set custom mode ID only if this is for a custom mode (ID starts with "file://")
+    // For built-in agent mode, customChatModeId should not be set
+    if (modeId != null && modeId.startsWith("file://")) {
+      mcpParams.setCustomChatModeId(modeId);
+    }
+
+    // Separate built-in tools from MCP server tools
+    Map<String, Boolean> builtInTools = null;
+    for (Map.Entry<String, Map<String, Boolean>> serverEntry : toolStatusMap.entrySet()) {
+      String serverName = serverEntry.getKey();
+      Map<String, Boolean> tools = serverEntry.getValue();
+
+      // Check if this is the built-in tools entry
+      if (Messages.preferences_page_mcp_tools_builtin.equals(serverName)) {
+        builtInTools = tools;
+        continue;
+      }
+
+      // This is an MCP server
+      McpServerToolsStatusCollection serverToolsStatus = new McpServerToolsStatusCollection();
+      serverToolsStatus.setName(serverName);
+
+      List<McpToolsStatusCollection> toolStatusList = new ArrayList<>();
+      serverToolsStatus.setTools(toolStatusList);
+
+      for (Map.Entry<String, Boolean> toolEntry : tools.entrySet()) {
+        String toolName = toolEntry.getKey();
+        boolean enabled = toolEntry.getValue();
+
+        McpToolsStatusCollection toolStatus = new McpToolsStatusCollection();
+        toolStatus.setName(toolName);
+        toolStatus.setStatus(enabled ? McpToolStatus.enabled.toString() : McpToolStatus.disabled.toString());
+        toolStatusList.add(toolStatus);
+      }
+
+      serverList.add(serverToolsStatus);
+    }
+
+    // Prepare futures for both operations
+    CompletableFuture<?> updateMcpToolsStatusFuture = null;
+    CompletableFuture<?> updateConversationToolsStatusFuture = null;
+
+    // Update MCP server tools
+    if (!serverList.isEmpty()) {
+      updateMcpToolsStatusFuture = this.copilotLanguageServerConnection.updateMcpToolsStatus(mcpParams);
+    }
+
+    // Update built-in tools using conversation/updateToolsStatus
+    if (builtInTools != null && !builtInTools.isEmpty()) {
+      UpdateConversationToolsStatusParams conversationParams = new UpdateConversationToolsStatusParams();
+      conversationParams.setChatModeKind("Agent");
+      conversationParams.setWorkspaceFolders(WorkspaceUtils.listWorkspaceFolders());
 
       // Set custom mode ID only if this is for a custom mode (ID starts with "file://")
       // For built-in agent mode, customChatModeId should not be set
       if (modeId != null && modeId.startsWith("file://")) {
-        mcpParams.setCustomChatModeId(modeId);
+        conversationParams.setCustomChatModeId(modeId);
       }
 
-      // Separate built-in tools from MCP server tools
-      Map<String, Boolean> builtInTools = null;
-      for (Map.Entry<String, Map<String, Boolean>> serverEntry : toolStatusMap.entrySet()) {
-        String serverName = serverEntry.getKey();
-        Map<String, Boolean> tools = serverEntry.getValue();
-
-        // Check if this is the built-in tools entry
-        if (Messages.preferences_page_mcp_tools_builtin.equals(serverName)) {
-          builtInTools = tools;
-          continue;
-        }
-
-        // This is an MCP server
-        McpServerToolsStatusCollection serverToolsStatus = new McpServerToolsStatusCollection();
-        serverToolsStatus.setName(serverName);
-
-        List<McpToolsStatusCollection> toolStatusList = new ArrayList<>();
-        serverToolsStatus.setTools(toolStatusList);
-
-        for (Map.Entry<String, Boolean> toolEntry : tools.entrySet()) {
-          String toolName = toolEntry.getKey();
-          boolean enabled = toolEntry.getValue();
-
-          McpToolsStatusCollection toolStatus = new McpToolsStatusCollection();
-          toolStatus.setName(toolName);
-          toolStatus.setStatus(enabled ? McpToolStatus.enabled.toString() : McpToolStatus.disabled.toString());
-          toolStatusList.add(toolStatus);
-        }
-
-        serverList.add(serverToolsStatus);
+      List<ConversationToolStatus> toolsList = new ArrayList<>();
+      for (Map.Entry<String, Boolean> toolEntry : builtInTools.entrySet()) {
+        ConversationToolStatus toolStatus = new ConversationToolStatus();
+        toolStatus.setName(toolEntry.getKey());
+        toolStatus.setStatus(toolEntry.getValue().booleanValue() ? "enabled" : "disabled");
+        toolsList.add(toolStatus);
       }
+      conversationParams.setTools(toolsList);
 
-      // These two CLS requests (updateMcpToolsStatus and updateConversationToolsStatus) are currently
-      // executed sequentially with blocking .join() calls. This approach ensures sequential execution
-      // but blocks the calling thread.
-      //
-      // IMPORTANT NOTES:
-      // 1. The method updateMcpToolsStatus() can be called concurrently for different modes
-      // (see initializeMcpToolsStatus() at line 221 which iterates through multiple modes)
-      // 2. It's currently unclear whether:
-      // - These requests can be safely parallelized within a single mode
-      // - Cross-mode concurrent calls are safe (e.g., agent mode + custom mode simultaneously)
-      // - Whether serialization is needed only within a mode or globally across all modes
-      //
-      // TODO: Clarify with CLS team about the actual concurrency requirements:
-      // - Can different modes update their tools in parallel?
-      // - Must the two requests within a mode always be sequential?
-      // - After CLS race condition bugs are fixed, what will be the safe execution model?
-      // Once clarified, consider refactoring to use CompletableFuture.thenCompose() for
-      // async chaining or add cross-mode synchronization if needed.
-
-      // Update MCP server tools
-      if (!serverList.isEmpty()) {
-        try {
-          CompletableFuture<?> mcpFuture = this.copilotLanguageServerConnection.updateMcpToolsStatus(mcpParams);
-          if (mcpFuture != null) {
-            mcpFuture.join();
-          }
-        } catch (Exception e) {
-          CopilotCore.LOGGER.error("Error waiting for MCP tools status update to complete", e);
-        }
-      }
-
-      // Update built-in tools using conversation/updateToolsStatus
-      if (builtInTools != null && !builtInTools.isEmpty()) {
-        UpdateConversationToolsStatusParams conversationParams = new UpdateConversationToolsStatusParams();
-        conversationParams.setChatModeKind("Agent");
-        conversationParams.setWorkspaceFolders(WorkspaceUtils.listWorkspaceFolders());
-
-        // Set custom mode ID only if this is for a custom mode (ID starts with "file://")
-        // For built-in agent mode, customChatModeId should not be set
-        if (modeId != null && modeId.startsWith("file://")) {
-          conversationParams.setCustomChatModeId(modeId);
-        }
-
-        List<ConversationToolStatus> toolsList = new ArrayList<>();
-        for (Map.Entry<String, Boolean> toolEntry : builtInTools.entrySet()) {
-          ConversationToolStatus toolStatus = new ConversationToolStatus();
-          toolStatus.setName(toolEntry.getKey());
-          toolStatus.setStatus(toolEntry.getValue() ? "enabled" : "disabled");
-          toolsList.add(toolStatus);
-        }
-        conversationParams.setTools(toolsList);
-
-        try {
-          CompletableFuture<?> conversationFuture = this.copilotLanguageServerConnection
-              .updateConversationToolsStatus(conversationParams);
-          if (conversationFuture != null) {
-            conversationFuture.join();
-          }
-        } catch (Exception e) {
-          CopilotCore.LOGGER.error("Error waiting for conversation tools status update to complete", e);
-        }
-      }
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to parse MCP tools status JSON", e);
+      updateConversationToolsStatusFuture = this.copilotLanguageServerConnection
+          .updateConversationToolsStatus(conversationParams);
     }
+
+    // Execute both futures sequentially in background
+    final CompletableFuture<?> mcpFuture = updateMcpToolsStatusFuture;
+    final CompletableFuture<?> conversationFuture = updateConversationToolsStatusFuture;
+    CompletableFuture.runAsync(() -> {
+      if (mcpFuture != null) {
+        mcpFuture.join();
+      }
+      if (conversationFuture != null) {
+        conversationFuture.join();
+      }
+    });
   }
 
   /**
