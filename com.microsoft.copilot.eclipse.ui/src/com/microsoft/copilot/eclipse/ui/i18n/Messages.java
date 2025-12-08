@@ -133,6 +133,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_attachContextButton_Tooltip;
   public static String chat_actionBar_sendButton_Tooltip;
   public static String chat_actionBar_sendToJobButton_Tooltip;
+  public static String chat_actionBar_sendToJob_noProject;
   public static String chat_actionBar_cancelButton_Tooltip;
   public static String chat_actionBar_toolButton_toolTip;
   public static String chat_actionBar_toolButton_disabled_toolTip;

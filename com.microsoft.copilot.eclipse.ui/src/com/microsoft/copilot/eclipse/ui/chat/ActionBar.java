@@ -20,6 +20,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextListener;
@@ -398,13 +399,9 @@ public class ActionBar extends Composite implements NewConversationListener {
 
       this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
 
-      // Enable sendToJobButton only if there's text AND at least one project is a git repository
       boolean hasText = !StringUtils.isBlank(this.inputTextViewer.getContent());
-      boolean hasGitRepo = hasGitRepository();
-      boolean shouldEnable = hasText && hasGitRepo;
-
-      this.sendToJobButton.setEnabled(shouldEnable);
-      this.sendToJobButton.setImage(shouldEnable ? sendToJobImage : sendToJobDisabledImage);
+      this.sendToJobButton.setEnabled(hasText);
+      this.sendToJobButton.setImage(hasText ? sendToJobImage : sendToJobDisabledImage);
       this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
       GridData sendToJobGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       sendToJobGd.widthHint = sendToJobImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
@@ -659,7 +656,11 @@ public class ActionBar extends Composite implements NewConversationListener {
         // Only proceed if a project was selected when multiple projects are present or user confirmed the Copilot agent
         // job when single project
         List<IProject> topLevelGitProjects = WorkspaceUtils.listTopLevelProjectsWithGitRepository();
-        if (topLevelGitProjects.size() > 1) {
+        if (topLevelGitProjects.isEmpty()) {
+          MessageDialog.openInformation(shell,
+              com.microsoft.copilot.eclipse.ui.dialogs.Messages.githubCodingAgentDialog_title,
+              Messages.chat_actionBar_sendToJob_noProject);
+        } else if (topLevelGitProjects.size() > 1) {
           selectedProjectPath = ProjectSelectionDialog.open(shell);
         } else if (userPreferenceService.isSkipGitHubJobConfirmDialog() || GitHubCodingAgentDialog.open(shell)) {
           selectedProjectPath = FileUtils.getResourceUri(topLevelGitProjects.get(0));
@@ -798,20 +799,9 @@ public class ActionBar extends Composite implements NewConversationListener {
       return;
     }
     SwtUtils.invokeOnDisplayThread(() -> {
-      // Only enable if the parameter is true AND at least one project is a git repository
-      boolean shouldEnable = enable && hasGitRepository();
-      sendToJobButton.setEnabled(shouldEnable);
-      sendToJobButton.setImage(shouldEnable ? sendToJobImage : sendToJobDisabledImage);
+      sendToJobButton.setEnabled(enable);
+      sendToJobButton.setImage(enable ? sendToJobImage : sendToJobDisabledImage);
     }, sendToJobButton);
-  }
-
-  /**
-   * Check if at least one top-level project is a git repository.
-   *
-   * @return true if at least one project has a .git folder, false otherwise
-   */
-  private boolean hasGitRepository() {
-    return !WorkspaceUtils.listTopLevelProjectsWithGitRepository().isEmpty();
   }
 
   /**
