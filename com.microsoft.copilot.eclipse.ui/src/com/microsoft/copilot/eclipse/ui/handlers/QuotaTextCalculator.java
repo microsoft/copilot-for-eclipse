@@ -17,6 +17,7 @@ public class QuotaTextCalculator {
   private final CheckQuotaResult quotaResult;
   private final int maxWidth;
   private final int spaceWidth;
+  private static final int PADDING_WIDTH = 20;
 
   /**
    * Constructor for QuotaTextCalculator.
@@ -42,6 +43,7 @@ public class QuotaTextCalculator {
         max = Math.max(max, gc.stringExtent(
             Messages.menu_quota_premiumRequests + getPercentUsed(quotaResult.getPremiumInteractionsQuota())).x);
       }
+      max += PADDING_WIDTH;
     }
     return max;
   }

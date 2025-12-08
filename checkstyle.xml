@@ -29,6 +29,11 @@
     <property name="fileNamePattern" value="module\-info\.java$"/>
   </module>
 
+  <!-- Excludes all '.properties' files from checks -->
+  <module name="BeforeExecutionExclusionFileFilter">
+    <property name="fileNamePattern" value=".*\.properties$"/>
+  </module>
+
   <module name="SuppressWarningsFilter"/>
 
   <!-- https://checkstyle.org/filters/suppressionfilter.html -->
