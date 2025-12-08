@@ -21,8 +21,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Widget to display a coding agent message.
  */
 public class AgentMessageWidget extends Composite {
-  private static final String DESC_CONTENT_SEPARATOR = "<!-- START COPILOT CODING AGENT SUFFIX -->";
-
   /**
    * Create the composite.
    *
@@ -74,11 +72,6 @@ public class AgentMessageWidget extends Composite {
 
     // Description
     if (StringUtils.isNotEmpty(params.getDescription())) {
-      String reducedDescription = params.getDescription().split(DESC_CONTENT_SEPARATOR)[0];
-      if (reducedDescription.length() > 150) {
-        reducedDescription = reducedDescription.substring(0, 147) + "...";
-      }
-
       Composite descComposite = new Composite(this, SWT.NONE);
       descComposite.setLayout(new GridLayout(1, false));
       descComposite.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
@@ -87,6 +80,9 @@ public class AgentMessageWidget extends Composite {
       StyledText descText = descLabel.getTextWidget();
       descText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
       descText.setEditable(false);
+
+      String reducedDescription = StringUtils.isBlank(params.getDescription()) ? ""
+          : params.getDescription().substring(0, 100) + "...";
       descLabel.setMarkup(reducedDescription);
     }
 
