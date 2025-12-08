@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Copilot Capabilities of the Copilot language server.
@@ -18,14 +18,17 @@ public class CopilotCapabilities {
 
   private boolean subAgent;
 
+  private boolean cveRemediatorAgent;
+
   /**
    * Creates a new CopilotCapabilities.
    */
   public CopilotCapabilities(boolean fetch, boolean watchedFiles, boolean subAgent) {
     this.didChangeFeatureFlags = true;
+    this.stateDatabase = true;
+    this.cveRemediatorAgent = true;
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
-    this.stateDatabase = true;
     this.subAgent = subAgent;
   }
 
@@ -61,20 +64,29 @@ public class CopilotCapabilities {
     this.subAgent = subAgent;
   }
 
+  public boolean isCveRemediatorAgent() {
+    return cveRemediatorAgent;
+  }
+
+  public void setCveRemediatorAgent(boolean cveRemediatorAgent) {
+    this.cveRemediatorAgent = cveRemediatorAgent;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.append("fetch", fetch);
-    builder.append("watchedFiles", watchedFiles);
-    builder.append("didChangeFeatureFlags", didChangeFeatureFlags);
-    builder.append("stateDatabase", stateDatabase);
-    builder.append("subAgent", subAgent);
+    builder.add("fetch", fetch);
+    builder.add("watchedFiles", watchedFiles);
+    builder.add("didChangeFeatureFlags", didChangeFeatureFlags);
+    builder.add("stateDatabase", stateDatabase);
+    builder.add("subAgent", subAgent);
+    builder.add("cveRemediatorAgent", cveRemediatorAgent);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(didChangeFeatureFlags, fetch, stateDatabase, watchedFiles, subAgent);
+    return Objects.hash(cveRemediatorAgent, didChangeFeatureFlags, fetch, stateDatabase, subAgent, watchedFiles);
   }
 
   @Override
@@ -82,15 +94,12 @@ public class CopilotCapabilities {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof CopilotCapabilities)) {
       return false;
     }
     CopilotCapabilities other = (CopilotCapabilities) obj;
-    return didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
-        && stateDatabase == other.stateDatabase && watchedFiles == other.watchedFiles
-        && subAgent == other.subAgent;
+    return cveRemediatorAgent == other.cveRemediatorAgent && didChangeFeatureFlags == other.didChangeFeatureFlags
+        && fetch == other.fetch && stateDatabase == other.stateDatabase && subAgent == other.subAgent
+        && watchedFiles == other.watchedFiles;
   }
 }
