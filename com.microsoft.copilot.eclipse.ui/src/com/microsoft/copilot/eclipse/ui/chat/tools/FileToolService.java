@@ -40,6 +40,9 @@ public class FileToolService extends ChatBaseService {
   private EditFileTool editFileTool;
   private String latestCopilotTurnId;
 
+  private ISideEffect filesSideEffect;
+  private ISideEffect buttonEnableSideEffect;
+
   /**
    * Constructor for FileToolService.
    */
@@ -71,26 +74,49 @@ public class FileToolService extends ChatBaseService {
     }
 
     ensureRealm(() -> {
-      ISideEffect.create(() -> filesObservable.getValue(), (Map<IFile, FileChangeProperty> filesMap) -> {
-        if (filesMap.isEmpty()) {
-          disposeFileChangeSummaryBar();
-        } else {
-          if (this.fileChangeSummaryBar == null) {
-            this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getActionBar(), SWT.NONE);
-            if (chatView.getActionBar().getChildren().length > 0) {
-              this.fileChangeSummaryBar.moveAbove(chatView.getActionBar().getChildren()[0]);
+      unbindFileChangeSummaryBar();
+      filesSideEffect = ISideEffect.create(() -> filesObservable.getValue(),
+          (Map<IFile, FileChangeProperty> filesMap) -> {
+            if (filesMap.isEmpty()) {
+              disposeFileChangeSummaryBar();
+            } else {
+              if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
+                this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getActionBar(), SWT.NONE);
+                if (chatView.getActionBar().getChildren().length > 0) {
+                  this.fileChangeSummaryBar.moveAbove(chatView.getActionBar().getChildren()[0]);
+                }
+              }
+              this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+              this.fileChangeSummaryBar.moveAbove(chatView.getActionBar());
             }
-          }
-          this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
-          this.fileChangeSummaryBar.moveAbove(chatView.getActionBar());
-        }
-      });
-      ISideEffect.create(() -> buttonEnableObservable.getValue(), (Boolean status) -> {
-        if (this.fileChangeSummaryBar == null) {
+          });
+      buttonEnableSideEffect = ISideEffect.create(() -> buttonEnableObservable.getValue(), (Boolean status) -> {
+        if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
           return;
         }
         this.fileChangeSummaryBar.setButtonStatus(status);
       });
+    });
+  }
+
+  /**
+   * Unbind the FileChangeSummaryBar and dispose side effects.
+   */
+  public void unbindFileChangeSummaryBar() {
+    ensureRealm(() -> {
+      if (filesSideEffect != null) {
+        filesSideEffect.dispose();
+        filesSideEffect = null;
+      }
+      if (buttonEnableSideEffect != null) {
+        buttonEnableSideEffect.dispose();
+        buttonEnableSideEffect = null;
+      }
+      disposeFileChangeSummaryBar();
+
+      // Clear observables to prevent stale data when view is reopened
+      filesObservable.setValue(new LinkedHashMap<>());
+      buttonEnableObservable.setValue(false);
     });
   }
 
@@ -359,7 +385,7 @@ public class FileToolService extends ChatBaseService {
   }
 
   private void disposeFileChangeSummaryBar() {
-    if (fileChangeSummaryBar != null) {
+    if (fileChangeSummaryBar != null && !fileChangeSummaryBar.isDisposed()) {
       Composite control = fileChangeSummaryBar.getParent();
       fileChangeSummaryBar.dispose();
       fileChangeSummaryBar = null;

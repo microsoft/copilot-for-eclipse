@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
@@ -102,6 +103,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private ChatHistoryViewer chatHistoryViewer;
   private boolean isChatHistoryVisible = false;
 
+  // Event handlers for cleanup
+  private EventHandler chatOnSendHandler;
+  private EventHandler chatMessageSendHandler;
+  private EventHandler authStatusChangedHandler;
+  private EventHandler hideChatHistoryHandler;
+  private EventHandler showChatHistoryHandler;
+  private EventHandler historyBackClickedHandler;
+  private EventHandler historyConversationSelectedHandler;
+  private EventHandler conversationTitleUpdatedHandler;
+  private EventHandler codingAgentMessageHandler;
+
   @Override
   public void createPartControl(Composite parent) {
     this.parent = parent;
@@ -138,7 +150,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       initializeChatServices();
     }
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, event -> {
+    this.chatOnSendHandler = event -> {
       Object params = event.getProperty(IEventBroker.DATA);
       if (params != null && params instanceof Map properties) {
         String workDoneToken = UUID.randomUUID().toString();
@@ -146,9 +158,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         boolean needCreateUserTurn = (boolean) properties.get("needCreateUserTurn");
         onSendInternal(workDoneToken, previousInput, null, null, needCreateUserTurn);
       }
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, this.chatOnSendHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_SEND, event -> {
+    this.chatMessageSendHandler = event -> {
       Object params = event.getProperty(IEventBroker.DATA);
       if (params != null && params instanceof Map properties) {
         String workDoneToken = (String) properties.get("workDoneToken");
@@ -158,9 +171,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         boolean createNewTurn = (boolean) properties.get("createNewTurn");
         onSendInternal(workDoneToken, message, agentSlug, agentJobWorkspaceFolder, createNewTurn);
       }
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_SEND, this.chatMessageSendHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, event -> {
+    this.authStatusChangedHandler = event -> {
       Object status = event.getProperty(IEventBroker.DATA);
       if (status != null && status instanceof CopilotStatusResult statusResult) {
         if (statusResult.isNotSignedIn()) {
@@ -171,21 +185,25 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
         buildViewFor(statusResult.getStatus());
       }
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, this.authStatusChangedHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, event -> {
+    this.hideChatHistoryHandler = event -> {
       hideChatHistory();
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, this.hideChatHistoryHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_SHOW_CHAT_HISTORY, event -> {
+    this.showChatHistoryHandler = event -> {
       showChatHistory();
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_SHOW_CHAT_HISTORY, this.showChatHistoryHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HISTORY_BACK_CLICKED, event -> {
+    this.historyBackClickedHandler = event -> {
       hideChatHistory();
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HISTORY_BACK_CLICKED, this.historyBackClickedHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HISTORY_CONVERSATION_SELECTED, event -> {
+    this.historyConversationSelectedHandler = event -> {
       Object conversationData = event.getProperty(IEventBroker.DATA);
       ConversationXmlData conversation = conversationData instanceof ConversationXmlData
           ? (ConversationXmlData) conversationData
@@ -253,22 +271,27 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         SwtUtils.invokeOnDisplayThreadAsync(this::hideChatHistory, contentWrapper);
         return null;
       });
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HISTORY_CONVERSATION_SELECTED,
+        this.historyConversationSelectedHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CONVERSATION_TITLE_UPDATED, event -> {
+    this.conversationTitleUpdatedHandler = event -> {
       Object titleData = event.getProperty(IEventBroker.DATA);
       if (titleData instanceof String newTitle && StringUtils.isNotEmpty(newTitle) && topBanner != null
           && !topBanner.isDisposed()) {
         topBanner.updateTitle(newTitle);
       }
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CONVERSATION_TITLE_UPDATED,
+        this.conversationTitleUpdatedHandler);
 
-    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CODING_AGENT_MESSAGE, event -> {
+    this.codingAgentMessageHandler = event -> {
       Object messageData = event.getProperty(IEventBroker.DATA);
       if (messageData instanceof CodingAgentMessageRequestParams params) {
         handleCodingAgentMessage(params);
       }
-    });
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CODING_AGENT_MESSAGE, this.codingAgentMessageHandler);
   }
 
   /**
@@ -994,34 +1017,107 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (p != null) {
       p.removeChatProgressListener(this);
     }
+
+    // Cancel any pending conversation futures
+    clearCurrentConversation();
+
+    // Unsubscribe all event handlers
+    if (this.eventBroker != null) {
+      if (chatOnSendHandler != null) {
+        this.eventBroker.unsubscribe(this.chatOnSendHandler);
+        chatOnSendHandler = null;
+      }
+      if (chatMessageSendHandler != null) {
+        this.eventBroker.unsubscribe(this.chatMessageSendHandler);
+        chatMessageSendHandler = null;
+      }
+      if (authStatusChangedHandler != null) {
+        this.eventBroker.unsubscribe(this.authStatusChangedHandler);
+        authStatusChangedHandler = null;
+      }
+      if (hideChatHistoryHandler != null) {
+        this.eventBroker.unsubscribe(this.hideChatHistoryHandler);
+        hideChatHistoryHandler = null;
+      }
+      if (showChatHistoryHandler != null) {
+        this.eventBroker.unsubscribe(this.showChatHistoryHandler);
+        showChatHistoryHandler = null;
+      }
+      if (historyBackClickedHandler != null) {
+        this.eventBroker.unsubscribe(this.historyBackClickedHandler);
+        historyBackClickedHandler = null;
+      }
+      if (historyConversationSelectedHandler != null) {
+        this.eventBroker.unsubscribe(this.historyConversationSelectedHandler);
+        historyConversationSelectedHandler = null;
+      }
+      if (conversationTitleUpdatedHandler != null) {
+        this.eventBroker.unsubscribe(this.conversationTitleUpdatedHandler);
+        conversationTitleUpdatedHandler = null;
+      }
+      if (codingAgentMessageHandler != null) {
+        this.eventBroker.unsubscribe(this.codingAgentMessageHandler);
+        codingAgentMessageHandler = null;
+      }
+    }
+
+    if (this.chatServiceManager != null) {
+      if (this.chatServiceManager.getUserPreferenceService() != null) {
+        this.chatServiceManager.getUserPreferenceService().unbindChatView();
+      }
+      if (this.chatServiceManager.getAgentToolService() != null) {
+        this.chatServiceManager.getAgentToolService().unbindChatView();
+      }
+      if (this.chatServiceManager.getFileToolService() != null) {
+        this.chatServiceManager.getFileToolService().unbindFileChangeSummaryBar();
+      }
+      this.chatServiceManager = null;
+    }
     if (this.actionBar != null) {
       this.actionBar.unregisterMessageListener(this);
       this.actionBar.dispose();
+      this.actionBar = null;
     }
     if (this.topBanner != null) {
       this.topBanner.unregisterNewConversationListener(this);
       this.topBanner.dispose();
+      this.topBanner = null;
     }
     if (this.handoffContainer != null) {
       this.handoffContainer.dispose();
+      this.handoffContainer = null;
+    }
+    if (this.chatHistoryViewer != null && !this.chatHistoryViewer.isDisposed()) {
+      this.chatHistoryViewer.dispose();
+      this.chatHistoryViewer = null;
     }
     if (this.chatContentViewer != null) {
       this.chatContentViewer.dispose();
+      this.chatContentViewer = null;
     }
     if (this.afterLoginWelcomeViewer != null) {
       this.afterLoginWelcomeViewer.dispose();
+      this.afterLoginWelcomeViewer = null;
     }
     if (this.beforeLoginWelcomeViewer != null) {
       this.beforeLoginWelcomeViewer.dispose();
+      this.beforeLoginWelcomeViewer = null;
     }
     if (this.loadingViewer != null) {
       this.loadingViewer.dispose();
+      this.loadingViewer = null;
     }
     if (this.noSubscriptionViewer != null) {
       this.noSubscriptionViewer.dispose();
+      this.noSubscriptionViewer = null;
     }
     if (this.agentModeViewer != null) {
       this.agentModeViewer.dispose();
+      this.agentModeViewer = null;
+    }
+    if (this.contentWrapper != null && !this.contentWrapper.isDisposed()) {
+      this.contentWrapper.dispose();
+      this.contentWrapper = null;
     }
     if (dragReferenceManager != null) {
       dragReferenceManager.dispose();
