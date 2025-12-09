@@ -12,6 +12,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
@@ -129,6 +130,7 @@ public class RunInTerminalToolAdapter extends BaseTool {
     IRunInTerminalTool impl = terminalManager != null ? terminalManager.getCurrentService() : null;
     if (impl == null) {
       LanguageModelToolResult errorResult = new LanguageModelToolResult();
+      errorResult.setStatus(ToolInvocationStatus.error);
       errorResult
           .addContent("No terminal implementation available. Terminal service not yet loaded or failed to load.");
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { errorResult });
@@ -137,6 +139,7 @@ public class RunInTerminalToolAdapter extends BaseTool {
     String command = (String) input.get("command");
     if (StringUtils.isBlank(command)) {
       LanguageModelToolResult errorResult = new LanguageModelToolResult();
+      errorResult.setStatus(ToolInvocationStatus.error);
       errorResult.addContent("The tool cannot be invoked due to the command is null or empty.");
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { errorResult });
     }
@@ -151,10 +154,10 @@ public class RunInTerminalToolAdapter extends BaseTool {
 
     impl.setTerminalIconDescriptor(UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png"));
 
-    return impl.executeCommand(command, isBackground)
-        .thenApply(result -> new LanguageModelToolResult[] { new LanguageModelToolResult(result) })
-        .exceptionally(throwable -> new LanguageModelToolResult[] {
-            new LanguageModelToolResult("Terminal execution failed: " + throwable.getMessage()) });
+    return impl.executeCommand(command, isBackground).thenApply(
+        result -> new LanguageModelToolResult[] { new LanguageModelToolResult(result, ToolInvocationStatus.success) })
+        .exceptionally(throwable -> new LanguageModelToolResult[] { new LanguageModelToolResult(
+            "Terminal execution failed: " + throwable.getMessage(), ToolInvocationStatus.error) });
   }
 
   /**
@@ -206,15 +209,19 @@ public class RunInTerminalToolAdapter extends BaseTool {
       TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
       IRunInTerminalTool impl = terminalManager != null ? terminalManager.getCurrentService() : null;
       if (impl == null) {
+        toolResult.setStatus(ToolInvocationStatus.error);
         toolResult
             .addContent("No terminal implementation available. Terminal service not yet loaded or failed to load.");
       } else if (StringUtils.isBlank(id)) {
+        toolResult.setStatus(ToolInvocationStatus.error);
         toolResult.addContent("The tool cannot be invoked due to the ID is null or empty.");
       } else {
         StringBuilder output = impl.getBackgroundCommandOutput(id);
         if (output == null) {
+          toolResult.setStatus(ToolInvocationStatus.error);
           toolResult.addContent("Invalid terminal ID " + id);
         } else {
+          toolResult.setStatus(ToolInvocationStatus.success);
           toolResult.addContent(output.toString());
         }
       }

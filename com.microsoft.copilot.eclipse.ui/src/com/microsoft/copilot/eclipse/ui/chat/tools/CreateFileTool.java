@@ -24,6 +24,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
@@ -85,6 +86,7 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
 
     String pathStr = (String) input.get("filePath");
     if (StringUtils.isBlank(pathStr)) {
+      result.setStatus(ToolInvocationStatus.error);
       result.addContent("Invalid file path: path cannot be empty");
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
@@ -96,12 +98,14 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
       IFile file = workspaceRoot.getFileForLocation(eclipsePath);
 
       if (file == null) {
+        result.setStatus(ToolInvocationStatus.error);
         result.addContent("Invalid file path: " + pathStr + " does not exist in the workspace.");
         return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
       }
 
       // Check if file already exists
       if (file.exists()) {
+        result.setStatus(ToolInvocationStatus.error);
         result.addContent("Failed: file already exists: " + pathStr + ". Please use edit file tool to update.");
         return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
       }
@@ -122,9 +126,12 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
       // Open file in editor
       SwtUtils.invokeOnDisplayThread(() -> UiUtils.openInEditor(file));
       result.addContent("File created at: " + file.getFullPath().toOSString());
+      result.setStatus(ToolInvocationStatus.success);
     } catch (CoreException e) {
+      result.setStatus(ToolInvocationStatus.error);
       result.addContent("Error creating file: " + e.getMessage());
     } catch (IOException e) {
+      result.setStatus(ToolInvocationStatus.error);
       result.addContent("Error handling file stream: " + e.getMessage());
     }
 

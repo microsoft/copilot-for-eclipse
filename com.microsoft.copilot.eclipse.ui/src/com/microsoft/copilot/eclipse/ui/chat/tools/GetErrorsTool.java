@@ -22,6 +22,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
@@ -77,12 +78,15 @@ public class GetErrorsTool extends BaseTool {
     LanguageModelToolResult toolResult = new LanguageModelToolResult();
     List<String> fileUris = validateInput(input.get(FILE_PATHS));
     if (fileUris == null) {
+      toolResult.setStatus(ToolInvocationStatus.error);
       toolResult.addContent("The value of filePaths is not in the type of string array.");
     } else if (fileUris.isEmpty()) {
+      toolResult.setStatus(ToolInvocationStatus.error);
       toolResult.addContent("The tool cannot be invoked because input is empty.");
     } else {
       String errors = getErrors(fileUris);
       toolResult.addContent(errors);
+      toolResult.setStatus(ToolInvocationStatus.success);
     }
 
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { toolResult });

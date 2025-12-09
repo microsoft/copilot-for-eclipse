@@ -23,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
@@ -122,8 +123,9 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
     if (input.get("filePath") instanceof String filePath) {
       IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(filePath));
       if (file == null || !file.exists()) {
-        resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(
-            "The file path provided does not exist. Please check the path and try again.") });
+        resultFuture.complete(new LanguageModelToolResult[] {
+            new LanguageModelToolResult("The file path provided does not exist. Please check the path and try again.",
+                ToolInvocationStatus.error) });
         return resultFuture;
       }
 
@@ -134,15 +136,18 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
         updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
 
         // Must return the updated content as a result to the CLS.
-        resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(code) });
+        resultFuture.complete(
+            new LanguageModelToolResult[] { new LanguageModelToolResult(code, ToolInvocationStatus.success) });
       } else {
-        resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(
-            "The code provided is not a valid string. Please check the code and try again.") });
+        resultFuture.complete(new LanguageModelToolResult[] {
+            new LanguageModelToolResult("The code provided is not a valid string. Please check the code and try again.",
+                ToolInvocationStatus.error) });
       }
     } else {
       // TODO: May need to support multiple file paths in the future
       resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(
-          "The file path provided is not a valid string. Please check the path and try again.") });
+          "The file path provided is not a valid string. Please check the path and try again.",
+          ToolInvocationStatus.error) });
     }
     return resultFuture;
   }

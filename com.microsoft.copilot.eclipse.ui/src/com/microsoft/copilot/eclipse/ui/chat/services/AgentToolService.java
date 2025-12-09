@@ -18,8 +18,10 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
@@ -199,6 +201,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     BaseTool tool = getTool(toolName);
     LanguageModelToolResult result = new LanguageModelToolResult();
     if (tool == null) {
+      result.setStatus(ToolInvocationStatus.error);
       result.addContent("Tool invocation failed due to the tool not found: " + toolName);
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
@@ -209,7 +212,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   @Override
   public CompletableFuture<LanguageModelToolResult[]> onToolInvocation(InvokeClientToolParams params) {
     if (!validToolConfirmInvokeParams(params.getConversationId(), params.getTurnId())) {
-      return null;
+      LanguageModelToolResult result = new LanguageModelToolResult();
+      result.setStatus(ToolInvocationStatus.cancelled);
+      result.addContent("Tool invocation cancelled: conversation was cancelled or turn no longer exists");
+      return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
     return invokeTool(params.getName(), (Map<String, Object>) params.getInput(), boundChatView);
   }
@@ -218,12 +224,17 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   public CompletableFuture<LanguageModelToolConfirmationResult> onToolConfirmation(
       InvokeClientToolConfirmationParams params) {
     if (!validToolConfirmInvokeParams(params.getConversationId(), params.getTurnId())) {
-      return null;
+      // Return DISMISS when conversation is cancelled or turn no longer exists
+      LanguageModelToolConfirmationResult result = new LanguageModelToolConfirmationResult(
+          ToolConfirmationResult.DISMISS);
+      return CompletableFuture.completedFuture(result);
     }
 
     BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
     if (turnWidget == null) {
-      return null;
+      LanguageModelToolConfirmationResult result = new LanguageModelToolConfirmationResult(
+          ToolConfirmationResult.DISMISS);
+      return CompletableFuture.completedFuture(result);
     }
 
     // Get the active turn widget (may be a subagent widget if in subagent context)

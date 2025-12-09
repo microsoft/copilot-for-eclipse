@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Limited description length to 100 in AgentMessageWidget. [PR#1480](https://github.com/microsoft/copilot-eclipse/pull/1480)
 - Should prompt user when disposing file change summary bar. [#1473](https://github.com/microsoft/copilot-eclipse/issues/1473)
 - Changed files panel will not dispose when switching chat history. [#1152](https://github.com/microsoft/copilot-eclipse/issues/1152)
+- Added tool call status to the tool call reply. [#1484](https://github.com/microsoft/copilot-eclipse/pull/1484)
 
 ## 0.13.1
 ### Fixed
