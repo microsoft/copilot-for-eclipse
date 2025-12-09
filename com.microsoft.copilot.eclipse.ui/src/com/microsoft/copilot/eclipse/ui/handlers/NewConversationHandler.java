@@ -18,7 +18,7 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 public class NewConversationHandler extends CopilotHandler {
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
-    if (ConversationUtils.confirmNewChat()) {
+    if (ConversationUtils.confirmEndChat()) {
       IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
       if (eventBroker != null) {
         eventBroker.post(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, null);

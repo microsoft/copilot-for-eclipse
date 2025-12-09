@@ -24,6 +24,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyCodeAcceptanceParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.ConversationUtils;
 import com.microsoft.copilot.eclipse.ui.chat.FileChangeSummaryBar;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService;
 
@@ -112,6 +113,8 @@ public class FileToolService extends ChatBaseService {
         buttonEnableSideEffect.dispose();
         buttonEnableSideEffect = null;
       }
+
+      ConversationUtils.confirmEndChat();
       disposeFileChangeSummaryBar();
 
       // Clear observables to prevent stale data when view is reopened

@@ -16,11 +16,10 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 public class ConversationUtils {
 
   /**
-   * Dialog types for confirmation dialogs.
+   * Dialog type for end chat confirmation.
    */
   private enum DialogType {
-    NEW_CHAT(Messages.newChat_confirmationTitle, Messages.newChat_confirmationMessage),
-    SWITCH_CHAT(Messages.switchChat_confirmationTitle, Messages.switchChat_confirmationMessage);
+    END_CHAT(Messages.endChat_confirmationTitle, Messages.endChat_confirmationMessage);
 
     private final String title;
     private final String message;
@@ -46,25 +45,15 @@ public class ConversationUtils {
   private static final int UNDO_CHANGES = 1;
 
   /**
-   * Confirm starting a new chat when there are unhandled file changes. If there are no
-   * unhandled changes, returns true immediately. If there are unhandled changes, prompts the user
-   * with options to keep or undo them. Returning false means the user cancelled the operation.
+   * Confirm ending the current chat session when there are unhandled file changes. If there are
+   * no unhandled changes, returns true immediately. If there are unhandled changes, prompts the
+   * user with options to keep or undo them. Returning false means the user cancelled the
+   * operation.
    *
-   * @return true if it's ok to proceed with starting a new conversation; false if cancelled.
+   * @return true if it's ok to proceed with ending the chat session; false if cancelled.
    */
-  public static boolean confirmNewChat() {
-    return confirmChatAction(DialogType.NEW_CHAT);
-  }
-
-  /**
-   * Confirm switching to a different chat when there are unhandled file changes. If there are no
-   * unhandled changes, returns true immediately. If there are unhandled changes, prompts the user
-   * with options to keep or undo them. Returning false means the user cancelled the operation.
-   *
-   * @return true if it's ok to proceed with switching conversations; false if cancelled.
-   */
-  public static boolean confirmSwitchChat() {
-    return confirmChatAction(DialogType.SWITCH_CHAT);
+  public static boolean confirmEndChat() {
+    return confirmChatAction(DialogType.END_CHAT);
   }
 
   /**

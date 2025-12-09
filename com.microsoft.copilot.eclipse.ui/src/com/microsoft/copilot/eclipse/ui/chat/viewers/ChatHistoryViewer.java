@@ -367,7 +367,7 @@ public class ChatHistoryViewer extends Composite {
 
   private Listener createConversationClickListener(ConversationXmlData conversation) {
     return event -> {
-      if (!ConversationUtils.confirmSwitchChat()) {
+      if (!ConversationUtils.confirmEndChat()) {
         return;
       }
       if (eventBroker != null) {

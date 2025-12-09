@@ -44,7 +44,7 @@ public class TopBanner extends Composite {
     this.newConversationEventHandler = new EventHandler() {
       @Override
       public void handleEvent(Event event) {
-        if (ConversationUtils.confirmNewChat()) {
+        if (ConversationUtils.confirmEndChat()) {
           notifyNewConversationListeners();
           updateTitle(Messages.chat_topBanner_defaultChatTitle);
         }
