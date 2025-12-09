@@ -387,7 +387,10 @@ public class FileToolService extends ChatBaseService {
     });
   }
 
-  private void disposeFileChangeSummaryBar() {
+  /**
+   * Dispose the FileChangeSummaryBar.
+   */
+  public void disposeFileChangeSummaryBar() {
     if (fileChangeSummaryBar != null && !fileChangeSummaryBar.isDisposed()) {
       Composite control = fileChangeSummaryBar.getParent();
       fileChangeSummaryBar.dispose();

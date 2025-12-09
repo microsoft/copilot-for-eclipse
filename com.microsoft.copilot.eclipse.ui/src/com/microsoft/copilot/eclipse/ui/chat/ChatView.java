@@ -922,6 +922,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.hasHistory = false;
     this.conversationId = "";
     this.conversationState = ConversationState.NEW_CONVERSATION;
+    this.chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
+    SwtUtils.invokeOnDisplayThreadAsync(this.chatServiceManager.getFileToolService()::disposeFileChangeSummaryBar);
   }
 
   @Override
@@ -947,7 +949,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       createAfterLoginWelcomePage();
     }
-    chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
 
     // Hide handoff container when creating a new conversation
     Display.getDefault().asyncExec(() -> {
