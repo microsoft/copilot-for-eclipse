@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.14.0
+### Added
+- Set a max file number for the FileChangeSummaryBar and make the bar scrollable. [#1339](https://github.com/microsoft/copilot-eclipse/issues/1339)
+- Add dialog prompting users about missing terminal dependencies. [PR#1467](https://github.com/microsoft/copilot-eclipse/pull/1467)
+- Enable CVE Remediator sub-agent (rollout progressively). [#1319](https://github.com/microsoft/copilot-eclipse/issues/1319) 
+
+### Changed
+- Update MCP registry API version to v0.1. [PR#1442](https://github.com/microsoft/copilot-eclipse/pull/1442)
+- Move the Coding Agent Jobs top buttons to view toolbar. [PR#1418](https://github.com/microsoft/copilot-eclipse/pull/1418)
+- Move the Chat view top buttons to view toolbar. [PR#1423](https://github.com/microsoft/copilot-eclipse/pull/1423)
+- Remove the allow list for MCP contribution extension point. [PR#1427](https://github.com/microsoft/copilot-eclipse/pull/1427)
+
+### Fixed
+- Simplify the parameters for getting built-in chat modes. [PR#1403](https://github.com/microsoft/copilot-eclipse/pull/1403)
+- Do not show footer for coding agent turns. [PR#1419](https://github.com/microsoft/copilot-eclipse/pull/1419)
+- Completion not working in .agent.md files. [#1380](https://github.com/microsoft/copilot-eclipse/issues/1380)
+- Update feedback URL. [PR#1421](https://github.com/microsoft/copilot-eclipse/pull/1421)
+- NPE when initialize MCP registry dialog. [#1424](https://github.com/microsoft/copilot-eclipse/issues/1424)
+- Failed to connect to proxy when auth contains backslash. [PR#1432](https://github.com/microsoft/copilot-eclipse/pull/1432)
+- Support non-UTF-8 encoded files. [PR#1414](https://github.com/microsoft/copilot-eclipse/pull/1414)
+- Eclipse hangs when the workspace contains too many files. [#1430](https://github.com/microsoft/copilot-eclipse/issues/1430)
+- Exclude output files when collecting watched files. [PR#1439](https://github.com/microsoft/copilot-eclipse/pull/1439)
+- Enable horizontal scrolling for command text in tool confirmation box. [PR#1440](https://github.com/microsoft/copilot-eclipse/pull/1440)
+- Chat view is empty when opening it after plugin activated. [#1426](https://github.com/microsoft/copilot-eclipse/issues/1426)
+- Update the UI for organization managed settings. [PR#1438](https://github.com/microsoft/copilot-eclipse/pull/1438)
+- Revert workaround for free plan users default model. [PR#1447](https://github.com/microsoft/copilot-eclipse/pull/1447)
+- Tools status will not be updated when manually edit tool list. [#1388](https://github.com/microsoft/copilot-eclipse/issues/1388)
+- Prompt user to restart eclipse when sub-agent preference changes. [#1400](https://github.com/microsoft/copilot-eclipse/issues/1400)
+- Load custom chat modes asynchronously to prevent UI freeze. [PR#1457](https://github.com/microsoft/copilot-eclipse/pull/1457)
+- Directly open the created file when clicking it in file change summary bar. [#1464](https://github.com/microsoft/copilot-eclipse/issues/1464)
+- Cannot create new empty files in new workspace in agent mode. [#1299](https://github.com/microsoft/copilot-eclipse/issues/1299)
+- Tool list is not refresh after configure tools in an unsaved .agent.md file. [#1416](https://github.com/microsoft/copilot-eclipse/issues/1416)
+- Improve tool specification parsing to handle server names with slashes. [PR#1471](https://github.com/microsoft/copilot-eclipse/pull/1471)
+- Avoid blocking the thread when sync tools. [PR#1465](https://github.com/microsoft/copilot-eclipse/pull/1465)
+- Update prompt of run_in_terminal tool. [PR#1477](https://github.com/microsoft/copilot-eclipse/pull/1477)
+- Improve event handling in ChatView and FileToolService. [PR#1475](https://github.com/microsoft/copilot-eclipse/pull/1475)
+- Quota display rendering not correct on MacOS. [#1456](https://github.com/microsoft/copilot-eclipse/issues/1456)
+- Improve the perf when typing in chat view. [PR#1478](https://github.com/microsoft/copilot-eclipse/pull/1478)
+- Limited description length to 100 in AgentMessageWidget. [PR#1480](https://github.com/microsoft/copilot-eclipse/pull/1480)
+- Should prompt user when disposing file change summary bar. [#1473](https://github.com/microsoft/copilot-eclipse/issues/1473)
+
 ## 0.13.1
 ### Fixed
 - Chat View - NPE when rendering buttons in action bar. [PR#1411](https://github.com/microsoft/copilot-eclipse/pull/1411)

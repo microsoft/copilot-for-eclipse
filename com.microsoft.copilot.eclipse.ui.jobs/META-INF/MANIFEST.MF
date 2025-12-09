@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: GitHub Copilot Jobs
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.jobs;singleton:=true
-Bundle-Version: 0.13.1.qualifier
+Bundle-Version: 0.14.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.jobs.CopilotJobs
 Bundle-RequiredExecutionEnvironment: JavaSE-17
@@ -10,8 +10,8 @@ Bundle-Localization: plugin
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.jobs
 Bundle-ActivationPolicy: lazy
 Import-Package: org.osgi.framework;version="[1.10.0,2.0.0)"
-Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.13.1",
- com.microsoft.copilot.eclipse.ui;bundle-version="0.13.1",
+Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.14.0",
+ com.microsoft.copilot.eclipse.ui;bundle-version="0.14.0",
  jakarta.annotation-api,
  jakarta.inject.jakarta.inject-api,
  org.apache.commons.lang3;bundle-version="3.14.0",

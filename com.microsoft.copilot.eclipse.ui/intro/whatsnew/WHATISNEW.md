@@ -1,3 +1,28 @@
+# GitHub Copilot 0.14.0 Release Notes
+### Native Toolbar Integration
+The buttons that used to sit on the chat view’s top bar have now found a new home in the Eclipse view’s toolbar. This change makes the interface feel more natural and integrated with your workflow.
+
+![Toolbar](0.14.0/toolbar.png)
+
+Note: If you cannot see the new buttons, please delete the **workbench.xmi** file located at: `<your_workspace>/.metadata/.plugins/org.eclipse.e4.workbench/`.
+
+---
+
+### New Changed Files Panel
+The new changed files panel is now scrollable, collapsible, and expandable, so you can dive into details when you need them and tuck it away when you don’t.
+
+<video controls="true" src="./0.14.0/changed_file_box.mp4" title="Changed Files Panel" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+This release also squashed bugs, boosted performance, and polished the UI for a smoother, faster experience.
+
+Thank you for being part of this journey — here’s to an even better year ahead!
+
+🎉 Wishing you a Happy New Year! 🎉
+
+---
+
 # GitHub Copilot 0.13.0 Release Notes
 ### Custom Agent
 Custom agents bring customization to your chat mode by letting you specify name, description, tools, and models. Create specialized AI teammates tailored to your workflows and coding standards in Eclipse. Define agents using Markdown files that specify prompts so you can pick them up and run in your Eclipse quickly.
@@ -63,53 +88,3 @@ Note: BYOK is available only for individual plans - Free, Pro, and Pro+, with `E
 As Copilot continues to grow with exciting new features, we’ve redesigned the plug-in preferences page to make it cleaner, more intuitive, and easier for you to discover everything at a glance.
 
 ![Re-organized Preferences Page](./0.12.0/preferences_page.png)
-
----
-
-# GitHub Copilot 0.11.0 Release Notes
-### More Convenient Ways to Add Chat Context
-Adding context to your chats just got easier and more intuitive!
-You now have multiple ways to include context files:
-
-#### Drag and Drop
-
-<video controls="true" src="./0.11.0/dnd.mp4" title="Drag and Drop"></video>
-
-#### Right-Click from Explorer
-
-<video controls="true" src="./0.11.0/context_menu.mp4" title="Right-Click from Explorer"></video>
-
----
-
-### Enhanced Colors and Layout for Chat View
-We’ve given the chat view a fresh coat of paint — and it looks better than ever!
-
-#### Dark Theme Improvements
-
-![Dark Theme Improvements](./0.11.0/dark_1.jpg)
-
-#### Light Theme Improvements
-
-![Light Theme Improvements](./0.11.0/light_1.jpg)
-
----
-
-### Reduced Plugin Size
-By splitting platform-specific binaries into separate fragments, the overall plugin size has been greatly reduced, which means faster downloads and updates.
-
----
-
-### New Public API to Start a Chat Session Programmatically
-
-We’ve introduced a new public API that allows other plugins to seamlessly start a new ask session in the Copilot chat view. Plug-ins can now invoke the command: `com.microsoft.copilot.eclipse.commands.openChatView` with two optional parameters:
-
-- `com.microsoft.copilot.eclipse.commands.openChatView.inputValue`: A string representing the initial content of the chat.
-- `com.microsoft.copilot.eclipse.commands.openChatView.autoSend`: A boolean indicating whether to automatically submit the content.
-
-This opens up exciting possibilities for plugin developers to trigger contextual Copilot interactions directly from their tools.
-
-#### Example: Spring Tools Plug-in Integration
-
-Here’s how the Spring Tools plug-in leverages the new API to launch a chat session:
-
-<video controls="true" src="./0.11.0/api.mp4" title="Spring Tools Plug-in Integration"></video>
