@@ -5,7 +5,7 @@
       id="com.microsoft.copilot.eclipse.ui.jobs.fragment"
       point="org.eclipse.e4.workbench.model">
       <fragment
-         apply="notexists"
+         apply="always"
          uri="fragment.e4xmi">
       </fragment>
    </extension>
