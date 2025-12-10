@@ -228,7 +228,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     addField(mcpField);
 
     // add note to mcp field using WrappableNoteLabel
-    new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix, Messages.preferences_page_mcp_note_content);
+    new WrappableNoteLabel(mcpGroup, Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_mcp_note_content);
 
     createExtMcpRegistrationArea(mcpGroup);
 

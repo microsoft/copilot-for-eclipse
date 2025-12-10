@@ -67,7 +67,8 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     addField(bfeSsl);
 
     // add Note using WrappableNoteLabel
-    new WrappableNoteLabel(grpProxy, Messages.preferences_page_note_prefix, Messages.preferences_page_note_content);
+    new WrappableNoteLabel(grpProxy, Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_note_content);
 
     // auth group
     Group grpAuth = new Group(parent, SWT.NONE);

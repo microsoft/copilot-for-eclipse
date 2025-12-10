@@ -150,7 +150,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     addField(workspaceInstrField);
 
     // Add note using WrappableNoteLabel
-    new WrappableNoteLabel(workspaceInstrGroup, Messages.preferences_page_note_prefix,
+    new WrappableNoteLabel(workspaceInstrGroup, Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_custom_instructions_copilot_instructions_note);
   }
 
@@ -219,7 +219,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     createButton(tableContainer, table);
 
     // Add note using WrappableNoteLabel
-    new WrappableNoteLabel(projectInstrGroup, Messages.preferences_page_note_prefix,
+    new WrappableNoteLabel(projectInstrGroup, Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_custom_instructions_project_table_note);
   }
 

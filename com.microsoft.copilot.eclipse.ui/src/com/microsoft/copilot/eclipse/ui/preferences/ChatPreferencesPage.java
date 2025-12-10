@@ -62,7 +62,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addField(workspaceContextField);
 
     // add chat note using WrappableNoteLabel
-    new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix,
+    new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_watched_files_note_content);
 
     // add separator
@@ -97,7 +97,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addField(subAgentField);
 
     // add sub-agent note using WrappableNoteLabel
-    new WrappableNoteLabel(subAgentComposite, Messages.preferences_page_note_prefix,
+    new WrappableNoteLabel(subAgentComposite, Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_sub_agent_note_content);
 
   }
