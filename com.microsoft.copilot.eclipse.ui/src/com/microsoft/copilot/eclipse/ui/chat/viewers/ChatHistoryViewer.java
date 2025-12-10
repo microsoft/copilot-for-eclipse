@@ -393,24 +393,39 @@ public class ChatHistoryViewer extends Composite {
 
     Listener enterListener = event -> {
       setConversationItemCssClass(conversationItem, isCurrent, true);
-
       if (conversation != null && !isInEditMode(titleComposite)) {
-        GridData actionsData = (GridData) actionsComposite.getLayoutData();
-        actionsData.exclude = false;
-        actionsComposite.setVisible(true);
-        conversationItem.requestLayout();
+        setActionsAreaVisible(conversationItem, actionsComposite, true);
       }
     };
 
     Listener exitListener = event -> {
       setConversationItemCssClass(conversationItem, isCurrent, false);
-      GridData actionsData = (GridData) actionsComposite.getLayoutData();
-      actionsData.exclude = true;
-      actionsComposite.setVisible(false);
-      conversationItem.requestLayout();
+      if (conversation != null) {
+        setActionsAreaVisible(conversationItem, actionsComposite, false);
+      }
     };
 
     return new HoverListeners(enterListener, exitListener);
+  }
+
+  /**
+   * Sets the visibility of the actions area.
+   *
+   * @param conversationItem the parent conversation item for layout
+   * @param actionsComposite the actions composite to show/hide
+   * @param visible true to show the actions area, false to hide it
+   */
+  private void setActionsAreaVisible(Composite conversationItem, Composite actionsComposite, boolean visible) {
+    if (actionsComposite.isVisible() != visible) {
+      GridData layoutData = (GridData) actionsComposite.getLayoutData();
+      layoutData.exclude = !visible;
+      actionsComposite.setVisible(visible);
+      conversationItem.getDisplay().asyncExec(() -> {
+        if (!conversationItem.isDisposed()) {
+          conversationItem.requestLayout();
+        }
+      });
+    }
   }
 
   // Extract edit mode check to reduce code duplication
