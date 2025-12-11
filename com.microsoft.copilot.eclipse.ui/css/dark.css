@@ -158,6 +158,20 @@
 	color: #A4A4A4;
 }
 
+/* File Change Summary Bar - File Row Styles */
+#file-row,
+#file-row * {
+	color: #DEE1E5;           /* default foreground */
+	background-color: #1E1F22;/* default background */
+}
+
+/* Hover state for file rows */
+#file-row-hover,
+#file-row-hover * {
+	color: #DEE1E5;           /* hover foreground */
+	background-color: #393B40;/* hover background */
+}
+
 .mcp-registry-dialog-actions {
 	color: #DEE1E5;
 	background-color: #1E1F22;

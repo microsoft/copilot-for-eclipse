@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
@@ -27,9 +28,9 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -38,6 +39,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class FileChangeSummaryBar extends Composite {
   private FileToolService fileToolService;
+  private IStylingEngine stylingEngine;
 
   private FileChangeSummaryTitleBar titleBar;
   private ChangedFiles changedFiles;
@@ -55,6 +57,7 @@ public class FileChangeSummaryBar extends Composite {
     super(parent, style | SWT.BORDER);
     this.parent = parent;
     this.fileToolService = CopilotUi.getPlugin().getChatServiceManager().getFileToolService();
+    this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
   }
 
   /**
@@ -327,7 +330,6 @@ public class FileChangeSummaryBar extends Composite {
       GridLayout layout = new GridLayout(1, false);
       layout.marginWidth = 0;
       layout.marginHeight = 0;
-      layout.verticalSpacing = 0;
       setLayout(layout);
       setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
@@ -349,7 +351,6 @@ public class FileChangeSummaryBar extends Composite {
         GridLayout contentLayout = new GridLayout(1, false);
         contentLayout.marginWidth = 0;
         contentLayout.marginHeight = 0;
-        contentLayout.verticalSpacing = 0;
         contentArea.setLayout(contentLayout);
 
         scrolledComposite.setContent(contentArea);
@@ -359,7 +360,6 @@ public class FileChangeSummaryBar extends Composite {
         GridLayout contentLayout = new GridLayout(1, false);
         contentLayout.marginWidth = 0;
         contentLayout.marginHeight = 0;
-        contentLayout.verticalSpacing = 0;
         contentArea.setLayout(contentLayout);
         contentArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
       }
@@ -377,7 +377,7 @@ public class FileChangeSummaryBar extends Composite {
       }
 
       // Update layout and calculate scroll height if needed
-      contentArea.layout(true, true);
+      contentArea.requestLayout();
 
       if (scrolledComposite != null && !fileRows.isEmpty()) {
         // Calculate the height of a single FileRow to estimate scroll area height
@@ -409,9 +409,9 @@ public class FileChangeSummaryBar extends Composite {
    */
   public class FileRow extends Composite {
     private Composite actionsArea;
-    private Button keepButton;
-    private Button undoButton;
-    private Button removeButton;
+    private Label keepButton;
+    private Label undoButton;
+    private Label removeButton;
 
     /**
      * Constructs a new FileRow.
@@ -429,7 +429,6 @@ public class FileChangeSummaryBar extends Composite {
 
       // File information section (left)
       GridLayout fileInfoLayout = new GridLayout(3, false);
-      fileInfoLayout.marginWidth = 0;
       fileInfoLayout.marginHeight = 0;
       Composite fileInfo = new Composite(this, SWT.NONE);
       fileInfo.setLayout(fileInfoLayout);
@@ -489,7 +488,6 @@ public class FileChangeSummaryBar extends Composite {
       GridLayout actionsLayout = new GridLayout(4, false);
       actionsLayout.marginWidth = 0;
       actionsLayout.marginHeight = 0;
-      actionsLayout.horizontalSpacing = 0;
       actionsArea.setLayout(actionsLayout);
       GridData actionsData = new GridData(SWT.END, SWT.CENTER, false, false);
       actionsData.exclude = true;
@@ -498,7 +496,7 @@ public class FileChangeSummaryBar extends Composite {
 
       // Create action buttons only when the file is not handled
       if (!fileIsHandled) {
-        keepButton = UiUtils.createIconButton(actionsArea, SWT.PUSH | SWT.FLAT);
+        keepButton = new Label(actionsArea, SWT.NONE);
         Image keepImg = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
         this.addDisposeListener(e -> {
           if (keepImg != null && !keepImg.isDisposed()) {
@@ -508,43 +506,37 @@ public class FileChangeSummaryBar extends Composite {
         keepButton.setImage(keepImg);
         keepButton.setToolTipText(Messages.fileChangeSummary_keepButton);
         GridData keepGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        keepGridData.widthHint = keepImg.getImageData().width + 2 * UiConstants.BTN_PADDING;
-        keepGridData.heightHint = keepImg.getImageData().height + 2 * UiConstants.BTN_PADDING;
         keepButton.setLayoutData(keepGridData);
-        keepButton.addSelectionListener(new SelectionAdapter() {
+        keepButton.addMouseListener(new MouseAdapter() {
           @Override
-          public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
+          public void mouseUp(MouseEvent e) {
             fileToolService.onKeepChange(file);
           }
         });
 
-        undoButton = UiUtils.createIconButton(actionsArea, SWT.PUSH | SWT.FLAT);
+        undoButton = new Label(actionsArea, SWT.NONE);
         Image undoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_UNDO);
         undoButton.setImage(undoImage);
         undoButton.setToolTipText(Messages.fileChangeSummary_undoButton);
         GridData undoGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        undoGridData.widthHint = undoImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
-        undoGridData.heightHint = undoImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
         undoButton.setLayoutData(undoGridData);
-        undoButton.addSelectionListener(new SelectionAdapter() {
+        undoButton.addMouseListener(new MouseAdapter() {
           @Override
-          public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
+          public void mouseUp(MouseEvent e) {
             fileToolService.onUndoChange(file);
           }
         });
       }
 
-      removeButton = UiUtils.createIconButton(actionsArea, SWT.PUSH | SWT.FLAT);
+      removeButton = new Label(actionsArea, SWT.NONE);
       Image removeImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
       removeButton.setImage(removeImage);
       removeButton.setToolTipText(Messages.fileChangeSummary_removeButton);
       GridData removeGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-      removeGridData.widthHint = removeImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
-      removeGridData.heightHint = removeImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
       removeButton.setLayoutData(removeGridData);
-      removeButton.addSelectionListener(new SelectionAdapter() {
+      removeButton.addMouseListener(new MouseAdapter() {
         @Override
-        public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
+        public void mouseUp(MouseEvent e) {
           fileToolService.onRemoveFile(file);
         }
       });
@@ -552,29 +544,15 @@ public class FileChangeSummaryBar extends Composite {
       // Hide actions initially
       actionsArea.setVisible(false);
 
+      // Apply initial CSS ID
+      setFileRowCssId(false);
+
       // Create hover listeners
-      Listener enterListener = event -> {
-        GridData layoutData = (GridData) actionsArea.getLayoutData();
-        layoutData.exclude = false;
-        actionsArea.setVisible(true);
-        requestLayout();
-      };
+      Listener enterListener = event -> setHoverEffect(true);
+      Listener exitListener = event -> setHoverEffect(false);
 
-      Listener exitListener = event -> {
-        GridData layoutData = (GridData) actionsArea.getLayoutData();
-        layoutData.exclude = true;
-        actionsArea.setVisible(false);
-        requestLayout();
-      };
-
-      // Handle hover events
+      // Handle hover events - add listeners recursively to all controls
       addHoverListenersRecursively(this, enterListener, exitListener);
-      actionsArea.addListener(SWT.MouseEnter, enterListener);
-      actionsArea.addListener(SWT.MouseExit, exitListener);
-      for (Control child : actionsArea.getChildren()) {
-        child.addListener(SWT.MouseEnter, enterListener);
-        child.addListener(SWT.MouseExit, exitListener);
-      }
 
       addMouseListener(new MouseAdapter() {
         @Override
@@ -582,6 +560,41 @@ public class FileChangeSummaryBar extends Composite {
           fileToolService.onViewDiff(file);
         }
       });
+    }
+
+    /**
+     * Sets the hover effect including CSS class and actions area visibility.
+     *
+     * @param isHover true if hovering, false otherwise
+     */
+    private void setHoverEffect(boolean isHover) {
+      setFileRowCssId(isHover);
+      setActionsAreaVisible(isHover);
+    }
+
+    /**
+     * Sets the CSS ID on the FileRow and all its children based on hover state.
+     *
+     * @param isHover true if hovering, false otherwise
+     */
+    private void setFileRowCssId(boolean isHover) {
+      String cssId = isHover ? "file-row-hover" : "file-row";
+      applyCssIdRecursively(this, cssId);
+    }
+
+    /**
+     * Recursively applies CSS ID to a control and all its children.
+     */
+    private void applyCssIdRecursively(Control control, String cssId) {
+      control.setData(CssConstants.CSS_ID_KEY, cssId);
+      if (stylingEngine != null) {
+        stylingEngine.style(control);
+      }
+      if (control instanceof Composite composite) {
+        for (Control child : composite.getChildren()) {
+          applyCssIdRecursively(child, cssId);
+        }
+      }
     }
 
     /**
@@ -597,6 +610,20 @@ public class FileChangeSummaryBar extends Composite {
         for (Control child : composite.getChildren()) {
           addHoverListenersRecursively(child, enterListener, exitListener);
         }
+      }
+    }
+
+    /**
+     * Sets the visibility of the actions area.
+     *
+     * @param visible true to show the actions area, false to hide it
+     */
+    private void setActionsAreaVisible(boolean visible) {
+      if (actionsArea.isVisible() != visible) {
+        GridData layoutData = (GridData) actionsArea.getLayoutData();
+        layoutData.exclude = !visible;
+        actionsArea.setVisible(visible);
+        requestLayout();
       }
     }
 
