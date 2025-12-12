@@ -26,7 +26,6 @@ public final class Messages extends NLS {
   public static String fileChangeSummary_doneButton;
   public static String fileChangeSummary_keepButton;
   public static String fileChangeSummary_undoButton;
-  public static String fileChangeSummary_removeButton;
   public static String fileChangeSummary_collapseTooltip;
   public static String fileChangeSummary_expandTooltip;
 

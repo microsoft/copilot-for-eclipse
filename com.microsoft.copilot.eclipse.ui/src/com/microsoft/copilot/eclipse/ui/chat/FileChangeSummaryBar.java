@@ -106,9 +106,6 @@ public class FileChangeSummaryBar extends Composite {
   public void setButtonStatus(boolean enable) {
     this.enableButtons = enable;
     if (titleBar != null) {
-      if (titleBar.doneButton != null) {
-        titleBar.doneButton.setEnabled(enable);
-      }
       if (titleBar.keepButton != null) {
         titleBar.keepButton.setEnabled(enable);
       }
@@ -163,7 +160,6 @@ public class FileChangeSummaryBar extends Composite {
     private Label titleLabel;
     private Button keepButton;
     private Button undoButton;
-    private Button doneButton;
     private String changeFilesTitle;
 
     public FileChangeSummaryTitleBar(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
@@ -184,12 +180,7 @@ public class FileChangeSummaryBar extends Composite {
 
       // Create the title label with left alignment
       titleLabel = new Label(this, SWT.NONE);
-      int fileChangeCount = 0;
-      for (FileChangeProperty property : filesMap.values()) {
-        if (!property.isRemoved()) {
-          fileChangeCount++;
-        }
-      }
+      int fileChangeCount = filesMap.size();
       String titlePostfix = fileChangeCount > 1 ? Messages.fileChangeSummary_filesChanged
           : Messages.fileChangeSummary_fileChanged;
       changeFilesTitle = fileChangeCount + titlePostfix;
@@ -212,7 +203,7 @@ public class FileChangeSummaryBar extends Composite {
       titleLabel.addMouseListener(clickListener);
       addMouseListener(clickListener);
 
-      updateTitleBarButtons(filesMap.values().stream().filter(value -> !value.isHandled()).count() == 0);
+      updateTitleBarButtons();
 
       this.addDisposeListener(e -> {
         if (downArrowImage != null && !downArrowImage.isDisposed()) {
@@ -260,12 +251,8 @@ public class FileChangeSummaryBar extends Composite {
       }
     }
 
-    private void updateTitleBarButtons(boolean isExecutionFinished) {
+    private void updateTitleBarButtons() {
       // Dispose existing buttons
-      if (doneButton != null) {
-        doneButton.dispose();
-        doneButton = null;
-      }
       if (keepButton != null) {
         keepButton.dispose();
         keepButton = null;
@@ -275,45 +262,31 @@ public class FileChangeSummaryBar extends Composite {
         undoButton = null;
       }
 
-      if (isExecutionFinished) {
-        // Create the "Done" button
-        doneButton = new Button(this, SWT.PUSH | SWT.FLAT);
-        doneButton.setText(Messages.fileChangeSummary_doneButton);
-        GridData keepButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        doneButton.setLayoutData(keepButtonGridData);
-        doneButton.addSelectionListener(new SelectionAdapter() {
-          @Override
-          public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            fileToolService.onResolveAllChanges();
-          }
-        });
-      } else {
-        // Create the "Keep" button
-        keepButton = new Button(this, SWT.PUSH | SWT.FLAT);
-        keepButton.setText(Messages.fileChangeSummary_keepButton);
-        GridData keepButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        keepButton.setLayoutData(keepButtonGridData);
-        keepButton.addSelectionListener(new SelectionAdapter() {
-          @Override
-          public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            fileToolService.onKeepAllChanges();
-          }
-        });
+      // Create the "Keep" button
+      keepButton = new Button(this, SWT.PUSH | SWT.FLAT);
+      keepButton.setText(Messages.fileChangeSummary_keepButton);
+      GridData keepButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
+      keepButton.setLayoutData(keepButtonGridData);
+      keepButton.addSelectionListener(new SelectionAdapter() {
+        @Override
+        public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
+          fileToolService.onKeepAllChanges();
+        }
+      });
 
-        // Create the "Undo" button
-        undoButton = new Button(this, SWT.PUSH | SWT.FLAT);
-        undoButton.setText(Messages.fileChangeSummary_undoButton);
-        GridData undoButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        undoButton.setLayoutData(undoButtonGridData);
-        undoButton.addSelectionListener(new SelectionAdapter() {
-          @Override
-          public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-            fileToolService.onUndoAllChanges();
-          }
-        });
-      }
+      // Create the "Undo" button
+      undoButton = new Button(this, SWT.PUSH | SWT.FLAT);
+      undoButton.setText(Messages.fileChangeSummary_undoButton);
+      GridData undoButtonGridData = new GridData(SWT.END, SWT.CENTER, false, false);
+      undoButton.setLayoutData(undoButtonGridData);
+      undoButton.addSelectionListener(new SelectionAdapter() {
+        @Override
+        public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
+          fileToolService.onUndoAllChanges();
+        }
+      });
 
-      parent.layout(true, true);
+      parent.requestLayout();
     }
   }
 
@@ -333,8 +306,8 @@ public class FileChangeSummaryBar extends Composite {
       setLayout(layout);
       setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
-      // Count non-removed files
-      long fileCount = filesMap.values().stream().filter(value -> !value.isRemoved()).count();
+      // Count files
+      long fileCount = filesMap.size();
 
       // Create ScrolledComposite if we have more than MAX_VISIBLE_FILES
       if (fileCount > MAX_VISIBLE_FILES) {
@@ -368,12 +341,12 @@ public class FileChangeSummaryBar extends Composite {
       WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
       fileRows = new LinkedList<>();
       for (IFile file : filesMap.keySet()) {
-        if (file == null || filesMap.get(file).isRemoved()) {
+        if (file == null) {
           continue;
         }
 
         Image image = labelProvider.getImage(file);
-        fileRows.add(new FileRow(contentArea, SWT.NONE, image, file, filesMap.get(file).isHandled()));
+        fileRows.add(new FileRow(contentArea, SWT.NONE, image, file));
       }
 
       // Update layout and calculate scroll height if needed
@@ -411,12 +384,11 @@ public class FileChangeSummaryBar extends Composite {
     private Composite actionsArea;
     private Label keepButton;
     private Label undoButton;
-    private Label removeButton;
 
     /**
      * Constructs a new FileRow.
      */
-    public FileRow(Composite parent, int style, Image fileImage, IFile file, boolean fileIsHandled) {
+    public FileRow(Composite parent, int style, Image fileImage, IFile file) {
       super(parent, style);
 
       GridLayout layout = new GridLayout(2, false);
@@ -485,8 +457,7 @@ public class FileChangeSummaryBar extends Composite {
 
       // Actions section (right)
       actionsArea = new Composite(this, SWT.NONE);
-      GridLayout actionsLayout = new GridLayout(4, false);
-      actionsLayout.marginWidth = 0;
+      GridLayout actionsLayout = new GridLayout(2, false);
       actionsLayout.marginHeight = 0;
       actionsArea.setLayout(actionsLayout);
       GridData actionsData = new GridData(SWT.END, SWT.CENTER, false, false);
@@ -494,50 +465,34 @@ public class FileChangeSummaryBar extends Composite {
       actionsArea.setLayoutData(actionsData);
       actionsArea.setVisible(false);
 
-      // Create action buttons only when the file is not handled
-      if (!fileIsHandled) {
-        keepButton = new Label(actionsArea, SWT.NONE);
-        Image keepImg = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
-        this.addDisposeListener(e -> {
-          if (keepImg != null && !keepImg.isDisposed()) {
-            keepImg.dispose();
-          }
-        });
-        keepButton.setImage(keepImg);
-        keepButton.setToolTipText(Messages.fileChangeSummary_keepButton);
-        GridData keepGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        keepButton.setLayoutData(keepGridData);
-        keepButton.addMouseListener(new MouseAdapter() {
-          @Override
-          public void mouseUp(MouseEvent e) {
-            fileToolService.onKeepChange(file);
-          }
-        });
-
-        undoButton = new Label(actionsArea, SWT.NONE);
-        Image undoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_UNDO);
-        undoButton.setImage(undoImage);
-        undoButton.setToolTipText(Messages.fileChangeSummary_undoButton);
-        GridData undoGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-        undoButton.setLayoutData(undoGridData);
-        undoButton.addMouseListener(new MouseAdapter() {
-          @Override
-          public void mouseUp(MouseEvent e) {
-            fileToolService.onUndoChange(file);
-          }
-        });
-      }
-
-      removeButton = new Label(actionsArea, SWT.NONE);
-      Image removeImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
-      removeButton.setImage(removeImage);
-      removeButton.setToolTipText(Messages.fileChangeSummary_removeButton);
-      GridData removeGridData = new GridData(SWT.END, SWT.CENTER, false, false);
-      removeButton.setLayoutData(removeGridData);
-      removeButton.addMouseListener(new MouseAdapter() {
+      keepButton = new Label(actionsArea, SWT.NONE);
+      Image keepImg = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
+      this.addDisposeListener(e -> {
+        if (keepImg != null && !keepImg.isDisposed()) {
+          keepImg.dispose();
+        }
+      });
+      keepButton.setImage(keepImg);
+      keepButton.setToolTipText(Messages.fileChangeSummary_keepButton);
+      GridData keepGridData = new GridData(SWT.END, SWT.CENTER, false, false);
+      keepButton.setLayoutData(keepGridData);
+      keepButton.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseUp(MouseEvent e) {
-          fileToolService.onRemoveFile(file);
+          fileToolService.onKeepChange(file);
+        }
+      });
+
+      undoButton = new Label(actionsArea, SWT.NONE);
+      Image undoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_UNDO);
+      undoButton.setImage(undoImage);
+      undoButton.setToolTipText(Messages.fileChangeSummary_undoButton);
+      GridData undoGridData = new GridData(SWT.END, SWT.CENTER, false, false);
+      undoButton.setLayoutData(undoGridData);
+      undoButton.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mouseUp(MouseEvent e) {
+          fileToolService.onUndoChange(file);
         }
       });
 
@@ -633,9 +588,6 @@ public class FileChangeSummaryBar extends Composite {
       }
       if (undoButton != null) {
         undoButton.setEnabled(enable);
-      }
-      if (removeButton != null) {
-        removeButton.setEnabled(enable);
       }
     }
   }

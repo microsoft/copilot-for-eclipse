@@ -27,7 +27,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.T
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 
 /**
  * Tool for editing files.
@@ -210,18 +209,6 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
   }
 
   @Override
-  public void onRemoveFile(IFile file) throws CoreException {
-    Map<IFile, FileChangeProperty> changedFiles = CopilotUi.getPlugin().getChatServiceManager().getFileToolService()
-        .getChangedFiles();
-
-    // If the file is not handled by user, we need to undo the changes made to the file before removing it.
-    if (changedFiles.containsKey(file) && !changedFiles.get(file).isHandled()) {
-      undoChangesToFile(file);
-    }
-    closeCompareEditor(file);
-  }
-
-  @Override
   public void onViewDiff(IFile file) {
     // Check if the file is already open in a compare editor and bring it to the top if is exists
     if (compareEditorInputMap.containsKey(file) && bringCompareEditorToTop(compareEditorInputMap.get(file))) {
@@ -239,11 +226,7 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
 
   private void undoChangesToFile(IFile file) {
     String fileCache = fileContentCache.get(file);
-    boolean handled = CopilotUi.getPlugin().getChatServiceManager().getFileToolService().getChangedFiles().get(file)
-        .isHandled();
-
-    // Only process the file if it is not already handled
-    if (fileCache != null && !handled) {
+    if (fileCache != null) {
       applyChangesToFile(fileCache, file);
     }
     fileContentCache.remove(file);

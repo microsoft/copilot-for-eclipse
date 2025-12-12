@@ -182,18 +182,6 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
   }
 
   @Override
-  public void onRemoveFile(IFile file) throws CoreException {
-    Map<IFile, FileChangeProperty> changedFiles = CopilotUi.getPlugin().getChatServiceManager().getFileToolService()
-        .getChangedFiles();
-
-    // If the file is not handled by user, we need to undo the changes made to the file before removing it.
-    if (changedFiles.containsKey(file) && !changedFiles.get(file).isHandled()) {
-      onUndoChange(file);
-    }
-    closeCompareEditor(file);
-  }
-
-  @Override
   public void onViewDiff(IFile file) {
     SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file));
   }

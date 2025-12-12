@@ -39,15 +39,6 @@ public interface FileChangeSummaryHandler {
   void onUndoAllChanges(List<IFile> files) throws CoreException;
 
   /**
-   * Handles the action of removing a file.
-   *
-   * @param file the file to remove
-   *
-   * @throws CoreException if an error occurs during the remove operation, such as a failure to delete a file
-   */
-  void onRemoveFile(IFile file) throws CoreException;
-
-  /**
    * Handles the action of viewing the diff of a file.
    *
    * @param file the file to view the diff for

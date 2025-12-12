@@ -37,7 +37,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeAction;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -263,8 +262,7 @@ public abstract class FileToolBase extends BaseTool {
           }
 
           // If user keeps the changes with keyboard shortcut, we also need to complete the file.
-          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(file,
-              FileChangeAction.ACCEPTED);
+          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(file);
           fileContentCache.remove(file);
         }
       }

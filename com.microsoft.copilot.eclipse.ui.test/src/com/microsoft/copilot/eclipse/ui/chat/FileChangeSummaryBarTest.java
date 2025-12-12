@@ -36,7 +36,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeAction;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -148,7 +147,7 @@ class FileChangeSummaryBarTest {
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
       assertNotNull(scrolledComposite, "ScrolledComposite should be created for 10 files");
-      
+
       // Verify scroll properties
       assertTrue(scrolledComposite.getExpandHorizontal(), "ScrolledComposite should expand horizontally");
       assertTrue(scrolledComposite.getExpandVertical(), "ScrolledComposite should expand vertically");
@@ -198,7 +197,7 @@ class FileChangeSummaryBarTest {
       // Get the file rows list
       Object fileRowsList = getFieldValue(changedFiles, "fileRows");
       assertNotNull(fileRowsList, "File rows list should exist");
-      
+
       assertTrue(fileRowsList instanceof List, "fileRows should be a List");
 
       List<?> fileRows = (List<?>) fileRowsList;
@@ -226,7 +225,7 @@ class FileChangeSummaryBarTest {
       Control content = scrolledComposite.getContent();
       assertNotNull(content, "ScrolledComposite should have content set");
       assertTrue(content instanceof Composite, "Content should be a Composite");
-      
+
       // Verify it's the contentArea
       Object contentArea = getFieldValue(changedFiles, "contentArea");
       assertEquals(contentArea, content, "ScrolledComposite content should be the contentArea");
@@ -262,11 +261,11 @@ class FileChangeSummaryBarTest {
   void testRebuildSummaryBarChangesScrollBehavior() {
     SwtUtils.invokeOnDisplayThread(() -> {
       fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
-      
+
       // First build with few files (no scroll)
       Map<IFile, FileChangeProperty> fewFiles = createMockFilesMap(3, false);
       fileChangeSummaryBar.buildSummaryBarFor(fewFiles);
-      
+
       Object changedFiles1 = getFieldValue(fileChangeSummaryBar, "changedFiles");
       assertNotNull(changedFiles1, "ChangedFiles should be created");
       ScrolledComposite scroll1 = getScrolledComposite(changedFiles1);
@@ -275,11 +274,11 @@ class FileChangeSummaryBarTest {
       // Rebuild with many files (should have scroll)
       Map<IFile, FileChangeProperty> manyFiles = createMockFilesMap(10, false);
       fileChangeSummaryBar.buildSummaryBarFor(manyFiles);
-      
+
       Object changedFiles2 = getFieldValue(fileChangeSummaryBar, "changedFiles");
       assertNotNull(changedFiles2, "ChangedFiles should be recreated");
       assertFalse(changedFiles1.equals(changedFiles2), "ChangedFiles should be a new instance");
-      
+
       ScrolledComposite scroll2 = getScrolledComposite(changedFiles2);
       assertNotNull(scroll2, "Scroll should exist for 10 files");
     });
@@ -305,12 +304,11 @@ class FileChangeSummaryBarTest {
 
       Label expandIconLabel = (Label) expandIcon;
       assertNotNull(expandIconLabel.getImage(), "ExpandIcon should have an image when expanded");
-      
+
       // Verify it's the down arrow by checking that downArrowImage is not null
       Object downArrowImage = getFieldValue(titleBar, "downArrowImage");
       assertNotNull(downArrowImage, "Down arrow image should be created");
-      assertEquals(downArrowImage, expandIconLabel.getImage(), 
-          "ExpandIcon should show down arrow when expanded");
+      assertEquals(downArrowImage, expandIconLabel.getImage(), "ExpandIcon should show down arrow when expanded");
     });
   }
 
@@ -328,7 +326,7 @@ class FileChangeSummaryBarTest {
       // Toggle to collapse
       boolean isExpanded = (Boolean) getFieldValue(fileChangeSummaryBar, "isExpanded");
       assertTrue(isExpanded, "Should be expanded initially");
-      
+
       // Simulate collapse by calling toggleExpanded via reflection
       invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
 
@@ -342,8 +340,7 @@ class FileChangeSummaryBarTest {
       // Verify it's the right arrow
       Object rightArrowImage = getFieldValue(titleBar, "rightArrowImage");
       assertNotNull(rightArrowImage, "Right arrow image should be created");
-      assertEquals(rightArrowImage, expandIconLabel.getImage(), 
-          "ExpandIcon should show right arrow when collapsed");
+      assertEquals(rightArrowImage, expandIconLabel.getImage(), "ExpandIcon should show right arrow when collapsed");
     });
   }
 
@@ -363,7 +360,7 @@ class FileChangeSummaryBarTest {
 
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
       Object titleLabel = getFieldValue(titleBar, "titleLabel");
-      
+
       assertTrue(expandIcon instanceof Label, "ExpandIcon should be a Label");
       assertTrue(titleLabel instanceof Label, "TitleLabel should be a Label");
 
@@ -375,18 +372,16 @@ class FileChangeSummaryBarTest {
 
       assertNotNull(expandIconTooltip, "ExpandIcon should have tooltip when expanded");
       assertNotNull(titleLabelTooltip, "TitleLabel should have tooltip when expanded");
-      
+
       // Both should have the same tooltip
-      assertEquals(expandIconTooltip, titleLabelTooltip, 
-          "ExpandIcon and TitleLabel should have the same tooltip");
-      
+      assertEquals(expandIconTooltip, titleLabelTooltip, "ExpandIcon and TitleLabel should have the same tooltip");
+
       // Tooltip should contain "collapse" when expanded
-      assertTrue(expandIconTooltip.toLowerCase().contains("collapse"), 
+      assertTrue(expandIconTooltip.toLowerCase().contains("collapse"),
           "Tooltip should contain 'collapse' when expanded");
-      
+
       // Tooltip should contain the file count
-      assertTrue(expandIconTooltip.contains("3"), 
-          "Tooltip should contain file count");
+      assertTrue(expandIconTooltip.contains("3"), "Tooltip should contain file count");
     });
   }
 
@@ -419,18 +414,15 @@ class FileChangeSummaryBarTest {
 
       assertNotNull(expandIconTooltip, "ExpandIcon should have tooltip when collapsed");
       assertNotNull(titleLabelTooltip, "TitleLabel should have tooltip when collapsed");
-      
+
       // Both should have the same tooltip
-      assertEquals(expandIconTooltip, titleLabelTooltip, 
-          "ExpandIcon and TitleLabel should have the same tooltip");
-      
+      assertEquals(expandIconTooltip, titleLabelTooltip, "ExpandIcon and TitleLabel should have the same tooltip");
+
       // Tooltip should contain "expand" when collapsed
-      assertTrue(expandIconTooltip.toLowerCase().contains("expand"), 
-          "Tooltip should contain 'expand' when collapsed");
-      
+      assertTrue(expandIconTooltip.toLowerCase().contains("expand"), "Tooltip should contain 'expand' when collapsed");
+
       // Tooltip should contain the file count
-      assertTrue(expandIconTooltip.contains("5"), 
-          "Tooltip should contain file count");
+      assertTrue(expandIconTooltip.contains("5"), "Tooltip should contain file count");
     });
   }
 
@@ -451,26 +443,23 @@ class FileChangeSummaryBarTest {
 
       // Initially expanded - should have down arrow and collapse tooltip
       Object downArrowImage = getFieldValue(titleBar, "downArrowImage");
-      assertEquals(downArrowImage, expandIconLabel.getImage(), 
-          "Should show down arrow initially");
-      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("collapse"), 
+      assertEquals(downArrowImage, expandIconLabel.getImage(), "Should show down arrow initially");
+      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("collapse"),
           "Should have collapse tooltip initially");
 
       // Toggle to collapse
       invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
-      
+
       Object rightArrowImage = getFieldValue(titleBar, "rightArrowImage");
-      assertEquals(rightArrowImage, expandIconLabel.getImage(), 
-          "Should show right arrow after first toggle");
-      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("expand"), 
+      assertEquals(rightArrowImage, expandIconLabel.getImage(), "Should show right arrow after first toggle");
+      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("expand"),
           "Should have expand tooltip after first toggle");
 
       // Toggle back to expand
       invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
-      
-      assertEquals(downArrowImage, expandIconLabel.getImage(), 
-          "Should show down arrow after second toggle");
-      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("collapse"), 
+
+      assertEquals(downArrowImage, expandIconLabel.getImage(), "Should show down arrow after second toggle");
+      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("collapse"),
           "Should have collapse tooltip after second toggle");
     });
   }
@@ -482,31 +471,29 @@ class FileChangeSummaryBarTest {
   void testTooltipContainsCorrectFileCount() {
     SwtUtils.invokeOnDisplayThread(() -> {
       fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
-      
+
       // Test with 1 file
       Map<IFile, FileChangeProperty> oneFile = createMockFilesMap(1, false);
       fileChangeSummaryBar.buildSummaryBarFor(oneFile);
-      
+
       Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
       Label expandIconLabel = (Label) expandIcon;
-      
-      assertTrue(expandIconLabel.getToolTipText().contains("1"), 
-          "Tooltip should contain '1' for single file");
-      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("file"), 
+
+      assertTrue(expandIconLabel.getToolTipText().contains("1"), "Tooltip should contain '1' for single file");
+      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("file"),
           "Tooltip should contain 'file' (singular)");
 
       // Test with 10 files
       Map<IFile, FileChangeProperty> tenFiles = createMockFilesMap(10, false);
       fileChangeSummaryBar.buildSummaryBarFor(tenFiles);
-      
+
       titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
       expandIcon = getFieldValue(titleBar, "expandIcon");
       expandIconLabel = (Label) expandIcon;
-      
-      assertTrue(expandIconLabel.getToolTipText().contains("10"), 
-          "Tooltip should contain '10' for ten files");
-      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("files"), 
+
+      assertTrue(expandIconLabel.getToolTipText().contains("10"), "Tooltip should contain '10' for ten files");
+      assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("files"),
           "Tooltip should contain 'files' (plural)");
     });
   }
@@ -524,7 +511,7 @@ class FileChangeSummaryBarTest {
 
       Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
       // ChangedFiles should not be created or should be disposed
-      assertTrue(changedFiles == null || ((Composite) changedFiles).isDisposed(), 
+      assertTrue(changedFiles == null || ((Composite) changedFiles).isDisposed(),
           "ChangedFiles should not exist for empty map");
     });
   }
@@ -536,10 +523,9 @@ class FileChangeSummaryBarTest {
    */
   private Map<IFile, FileChangeProperty> createMockFilesMap(int count, boolean isHandled) {
     Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>();
-    FileChangeAction action = isHandled ? FileChangeAction.ACCEPTED : FileChangeAction.NONE;
     for (int i = 0; i < count; i++) {
       IFile mockFile = createMockFile("TestFile" + i + ".java");
-      filesMap.put(mockFile, new FileChangeProperty(FileChangeType.Created, action, false));
+      filesMap.put(mockFile, new FileChangeProperty(FileChangeType.Created));
     }
     return filesMap;
   }

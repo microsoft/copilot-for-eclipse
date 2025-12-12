@@ -94,8 +94,7 @@ public class ConversationUtils {
    * @return true if there are unhandled changes
    */
   private static boolean hasUnhandledChanges(FileToolService fileToolService) {
-    return fileToolService.getChangedFiles().values().stream()
-        .anyMatch(property -> !property.isHandled());
+    return fileToolService.getChangedFiles().size() > 0;
   }
 
   /**

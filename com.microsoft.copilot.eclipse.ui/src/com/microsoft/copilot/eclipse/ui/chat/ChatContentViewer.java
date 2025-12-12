@@ -138,9 +138,6 @@ public class ChatContentViewer extends ScrolledComposite {
         turnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, serviceManager, workDoneToken);
         latestCopilotTurn = turnWidget;
         latestTurnWidget = turnWidget;
-        // latestCopilotTurnId will be needed when notifyCodeAcceptance.
-        // We can set it in advance in case the ChatContentViewer is null when notifyCodeAcceptance.
-        this.serviceManager.getFileToolService().setLatestCopilotTurnId(workDoneToken);
       } else {
         // Create new User turn widget
         turnWidget = new UserTurnWidget(cmpContent, SWT.NONE, serviceManager, workDoneToken);
@@ -311,8 +308,8 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Check if auto-scroll to bottom is needed.
-   * Only scroll when auto-scroll is enabled (user hasn't manually scrolled during response).
+   * Check if auto-scroll to bottom is needed. Only scroll when auto-scroll is enabled (user hasn't manually scrolled
+   * during response).
    */
   private boolean shouldAutoScrollToBottom() {
     if (this.isDisposed() || latestUserTurn == null) {
