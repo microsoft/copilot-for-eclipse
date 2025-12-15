@@ -1152,34 +1152,33 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         String modeId = mode.getId();
         List<String> toolsFromFile = mode.getTools();
 
-        if (toolsFromFile == null || toolsFromFile.isEmpty()) {
-          continue; // No tools defined in this mode
-        }
-
         // Always sync tool status from .agent.md file, overwriting any existing preferences
         // This ensures the preference page always reflects the current agent definition from LSP
         Map<String, Map<String, Boolean>> newModeStatus = new HashMap<>();
 
-        for (String toolSpec : toolsFromFile) {
-          String serverName;
-          String toolName;
+        if (toolsFromFile != null && !toolsFromFile.isEmpty()) {
+          for (String toolSpec : toolsFromFile) {
+            String serverName;
+            String toolName;
 
-          // Parse tool specification: either "tool" or "server/tool"
-          // For server names containing "/", use lastIndexOf to split from the rightmost "/"
-          if (toolSpec.contains("/")) {
-            int lastSlashIndex = toolSpec.lastIndexOf("/");
-            serverName = toolSpec.substring(0, lastSlashIndex);
-            toolName = toolSpec.substring(lastSlashIndex + 1);
-          } else {
-            // Built-in tool
-            serverName = Messages.preferences_page_mcp_tools_builtin;
-            toolName = toolSpec;
+            // Parse tool specification: either "tool" or "server/tool"
+            // For server names containing "/", use lastIndexOf to split from the rightmost "/"
+            if (toolSpec.contains("/")) {
+              int lastSlashIndex = toolSpec.lastIndexOf("/");
+              serverName = toolSpec.substring(0, lastSlashIndex);
+              toolName = toolSpec.substring(lastSlashIndex + 1);
+            } else {
+              // Built-in tool
+              serverName = Messages.preferences_page_mcp_tools_builtin;
+              toolName = toolSpec;
+            }
+
+            // Get or create server map
+            Map<String, Boolean> serverTools = newModeStatus.computeIfAbsent(serverName, k -> new HashMap<>());
+            serverTools.put(toolName, true); // Enable tools from .agent.md
           }
-
-          // Get or create server map
-          Map<String, Boolean> serverTools = newModeStatus.computeIfAbsent(serverName, k -> new HashMap<>());
-          serverTools.put(toolName, true); // Enable tools from .agent.md
         }
+        // If no tools are defined, newModeStatus remains empty, effectively clearing deleted tools
 
         modeToolStatus.put(modeId, newModeStatus);
       }
