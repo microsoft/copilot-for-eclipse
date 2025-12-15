@@ -987,7 +987,8 @@
 		<quickAssistProcessor
 			id="com.microsoft.copilot.eclipse.ui.quickfix.toolConfiguration"
 			name="Tool Configuration Quick Fix"
-			class="com.microsoft.copilot.eclipse.ui.quickfix.ToolConfigurationQuickFixProcessor" />
+			class="com.microsoft.copilot.eclipse.ui.quickfix.ToolConfigurationQuickFixProcessor"
+			contentType="com.microsoft.copilot.eclipse.ui.agentFile" />
 	</extension>
 
 	<extension point="org.eclipse.ui.workbench.texteditor.rulerColumns">
