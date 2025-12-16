@@ -53,6 +53,28 @@ public class RunInTerminalToolAdapter extends BaseTool {
           - Returns a terminal ID for checking output later with get_terminal_output
           """;
     }
+    if (PlatformUtils.isLinux()) {
+      return """
+          Shell: /bin/sh (POSIX shell)
+
+          This tool allows you to execute POSIX shell commands in a persistent terminal session, \
+          preserving environment variables, working directory, and other context across multiple commands.
+          Use this tool instead of printing a shell codeblock and asking the user to run it.
+
+          Command Execution:
+          - Use ; to chain commands on one line (or && for conditional execution on success)
+          - Never create a sub-shell (e.g., sh -c "command") unless explicitly asked
+          - Prefer pipelines | for data flow
+          - Must use absolute paths to avoid navigation issues
+          - If a command may use a pager, disable it (e.g., `git --no-pager` or add `| cat`)
+          - Use POSIX-compliant syntax (avoid bash-specific features like arrays or [[ ]])
+
+          Background Processes:
+          - For long-running tasks (e.g., servers), set isBackground=true
+          - Returns a terminal ID for checking output later with get_terminal_output
+          """;
+    }
+    // macOS or other Unix-like systems
     return """
         This tool allows you to execute shell commands in a persistent terminal session, \
         preserving environment variables, working directory, and other context across multiple commands.

@@ -32,6 +32,7 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.component.annotations.Component;
 
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
+import com.microsoft.copilot.eclipse.terminal.api.ShellIntegrationScripts;
 
 /**
  * terminal tool implementation for older Eclipse versions.
@@ -56,6 +57,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   // Output and command state
   private StringBuilder sb;
   private CompletableFuture<String> resultFuture;
+  private volatile boolean useMarker;
+  private volatile boolean isInitialMarkerHandled;
 
   /**
    * Constructor for RunInTerminalTool.
@@ -71,13 +74,19 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     }
 
     resultFuture = new CompletableFuture<>();
+    useMarker = Platform.getOS().equals(Platform.OS_LINUX);
 
-    // Retain only the last line (prompt) in the output buffer
-    if (!sb.isEmpty()) {
-      int lastLineStart = sb.lastIndexOf(StringUtils.LF);
-      if (lastLineStart > 0) {
-        sb.delete(0, lastLineStart);
+    if (!useMarker) {
+      // Retain only the last line (prompt) in the output buffer
+      if (!sb.isEmpty()) {
+        int lastLineStart = sb.lastIndexOf(StringUtils.LF);
+        if (lastLineStart > 0) {
+          sb.delete(0, lastLineStart);
+        }
       }
+    } else {
+      // For marker-based detection, clear the buffer
+      sb.setLength(0);
     }
 
     String executionId = UUID.randomUUID().toString();
@@ -93,6 +102,11 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       ITerminalService service = TerminalServiceFactory.getService();
       if (service == null) {
         return CompletableFuture.completedFuture("Failed to open terminal console due to terminal service is null.");
+      }
+
+      // New non-background terminal will have an initial marker from shell startup; need to handle it
+      if (useMarker && !isBackground) {
+        isInitialMarkerHandled = false;
       }
 
       service.openConsole(prepareTerminalProperties(isBackground, executionId), status -> {
@@ -128,11 +142,18 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     properties.put(ITerminalsConnectorConstants.PROP_ENCODING, "UTF-8");
     properties.put(ITerminalsConnectorConstants.PROP_TITLE_DISABLE_ANSI_TITLE, true);
 
-    // Only set target terminal for Windows - using Platform directly instead of PlatformUtils
     if (Platform.getOS().equals(Platform.OS_WIN32)) {
       properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "cmd.exe");
+    } else if (Platform.getOS().equals(Platform.OS_LINUX)) {
+      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "/bin/sh");
+      // Use ENV to load shell integration script at startup
+      String scriptPath = ShellIntegrationScripts.getShScriptPath();
+      if (scriptPath != null) {
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_MERGE_ENVIRONMENT,
+            new String[] { "ENV=" + scriptPath });
+      }
     } else {
-      // Only set the process args if not already set by user preferences
+      // macOS or other Unix-like: keep existing behavior, only set args if empty
       String args = UIPlugin.getScopedPreferences()
           .getString(IPreferenceKeys.PREF_LOCAL_TERMINAL_DEFAULT_SHELL_UNIX_ARGS);
       if (StringUtils.isBlank(args)) {
@@ -224,50 +245,102 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     return (byteBuffer, bytesRead) -> {
       String content = new String(byteBuffer, 0, bytesRead);
       // Remove ANSI escape sequences
-      // Sometimes it also removes the linebreaks. But we need the last prompt line to be a separate line later. So we
+      // Sometimes it also removes the linebreaks. But we need the last prompt line to
+      // be a separate line later. So we
       // add line separator back to the content.
       content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", StringUtils.LF);
 
-      // Handle Windows terminal title sequences - using Platform instead of PlatformUtils
+      // Handle Windows terminal title sequences - using Platform instead of
+      // PlatformUtils
       if (Platform.getOS().equals(Platform.OS_WIN32)) {
         // Remove terminal title sequences in Windows
-        // It sometimes appears at the last line, which will also destroy the validation of the last prompt line.
+        // It sometimes appears at the last line, which will also destroy the validation
+        // of the last prompt line.
         content = content.replaceAll("\u001B\\][0-9];.*?(\u0007|\u001B\\\\)", "");
       }
 
       output.append(content);
-      String terminalOutput = output.toString().trim();
-      int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
-      if (lastNewLineIndex > 0) {
-        String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
 
-        // Check if last line is a prompt line
-        // Mac always has single '%' as last line, that's not what we want.
-        if (StringUtils.isNotBlank(lastLine) && lastLine.length() != 1) {
-          char lastChar = lastLine.charAt(lastLine.length() - 1);
-          boolean isPromptChar = lastChar == '>' || lastChar == '#' || lastChar == '$' || lastChar == '%';
-
-          if (isPromptChar) {
-            // Extract result text between prompts
-            String contentWithoutLastPrompt = terminalOutput.substring(0, lastNewLineIndex);
-            int promptStartIndex = contentWithoutLastPrompt.indexOf(lastLine);
-            // If the prompt line is not found, set start index to 0. Sometimes it starts with the commandResult.
-            if (promptStartIndex == -1) {
-              promptStartIndex = 0;
-            } else {
-              promptStartIndex += lastLine.length();
-            }
-
-            if (!contentWithoutLastPrompt.isBlank()) {
-              String commandResult = contentWithoutLastPrompt.substring(promptStartIndex).trim();
-              if (resultFuture != null && !resultFuture.isDone()) {
-                resultFuture.complete(commandResult);
-              }
-            }
-          }
+      // Detect completion based on platform strategy
+      if (!isBackground && resultFuture != null && !resultFuture.isDone()) {
+        if (useMarker) {
+          tryCompleteWithMarker(output);
+        } else {
+          tryCompleteWithPrompt(output);
         }
       }
     };
+  }
+
+  /**
+   * Attempts to complete the command by detecting the shell marker in output.
+   * Used on Linux where shell integration script outputs a marker after each command.
+   */
+  private void tryCompleteWithMarker(StringBuilder output) {
+    int markerIndex = output.indexOf(ShellIntegrationScripts.SHELL_MARKER);
+    if (markerIndex < 0) {
+      return;
+    }
+
+    // Remove marker line from output
+    int lineStart = output.lastIndexOf(StringUtils.LF, markerIndex);
+    int lineEnd = output.indexOf(StringUtils.LF, markerIndex);
+    lineStart = lineStart < 0 ? 0 : lineStart + 1;
+    lineEnd = lineEnd < 0 ? output.length() : lineEnd;
+    output.delete(lineStart, lineEnd);
+
+    // Skip the initial marker that appears when terminal starts (before any command is run)
+    if (!isInitialMarkerHandled) {
+      isInitialMarkerHandled = true;
+      return;
+    }
+
+    String cleaned = output.toString().trim();
+    resultFuture.complete(cleaned);
+  }
+
+  /**
+   * Attempts to complete the command by detecting a shell prompt in output.
+   * Used on Windows and macOS where prompt characters indicate command completion.
+   */
+  private void tryCompleteWithPrompt(StringBuilder output) {
+    String terminalOutput = output.toString().trim();
+    int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
+    if (lastNewLineIndex <= 0) {
+      return;
+    }
+
+    String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
+
+    // Check if last line is a prompt line
+    // Mac always has single '%' as last line, that's not what we want.
+    if (StringUtils.isBlank(lastLine) || lastLine.length() == 1) {
+      return;
+    }
+
+    char lastChar = lastLine.charAt(lastLine.length() - 1);
+    boolean isPromptChar = lastChar == '>' || lastChar == '#' || lastChar == '$' || lastChar == '%';
+    if (!isPromptChar) {
+      return;
+    }
+
+    // Extract result text between prompts
+    String contentWithoutLastPrompt = terminalOutput.substring(0, lastNewLineIndex);
+    int promptStartIndex = contentWithoutLastPrompt.indexOf(lastLine);
+    // If the prompt line is not found, set start index to 0. Sometimes it starts
+    // with the commandResult.
+    if (promptStartIndex == -1) {
+      promptStartIndex = 0;
+    } else {
+      promptStartIndex += lastLine.length();
+    }
+
+    if (!contentWithoutLastPrompt.isBlank()) {
+      String commandResult = contentWithoutLastPrompt.substring(promptStartIndex).trim();
+      if (resultFuture != null && !resultFuture.isDone()) {
+        resultFuture.complete(commandResult);
+      }
+    }
   }
 
   private DisposeListener buildDisposeListener(String executionId, boolean isBackground) {
