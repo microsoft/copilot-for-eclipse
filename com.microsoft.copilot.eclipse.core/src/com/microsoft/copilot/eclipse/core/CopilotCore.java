@@ -1,7 +1,6 @@
 package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -92,11 +91,6 @@ public class CopilotCore extends Plugin {
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
       this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.featureFlags = new FeatureFlags();
-      try {
-        this.authStatusManager.checkStatus().get();
-      } catch (InterruptedException | ExecutionException e) {
-        CopilotCore.LOGGER.error("Failed to check authentication status", e);
-      }
     };
 
     Job initJob = new Job("GitHub Copilot Initialization...") {

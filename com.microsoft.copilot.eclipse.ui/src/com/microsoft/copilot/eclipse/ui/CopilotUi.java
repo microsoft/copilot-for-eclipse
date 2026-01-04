@@ -1,6 +1,7 @@
 package com.microsoft.copilot.eclipse.ui;
 
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -84,23 +85,33 @@ public class CopilotUi extends AbstractUIPlugin {
           throw ex;
         }
 
-        // init the settings manager
+        // Initialize the setting manager then sync the configuration to CLS. This needs to
+        // happen in early stage to let CLS know the proxy setting if user configured.
+        // NOTE: All network related operation needs to happen AFTER syncConfiguration().
         ServiceReference<?> serviceReference = context.getServiceReference(IProxyService.class.getName());
-        LanguageServerSettingManager mgr = new LanguageServerSettingManager(
-            CopilotCore.getPlugin().getCopilotLanguageServer(), (IProxyService) context.getService(serviceReference),
-            getPreferenceStore());
-        CopilotUi.this.settingMgr = mgr;
+        settingMgr = new LanguageServerSettingManager(CopilotCore.getPlugin().getCopilotLanguageServer(),
+            (IProxyService) context.getService(serviceReference), getPreferenceStore());
+        settingMgr.syncConfiguration();
+        try {
+          // call checkStatus synchronously (blocking) to get the user name, which will be used
+          // to recover the user's specific configurations.
+          CopilotCore.getPlugin().getAuthStatusManager().checkStatus().get();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          CopilotCore.LOGGER.error("Failed to check authentication status", e);
+        } catch (ExecutionException e) {
+          CopilotCore.LOGGER.error("Failed to check authentication status", e);
+        }
+
         CopilotUi.this.editorsManager = new EditorsManager(connection, CopilotCore.getPlugin().getCompletionProvider(),
-            CopilotCore.getPlugin().getNextEditSuggestionProvider(), mgr);
+            CopilotCore.getPlugin().getNextEditSuggestionProvider(), settingMgr);
         CopilotUi.this.editorLifecycleListener = new EditorLifecycleListener(connection, editorsManager);
         CopilotUi.this.chatServiceManager = new ChatServiceManager();
         // inject the chat service manager into the core plugin, so that it can be used to handle
         // some server to client request that needs to be handled with UI logics.
         CopilotCore.getPlugin().setChatServiceManager(chatServiceManager);
         CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
-        // sync to language server on load
-        mgr.syncConfiguration();
-        mgr.syncMcpRegistrationConfiguration();
+        settingMgr.syncMcpRegistrationConfiguration();
 
         registerPartListener();
         // Initialize the completion handler for the active editor in case we miss the event
