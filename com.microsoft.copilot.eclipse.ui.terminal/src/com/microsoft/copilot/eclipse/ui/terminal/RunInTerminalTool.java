@@ -152,8 +152,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       // Use ENV to load shell integration script at startup
       String scriptPath = ShellIntegrationScripts.getShScriptPath();
       if (scriptPath != null) {
-        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_MERGE_ENVIRONMENT,
-            new String[] { "ENV=" + scriptPath });
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_ENVIRONMENT, new String[] { "ENV=" + scriptPath });
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_MERGE_ENVIRONMENT, true);
       }
     } else {
       // macOS or other Unix-like: keep existing behavior, only set args if empty
