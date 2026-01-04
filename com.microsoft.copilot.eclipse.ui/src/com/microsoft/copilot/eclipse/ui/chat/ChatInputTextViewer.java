@@ -116,10 +116,10 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
       }
     });
 
-    // Add a traverse listener to handle Shift+Tab properly.
+    // Add a traverse listener to handle Tab and Shift+Tab properly.
     // Otherwise, it will also insert an unexpected tab character as a side effect.
     tvw.addTraverseListener(e -> {
-      if (e.detail == SWT.TRAVERSE_TAB_PREVIOUS) {
+      if (e.detail == SWT.TRAVERSE_TAB_PREVIOUS || e.detail == SWT.TRAVERSE_TAB_NEXT) {
         e.doit = true;
       }
     });

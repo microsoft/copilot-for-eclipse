@@ -6,8 +6,12 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.TraverseEvent;
+import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
@@ -58,11 +62,7 @@ public class ReferencedFile extends Composite {
     MouseAdapter mouseAdapter = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
-        if (file instanceof IFile) {
-          UiUtils.openInEditor((IFile) ReferencedFile.this.file);
-        } else if (file instanceof IFolder) {
-          UiUtils.revealInExplorer(ReferencedFile.this.file);
-        }
+        openOrRevealFile();
       }
     };
     lblFileName.addMouseListener(mouseAdapter);
@@ -83,6 +83,29 @@ public class ReferencedFile extends Composite {
       }
     });
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+
+    // Add keyboard support for Enter activation
+    this.addKeyListener(new KeyAdapter() {
+      @Override
+      public void keyPressed(KeyEvent e) {
+        if (e.keyCode == SWT.CR || e.keyCode == SWT.KEYPAD_CR) {
+          openOrRevealFile();
+        }
+      }
+    });
+
+    // Add traverse listener to enable tab focus traversal
+    this.addTraverseListener(new TraverseListener() {
+      @Override
+      public void keyTraversed(TraverseEvent e) {
+        if (e.detail == SWT.TRAVERSE_TAB_NEXT || e.detail == SWT.TRAVERSE_TAB_PREVIOUS) {
+          e.doit = true;
+        }
+      }
+    });
+
+    // Add focus border for visual feedback
+    UiUtils.addFocusBorderToComposite(this);
   }
 
   /**
@@ -187,6 +210,17 @@ public class ReferencedFile extends Composite {
       lblfileIcon.setImage(image);
     }
     lblFileName.setData(CSSSWTConstants.CSS_ID_KEY, "normal-referenced-file-name");
+  }
+
+  /**
+   * Opens the file in an editor or reveals the folder in the explorer.
+   */
+  private void openOrRevealFile() {
+    if (file instanceof IFile) {
+      UiUtils.openInEditor((IFile) file);
+    } else if (file instanceof IFolder) {
+      UiUtils.revealInExplorer(file);
+    }
   }
 
   /**

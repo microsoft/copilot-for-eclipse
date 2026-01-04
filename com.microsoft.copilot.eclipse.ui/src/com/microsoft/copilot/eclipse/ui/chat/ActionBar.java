@@ -469,6 +469,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     AccessibilityUtils.addAccessibilityNameForUiComponent(cmbModelPicker, "model picker");
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindModelPicker(cmbModelPicker);
+    UiUtils.addFocusBorderToComposite(cmbModelPicker);
   }
 
   private void setUpChatModePicker(Composite parent) {
@@ -491,6 +492,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       }
     });
     AccessibilityUtils.addAccessibilityNameForUiComponent(cmbChatModePicker, "chat mode picker");
+    UiUtils.addFocusBorderToComposite(cmbChatModePicker);
   }
 
   private void setUpMcpToolButtonInControlBar(Composite parent) {

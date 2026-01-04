@@ -61,9 +61,9 @@ public class CssConstants {
   }
 
   /**
-   * Get the button border color.
+   * Get the focus border color for widgets.
    */
-  public static Color getButtonBorderColor(Display display) {
+  public static Color getWidgetFocusBorderColor(Display display) {
     return new Color(display, 55, 134, 246);
   }
 

@@ -15,8 +15,12 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.TraverseEvent;
+import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -64,9 +68,7 @@ public class AddContextButton extends Composite {
     MouseAdapter clickListener = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
-        List<IResource> files = selectFiles();
-        ReferencedFileService fileService = CopilotUi.getPlugin().getChatServiceManager().getReferencedFileService();
-        fileService.addReferencedFiles(files);
+        openFilePickerAndAddFiles();
       }
     };
     // Add mouse listener to 'this' so that clicking margin spaces will also trigger the action
@@ -75,6 +77,38 @@ public class AddContextButton extends Composite {
     lblButtonText.addMouseListener(clickListener);
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
 
+    // Add keyboard support for Enter activation
+    this.addKeyListener(new KeyAdapter() {
+      @Override
+      public void keyPressed(KeyEvent e) {
+        if (e.keyCode == SWT.CR || e.keyCode == SWT.KEYPAD_CR) {
+          openFilePickerAndAddFiles();
+        }
+      }
+    });
+
+    // Add traverse listener to enable tab focus traversal
+    this.addTraverseListener(new TraverseListener() {
+      @Override
+      public void keyTraversed(TraverseEvent e) {
+        if (e.detail == SWT.TRAVERSE_TAB_NEXT || e.detail == SWT.TRAVERSE_TAB_PREVIOUS) {
+          e.doit = true;
+        }
+      }
+    });
+
+    // Add focus border for visual feedback
+    UiUtils.addFocusBorderToComposite(this);
+  }
+
+  /**
+   * Opens the file picker dialog and adds the selected files to the referenced files.
+   */
+  private void openFilePickerAndAddFiles() {
+    List<IResource> files = selectFiles();
+    ReferencedFileService fileService =
+        CopilotUi.getPlugin().getChatServiceManager().getReferencedFileService();
+    fileService.addReferencedFiles(files);
   }
 
   /**
