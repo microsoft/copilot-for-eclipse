@@ -62,9 +62,15 @@ public class CompletionManager extends BaseCompletionManager {
   }
 
   private void updateCodeMinings() {
-    if (textViewer instanceof ISourceViewerExtension5 sve) {
-      sve.updateCodeMinings();
-    }
+    // Use asyncExec to avoid deadlock: updateCodeMinings() triggers LSP4E code that acquires
+    // locks which may be held by background threads waiting for the document lock.
+    // When called from document change events, the document lock is still held, causing deadlock.
+    // See: https://github.com/microsoft/copilot-eclipse-feedback/issues/96
+    textViewer.getTextWidget().getDisplay().asyncExec(() -> {
+      if (!textViewer.getTextWidget().isDisposed() && textViewer instanceof ISourceViewerExtension5 sve) {
+        sve.updateCodeMinings();
+      }
+    });
   }
 
   private void resolveCodeMiningGhostTexts(Position position) {
