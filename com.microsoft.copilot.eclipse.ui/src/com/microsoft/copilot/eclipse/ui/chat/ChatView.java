@@ -16,6 +16,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -764,6 +765,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     IFile currentFile = fileService.getCurrentFile();
     List<IResource> references = fileService.getReferencedFiles();
+    Range currentSelection = fileService.getCurrentSelection();
 
     final CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     final CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
@@ -776,8 +778,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, activeModel, chatModeName, customChatModeId, agentSlug,
-          agentJobWorkspaceFolder);
+          processedMessage, references, currentFile, currentSelection, activeModel, chatModeName, customChatModeId,
+          agentSlug, agentJobWorkspaceFolder);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.thenAccept(result -> {
@@ -818,11 +820,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            turns, activeModel, chatModeName, customChatModeId);
+            currentSelection, turns, activeModel, chatModeName, customChatModeId, null, null);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            turns, activeModel, chatModeName, customChatModeId, agentSlug, agentJobWorkspaceFolder);
+            currentSelection, turns, activeModel, chatModeName, customChatModeId, agentSlug, agentJobWorkspaceFolder);
       }
       conversationFutures.add(createConversationFuture);
 

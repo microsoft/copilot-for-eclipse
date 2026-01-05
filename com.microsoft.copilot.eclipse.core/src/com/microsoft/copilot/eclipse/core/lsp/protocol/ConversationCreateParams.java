@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -19,6 +20,7 @@ public class ConversationCreateParams {
   private ConversationCapabilities capabilities;
   private boolean computeSuggestions;
   private TextDocumentIdentifier textDocument;
+  private Range selection;
   private List<ChatReference> references;
   private String source = "panel";
   private String workspaceFolder;
@@ -86,6 +88,14 @@ public class ConversationCreateParams {
 
   public void setTextDocument(TextDocumentIdentifier textDocument) {
     this.textDocument = textDocument;
+  }
+
+  public Range getSelection() {
+    return selection;
+  }
+
+  public void setSelection(Range selection) {
+    this.selection = selection;
   }
 
   public List<ChatReference> getReferences() {

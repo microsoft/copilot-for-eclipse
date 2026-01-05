@@ -13,6 +13,7 @@ import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.ProgressParams;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.jsonrpc.Endpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -246,7 +247,7 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
       String customChatModeId) {
-    return createConversation(workDoneToken, message, files, currentFile, turns, activeModel, chatModeName,
+    return createConversation(workDoneToken, message, files, currentFile, null, turns, activeModel, chatModeName,
         customChatModeId, null, null);
   }
 
@@ -256,6 +257,16 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
       String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
+    return createConversation(workDoneToken, message, files, currentFile, null, turns, activeModel, chatModeName,
+        customChatModeId, agentSlug, agentJobWorkspaceFolder);
+  }
+
+  /**
+   * Create a conversation with the given parameters, including optional currentSelection from the editor.
+   */
+  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
+      List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
+      String chatModeName, String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -287,6 +298,9 @@ public class CopilotLanguageServerConnection {
       param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {
         param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
+        if (currentSelection != null) {
+          param.setSelection(currentSelection);
+        }
       }
       return ((CopilotLanguageServer) server).create(param);
     };
@@ -294,11 +308,21 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Create a conversation with the given parameters.
+   * Create a conversation turn with the given parameters.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName,
       String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
+    return addConversationTurn(workDoneToken, conversationId, message, files, currentFile, null, activeModel,
+        chatModeName, customChatModeId, agentSlug, agentJobWorkspaceFolder);
+  }
+
+  /**
+   * Create a conversation turn with the given parameters, including optional currentSelection from the editor.
+   */
+  public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
+      String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
+      String chatModeName, String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -322,6 +346,9 @@ public class CopilotLanguageServerConnection {
       param.setNeedToolCallConfirmation(true);
       if (currentFile != null) {
         param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
+        if (currentSelection != null) {
+          param.setSelection(currentSelection);
+        }
       }
 
       return ((CopilotLanguageServer) server).addTurn(param);

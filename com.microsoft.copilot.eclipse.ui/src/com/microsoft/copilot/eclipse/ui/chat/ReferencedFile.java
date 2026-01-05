@@ -34,7 +34,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ReferencedFile extends Composite {
   private Label lblfileIcon;
-  private Label lblFileName;
+  protected Label lblFileName;
   protected Label lblClose;
   private Image lblImage;
   private IResource file;

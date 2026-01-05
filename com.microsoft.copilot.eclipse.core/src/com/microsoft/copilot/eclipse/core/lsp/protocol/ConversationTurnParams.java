@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -23,6 +24,7 @@ public class ConversationTurnParams {
   private Either<String, List<ChatCompletionContentPart>> message; // String or ChatCompletionContentPart[]
   private List<ChatReference> references;
   private TextDocumentIdentifier textDocument;
+  private Range selection;
   private boolean computeSuggestions;
   private String workspaceFolder;
   private List<WorkspaceFolder> workspaceFolders;
@@ -86,6 +88,14 @@ public class ConversationTurnParams {
 
   public void setTextDocument(TextDocumentIdentifier textDocument) {
     this.textDocument = textDocument;
+  }
+
+  public Range getSelection() {
+    return selection;
+  }
+
+  public void setSelection(Range selection) {
+    this.selection = selection;
   }
 
   public boolean isComputeSuggestions() {
