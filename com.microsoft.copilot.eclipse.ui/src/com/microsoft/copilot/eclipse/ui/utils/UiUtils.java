@@ -494,24 +494,6 @@ public class UiUtils {
       }
     });
 
-    result.addFocusListener(new org.eclipse.swt.events.FocusAdapter() {
-      private Color background = result.getBackground();
-      private Color focusBackground = CssConstants.getButtonFocusBgColor(result.getDisplay());
-
-      @Override
-      public void focusGained(org.eclipse.swt.events.FocusEvent e) {
-        background = result.getBackground();
-        result.setBackground(focusBackground);
-        result.redraw(); // Ensure the focus border is drawn
-      }
-
-      @Override
-      public void focusLost(org.eclipse.swt.events.FocusEvent e) {
-        result.setBackground(background);
-        result.redraw(); // Ensure the focus border is removed
-      }
-    });
-
     result.addMouseTrackListener(new org.eclipse.swt.events.MouseTrackAdapter() {
       private Color background = result.getBackground();
       private Color hoverBackground = CssConstants.getButtonFocusBgColor(result.getDisplay());
