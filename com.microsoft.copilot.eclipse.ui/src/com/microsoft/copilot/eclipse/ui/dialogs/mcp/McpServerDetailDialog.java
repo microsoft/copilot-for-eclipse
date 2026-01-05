@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.ui.dialogs;
+package com.microsoft.copilot.eclipse.ui.dialogs.mcp;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -40,11 +40,13 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Icon;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Package;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
-import com.microsoft.copilot.eclipse.ui.dialogs.McpServerInstallManager.ButtonState;
+import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ButtonState;
+import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -109,42 +111,10 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     if (serverDetail != null && Objects.equals(serverDetail.name(), eventServerName)
         && CopilotEventConstants.TOPIC_MCP_SERVER_STATE_CHANGE.equals(event.getTopic())) {
       // Determine button state based on action type + action result
-      ButtonState buttonState = determineButtonState(actionType, actionResult);
+      ButtonState buttonState = McpServerInstallManager.determineButtonState(actionType, actionResult);
       boolean success = !McpServerInstallManager.ActionResult.FAILURE.equals(actionResult);
       handleServerStateChange(buttonState, success);
     }
-  }
-
-  /**
-   * Determines the button state based on action type and result. This decouples the event logic from direct button
-   * state control.
-   */
-  private ButtonState determineButtonState(McpServerInstallManager.ActionType actionType,
-      McpServerInstallManager.ActionResult actionResult) {
-    if (McpServerInstallManager.ActionType.INSTALL == actionType) {
-      switch (actionResult) {
-        case IN_PROGRESS:
-          return ButtonState.INSTALLING;
-        case SUCCESS:
-          return ButtonState.UNINSTALL;
-        case FAILURE:
-        default:
-          return ButtonState.INSTALL;
-      }
-    } else if (McpServerInstallManager.ActionType.UNINSTALL == actionType) {
-      switch (actionResult) {
-        case IN_PROGRESS:
-          return ButtonState.UNINSTALLING;
-        case SUCCESS:
-          return ButtonState.INSTALL;
-        case FAILURE:
-        default:
-          return ButtonState.UNINSTALL;
-      }
-    }
-
-    // Default fallback
-    return ButtonState.INSTALL;
   }
 
   private void handleServerStateChange(ButtonState state, boolean success) {
@@ -253,9 +223,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     areaLayout.verticalSpacing = 10;
     area.setLayout(areaLayout);
 
-    // Server name and meta information section
-    createSectionHeader(area, serverDetail.name());
-    createInfoContent(area);
+    // Server name and meta information section with icon
+    createServerHeader(area);
 
     // Description section
     createSectionHeader(area, Messages.mcpServerDetailDialog_description);
@@ -267,6 +236,72 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     populateInstallationOptionsAndSetInitialPreview();
 
     return area;
+  }
+
+  private void createServerHeader(Composite parent) {
+    ServerDetail serverDetail = getServerDetail();
+    if (serverDetail == null) {
+      return;
+    }
+
+    Composite headerComposite = new Composite(parent, SWT.NONE);
+    GridLayout headerLayout = new GridLayout(2, false);
+    headerLayout.marginWidth = 0;
+    headerLayout.marginHeight = 0;
+    headerComposite.setLayout(headerLayout);
+    headerComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+
+    // Left: server icon, matching the list item appearance
+    Label iconLabel = new Label(headerComposite, SWT.NONE);
+    int iconSize = getScaledIconSizeForHeader(iconLabel);
+    GridData iconData = new GridData(SWT.CENTER, SWT.BEGINNING, false, false);
+    iconData.widthHint = iconSize;
+    iconData.heightHint = iconSize;
+    iconLabel.setLayoutData(iconData);
+    loadServerIconForHeader(iconLabel);
+
+    // Right: name and meta information stacked vertically
+    Composite infoComposite = new Composite(headerComposite, SWT.NONE);
+    GridLayout infoLayout = new GridLayout(1, false);
+    infoLayout.marginHeight = 0;
+    infoComposite.setLayout(infoLayout);
+    infoComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    createSectionHeader(infoComposite, serverDetail.name());
+    createInfoContent(infoComposite);
+  }
+
+  private int getScaledIconSizeForHeader(Label label) {
+    int dpi = label.getDisplay().getDPI().x;
+    if (dpi >= 144) {
+      return 80;
+    }
+    return 40;
+  }
+
+  private void loadServerIconForHeader(Label iconLabel) {
+    int iconSize = getScaledIconSizeForHeader(iconLabel);
+    ServerDetail serverDetail = getServerDetail();
+    List<Icon> icons = serverDetail != null ? serverDetail.icons() : null;
+    String iconUrl = McpUtils.getPreferredIconUrl(icons);
+
+    McpUtils.loadServerIcon(iconUrl, iconSize, iconSize).thenAccept(image -> {
+      if (image == null) {
+        return;
+      }
+      if (iconLabel == null || iconLabel.isDisposed()) {
+        if (!image.isDisposed()) {
+          image.dispose();
+        }
+        return;
+      }
+      iconLabel.setImage(image);
+      iconLabel.addDisposeListener(e -> {
+        if (!image.isDisposed()) {
+          image.dispose();
+        }
+      });
+    });
   }
 
   private void createErrorContent(Composite parent) {
@@ -291,53 +326,51 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private void createInfoContent(Composite parent) {
-    // Build a single row (wrappable) for Version, Published, Updated if any exist
-    boolean showVersion = hasVersion();
-    boolean showPublished = hasPublishedDate();
-    boolean showUpdated = hasUpdatedDate();
-    boolean showRepositoryLink = hasRepositoryLink();
+    Composite metaRow = new Composite(parent, SWT.NONE);
+    metaRow.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-    if (showVersion || showPublished || showUpdated || showRepositoryLink) {
-      Composite metaRow = new Composite(parent, SWT.NONE);
-      metaRow.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    RowLayout rowLayout = new RowLayout(SWT.HORIZONTAL);
+    rowLayout.wrap = true;
+    rowLayout.spacing = 12;
+    rowLayout.marginLeft = 0;
+    rowLayout.marginRight = 0;
+    rowLayout.marginTop = 0;
+    rowLayout.marginBottom = 0;
+    metaRow.setLayout(rowLayout);
 
-      RowLayout rowLayout = new RowLayout(SWT.HORIZONTAL);
-      rowLayout.wrap = true;
-      rowLayout.spacing = 12;
-      rowLayout.marginLeft = 0;
-      rowLayout.marginRight = 0;
-      rowLayout.marginTop = 0;
-      rowLayout.marginBottom = 0;
-      metaRow.setLayout(rowLayout);
+    createVersionContent(metaRow);
+    createPublishedContent(metaRow);
+    createUpdatedContent(metaRow);
 
-      if (showVersion) {
-        createVersionContent(metaRow);
-      }
-      if (showPublished) {
-        createPublishedContent(metaRow);
-      }
-      if (showUpdated) {
-        createUpdatedContent(metaRow);
-      }
-      if (showRepositoryLink) {
-        createRepositoryLink(metaRow);
-      }
+    if (hasRepositoryLink()) {
+      createRepositoryLink(metaRow);
     }
   }
 
-  private boolean hasVersion() {
-    return serverResponse != null && serverResponse.getDetail() != null
-        && StringUtils.isNotBlank(serverResponse.getDetail().version());
+  /**
+   * Gets the publishedAt date string from meta.official.
+   *
+   * @return the publishedAt date string, or unknown if not available
+   */
+  private String getPublishedAt() {
+    if (serverResponse == null || serverResponse.meta() == null || serverResponse.meta().official() == null) {
+      return Messages.mcpServer_unknown;
+    }
+    String publishedAt = serverResponse.meta().official().publishedAt();
+    return StringUtils.isNotBlank(publishedAt) ? publishedAt : Messages.mcpServer_unknown;
   }
 
-  private boolean hasPublishedDate() {
-    return serverResponse != null && serverResponse.meta() != null && serverResponse.meta().official() != null
-        && StringUtils.isNotBlank(serverResponse.meta().official().publishedAt());
-  }
-
-  private boolean hasUpdatedDate() {
-    return serverResponse != null && serverResponse.meta() != null && serverResponse.meta().official() != null
-        && StringUtils.isNotBlank(serverResponse.meta().official().updatedAt());
+  /**
+   * Gets the updatedAt date string from meta.official.
+   *
+   * @return the updatedAt date string, or unknown if not available
+   */
+  private String getUpdatedAt() {
+    if (serverResponse == null || serverResponse.meta() == null || serverResponse.meta().official() == null) {
+      return Messages.mcpServer_unknown;
+    }
+    String updatedAt = serverResponse.meta().official().updatedAt();
+    return StringUtils.isNotBlank(updatedAt) ? updatedAt : Messages.mcpServer_unknown;
   }
 
   private boolean hasRepositoryLink() {
@@ -358,14 +391,15 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
 
   private void createVersionContent(Composite parent) {
     ServerDetail serverDetail = getServerDetail();
-    String version = serverDetail == null ? Messages.mcpServerDetailDialog_unknownVersion : serverDetail.version();
+    String version = serverDetail == null ? Messages.mcpServer_unknown : serverDetail.version();
     createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/versions_dark.png" : "/icons/mcp/versions.png",
         Messages.mcpServerDetailDialog_version + " " + version, Messages.mcpServerDetailDialog_version + " " + version);
   }
 
   private void createPublishedContent(Composite parent) {
-    String relativeTime = getFormattedRelativeTime(serverResponse.meta().official().publishedAt());
-    String detailedDate = getDetailedFormattedDate(serverResponse.meta().official().publishedAt());
+    String publishedAt = getPublishedAt();
+    String relativeTime = getFormattedRelativeTime(publishedAt);
+    String detailedDate = getDetailedFormattedDate(publishedAt);
     String text = relativeTime != null ? Messages.mcpServerDetailDialog_published + " " + relativeTime
         : Messages.mcpServerDetailDialog_noPublishedDate;
     createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/history_dark.png" : "/icons/mcp/history.png", text,
@@ -373,8 +407,9 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private void createUpdatedContent(Composite parent) {
-    String relativeTime = getFormattedRelativeTime(serverResponse.meta().official().updatedAt());
-    String detailedDate = getDetailedFormattedDate(serverResponse.meta().official().updatedAt());
+    String updatedAt = getUpdatedAt();
+    String relativeTime = getFormattedRelativeTime(updatedAt);
+    String detailedDate = getDetailedFormattedDate(updatedAt);
     String text = relativeTime != null ? Messages.mcpServerDetailDialog_updated + " " + relativeTime
         : Messages.mcpServerDetailDialog_noUpdatedDate;
     createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/update_dark.png" : "/icons/mcp/update.png", text,
@@ -437,7 +472,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   private String getDetailedFormattedDate(String dateString) {
-    if (StringUtils.isBlank(dateString)) {
+    if (StringUtils.isBlank(dateString) || Messages.mcpServer_unknown.equals(dateString)) {
       return null;
     }
     try {
@@ -460,7 +495,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
    * @return formatted relative time string, or null if the date string is blank or invalid
    */
   private String getFormattedRelativeTime(String dateString) {
-    if (StringUtils.isBlank(dateString)) {
+    if (StringUtils.isBlank(dateString) || Messages.mcpServer_unknown.equals(dateString)) {
       return null;
     }
     Instant instant = Instant.parse(dateString);

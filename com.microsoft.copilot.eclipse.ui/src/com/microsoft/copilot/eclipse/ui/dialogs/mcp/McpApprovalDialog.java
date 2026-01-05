@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.ui.dialogs;
+package com.microsoft.copilot.eclipse.ui.dialogs.mcp;
 
 import java.util.Map;
 

@@ -6,7 +6,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
+import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpRegistryDialog;
 
 /**
  * Handler for opening the MCP Registry dialog.

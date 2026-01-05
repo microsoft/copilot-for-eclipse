@@ -73,7 +73,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
-import com.microsoft.copilot.eclipse.ui.dialogs.McpRegistryDialog;
+import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpRegistryDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -1400,7 +1400,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     Shell[] shells = Display.getDefault().getShells();
     for (Shell shell : shells) {
       // Using fully qualified name to avoid conflict with com.microsoft.copilot.eclipse.ui.i18n.Messages
-      if (shell.getText().equals(com.microsoft.copilot.eclipse.ui.dialogs.Messages.mcpRegistryDialog_title)) {
+      if (shell.getText().equals(com.microsoft.copilot.eclipse.ui.dialogs.mcp.Messages.mcpRegistryDialog_mcpRegistry)) {
         return shell;
       }
     }

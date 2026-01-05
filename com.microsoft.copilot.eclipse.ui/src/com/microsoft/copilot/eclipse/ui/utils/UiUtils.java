@@ -1,6 +1,10 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
 import java.net.URI;
+import java.net.URL;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -9,6 +13,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.compare.ITypedElement;
@@ -45,7 +51,9 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
+import org.eclipse.swt.graphics.PaletteData;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -773,8 +781,7 @@ public class UiUtils {
   }
 
   /**
-   * Find all open .agent.md files across all workbench windows.
-   * This method must be called from the UI thread.
+   * Find all open .agent.md files across all workbench windows. This method must be called from the UI thread.
    *
    * @return a list of editor parts containing open agent files
    */
@@ -803,6 +810,121 @@ public class UiUtils {
     }
 
     return result;
+  }
+
+  /**
+   * Loads an image from a URL asynchronously and optionally resizes it with high quality. On success, the onSuccess
+   * callback is invoked on the UI thread with the loaded image. On failure, the onError callback is invoked on the UI
+   * thread.
+   *
+   * @param urlString the URL of the image to load
+   * @param width the desired width of the image, or -1 to keep original width
+   * @param height the desired height of the image, or -1 to keep original height
+   * @return a CompletableFuture that completes with the loaded image on the UI thread, or fails if loading fails
+   *         (caller is responsible for disposing the image)
+   */
+  public static CompletableFuture<Image> loadImageFromUrl(String urlString, int width, int height) {
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        URL url = new URL(urlString);
+        try (InputStream inputStream = url.openStream()) {
+          ImageLoader loader = new ImageLoader();
+          ImageData[] imageDataArray = loader.load(inputStream);
+          if (imageDataArray.length > 0) {
+            ImageData imageData = imageDataArray[0];
+            // Resize with high quality if dimensions are specified
+            if (width > 0 && height > 0) {
+              imageData = scaleImageDataHighQuality(imageData, width, height);
+            }
+            return imageData;
+          } else {
+            throw new IllegalStateException("No image data found in image stream");
+          }
+        }
+      } catch (Exception e) {
+        throw new CompletionException(e);
+      }
+    }).thenApplyAsync(imageData -> new Image(Display.getDefault(), imageData), runnable -> {
+      Display.getDefault().asyncExec(runnable);
+    });
+  }
+
+  /**
+   * Scales ImageData to the specified dimensions using high-quality interpolation. Uses Java2D's Graphics2D with
+   * bicubic interpolation for smooth scaling results.
+   *
+   * @param imageData the source image data
+   * @param width the target width
+   * @param height the target height
+   * @return the scaled image data
+   */
+  private static ImageData scaleImageDataHighQuality(ImageData imageData, int width, int height) {
+    // Convert SWT ImageData to AWT BufferedImage
+    BufferedImage awtImage = convertToAwtImage(imageData);
+
+    // Create scaled image with high quality rendering
+    BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D g2d = scaledImage.createGraphics();
+    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+        java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+    g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+    g2d.drawImage(awtImage, 0, 0, width, height, null);
+    g2d.dispose();
+
+    // Convert back to SWT ImageData
+    return convertToSwtImageData(scaledImage);
+  }
+
+  /**
+   * Converts SWT ImageData to AWT BufferedImage.
+   */
+  private static BufferedImage convertToAwtImage(ImageData imageData) {
+    int width = imageData.width;
+    int height = imageData.height;
+    BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+    PaletteData palette = imageData.palette;
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        int pixel = imageData.getPixel(x, y);
+        int alpha = imageData.getAlpha(x, y);
+
+        // Use palette.getRGB() which correctly handles all palette types
+        RGB rgb = palette.getRGB(pixel);
+
+        int argb = (alpha << 24) | (rgb.red << 16) | (rgb.green << 8) | rgb.blue;
+        bufferedImage.setRGB(x, y, argb);
+      }
+    }
+    return bufferedImage;
+  }
+
+  /**
+   * Converts AWT BufferedImage to SWT ImageData.
+   */
+  private static ImageData convertToSwtImageData(BufferedImage bufferedImage) {
+    int width = bufferedImage.getWidth();
+    int height = bufferedImage.getHeight();
+
+    PaletteData palette = new PaletteData(0xFF0000, 0x00FF00, 0x0000FF);
+    ImageData imageData = new ImageData(width, height, 24, palette);
+    imageData.alphaData = new byte[width * height];
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        int argb = bufferedImage.getRGB(x, y);
+        int alpha = (argb >> 24) & 0xFF;
+        int red = (argb >> 16) & 0xFF;
+        int green = (argb >> 8) & 0xFF;
+        int blue = argb & 0xFF;
+
+        int pixel = (red << 16) | (green << 8) | blue;
+        imageData.setPixel(x, y, pixel);
+        imageData.alphaData[y * width + x] = (byte) alpha;
+      }
+    }
+    return imageData;
   }
 
   /**

@@ -38,7 +38,7 @@ import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.dialogs.McpApprovalDialog;
+import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpApprovalDialog;
 import com.microsoft.copilot.eclipse.ui.extensions.IMcpRegistrationProvider;
 
 /**

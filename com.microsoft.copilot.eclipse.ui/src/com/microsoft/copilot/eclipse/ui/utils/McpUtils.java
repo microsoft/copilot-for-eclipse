@@ -1,9 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.swt.graphics.Image;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -11,9 +13,10 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryAllowList;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryEntry;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
+import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Icon;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.dialogs.Messages;
+import com.microsoft.copilot.eclipse.ui.dialogs.mcp.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer;
 
 /**
@@ -103,5 +106,59 @@ public class McpUtils {
       return null;
     }
     return fullUrl.replaceAll("/v\\d+(\\.\\d+)*/servers$", "");
+  }
+
+  /**
+   * Gets the preferred icon URL from the given icon list. Prefers PNG format over other formats since SWT has better
+   * support for raster images.
+   *
+   * @param icons the list of icons from an MCP server definition
+   * @return the icon URL, or null if no suitable icon is found
+   */
+  public static String getPreferredIconUrl(List<Icon> icons) {
+    if (icons == null || icons.isEmpty()) {
+      return null;
+    }
+
+    for (Icon icon : icons) {
+      if (icon != null && icon.src() != null && "image/png".equalsIgnoreCase(icon.mimeType())) {
+        return icon.src();
+      }
+    }
+    for (Icon icon : icons) {
+      if (icon != null && icon.src() != null && !"image/svg+xml".equalsIgnoreCase(icon.mimeType())) {
+        return icon.src();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Loads the server icon from the given URL, scaled to the requested size.
+   *
+   * <p>The caller is responsible for attaching the returned image to a widget and disposing it when the widget is
+   * disposed.</p>
+   *
+   * @param iconUrl the icon URL to load; if blank, the returned future completes with the default MCP icon image
+   * @param width desired icon width in pixels
+   * @param height desired icon height in pixels
+   * @return a future that completes with the loaded and scaled image, or {@code null} if the image cannot be loaded
+   */
+  public static CompletableFuture<Image> loadServerIcon(String iconUrl, int width, int height) {
+    if (StringUtils.isBlank(iconUrl)) {
+      return CompletableFuture.completedFuture(loadDefaultServerIcon());
+    }
+
+    return UiUtils.loadImageFromUrl(iconUrl, width, height)
+        .exceptionally(e -> loadDefaultServerIcon());
+  }
+
+  /**
+   * Builds the default MCP server icon image.
+   *
+   * @return the default MCP icon image, or {@code null} if it cannot be loaded
+   */
+  public static Image loadDefaultServerIcon() {
+    return UiUtils.buildImageFromPngPath("/icons/mcp/mcp_default_icon.png");
   }
 }

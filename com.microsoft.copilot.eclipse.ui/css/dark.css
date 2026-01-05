@@ -183,3 +183,10 @@
 	color: #DEE1E5;
 	background-color: #1E1F22;
 }
+
+/* MCP Server Item */
+.mcp-server-item,
+.mcp-server-item * {
+	color: #DEE1E5;
+	background-color: #1E1F22;
+}

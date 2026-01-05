@@ -1,4 +1,4 @@
-package com.microsoft.copilot.eclipse.ui.dialogs;
+package com.microsoft.copilot.eclipse.ui.dialogs.mcp;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,7 +59,7 @@ public class McpServerInstallManager {
   private Set<String> installedMcpServerIdentities;
   private final Object lock = new Object();
 
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
   private static final String SERVER_KEY = "servers";
   private static final String IDENTITY_SEPARATOR = "|";
 
@@ -415,5 +415,38 @@ public class McpServerInstallManager {
     public String getText() {
       return text;
     }
+  }
+
+  /**
+   * Maps an installation action + result pair into a {@link ButtonState}.
+   *
+   * @param actionType the action type
+   * @param actionResult the action result
+   * @return the resulting button state
+   */
+  public static ButtonState determineButtonState(ActionType actionType, ActionResult actionResult) {
+    if (ActionType.INSTALL == actionType) {
+      switch (actionResult) {
+        case IN_PROGRESS:
+          return ButtonState.INSTALLING;
+        case SUCCESS:
+          return ButtonState.UNINSTALL;
+        case FAILURE:
+        default:
+          return ButtonState.INSTALL;
+      }
+    } else if (ActionType.UNINSTALL == actionType) {
+      switch (actionResult) {
+        case IN_PROGRESS:
+          return ButtonState.UNINSTALLING;
+        case SUCCESS:
+          return ButtonState.INSTALL;
+        case FAILURE:
+        default:
+          return ButtonState.UNINSTALL;
+      }
+    }
+
+    return ButtonState.INSTALL;
   }
 }
