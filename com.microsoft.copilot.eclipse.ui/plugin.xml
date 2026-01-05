@@ -87,9 +87,6 @@
 				icon="icons/mcp/mcp_registry.png"
 				label="%command.openMcpRegistry.name"
 				style="push">
-				<visibleWhen checkEnabled="false">
-					<test property="com.microsoft.copilot.eclipse.ui.isNightlyCopilotPlugin" value="true" />
-				</visibleWhen>
 			</command>
 			<command
 				commandId="com.microsoft.copilot.eclipse.commands.openGitHubJobs"

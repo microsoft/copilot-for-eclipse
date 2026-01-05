@@ -36,7 +36,6 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpApprovalDialog;
 import com.microsoft.copilot.eclipse.ui.extensions.IMcpRegistrationProvider;
@@ -62,8 +61,8 @@ public class McpExtensionPointManager {
   public McpExtensionPointManager(McpConfigService mcpConfigService) {
     gson = new GsonBuilder().disableHtmlEscaping().create();
     this.mcpConfigService = mcpConfigService;
-    // TODO: enable it when group policy is ready
-    if (PlatformUtils.isNightly() && CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
+
+    if (CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
       initializeExtMcpRegistration();
     }
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
