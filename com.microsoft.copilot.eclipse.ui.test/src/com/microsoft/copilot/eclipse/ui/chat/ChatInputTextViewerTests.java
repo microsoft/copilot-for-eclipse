@@ -58,4 +58,42 @@ class ChatInputTextViewerTests {
       assertEquals("Test message", chatInputTextViewer.getContent());
     });
   }
+
+  @Test
+  void testUndoFunctionality() {
+    SwtUtils.invokeOnDisplayThread(() -> {
+      // Set initial content
+      chatInputTextViewer.setContent("Initial text");
+      assertEquals("Initial text", chatInputTextViewer.getContent());
+
+      // Modify the content
+      chatInputTextViewer.setContent("Modified text");
+      assertEquals("Modified text", chatInputTextViewer.getContent());
+
+      // Perform undo
+      chatInputTextViewer.getUndoManager().undo();
+      assertEquals("Initial text", chatInputTextViewer.getContent());
+    });
+  }
+
+  @Test
+  void testRedoFunctionality() {
+    SwtUtils.invokeOnDisplayThread(() -> {
+      // Set initial content
+      chatInputTextViewer.setContent("Initial text");
+      assertEquals("Initial text", chatInputTextViewer.getContent());
+
+      // Modify the content
+      chatInputTextViewer.setContent("Modified text");
+      assertEquals("Modified text", chatInputTextViewer.getContent());
+
+      // Perform undo
+      chatInputTextViewer.getUndoManager().undo();
+      assertEquals("Initial text", chatInputTextViewer.getContent());
+
+      // Perform redo
+      chatInputTextViewer.getUndoManager().redo();
+      assertEquals("Modified text", chatInputTextViewer.getContent());
+    });
+  }
 }

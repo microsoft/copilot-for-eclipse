@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.TextEvent;
-import org.eclipse.jface.text.TextViewer;
 import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
@@ -41,7 +40,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 /**
  * A custom TextViewer for the chat input area with configurable hints messages.
  */
-public class ChatInputTextViewer extends TextViewer implements PaintListener {
+public class ChatInputTextViewer extends UndoableTextViewer implements PaintListener {
   private static final int MAX_INPUT_ROWS = 5;
 
   private Composite parent;
@@ -137,6 +136,9 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
 
     // new document after styled text redraw to avoid a redundant line being added to the document.
     this.setDocument(new Document());
+
+    // Configure undo manager to enable undo/redo functionality (Ctrl+Z/Ctrl+Y)
+    this.configureUndoManager();
   }
 
   private void clearFormat(int start, int end) {
@@ -144,9 +146,18 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   }
 
   private void onTextChanged(TextEvent event) {
-    // Skip refreshing Enter-'\n' in TextEvent to avoid layout-shaking issue.
+    // End compound change on newline to enable line-by-line undo and
+    // intentionally skip refreshHeightLayout() to avoid layout shaking
+    // when only line breaks are inserted (see comment in refreshHeightLayout()).
     if (isInsertLineBreakOnly(event)) {
+      endCompoundChange();
       return;
+    }
+
+    // End compound change on whitespace for word-by-word undo
+    String text = event.getText();
+    if (text != null && text.length() == 1 && Character.isWhitespace(text.charAt(0))) {
+      endCompoundChange();
     }
 
     refreshHeightLayout();
@@ -171,6 +182,11 @@ public class ChatInputTextViewer extends TextViewer implements PaintListener {
   }
 
   private void onKeyPressed(KeyEvent e) {
+    // Handle undo/redo key events
+    if (handleUndoRedoKeyEvent(e)) {
+      return;
+    }
+
     // Handle Shift+Tab to trigger focus traversal event for accessibility
     if (e.keyCode == SWT.TAB && (e.stateMask & SWT.SHIFT) != 0) {
       e.doit = false;
