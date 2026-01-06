@@ -21,18 +21,17 @@ Apply this instruction when resolving an individual PR review comment. This is t
 - `comment_id`: The comment ID from the comments.json file
 
 Read the comment details from `.github/pullrequests/{pr_number}/comments.json` using the `comment_id`:
-- `id`: The comment ID
+- `id`: The comment ID (for replying)
 - `path`: The file path where the comment was made
 - `line`: The line number in the file
 - `body`: The review comment content
-- `diff_hunk`: The code context around the comment
 
 ## Resolution Steps
 
 ### 1. Understand the Context
-1. Read the file at the specified line and surrounding context (±10 lines)
-2. Review the `diff_hunk` to understand what changed
-3. Parse the comment `body` to understand what the reviewer is requesting
+1. Read the file at the specified `line` and surrounding context (±10-20 lines)
+2. Parse the comment `body` to understand what the reviewer is requesting
+3. If more context is needed, read additional lines from the file
 
 ### 2. Classify the Comment Type
 Determine the type of feedback:
@@ -139,15 +138,15 @@ Once the user accepts the changes:
 ### Input Comment
 ```json
 {
+  "id": 2580177053,
   "path": "com.microsoft.copilot.eclipse.ui/src/.../MyClass.java",
   "line": 42,
-  "body": "Use StringUtils.isNotBlank() instead of manual null/empty check",
-  "diff_hunk": "@@ -40,3 +40,5 @@\n+    if (value != null && !value.isEmpty()) {"
+  "body": "Use StringUtils.isNotBlank() instead of manual null/empty check"
 }
 ```
 
 ### Resolution Flow (with blocking points)
-1. **Understand**: Reviewer wants to use utility method instead of manual check
+1. **Understand**: Read file at line 42 (±10-20 lines), reviewer wants utility method instead of manual check
 2. **Classify**: Code style / Best practice
 3. **Propose**: Replace `value != null && !value.isEmpty()` with `StringUtils.isNotBlank(value)`
 4. **⛔ WAIT**: Present options, STOP, wait for user to respond

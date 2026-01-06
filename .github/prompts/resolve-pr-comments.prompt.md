@@ -25,23 +25,26 @@ Resolve PR review comments for PR #${input:pr_number:Enter PR number}
 Use pagination to retrieve all comments (gh CLI defaults to 30 results) and save to a file for reference:
 ```shell
 mkdir -p .github/pullrequests/${input:pr_number}
-gh api repos/microsoft/copilot-eclipse/pulls/${input:pr_number}/comments --paginate --jq '.[] | {id: .id, path: .path, line: .line, body: .body, diff_hunk: .diff_hunk}' > .github/pullrequests/${input:pr_number}/comments.json
+gh api repos/microsoft/copilot-eclipse/pulls/${input:pr_number}/comments --paginate --jq '.[] | {id: .id, path: .path, line: .line, body: .body, in_reply_to_id: .in_reply_to_id, user: .user.login}' > .github/pullrequests/${input:pr_number}/comments.json
 ```
 
+**Note**: The `line` field from the API points directly to the line in the current file where the comment was made. No diff parsing is needed - just read the file at that line number to see the code context.
+
 ### 3. Filter and Classify Comments
-After loading the comments file:
-1. **Skip developer response comments** - Ignore comments where `body` starts with "Done." or "Checked:" or contains phrases like "This was addressed"
-2. **Skip already resolved comments** - If you see a reply pattern indicating resolution, mark as completed in TODO
-3. **Focus on actionable review comments** - Only create TODOs for comments requesting changes
+After fetching comments:
+1. **Identify resolved comments** - If a comment has replies (other comments with `in_reply_to_id` matching its `id`) from the PR author starting with "Done." or similar, it's already resolved
+2. **Skip reply comments** - Comments with `in_reply_to_id` set are replies, not original review comments
+3. **Focus on actionable review comments** - Only create TODOs for original comments (no `in_reply_to_id`) that haven't been resolved
 
 ### 4. For Each Actionable Comment, Extract:
 - `id`: The comment ID (needed for replying)
 - `path`: The file path where the comment was made
-- `line`: The line number in the file
+- `line`: The line number in the file (use this directly to read code context)
 - `body`: The actual review comment content
-- `diff_hunk`: The code context around the comment
+- `in_reply_to_id`: If set, this is a reply to another comment (skip these)
+- `user`: The username who made the comment
 
-### 5. Create TODO List for Actionable Commentsomments
+### 5. Create TODO List for Actionable Comments
 **IMMEDIATELY after fetching and filtering comments**, create a TODO list with one item per actionable comment:
 - Title format: "Comment #{id}: <brief description from body>"
 - All items start as "not-started"
