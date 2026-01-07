@@ -11,6 +11,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
+import org.eclipse.jface.preference.IntegerFieldEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -25,7 +26,6 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 /**
  * Chat preference page.
@@ -44,17 +44,15 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
   public void createFieldEditors() {
     Composite parent = getFieldEditorParent();
     parent.setLayout(new GridLayout(1, true));
-    GridLayout gl = new GridLayout(1, true);
-    gl.marginTop = 2;
-    gl.marginLeft = 2;
 
     GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
 
     Composite workspaceContextComposite = new Composite(parent, SWT.NONE);
-    workspaceContextComposite.setLayout(gl);
+    workspaceContextComposite.setLayout(new GridLayout(1, true));
     gdf.applyTo(workspaceContextComposite);
     BooleanFieldEditor workspaceContextField = new BooleanFieldEditor(Constants.WORKSPACE_CONTEXT_ENABLED,
-        Messages.preferences_page_watched_files, SWT.WRAP, workspaceContextComposite);
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_watched_files, SWT.WRAP,
+        workspaceContextComposite);
     GridData workspaceContextFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     workspaceContextFieldGridData.widthHint = 400;
     workspaceContextField.getDescriptionControl(workspaceContextComposite).setLayoutData(workspaceContextFieldGridData);
@@ -62,16 +60,22 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addField(workspaceContextField);
 
     // add chat note using WrappableNoteLabel
-    new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_watched_files_note_content);
+    WrappableNoteLabel workspaceContextNote = new WrappableNoteLabel(parent,
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_note_prefix + " ",
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_watched_files_note_content);
+    GridData workspaceContextNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    workspaceContextNoteGridData.horizontalSpan = 2;
+    workspaceContextNote.setLayoutData(workspaceContextNoteGridData);
 
     // add separator
     Label separator = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
-    separator.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    GridData separatorGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    separatorGridData.horizontalSpan = 2;
+    separator.setLayoutData(separatorGridData);
 
     // Add sub-agent toggle
     Composite subAgentComposite = new Composite(parent, SWT.NONE);
-    subAgentComposite.setLayout(gl);
+    subAgentComposite.setLayout(new GridLayout(1, true));
     gdf.applyTo(subAgentComposite);
     // Check if sub-agent is disabled by policy
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
@@ -85,11 +89,11 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
       disabledComposite.setLayout(disabledCompositeLayout);
       disabledComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
       WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
-          com.microsoft.copilot.eclipse.ui.preferences.Messages.setting_managed_by_organization);
+          Messages.setting_managed_by_organization);
     }
 
     BooleanFieldEditor subAgentField = new BooleanFieldEditor(Constants.SUB_AGENT_ENABLED,
-        Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
     subAgentField.setEnabled(policyAllowsSubAgent, subAgentComposite);
     GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     subAgentFieldGridData.widthHint = 400;
@@ -97,9 +101,36 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addField(subAgentField);
 
     // add sub-agent note using WrappableNoteLabel
-    new WrappableNoteLabel(subAgentComposite, Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_sub_agent_note_content);
+    WrappableNoteLabel subAgentNote = new WrappableNoteLabel(parent,
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_note_prefix + " ",
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_sub_agent_note_content);
+    GridData subAgentNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    subAgentNoteGridData.horizontalSpan = 2;
+    subAgentNote.setLayoutData(subAgentNoteGridData);
 
+    // add separator
+    Label separator2 = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
+    GridData separator2GridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    separator2GridData.horizontalSpan = 2;
+    separator2.setLayoutData(separator2GridData);
+
+    // Add Agent Max Requests field
+    Composite agentMaxRequestsComposite = new Composite(parent, SWT.NONE);
+    agentMaxRequestsComposite.setLayout(new GridLayout(1, true));
+    gdf.applyTo(agentMaxRequestsComposite);
+
+    IntegerFieldEditor agentMaxRequestsField = new IntegerFieldEditor(Constants.AGENT_MAX_REQUESTS,
+        Messages.preferences_page_agent_max_requests, agentMaxRequestsComposite);
+    agentMaxRequestsField.setValidRange(1, 500);
+    agentMaxRequestsField.setErrorMessage(Messages.preferences_page_agent_max_requests_validation_error);
+    addField(agentMaxRequestsField);
+
+    WrappableNoteLabel agentMaxRequestsNote = new WrappableNoteLabel(parent,
+        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_agent_max_requests_desc);
+    GridData agentMaxRequestsNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    agentMaxRequestsNoteGridData.horizontalSpan = 2;
+    agentMaxRequestsNote.setLayoutData(agentMaxRequestsNoteGridData);
   }
 
   @Override
@@ -156,8 +187,9 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     }
 
     if (isSubAgentChanged || isWorkspaceContextChanged) {
-      boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
-          Messages.preferences_page_restart_question);
+      boolean restart = MessageDialog.openQuestion(getShell(),
+          com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_restart_required,
+          com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_restart_question);
 
       if (restart) {
         getShell().getDisplay().asyncExec(() -> {
@@ -197,7 +229,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
       // Get or create the Built-in Tools server map
       Map<String, Map<String, Boolean>> agentModeTools = modeToolStatus.get("agent-mode");
-      String builtInToolsKey = Messages.preferences_page_mcp_tools_builtin;
+      String builtInToolsKey = com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_mcp_tools_builtin;
       if (!agentModeTools.containsKey(builtInToolsKey)) {
         agentModeTools.put(builtInToolsKey, new HashMap<>());
       }

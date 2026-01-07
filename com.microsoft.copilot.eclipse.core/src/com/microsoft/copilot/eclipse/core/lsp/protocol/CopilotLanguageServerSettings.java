@@ -264,12 +264,15 @@ public class CopilotLanguageServerSettings {
     @SerializedName("globalCopilotInstructions")
     private String workspaceCopilotInstructions;
 
+    private CopilotAgentSettings agent;
+
     /**
      * Constructor.
      */
     public CopilotSettings() {
       this.mcpServers = null;
       this.workspaceCopilotInstructions = null;
+      agent = new CopilotAgentSettings();
     }
 
     public String getMcpServers() {
@@ -288,17 +291,26 @@ public class CopilotLanguageServerSettings {
       this.workspaceCopilotInstructions = workspaceCopilotInstructions;
     }
 
+    public CopilotAgentSettings getAgent() {
+      return agent;
+    }
+
+    public void setAgent(CopilotAgentSettings agent) {
+      this.agent = agent;
+    }
+
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.add("mcpServers", mcpServers);
       builder.add("workspaceCopilotInstructions", workspaceCopilotInstructions);
+      builder.add("agent", agent);
       return builder.toString();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(mcpServers, workspaceCopilotInstructions);
+      return Objects.hash(agent, mcpServers, workspaceCopilotInstructions);
     }
 
     @Override
@@ -306,14 +318,11 @@ public class CopilotLanguageServerSettings {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof CopilotSettings)) {
         return false;
       }
       CopilotSettings other = (CopilotSettings) obj;
-      return Objects.equals(mcpServers, other.mcpServers)
+      return Objects.equals(agent, other.agent) && Objects.equals(mcpServers, other.mcpServers)
           && Objects.equals(workspaceCopilotInstructions, other.workspaceCopilotInstructions);
     }
   }

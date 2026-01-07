@@ -81,6 +81,11 @@ public class Messages extends NLS {
   public static String customModes_error_deleteFailed_message;
   public static String customModes_disabled_by_policy;
 
+  //Agent Max Requests
+  public static String preferences_page_agent_max_requests;
+  public static String preferences_page_agent_max_requests_desc;
+  public static String preferences_page_agent_max_requests_validation_error;
+
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 

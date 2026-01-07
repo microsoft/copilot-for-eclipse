@@ -76,6 +76,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
     getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
 
+    // agent related settings
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
       getSettings().getGithubSettings()
@@ -148,6 +152,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED:
         singleSetting = updateWorkspaceInstructionEnabled(
             preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED));
+        break;
+      case Constants.AGENT_MAX_REQUESTS:
+        settings.getGithubSettings().getCopilotSettings().getAgent()
+            .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:
         return;
