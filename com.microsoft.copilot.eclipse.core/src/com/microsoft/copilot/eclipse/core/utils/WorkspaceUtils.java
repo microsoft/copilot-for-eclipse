@@ -1,12 +1,13 @@
 package com.microsoft.copilot.eclipse.core.utils;
 
+import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.lsp4j.WorkspaceFolder;
 
 /**
@@ -107,8 +108,15 @@ public class WorkspaceUtils {
       return false;
     }
 
-    IFolder gitFolder = project.getFolder(".git");
-    return gitFolder.exists();
+    // Use java.io.File API to check for .git folder directly in the file system
+    // This works even when .git is excluded in the .project file
+    IPath location = project.getLocation();
+    if (location == null) {
+      return false;
+    }
+
+    File gitFolder = new File(location.toFile(), ".git");
+    return gitFolder.exists() && gitFolder.isDirectory();
   }
 
 }
