@@ -28,6 +28,12 @@ public final class Messages extends NLS {
   public static String fileChangeSummary_undoButton;
   public static String fileChangeSummary_collapseTooltip;
   public static String fileChangeSummary_expandTooltip;
+  public static String todoList_title;
+  public static String todoList_titleWithCount;
+  public static String todoList_clearButton;
+  public static String todoList_clearButtonDisabled;
+  public static String todoList_expandTooltip;
+  public static String todoList_collapseTooltip;
 
   static {
     // initialize resource bundle

@@ -8,6 +8,8 @@ import java.util.Objects;
 
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
+
 /**
  * Full conversation data for persistence.
  */
@@ -20,6 +22,7 @@ public class ConversationData {
   private Map<String, Object> data;
   private Instant creationDate;
   private Instant lastMessageDate;
+  private List<TodoItem> todos;
 
   /**
    * Default constructor initializing default values.
@@ -93,10 +96,18 @@ public class ConversationData {
     this.lastMessageDate = lastMessageDate;
   }
 
+  public List<TodoItem> getTodos() {
+    return todos;
+  }
+
+  public void setTodos(List<TodoItem> todos) {
+    this.todos = todos;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(conversationId, creationDate, data, lastMessageDate, requesterUsername, responderUsername,
-        title, turns);
+        title, todos, turns);
   }
 
   @Override
@@ -115,7 +126,7 @@ public class ConversationData {
         && Objects.equals(data, other.data) && Objects.equals(lastMessageDate, other.lastMessageDate)
         && Objects.equals(requesterUsername, other.requesterUsername)
         && Objects.equals(responderUsername, other.responderUsername) && Objects.equals(title, other.title)
-        && Objects.equals(turns, other.turns);
+        && Objects.equals(todos, other.todos) && Objects.equals(turns, other.turns);
   }
 
   @Override
@@ -126,6 +137,7 @@ public class ConversationData {
     builder.add("requesterUsername", requesterUsername);
     builder.add("responderUsername", responderUsername);
     builder.add("turns", turns);
+    builder.add("todos", todos);
     builder.add("data", data);
     builder.add("creationDate", creationDate);
     builder.add("lastMessageDate", lastMessageDate);

@@ -46,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepTitles;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
@@ -64,6 +65,7 @@ import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
+import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AfterLoginWelcomeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AgentModeViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.BeforeLoginWelcomeViewer;
@@ -261,6 +263,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             restoreModeFromLastUserTurn(historyConversation.getTurns());
           }
 
+          // Restore todo list from the conversation
+          List<TodoItem> todos = historyConversation.getTodos();
+          TodoListService todoService = chatServiceManager.getTodoListService();
+          if (todoService != null && todos != null && !todos.isEmpty()) {
+            todoService.setTodoList(todos);
+          }
+
           // Scroll to bottom after restoring all turns
           SwtUtils.invokeOnDisplayThreadAsync(this::scrollContentToBottom, chatContentViewer);
 
@@ -296,15 +305,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
-   * Initialize chat services and bind the chat view to various service components.
-   * This method sets up the persistence manager, binds the chat view to user preference,
-   * agent tool, and file tool services, and triggers view building based on auth status.
+   * Initialize chat services and bind the chat view to various service components. This method sets up the persistence
+   * manager, binds the chat view to user preference, agent tool, and file tool services, and triggers view building
+   * based on auth status.
    */
   private void initializeChatServices() {
     this.persistenceManager = this.chatServiceManager.getPersistenceManager();
     chatServiceManager.getUserPreferenceService().bindChatView(this);
     chatServiceManager.getAgentToolService().bindChatView(this);
     chatServiceManager.getFileToolService().bindFileChangeSummaryBar(this);
+    chatServiceManager.getTodoListService().bindTodoListBar(this);
 
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
       String authStatus = chatServiceManager.getAuthStatusManager().getCopilotStatus();
@@ -689,6 +699,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Persist final conversation state and conversation title on end
         if (persistenceManager != null) {
           persistenceManager.persistConversationProgress(this.conversationId, value);
+
+          // Persist todo list at end phase
+          TodoListService todoListService = chatServiceManager.getTodoListService();
+          if (todoListService != null) {
+            List<TodoItem> todos = todoListService.getTodoList();
+            if (todos != null && !todos.isEmpty()) {
+              persistenceManager.updateTodoList(this.conversationId, todos);
+            }
+          }
         }
 
         // Show handoff container when turn finishes
@@ -777,9 +796,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             chatModeName, customChatModeId, currentFile, references);
       }
 
+      // Get current todo list to sync with the server
+      // Don't send todo list for agent jobs - agents manage their own todo state independently
+      List<TodoItem> currentTodos = null;
+      if (StringUtils.isBlank(agentSlug)) {
+        TodoListService todoListService = chatServiceManager.getTodoListService();
+        currentTodos = todoListService != null ? todoListService.getTodoList() : null;
+      }
+
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
           processedMessage, references, currentFile, currentSelection, activeModel, chatModeName, customChatModeId,
-          agentSlug, agentJobWorkspaceFolder);
+          currentTodos, agentSlug, agentJobWorkspaceFolder);
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.thenAccept(result -> {
@@ -804,12 +831,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     } else {
       // Create new conversation (either brand new or based on history)
       List<Turn> turns = null;
+      List<TodoItem> todosToRestore = null;
 
       if (conversationState == ConversationState.NEW_HISTORY_BASED_CONVERSATION) {
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
         persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
             chatModeName, customChatModeId, currentFile, references);
+
+        // Get todos to restore for session continuation
+        TodoListService todoListService = chatServiceManager.getTodoListService();
+        if (todoListService != null) {
+          todosToRestore = todoListService.getTodoList();
+        }
       } else if (conversationState == ConversationState.NEW_CONVERSATION) {
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
@@ -820,11 +854,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, null, null);
+            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
+        // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, agentSlug, agentJobWorkspaceFolder);
+            currentSelection, turns, activeModel, chatModeName, customChatModeId, null, agentSlug,
+            agentJobWorkspaceFolder);
       }
       conversationFutures.add(createConversationFuture);
 
@@ -925,6 +961,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.conversationState = ConversationState.NEW_CONVERSATION;
     this.chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
     SwtUtils.invokeOnDisplayThreadAsync(this.chatServiceManager.getFileToolService()::disposeFileChangeSummaryBar);
+
+    // Clear todo list UI (no need to notify CLS as we're just clearing the UI)
+    TodoListService todoListService = chatServiceManager.getTodoListService();
+    if (todoListService != null) {
+      todoListService.setTodoList(List.of());
+    }
   }
 
   @Override
@@ -1072,6 +1114,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
       if (this.chatServiceManager.getFileToolService() != null) {
         this.chatServiceManager.getFileToolService().unbindFileChangeSummaryBar();
+      }
+      if (this.chatServiceManager.getTodoListService() != null) {
+        this.chatServiceManager.getTodoListService().unbindTodoListBar();
       }
       this.chatServiceManager = null;
     }

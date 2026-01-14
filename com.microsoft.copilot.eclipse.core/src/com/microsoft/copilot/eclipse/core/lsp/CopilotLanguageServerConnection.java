@@ -56,6 +56,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInConfirmParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
@@ -246,9 +247,9 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
-      String customChatModeId) {
+      String customChatModeId, List<TodoItem> todos) {
     return createConversation(workDoneToken, message, files, currentFile, null, turns, activeModel, chatModeName,
-        customChatModeId, null, null);
+        customChatModeId, todos, null, null);
   }
 
   /**
@@ -256,9 +257,9 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
-      String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
+      String customChatModeId, List<TodoItem> todos, String agentSlug, String agentJobWorkspaceFolder) {
     return createConversation(workDoneToken, message, files, currentFile, null, turns, activeModel, chatModeName,
-        customChatModeId, agentSlug, agentJobWorkspaceFolder);
+        customChatModeId, todos, agentSlug, agentJobWorkspaceFolder);
   }
 
   /**
@@ -266,7 +267,8 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
-      String chatModeName, String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
+      String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
+      String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -281,6 +283,7 @@ public class CopilotLanguageServerConnection {
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+        param.setTodoList(todos);
       } else {
         // Set agentSlug if provided - this will modify the first turn's agentSlug
         if (param.getTurns() != null && !param.getTurns().isEmpty()) {
@@ -312,9 +315,9 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName,
-      String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
+      String customChatModeId, List<TodoItem> todoList, String agentSlug, String agentJobWorkspaceFolder) {
     return addConversationTurn(workDoneToken, conversationId, message, files, currentFile, null, activeModel,
-        chatModeName, customChatModeId, agentSlug, agentJobWorkspaceFolder);
+        chatModeName, customChatModeId, todoList, agentSlug, agentJobWorkspaceFolder);
   }
 
   /**
@@ -322,7 +325,8 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
-      String chatModeName, String customChatModeId, String agentSlug, String agentJobWorkspaceFolder) {
+      String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
+      String agentJobWorkspaceFolder) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -337,6 +341,7 @@ public class CopilotLanguageServerConnection {
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+        param.setTodoList(todoList);
       } else {
         param.setAgentSlug(agentSlug);
         param.setWorkspaceFolder(agentJobWorkspaceFolder);
@@ -476,8 +481,8 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Send $/progress notification to the language server.
-   * Used for reporting partial results during long-running operations like file indexing.
+   * Send $/progress notification to the language server. Used for reporting partial results during long-running
+   * operations like file indexing.
    */
   public CompletableFuture<Void> sendProgressNotification(ProgressParams progressParams) {
     Function<LanguageServer, CompletableFuture<Void>> fn = server -> {

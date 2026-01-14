@@ -1,6 +1,8 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -21,12 +23,17 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -168,20 +175,26 @@ public class ChatContentViewer extends ScrolledComposite {
         appendMessageToTheLatestTurn(value.getReply());
       }
 
+      ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+
       if (value.getKind() == WorkDoneProgressKind.report) {
-        ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
         boolean isAgentMode = chatServiceManager != null
             && ChatMode.Agent.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode());
 
         if (isAgentMode && value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
           // Handle agent mode responses
-          if (value.getAgentRounds().get(0).getReply() != null) {
-            turnWidget.appendMessage(value.getAgentRounds().get(0).getReply());
+          AgentRound agentRound = value.getAgentRounds().get(0);
+
+          if (agentRound.getReply() != null) {
+            turnWidget.appendMessage(agentRound.getReply());
           }
 
-          if (value.getAgentRounds().get(0).getToolCalls() != null
-              && !value.getAgentRounds().get(0).getToolCalls().isEmpty()) {
-            turnWidget.appendToolCallStatus(value.getAgentRounds().get(0).getToolCalls().get(0));
+          if (agentRound.getToolCalls() != null && !agentRound.getToolCalls().isEmpty()) {
+            AgentToolCall toolCall = agentRound.getToolCalls().get(0);
+            turnWidget.appendToolCallStatus(toolCall);
+
+            // Extract and process todo list from tool result details
+            processTodoListFromToolCall(chatServiceManager, value.getConversationId(), toolCall);
           }
         } else {
           // Handle chat mode responses
@@ -244,6 +257,36 @@ public class ChatContentViewer extends ScrolledComposite {
   public void appendMessageToTheLatestTurn(String message) {
     if (this.latestTurnWidget != null) {
       this.latestTurnWidget.appendMessage(message);
+    }
+  }
+
+  /**
+   * Process todo list from tool call result. Extracts todo list data from the tool-specific data
+   * and updates the TodoListService.
+   *
+   * @param chatServiceManager the chat service manager
+   * @param conversationId the conversation ID
+   * @param toolCall the agent tool call containing tool-specific data
+   */
+  private void processTodoListFromToolCall(ChatServiceManager chatServiceManager, String conversationId,
+      AgentToolCall toolCall) {
+    if (chatServiceManager == null || conversationId == null || toolCall == null) {
+      return;
+    }
+
+    ToolSpecificData toolSpecificData = toolCall.getToolSpecificData();
+    if (toolSpecificData == null || toolSpecificData.getTodoList() == null) {
+      return;
+    }
+
+    TodoListService todoListService = chatServiceManager.getTodoListService();
+    if (todoListService == null) {
+      return;
+    }
+
+    List<TodoItem> todos = toolSpecificData.getTodoList();
+    if (todos != null) {
+      todoListService.setTodoList(new ArrayList<>(todos));
     }
   }
 

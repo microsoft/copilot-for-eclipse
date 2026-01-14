@@ -26,6 +26,11 @@ public class AgentToolCall {
   private String status;
   private String error;
 
+  /**
+   * Tool-specific data passed from CLS for rendering in the UI.
+   */
+  private ToolSpecificData toolSpecificData;
+
   public String getId() {
     return id;
   }
@@ -46,9 +51,13 @@ public class AgentToolCall {
     return error;
   }
 
+  public ToolSpecificData getToolSpecificData() {
+    return toolSpecificData;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(error, id, name, progressMessage, status);
+    return Objects.hash(error, id, name, progressMessage, status, toolSpecificData);
   }
 
   @Override
@@ -64,7 +73,8 @@ public class AgentToolCall {
     }
     AgentToolCall other = (AgentToolCall) obj;
     return Objects.equals(error, other.error) && Objects.equals(id, other.id) && Objects.equals(name, other.name)
-        && Objects.equals(progressMessage, other.progressMessage) && Objects.equals(status, other.status);
+        && Objects.equals(progressMessage, other.progressMessage)
+        && Objects.equals(status, other.status) && Objects.equals(toolSpecificData, other.toolSpecificData);
   }
 
   @Override
@@ -75,6 +85,7 @@ public class AgentToolCall {
     builder.add("progressMessage", progressMessage);
     builder.add("status", status);
     builder.add("error", error);
+    builder.add("toolSpecificData", toolSpecificData);
     return builder.toString();
   }
 

@@ -37,6 +37,7 @@ public class ConversationTurnParams {
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
   private String agentSlug;
+  private List<TodoItem> todoList;
 
   /**
    * Creates a new ConversationTurnParams.
@@ -178,6 +179,14 @@ public class ConversationTurnParams {
     this.agentSlug = agentSlug;
   }
 
+  public List<TodoItem> getTodoList() {
+    return todoList;
+  }
+
+  public void setTodoList(List<TodoItem> todoList) {
+    this.todoList = todoList;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -185,8 +194,8 @@ public class ConversationTurnParams {
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result
         + Objects.hash(agentSlug, chatMode, computeSuggestions, conversationId, customChatModeId, message, model,
-            modelProviderName, needToolCallConfirmation, references, textDocument, workDoneToken, workspaceFolder,
-            workspaceFolders);
+            modelProviderName, needToolCallConfirmation, references, textDocument, todoList, workDoneToken,
+            workspaceFolder, workspaceFolders);
     return result;
   }
 
@@ -208,7 +217,8 @@ public class ConversationTurnParams {
         && Arrays.equals(ignoredSkills, other.ignoredSkills) && Objects.equals(message, other.message)
         && Objects.equals(model, other.model) && Objects.equals(modelProviderName, other.modelProviderName)
         && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
-        && Objects.equals(textDocument, other.textDocument) && Objects.equals(workDoneToken, other.workDoneToken)
+        && Objects.equals(textDocument, other.textDocument) && Objects.equals(todoList, other.todoList)
+        && Objects.equals(workDoneToken, other.workDoneToken)
         && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders);
   }
@@ -231,6 +241,7 @@ public class ConversationTurnParams {
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
     builder.add("modelProviderName", modelProviderName);
     builder.add("agentSlug", agentSlug);
+    builder.add("todoList", todoList);
     return builder.toString();
   }
 }

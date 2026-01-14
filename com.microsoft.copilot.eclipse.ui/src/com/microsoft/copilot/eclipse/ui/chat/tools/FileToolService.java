@@ -24,6 +24,7 @@ import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.ConversationUtils;
 import com.microsoft.copilot.eclipse.ui.chat.FileChangeSummaryBar;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService;
+import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 
 /**
  * Service for the Edit File tool. This service manages the state of the Create File Tool and Edit File tool, including
@@ -79,12 +80,10 @@ public class FileToolService extends ChatBaseService {
             } else {
               if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
                 this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getActionBar(), SWT.NONE);
-                if (chatView.getActionBar().getChildren().length > 0) {
-                  this.fileChangeSummaryBar.moveAbove(chatView.getActionBar().getChildren()[0]);
-                }
               }
+              // Position FileChangeSummaryBar below TodoListBar (if present), otherwise at top
+              positionFileChangeSummaryBar(chatView);
               this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
-              this.fileChangeSummaryBar.moveAbove(chatView.getActionBar());
             }
           });
       buttonEnableSideEffect = ISideEffect.create(() -> buttonEnableObservable.getValue(), (Boolean status) -> {
@@ -117,6 +116,24 @@ public class FileToolService extends ChatBaseService {
       filesObservable.setValue(new LinkedHashMap<>());
       buttonEnableObservable.setValue(false);
     });
+  }
+
+  /**
+   * Position the FileChangeSummaryBar below TodoListBar if present, otherwise at top.
+   */
+  private void positionFileChangeSummaryBar(ChatView chatView) {
+    if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
+      return;
+    }
+    TodoListService todoListService = CopilotUi.getPlugin().getChatServiceManager().getTodoListService();
+    if (todoListService != null && todoListService.getTodoListBar() != null
+        && !todoListService.getTodoListBar().isDisposed()) {
+      // Position below TodoListBar
+      this.fileChangeSummaryBar.moveBelow(todoListService.getTodoListBar());
+    } else {
+      // No TodoListBar, position at top
+      this.fileChangeSummaryBar.moveAbove(null);
+    }
   }
 
   /**

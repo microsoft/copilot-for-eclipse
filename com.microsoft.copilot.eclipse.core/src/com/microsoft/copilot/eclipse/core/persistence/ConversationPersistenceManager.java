@@ -18,6 +18,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
@@ -434,6 +435,29 @@ public class ConversationPersistenceManager {
         }
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to update conversation title: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
+   * Updates the todo list for a conversation and persists the change to disk.
+   *
+   * @param conversationId the ID of the conversation to update
+   * @param todos the list of todo items to save
+   */
+  public CompletableFuture<Void> updateTodoList(String conversationId, List<TodoItem> todos) {
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ConversationData conversation = getConversationFromCacheOrLoadFromDisk(conversationId);
+        if (conversation != null) {
+          conversation.setTodos(todos);
+          persistAndCacheConversation(conversation);
+        }
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to update todo list for conversation: " + conversationId, e);
       } finally {
         lock.writeLock().unlock();
       }

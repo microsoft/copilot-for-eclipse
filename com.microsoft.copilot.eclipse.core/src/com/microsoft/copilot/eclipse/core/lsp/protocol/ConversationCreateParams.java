@@ -35,6 +35,7 @@ public class ConversationCreateParams {
 
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
+  private List<TodoItem> todoList;
 
   /**
    * Creates a new ConversationCreateParams.
@@ -178,6 +179,14 @@ public class ConversationCreateParams {
     this.needToolCallConfirmation = needToolCallConfirmation;
   }
 
+  public List<TodoItem> getTodoList() {
+    return todoList;
+  }
+
+  public void setTodoList(List<TodoItem> todoList) {
+    this.todoList = todoList;
+  }
+
   public String getModelProviderName() {
     return modelProviderName;
   }
@@ -195,7 +204,7 @@ public class ConversationCreateParams {
     result = prime * result
         + Objects.hash(capabilities, chatMode, computeSuggestions, customChatModeId, model, needToolCallConfirmation,
             references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders,
-            modelProviderName);
+            modelProviderName, todoList);
     return result;
   }
 
@@ -220,7 +229,8 @@ public class ConversationCreateParams {
         && Objects.equals(turns, other.turns) && Objects.equals(userLanguage, other.userLanguage)
         && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders)
-        && Objects.equals(modelProviderName, other.modelProviderName);
+        && Objects.equals(modelProviderName, other.modelProviderName)
+        && Objects.equals(todoList, other.todoList);
   }
 
   @Override
@@ -242,6 +252,7 @@ public class ConversationCreateParams {
     builder.add("chatMode", chatMode);
     builder.add("customChatModeId", customChatModeId);
     builder.add("needToolCallConfirmation", needToolCallConfirmation);
+    builder.add("todoList", todoList);
     return builder.toString();
   }
 }

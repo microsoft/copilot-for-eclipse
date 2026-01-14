@@ -28,6 +28,7 @@ public class ChatServiceManager implements IChatServiceManager {
 
   private McpRuntimeLogger mcpRuntimeLogger;
   private ConversationPersistenceManager persistenceManager;
+  private TodoListService todoListService;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -140,6 +141,18 @@ public class ChatServiceManager implements IChatServiceManager {
     return persistenceManager;
   }
 
+  /**
+   * Lazy load the todo list service. This service is only needed when the chat view is created.
+   *
+   * @return the todo list service
+   */
+  public TodoListService getTodoListService() {
+    if (todoListService == null && this.lsConnection != null) {
+      todoListService = new TodoListService(this.lsConnection);
+    }
+    return todoListService;
+  }
+
   @Override
   public ReferencedFileService getReferencedFileService() {
     return referencedFileService;
@@ -165,6 +178,9 @@ public class ChatServiceManager implements IChatServiceManager {
     this.mcpConfigService.dispose();
     if (this.byokService != null) {
       this.byokService.dispose();
+    }
+    if (this.todoListService != null) {
+      this.todoListService.dispose();
     }
   }
 }
