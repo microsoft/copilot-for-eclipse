@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.URIUtil;
@@ -56,12 +57,18 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   @Override
   public void start() throws IOException {
+    if ("true".equalsIgnoreCase(System.getenv("COPILOT_DEBUG_LOCAL"))) {
+      CopilotCore.LOGGER.info("Forcing JS LSP agent start due to environment variable.");
+      startJsLspAgent();
+      return;
+    }
+
     try {
       startBinaryLspAgent();
     } catch (Exception e) {
-      startJsLspAgent(e);
+      CopilotCore.LOGGER.error("Binary LSP agent start failed. Retrying with JS agent.", e);
+      startJsLspAgent();
     }
-    CopilotCore.LOGGER.info("Lsp agent started successfully.");
   }
 
   @Override
@@ -75,12 +82,13 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     CopilotCore.LOGGER.info("Starting language server with binary lsp agent.");
     this.setCommands(getBinaryLspCommands());
     super.start();
+    CopilotCore.LOGGER.info("Binary agent started successfully.");
   }
 
-  private void startJsLspAgent(Exception e) throws IOException {
-    CopilotCore.LOGGER.error("Binary LSP agent start failed. Retrying with JS agent.", e);
+  private void startJsLspAgent() throws IOException {
     this.setCommands(getJavaScriptCommands());
     super.start();
+    CopilotCore.LOGGER.info("JS agent started successfully.");
   }
 
   private List<String> getBinaryLspCommands() throws IOException {
@@ -118,7 +126,13 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
         throw new IOException("JavaScript lsp path not found");
       }
 
-      return buildCommands(nodePath, jsLspPath);
+      List<String> params = new ArrayList<>();
+      params.add(nodePath);
+      if ("true".equalsIgnoreCase(System.getenv("COPILOT_DEBUG_LOCAL"))) {
+        params.add("--inspect");
+      }
+      params.add(jsLspPath);
+      return buildCommands(params.toArray(String[]::new));
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to get JavaScript commands. ", e);
       throw e;
@@ -159,6 +173,11 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   private @Nullable String findJavaScriptLanguageServerPath() throws IOException {
+    String lsJsPath = System.getenv("COPILOT_LS_JS_PATH");
+    if (StringUtils.isNotBlank(lsJsPath)) {
+      return lsJsPath;
+    }
+
     Path distPath = findAgentDistDirectoryPath();
 
     if (distPath == null) {
@@ -225,9 +244,8 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   /**
-   * Find binary from platform-specific fragment bundles.
-   * This method attempts to locate the native binary from the appropriate fragment bundle
-   * based on the current platform (OS and architecture).
+   * Find binary from platform-specific fragment bundles. This method attempts to locate the native binary from the
+   * appropriate fragment bundle based on the current platform (OS and architecture).
    */
   private @Nullable URL findBinaryFromFragment() {
     String fragmentBundleId = getPlatformSpecificFragmentBundleId();
