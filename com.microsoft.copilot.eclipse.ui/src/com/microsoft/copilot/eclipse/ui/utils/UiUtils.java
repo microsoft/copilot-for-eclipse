@@ -42,8 +42,6 @@ import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
-import org.eclipse.swt.events.FocusAdapter;
-import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
@@ -907,39 +905,5 @@ public class UiUtils {
       }
     }
     return imageData;
-  }
-
-  /**
-   * Adds focus border styling to a Composite widget. When the composite gains focus, a colored
-   * border is drawn around it to provide a visual hint.
-   *
-   * @param composite the composite widget to add focus border styling to
-   */
-  public static void addFocusBorderToComposite(Composite composite) {
-    final boolean[] hasFocus = {false};
-
-    composite.addFocusListener(new FocusAdapter() {
-      @Override
-      public void focusGained(FocusEvent e) {
-        hasFocus[0] = true;
-        composite.redraw();
-      }
-
-      @Override
-      public void focusLost(FocusEvent e) {
-        hasFocus[0] = false;
-        composite.redraw();
-      }
-    });
-
-    composite.addPaintListener(e -> {
-      if (hasFocus[0]) {
-        Rectangle clientArea = composite.getClientArea();
-        Color focusBorderColor = CssConstants.getWidgetFocusBorderColor(composite.getDisplay());
-        e.gc.setForeground(focusBorderColor);
-        e.gc.setLineWidth(1);
-        e.gc.drawRectangle(0, 0, clientArea.width - 1, clientArea.height - 1);
-      }
-    });
   }
 }

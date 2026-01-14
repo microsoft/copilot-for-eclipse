@@ -13,6 +13,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
@@ -48,6 +49,8 @@ public class CopilotTurnWidget extends BaseTurnWidget {
     StyledText styledText = this.currentTextBlock.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
+
+    AccessibilityUtils.addFocusBorderToComposite(styledText);
   }
 
   /**

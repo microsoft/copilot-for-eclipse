@@ -19,8 +19,6 @@ import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.TraverseEvent;
-import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -32,6 +30,7 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -87,18 +86,7 @@ public class AddContextButton extends Composite {
       }
     });
 
-    // Add traverse listener to enable tab focus traversal
-    this.addTraverseListener(new TraverseListener() {
-      @Override
-      public void keyTraversed(TraverseEvent e) {
-        if (e.detail == SWT.TRAVERSE_TAB_NEXT || e.detail == SWT.TRAVERSE_TAB_PREVIOUS) {
-          e.doit = true;
-        }
-      }
-    });
-
-    // Add focus border for visual feedback
-    UiUtils.addFocusBorderToComposite(this);
+    AccessibilityUtils.addFocusBorderToComposite(this);
   }
 
   /**

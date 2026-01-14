@@ -15,6 +15,7 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -185,6 +186,7 @@ public class AgentStatusLabel extends Composite {
       styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
       styledText.setEditable(false);
       styledText.setData(CssConstants.CSS_CLASS_NAME_KEY, "text-secondary");
+      AccessibilityUtils.addFocusBorderToComposite(styledText);
     }
     textLabel.setMarkup(text);
   }

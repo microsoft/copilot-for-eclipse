@@ -466,10 +466,10 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpModelPicker(Composite parent) {
     this.cmbModelPicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
     this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
-    AccessibilityUtils.addAccessibilityNameForUiComponent(cmbModelPicker, "model picker");
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindModelPicker(cmbModelPicker);
-    UiUtils.addFocusBorderToComposite(cmbModelPicker);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(cmbModelPicker, "model picker");
+    AccessibilityUtils.addFocusBorderToComposite(cmbModelPicker);
   }
 
   private void setUpChatModePicker(Composite parent) {
@@ -492,7 +492,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       }
     });
     AccessibilityUtils.addAccessibilityNameForUiComponent(cmbChatModePicker, "chat mode picker");
-    UiUtils.addFocusBorderToComposite(cmbChatModePicker);
+    AccessibilityUtils.addFocusBorderToComposite(cmbChatModePicker);
   }
 
   private void setUpMcpToolButtonInControlBar(Composite parent) {

@@ -11,7 +11,6 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
@@ -20,12 +19,11 @@ import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -37,6 +35,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
 
@@ -52,7 +51,6 @@ public class SourceViewerComposite extends Composite {
   private int codeBlockIndex;
   private SourceViewer sourceViewer;
   private Composite actionsComposite;
-  private ScrolledComposite codeScroll;
 
   private Image copyIcon;
   private Image insertIcon;
@@ -101,42 +99,19 @@ public class SourceViewerComposite extends Composite {
     this.addControlListener(new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
-        Rectangle bounds = SourceViewerComposite.this.getClientArea();
-        SourceViewerComposite.this.codeScroll.setBounds(0, 0, bounds.width, bounds.height);
-        if (actionsComposite.isVisible()) {
-          Rectangle scrollBounds = SourceViewerComposite.this.codeScroll.getBounds();
-          Rectangle actionsBounds = actionsComposite.getBounds();
-          actionsComposite.setLocation(scrollBounds.width - ACTIONS_PADDING_RIGHT - actionsBounds.width,
-              ACTIONS_PADDING_TOP);
-        }
+        refreshScrollerLayout();
       }
     });
   }
 
   private SourceViewer createSourceViewer() {
-    this.codeScroll = new ScrolledComposite(this, SWT.H_SCROLL);
-
-    SourceViewer viewer = new SourceViewer(codeScroll, null, SWT.NONE);
+    SourceViewer viewer = new SourceViewer(this, null, SWT.H_SCROLL);
     viewer.setEditable(false);
     viewer.configure(TextMateUtils.getConfiguration(language));
     viewer.setHoverControlCreator(null);
-    viewer.getTextWidget().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
-    this.codeScroll.setExpandHorizontal(true);
-    this.codeScroll.setExpandVertical(false);
-    this.codeScroll.setContent(viewer.getTextWidget());
-    this.codeScroll.addControlListener(new ControlAdapter() {
-      @Override
-      public void controlResized(ControlEvent e) {
-        refreshScrollerLayout();
-      }
-    });
-    GridLayout ly = new GridLayout(1, true);
-    ly.marginWidth = 0;
-    ly.horizontalSpacing = 0;
-    this.codeScroll.setLayout(ly);
 
     StyledText styledText = viewer.getTextWidget();
+    styledText.setAlwaysShowScrollBars(false);
 
     // TODO: Add VerifyKeyListener to listen for copy events
     // See: https://github.com/microsoft/copilot-eclipse/issues/372
@@ -145,11 +120,11 @@ public class SourceViewerComposite extends Composite {
     styledText.addMouseTrackListener(new MouseTrackAdapter() {
       @Override
       public void mouseEnter(MouseEvent e) {
-        Rectangle scrollBounds = SourceViewerComposite.this.codeScroll.getBounds();
+        Rectangle textBounds = styledText.getBounds();
         Rectangle actionsBounds = actionsComposite.getBounds();
-        actionsComposite.setLocation(scrollBounds.width - ACTIONS_PADDING_RIGHT - actionsBounds.width,
+        actionsComposite.setLocation(textBounds.width - ACTIONS_PADDING_RIGHT - actionsBounds.width,
             ACTIONS_PADDING_TOP);
-        actionsComposite.moveAbove(codeScroll);
+        actionsComposite.moveAbove(styledText);
         actionsComposite.setVisible(true);
       }
 
@@ -159,11 +134,14 @@ public class SourceViewerComposite extends Composite {
         Rectangle buttonBounds = actionsComposite.getBounds();
         Point cursorLocation = new Point(e.x, e.y);
         if (!buttonBounds.contains(cursorLocation)) {
-          actionsComposite.moveBelow(codeScroll);
+          actionsComposite.moveBelow(styledText);
           actionsComposite.setVisible(false);
         }
       }
     });
+
+    AccessibilityUtils.addFocusBorderToComposite(styledText);
+
     return viewer;
   }
 
@@ -223,11 +201,21 @@ public class SourceViewerComposite extends Composite {
   }
 
   private void refreshScrollerLayout() {
-    Point size = this.sourceViewer.getTextWidget().computeSize(SWT.DEFAULT, SWT.DEFAULT);
-    this.codeScroll.setSize(this.getSize().x, size.y);
-    this.codeScroll.setMinSize(size);
-    this.sourceViewer.getTextWidget().setSize(size);
-    this.codeScroll.layout(true, true);
+    StyledText textWidget = this.sourceViewer.getTextWidget();
+    textWidget.getDisplay().asyncExec(() -> {
+      if (textWidget == null || textWidget.isDisposed()) {
+        return;
+      }
+      Point size = textWidget.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+      Rectangle clientArea = this.getClientArea();
+      // remove scroll-bar height
+      ScrollBar horizontalBar = textWidget.getHorizontalBar();
+      int scrollbarHeight = horizontalBar != null ? horizontalBar.getSize().y : 0;
+      int height = size.y - scrollbarHeight;
+      // Set bounds on SourceViewer's control (the direct child), not just the textWidget
+      this.sourceViewer.getControl().setBounds(0, 0, clientArea.width, height);
+      textWidget.redraw();
+    });
   }
 
   private void insert(Event e) {
