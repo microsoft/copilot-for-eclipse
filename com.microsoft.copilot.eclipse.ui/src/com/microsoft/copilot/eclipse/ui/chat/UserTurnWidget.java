@@ -107,6 +107,9 @@ public class UserTurnWidget extends BaseTurnWidget {
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
 
+    // Register for chat font updates via centralized service
+    serviceManager.getChatFontService().registerControl(styledText);
+
     AccessibilityUtils.addFocusBorderToComposite(styledText);
   }
 }

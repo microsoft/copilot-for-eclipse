@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
@@ -57,6 +58,8 @@ class ReferencedFileTest {
   private CopilotModel mockModel;
   @Mock
   private McpConfigService mockMcpConfigService;
+  @Mock
+  private ChatFontService mockChatFontService;
 
   private Shell shell;
   private ActionBar actionBar;
@@ -108,6 +111,7 @@ class ReferencedFileTest {
     when(mockChatServiceManager.getModelService()).thenReturn(mockModelService);
     when(mockChatServiceManager.getReferencedFileService()).thenReturn(mockReferencedFileService);
     when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
+    when(mockChatServiceManager.getChatFontService()).thenReturn(mockChatFontService);
     when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
     when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
     actionBar = spy(new ActionBar(shell, SWT.NONE, mockChatServiceManager));

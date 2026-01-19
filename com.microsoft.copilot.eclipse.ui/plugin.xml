@@ -388,6 +388,18 @@
 			name="Configure Tools..."
 			description="Configure tools for the current agent file">
 		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.increaseChatFontSize"
+			name="%command.increaseChatFontSize.name"
+			description="Increase the font size in Chat">
+		</command>
+		<command
+			categoryId="com.microsoft.copilot.eclipse.ui.githubCopilot"
+			id="com.microsoft.copilot.eclipse.commands.decreaseChatFontSize"
+			name="%command.decreaseChatFontSize.name"
+			description="Decrease the font size in Chat">
+		</command>
 	</extension>
 
 	<!-- Command handlers registration -->
@@ -500,6 +512,14 @@
 			class="com.microsoft.copilot.eclipse.ui.handlers.ConfigureToolsCommandHandler"
 			commandId="com.microsoft.copilot.eclipse.commands.configureTools">
 		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.IncreaseChatFontSizeHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.increaseChatFontSize">
+		</handler>
+		<handler
+			class="com.microsoft.copilot.eclipse.ui.handlers.DecreaseChatFontSizeHandler"
+			commandId="com.microsoft.copilot.eclipse.commands.decreaseChatFontSize">
+		</handler>
 	</extension>
 
 	<extension
@@ -509,6 +529,12 @@
 			name="Completion Available"
 			description="Context when completion is available"
 			parentId="org.eclipse.ui.textEditorScope">
+		</context>
+		<context
+			id="com.microsoft.copilot.eclipse.chatViewContext"
+			name="Chat View Active"
+			description="Context when the Copilot Chat is focused"
+			parentId="org.eclipse.ui.contexts.window">
 		</context>
 	</extension>
 
@@ -559,6 +585,18 @@
 			platform="gtk"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="CTRL+ALT+I">
+		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.increaseChatFontSize"
+			contextId="com.microsoft.copilot.eclipse.chatViewContext"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+=">
+		</key>
+		<key
+			commandId="com.microsoft.copilot.eclipse.commands.decreaseChatFontSize"
+			contextId="com.microsoft.copilot.eclipse.chatViewContext"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+-">
 		</key>
 	</extension>
 	<!-- Code mining registration, for block ghost text rendering -->
@@ -1056,5 +1094,20 @@
 			verticalRulerPreferenceKey="com.microsoft.copilot.eclipse.ui.nes.delete.verticalRuler"
 			verticalRulerPreferenceValue="false">
 		</specification>
+	</extension>
+
+	<!-- Font definitions for Colors and Fonts preference page -->
+	<extension point="org.eclipse.ui.themes">
+		<themeElementCategory
+			id="com.microsoft.copilot.eclipse.ui.theme.category"
+			label="%theme.category.label">
+			<description>%theme.category.description</description>
+		</themeElementCategory>
+		<fontDefinition
+			categoryId="com.microsoft.copilot.eclipse.ui.theme.category"
+			id="com.microsoft.copilot.eclipse.ui.chat.font"
+			label="%theme.chatFont.label">
+			<description>%theme.chatFont.description</description>
+		</fontDefinition>
 	</extension>
 </plugin>

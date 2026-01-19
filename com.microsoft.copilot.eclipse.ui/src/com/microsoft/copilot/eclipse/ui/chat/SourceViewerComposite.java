@@ -38,6 +38,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A composite that contains a read-only source viewer with syntax highlighting and action buttons (copy, insert).
@@ -54,6 +55,7 @@ public class SourceViewerComposite extends Composite {
 
   private Image copyIcon;
   private Image insertIcon;
+  private Runnable fontChangeCallback;
 
   /**
    * Constructs a new SourceViewerComposite.
@@ -140,6 +142,14 @@ public class SourceViewerComposite extends Composite {
       }
     });
 
+    // Register for chat font updates via callback
+    fontChangeCallback = () -> {
+      if (styledText != null && !styledText.isDisposed()) {
+        styledText.setFont(UiUtils.getChatFont());
+        refreshScrollerLayout();
+      }
+    };
+    serviceManager.getChatFontService().registerCallback(fontChangeCallback);
     AccessibilityUtils.addFocusBorderToComposite(styledText);
 
     return viewer;
@@ -201,6 +211,9 @@ public class SourceViewerComposite extends Composite {
   }
 
   private void refreshScrollerLayout() {
+    if (this.sourceViewer == null) {
+      return;
+    }
     StyledText textWidget = this.sourceViewer.getTextWidget();
     textWidget.getDisplay().asyncExec(() -> {
       if (textWidget == null || textWidget.isDisposed()) {
@@ -285,6 +298,9 @@ public class SourceViewerComposite extends Composite {
   @Override
   public void dispose() {
     super.dispose();
+    if (fontChangeCallback != null) {
+      serviceManager.getChatFontService().unregisterCallback(fontChangeCallback);
+    }
     if (insertIcon != null) {
       insertIcon.dispose();
     }

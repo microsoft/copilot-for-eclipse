@@ -58,6 +58,9 @@ public class ReferencedFile extends Composite {
     lblFileName = new Label(this, SWT.NONE);
     lblFileName.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
+    // Register for chat font updates via centralized service
+    registerControlForFontUpdates(lblFileName);
+
     MouseAdapter mouseAdapter = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
@@ -208,6 +211,18 @@ public class ReferencedFile extends Composite {
       UiUtils.openInEditor((IFile) file);
     } else if (file instanceof IFolder) {
       UiUtils.revealInExplorer(file);
+    }
+  }
+
+  /**
+   * Registers a control for chat font updates via the centralized ChatFontService.
+   *
+   * @param control the control to register
+   */
+  protected void registerControlForFontUpdates(org.eclipse.swt.widgets.Control control) {
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(control);
     }
   }
 

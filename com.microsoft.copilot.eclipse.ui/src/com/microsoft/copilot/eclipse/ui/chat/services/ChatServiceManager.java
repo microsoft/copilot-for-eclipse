@@ -29,6 +29,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private McpRuntimeLogger mcpRuntimeLogger;
   private ConversationPersistenceManager persistenceManager;
   private TodoListService todoListService;
+  private ChatFontService chatFontService;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -47,6 +48,7 @@ public class ChatServiceManager implements IChatServiceManager {
     mcpExtensionPointManager = new McpExtensionPointManager(mcpConfigService);
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
+    chatFontService = new ChatFontService();
   }
 
   /**
@@ -166,6 +168,15 @@ public class ChatServiceManager implements IChatServiceManager {
   }
 
   /**
+   * Get the chat font service.
+   *
+   * @return the chat font service
+   */
+  public ChatFontService getChatFontService() {
+    return chatFontService;
+  }
+
+  /**
    * Dispose of the chat services.
    */
   public void dispose() {
@@ -181,6 +192,9 @@ public class ChatServiceManager implements IChatServiceManager {
     }
     if (this.todoListService != null) {
       this.todoListService.dispose();
+    }
+    if (this.chatFontService != null) {
+      this.chatFontService.dispose();
     }
   }
 }

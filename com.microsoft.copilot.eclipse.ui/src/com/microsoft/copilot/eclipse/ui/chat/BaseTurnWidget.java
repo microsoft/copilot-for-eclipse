@@ -63,6 +63,8 @@ public abstract class BaseTurnWidget extends Composite {
 
   // Event handling
   protected EventHandler cancelMsgEventHandler;
+  protected Runnable roleNameFontChangeCallback;
+  protected Label roleNameLabel;
 
   /**
    * Create the widget.
@@ -137,19 +139,42 @@ public abstract class BaseTurnWidget extends Composite {
     Label lblAvatar = createAvatarLabel(cmpTitle);
     lblAvatar.setImage(icon);
 
-    Label lblRoleName = new Label(cmpTitle, SWT.NONE);
+    roleNameLabel = new Label(cmpTitle, SWT.NONE);
     String name = overrideRoleName != null ? overrideRoleName : getRoleName();
-    lblRoleName.setText(name);
-    if (this.boldFont == null) {
-      this.boldFont = UiUtils.getBoldFont(this.getDisplay(), lblRoleName.getFont());
-    }
+    roleNameLabel.setText(name);
     GridData roleNameGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     roleNameGridData.horizontalIndent = 0;
-    lblRoleName.setLayoutData(roleNameGridData);
-    lblRoleName.setFont(this.boldFont);
-    lblRoleName.addDisposeListener(e -> {
-      this.boldFont.dispose();
+    roleNameLabel.setLayoutData(roleNameGridData);
+
+    // Register for chat font updates via centralized service with callback for bold font
+    roleNameFontChangeCallback = this::applyRoleNameFont;
+    serviceManager.getChatFontService().registerCallback(roleNameFontChangeCallback);
+
+    roleNameLabel.addDisposeListener(e -> {
+      if (this.boldFont != null) {
+        this.boldFont.dispose();
+      }
+      if (roleNameFontChangeCallback != null) {
+        serviceManager.getChatFontService().unregisterCallback(roleNameFontChangeCallback);
+      }
     });
+  }
+
+  /**
+   * Apply the chat font (bold) to the role name label.
+   */
+  private void applyRoleNameFont() {
+    if (roleNameLabel == null || roleNameLabel.isDisposed()) {
+      return;
+    }
+    // Dispose old font if exists
+    if (this.boldFont != null) {
+      this.boldFont.dispose();
+    }
+    // Create bold version of the chat font (or fallback font)
+    this.boldFont = UiUtils.getBoldChatFont(this.getDisplay(), roleNameLabel.getFont());
+    roleNameLabel.setFont(this.boldFont);
+    roleNameLabel.requestLayout();
   }
 
   /**

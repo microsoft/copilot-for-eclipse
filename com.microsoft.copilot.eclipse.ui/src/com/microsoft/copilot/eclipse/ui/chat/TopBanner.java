@@ -19,6 +19,7 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -64,6 +65,7 @@ public class TopBanner extends Composite {
 
     this.chatTitle = new CLabel(this, SWT.NONE);
     this.chatTitle.setText(Messages.chat_topBanner_defaultChatTitle);
+    registerControlForFontUpdates(this.chatTitle);
 
     GridData labelGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     labelGridData.horizontalIndent = 10;
@@ -151,5 +153,17 @@ public class TopBanner extends Composite {
     }
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.post(CopilotEventConstants.TOPIC_CHAT_NEW_CONVERSATION, null);
+  }
+
+  /**
+   * Registers a control for chat font updates via the centralized ChatFontService.
+   *
+   * @param control the control to register
+   */
+  private void registerControlForFontUpdates(org.eclipse.swt.widgets.Control control) {
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(control);
+    }
   }
 }

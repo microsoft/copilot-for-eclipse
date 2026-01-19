@@ -24,7 +24,11 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ScrollBar;
+import org.eclipse.ui.IPartListener2;
+import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.contexts.IContextActivation;
+import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.part.ViewPart;
 import org.osgi.service.event.EventHandler;
 
@@ -116,6 +120,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler historyConversationSelectedHandler;
   private EventHandler conversationTitleUpdatedHandler;
   private EventHandler codingAgentMessageHandler;
+
+  // Context activation for chat view keyboard shortcuts
+  private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
+  private IContextActivation chatViewContextActivation;
+  private IPartListener2 partListener;
 
   @Override
   public void createPartControl(Composite parent) {
@@ -302,6 +311,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CODING_AGENT_MESSAGE, this.codingAgentMessageHandler);
+
+    // Register part listener to activate/deactivate chat view context for keyboard shortcuts
+    registerPartListener();
   }
 
   /**
@@ -322,6 +334,87 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         buildViewFor(authStatus);
       }
     }, parent);
+  }
+
+  /**
+   * Register a part listener to activate/deactivate the chat view context when the view is focused/unfocused. This
+   * enables keyboard shortcuts that are scoped to the chat view.
+   */
+  private void registerPartListener() {
+    this.partListener = new IPartListener2() {
+      @Override
+      public void partActivated(IWorkbenchPartReference partRef) {
+        if (partRef.getPart(false) == ChatView.this) {
+          activateChatViewContext();
+        }
+      }
+
+      @Override
+      public void partDeactivated(IWorkbenchPartReference partRef) {
+        if (partRef.getPart(false) == ChatView.this) {
+          deactivateChatViewContext();
+        }
+      }
+
+      @Override
+      public void partBroughtToTop(IWorkbenchPartReference partRef) {
+        // No action needed
+      }
+
+      @Override
+      public void partClosed(IWorkbenchPartReference partRef) {
+        // No action needed
+      }
+
+      @Override
+      public void partHidden(IWorkbenchPartReference partRef) {
+        // No action needed
+      }
+
+      @Override
+      public void partInputChanged(IWorkbenchPartReference partRef) {
+        // No action needed
+      }
+
+      @Override
+      public void partOpened(IWorkbenchPartReference partRef) {
+        // No action needed
+      }
+
+      @Override
+      public void partVisible(IWorkbenchPartReference partRef) {
+        // No action needed
+      }
+    };
+
+    if (getSite() != null && getSite().getPage() != null) {
+      getSite().getPage().addPartListener(this.partListener);
+    }
+  }
+
+  /**
+   * Activate the chat view context for keyboard shortcuts.
+   */
+  private void activateChatViewContext() {
+    if (chatViewContextActivation == null) {
+      IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
+      if (contextService != null) {
+        chatViewContextActivation = contextService.activateContext(CHAT_VIEW_CONTEXT);
+      }
+    }
+  }
+
+  /**
+   * Deactivate the chat view context.
+   */
+  private void deactivateChatViewContext() {
+    if (chatViewContextActivation != null) {
+      IContextService contextService = PlatformUI.getWorkbench().getService(IContextService.class);
+      if (contextService != null) {
+        contextService.deactivateContext(chatViewContextActivation);
+      }
+      chatViewContextActivation = null;
+    }
   }
 
   /**
@@ -1170,6 +1263,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       dragReferenceManager.dispose();
       dragReferenceManager = null;
     }
+
+    // Clean up part listener and context activation
+    if (this.partListener != null && getSite() != null && getSite().getPage() != null) {
+      getSite().getPage().removePartListener(this.partListener);
+      this.partListener = null;
+    }
+    deactivateChatViewContext();
+
     super.dispose();
   }
 

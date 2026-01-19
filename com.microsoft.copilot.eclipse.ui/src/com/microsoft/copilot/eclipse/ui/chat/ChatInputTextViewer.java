@@ -139,6 +139,21 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
 
     // Configure undo manager to enable undo/redo functionality (Ctrl+Z/Ctrl+Y)
     this.configureUndoManager();
+
+    // Register callback for chat font updates - set font and refresh layout when font changes
+    Runnable fontChangeCallback = () -> {
+      StyledText textWidget = this.getTextWidget();
+      if (textWidget != null && !textWidget.isDisposed()) {
+        UiUtils.applyChatFont(textWidget);
+        refreshHeightLayout();
+      }
+    };
+    this.chatServiceManager.getChatFontService().registerCallback(fontChangeCallback);
+
+    // Unregister callback on dispose
+    tvw.addDisposeListener(e -> {
+      this.chatServiceManager.getChatFontService().unregisterCallback(fontChangeCallback);
+    });
   }
 
   private void clearFormat(int start, int end) {

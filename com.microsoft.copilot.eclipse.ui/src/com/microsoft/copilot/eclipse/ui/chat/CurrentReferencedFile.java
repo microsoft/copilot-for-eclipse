@@ -56,6 +56,7 @@ public class CurrentReferencedFile extends ReferencedFile {
     selectionLabel.moveAbove(lblClose);
     selectionLabel.setData(CssConstants.CSS_CLASS_NAME_KEY, "text-secondary");
     selectionLabel.setVisible(false);
+    registerControlForFontUpdates(selectionLabel);
 
     descriptionLabel = new Label(this, SWT.NONE);
     descriptionLabel.setText(Messages.chat_currentReferencedFile_description);
@@ -64,6 +65,7 @@ public class CurrentReferencedFile extends ReferencedFile {
     descriptionLabel.setLayoutData(descData);
     descriptionLabel.moveAbove(lblClose);
     descriptionLabel.setData(CssConstants.CSS_CLASS_NAME_KEY, "text-secondary");
+    registerControlForFontUpdates(descriptionLabel);
 
     // Add spacing to close button to match default spacing
     GridData closeData = new GridData(SWT.FILL, SWT.CENTER, false, false);

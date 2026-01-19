@@ -64,6 +64,12 @@ public class AddContextButton extends Composite {
     lblButtonText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
     lblButtonText.setText("Add Context...");
 
+    // Register for chat font updates via centralized service
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(lblButtonText);
+    }
+
     MouseAdapter clickListener = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {

@@ -33,6 +33,7 @@ import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.resource.FontRegistry;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.ITextViewerExtension5;
@@ -55,6 +56,7 @@ import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Widget;
 import org.eclipse.ui.IEditorInput;
@@ -425,6 +427,51 @@ public class UiUtils {
   }
 
   /**
+   * Font ID for the Copilot Chat view font.
+   */
+  public static final String CHAT_FONT_ID = "com.microsoft.copilot.eclipse.ui.chat.font";
+
+  /**
+   * Returns the font for the Copilot Chat view from the theme.
+   *
+   * @return the chat view font, or null if not available
+   */
+  @Nullable
+  public static Font getChatFont() {
+    try {
+      return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getFontRegistry().get(CHAT_FONT_ID);
+    } catch (NullPointerException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Returns the font registry from the current theme, or null if not available.
+   *
+   * @return the font registry, or null if not available
+   */
+  @Nullable
+  public static FontRegistry getThemeFontRegistry() {
+    try {
+      return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getFontRegistry();
+    } catch (NullPointerException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Applies the chat font to the given control.
+   *
+   * @param control the control to apply the font to
+   */
+  public static void applyChatFont(Control control) {
+    Font chatFont = getChatFont();
+    if (chatFont != null && control != null && !control.isDisposed()) {
+      control.setFont(chatFont);
+    }
+  }
+
+  /**
    * Returns true if Eclipse is currently using a dark theme.
    *
    * @return true if dark theme is active, false otherwise
@@ -523,6 +570,23 @@ public class UiUtils {
       fontData[i].setStyle(SWT.BOLD);
     }
     return new Font(display, fontData);
+  }
+
+  /**
+   * Returns a bold version of the chat font for the Copilot Chat view.
+   * Falls back to a bold version of the provided fallback font if chat font is not available.
+   * The caller is responsible for disposing the returned font.
+   *
+   * @param display the display to create the font on
+   * @param fallbackFont the font to use if chat font is not available
+   * @return a new bold Font (caller must dispose)
+   */
+  public static Font getBoldChatFont(Display display, Font fallbackFont) {
+    Font baseFont = getChatFont();
+    if (baseFont == null) {
+      baseFont = fallbackFont;
+    }
+    return getBoldFont(display, baseFont);
   }
 
   /**

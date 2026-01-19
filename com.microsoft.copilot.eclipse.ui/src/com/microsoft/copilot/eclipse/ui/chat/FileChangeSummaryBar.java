@@ -14,7 +14,6 @@ import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -28,6 +27,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -39,6 +39,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class FileChangeSummaryBar extends Composite {
   private FileToolService fileToolService;
+  private ChatFontService chatFontService;
   private IStylingEngine stylingEngine;
 
   private FileChangeSummaryTitleBar titleBar;
@@ -57,6 +58,7 @@ public class FileChangeSummaryBar extends Composite {
     super(parent, style | SWT.BORDER);
     this.parent = parent;
     this.fileToolService = CopilotUi.getPlugin().getChatServiceManager().getFileToolService();
+    this.chatFontService = CopilotUi.getPlugin().getChatServiceManager().getChatFontService();
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
   }
 
@@ -188,6 +190,7 @@ public class FileChangeSummaryBar extends Composite {
       GridData labelGridData = new GridData(SWT.BEGINNING, SWT.CENTER, true, false);
       titleLabel.setLayoutData(labelGridData);
       titleLabel.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+      chatFontService.registerControl(titleLabel);
 
       // Initialize icon and tooltips
       updateExpandCollapseState();
@@ -273,6 +276,7 @@ public class FileChangeSummaryBar extends Composite {
           fileToolService.onKeepAllChanges();
         }
       });
+      chatFontService.registerControl(keepButton);
 
       // Create the "Undo" button
       undoButton = new Button(this, SWT.PUSH | SWT.FLAT);
@@ -285,6 +289,7 @@ public class FileChangeSummaryBar extends Composite {
           fileToolService.onUndoAllChanges();
         }
       });
+      chatFontService.registerControl(undoButton);
 
       parent.requestLayout();
     }
@@ -435,14 +440,26 @@ public class FileChangeSummaryBar extends Composite {
         }
       });
 
-      // Make font bold
-      FontData[] fontData = nameLabel.getFont().getFontData();
-      for (FontData fd : fontData) {
-        fd.setStyle(SWT.BOLD);
-      }
-      Font boldFont = new Font(getDisplay(), fontData);
-      nameLabel.setFont(boldFont);
-      nameLabel.addDisposeListener(e -> boldFont.dispose());
+      // Make font bold and register for font changes
+      final Font[] boldFontHolder = new Font[1];
+      Runnable applyBoldFont = () -> {
+        if (nameLabel.isDisposed()) {
+          return;
+        }
+        if (boldFontHolder[0] != null && !boldFontHolder[0].isDisposed()) {
+          boldFontHolder[0].dispose();
+        }
+        boldFontHolder[0] = UiUtils.getBoldChatFont(getDisplay(), nameLabel.getFont());
+        nameLabel.setFont(boldFontHolder[0]);
+        nameLabel.requestLayout();
+      };
+      chatFontService.registerCallback(applyBoldFont);
+      nameLabel.addDisposeListener(e -> {
+        chatFontService.unregisterCallback(applyBoldFont);
+        if (boldFontHolder[0] != null && !boldFontHolder[0].isDisposed()) {
+          boldFontHolder[0].dispose();
+        }
+      });
 
       // File path
       CLabel pathLabel = new CLabel(fileInfo, SWT.NONE);
@@ -454,6 +471,7 @@ public class FileChangeSummaryBar extends Composite {
           fileToolService.onViewDiff(file);
         }
       });
+      chatFontService.registerControl(pathLabel);
 
       // Actions section (right)
       actionsArea = new Composite(this, SWT.NONE);

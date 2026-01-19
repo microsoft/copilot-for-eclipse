@@ -18,6 +18,7 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -38,6 +39,9 @@ public class InvokeToolConfirmationDialog extends Composite {
   private static final String COMMAND_KEY = "command";
   private CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture;
   private String cancelMessage;
+  private Label titleLbl;
+  private Font boldFont;
+  private Runnable titleFontChangeCallback;
 
   /**
    * Create a new confirmation dialog for tool execution.
@@ -59,13 +63,24 @@ public class InvokeToolConfirmationDialog extends Composite {
 
   private void createDialogContent(String title, String message, Object input) {
     // Title of the confirmation dialog
-    Label titleLbl = new Label(this, SWT.LEFT | SWT.WRAP);
+    titleLbl = new Label(this, SWT.LEFT | SWT.WRAP);
     titleLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     titleLbl.setText(title);
-    Font boldFont = UiUtils.getBoldFont(this.getDisplay(), titleLbl.getFont());
-    titleLbl.setFont(boldFont);
+
+    // Register for chat font updates via centralized service with callback for bold font
+    titleFontChangeCallback = this::applyTitleFont;
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerCallback(titleFontChangeCallback);
+    }
+
     titleLbl.addDisposeListener(e -> {
-      boldFont.dispose();
+      if (this.boldFont != null) {
+        this.boldFont.dispose();
+      }
+      if (titleFontChangeCallback != null && chatServiceManager != null) {
+        chatServiceManager.getChatFontService().unregisterCallback(titleFontChangeCallback);
+      }
     });
 
     // Confirmation message of the confirmation dialog
@@ -73,6 +88,8 @@ public class InvokeToolConfirmationDialog extends Composite {
     GridData messageGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
     messageLbl.setLayoutData(messageGridData);
     messageLbl.setText(message);
+    registerControlForFontUpdates(messageLbl);
+
     // More information about the tool invocation
     if (input != null) {
       // TODO: Improve the logic to show more information about the tool invocation when confirm with users. The
@@ -93,6 +110,7 @@ public class InvokeToolConfirmationDialog extends Composite {
         commandLbl.setText(escapedCommand);
         commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
         this.cancelMessage = escapedCommand;
+        registerControlForFontUpdates(commandLbl);
 
         commandScroll.setContent(commandLbl);
         commandScroll.addControlListener(new ControlAdapter() {
@@ -113,6 +131,7 @@ public class InvokeToolConfirmationDialog extends Composite {
         Label explanationLbl = new Label(this, SWT.LEFT | SWT.WRAP);
         explanationLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
         explanationLbl.setText((String) inputMap.get(EXPLANATION_KEY));
+        registerControlForFontUpdates(explanationLbl);
       }
     }
 
@@ -145,6 +164,7 @@ public class InvokeToolConfirmationDialog extends Composite {
       }
     });
     continueButton.setData(CssConstants.CSS_CLASS_NAME_KEY, "btn-primary");
+    registerControlForFontUpdates(continueButton);
 
     Button cancelButton = new Button(actionArea, SWT.PUSH);
     cancelButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
@@ -152,6 +172,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     cancelButton.addListener(SWT.Selection, e -> {
       cancelConfirmation();
     });
+    registerControlForFontUpdates(cancelButton);
   }
 
   /**
@@ -184,6 +205,35 @@ public class InvokeToolConfirmationDialog extends Composite {
           parent.layout();
         }
       }, this);
+    }
+  }
+
+  /**
+   * Apply the chat font (bold) to the title label.
+   */
+  private void applyTitleFont() {
+    if (titleLbl == null || titleLbl.isDisposed()) {
+      return;
+    }
+    // Dispose old font if exists
+    if (this.boldFont != null) {
+      this.boldFont.dispose();
+    }
+    // Create bold version of the chat font (or fallback font)
+    this.boldFont = UiUtils.getBoldChatFont(this.getDisplay(), titleLbl.getFont());
+    titleLbl.setFont(this.boldFont);
+    titleLbl.requestLayout();
+  }
+
+  /**
+   * Registers a control for chat font updates via the centralized ChatFontService.
+   *
+   * @param control the control to register
+   */
+  private void registerControlForFontUpdates(org.eclipse.swt.widgets.Control control) {
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(control);
     }
   }
 }

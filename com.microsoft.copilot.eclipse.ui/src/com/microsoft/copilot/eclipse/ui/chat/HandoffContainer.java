@@ -17,6 +17,7 @@ import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode.HandOff;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 
@@ -25,6 +26,7 @@ import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
  */
 public class HandoffContainer extends Composite {
   private ChatServiceManager chatServiceManager;
+  private ChatFontService chatFontService;
   private ActionBar actionBar;
   private ChatView chatView;
   private List<HandoffButtonWidget> handoffButtons = new ArrayList<>();
@@ -41,6 +43,7 @@ public class HandoffContainer extends Composite {
       ChatView chatView) {
     super(parent, SWT.NONE);
     this.chatServiceManager = chatServiceManager;
+    this.chatFontService = chatServiceManager.getChatFontService();
     this.actionBar = actionBar;
     this.chatView = chatView;
 
@@ -106,6 +109,11 @@ public class HandoffContainer extends Composite {
       labelData.horizontalIndent = 0;
       handoffLabel.setLayoutData(labelData);
 
+      // Register label for font updates
+      if (chatFontService != null) {
+        chatFontService.registerControl(handoffLabel);
+      }
+
       // Create buttons container with RowLayout for horizontal wrapping
       RowLayout rowLayout = new RowLayout(SWT.HORIZONTAL);
       rowLayout.wrap = true;
@@ -121,7 +129,8 @@ public class HandoffContainer extends Composite {
 
       // Create handoff buttons in the buttons container
       for (HandOff handoff : handoffs) {
-        HandoffButtonWidget button = new HandoffButtonWidget(buttonsContainer, handoff, chatServiceManager, actionBar);
+        HandoffButtonWidget button = new HandoffButtonWidget(buttonsContainer, handoff, chatServiceManager,
+            chatFontService, actionBar);
         handoffButtons.add(button);
       }
 

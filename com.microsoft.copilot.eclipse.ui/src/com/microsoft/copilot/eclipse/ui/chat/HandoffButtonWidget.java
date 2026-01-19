@@ -11,6 +11,7 @@ import org.eclipse.swt.widgets.MessageBox;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode.HandOff;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 
 /**
@@ -20,6 +21,7 @@ public class HandoffButtonWidget extends Composite {
   private Label lblButtonText;
   private HandOff handoff;
   private ChatServiceManager chatServiceManager;
+  private ChatFontService chatFontService;
   private ActionBar actionBar;
 
   /**
@@ -28,13 +30,15 @@ public class HandoffButtonWidget extends Composite {
    * @param parent the parent composite
    * @param handoff the handoff configuration
    * @param chatServiceManager the chat service manager
+   * @param chatFontService the chat font service for font updates
    * @param actionBar the action bar
    */
   public HandoffButtonWidget(Composite parent, HandOff handoff, ChatServiceManager chatServiceManager,
-      ActionBar actionBar) {
+      ChatFontService chatFontService, ActionBar actionBar) {
     super(parent, SWT.BORDER);
     this.handoff = handoff;
     this.chatServiceManager = chatServiceManager;
+    this.chatFontService = chatFontService;
     this.actionBar = actionBar;
 
     createWidget();
@@ -50,6 +54,11 @@ public class HandoffButtonWidget extends Composite {
     lblButtonText = new Label(this, SWT.NONE);
     lblButtonText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
     lblButtonText.setText(handoff.getLabel());
+
+    // Register for font updates
+    if (chatFontService != null) {
+      chatFontService.registerControl(lblButtonText);
+    }
 
     MouseAdapter clickListener = new MouseAdapter() {
       @Override

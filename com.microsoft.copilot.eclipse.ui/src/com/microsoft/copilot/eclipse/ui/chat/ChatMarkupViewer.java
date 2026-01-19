@@ -13,6 +13,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Composite;
 
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+
 class ChatMarkupViewer extends MarkupViewer {
 
   public ChatMarkupViewer(Composite parent, int styles) {
@@ -28,6 +30,12 @@ class ChatMarkupViewer extends MarkupViewer {
     // TODO: set hyperlink color based on theme
     MultipleHyperlinkPresenter hyperlinkPresenter = new MultipleHyperlinkPresenter((RGB) null);
     this.setHyperlinkPresenter(hyperlinkPresenter);
+
+    // Register for chat font updates via centralized service
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(getTextWidget());
+    }
   }
 
   // MarkupViewer will write errors when failed to parse the markup, which will send the error to the Copilot.
