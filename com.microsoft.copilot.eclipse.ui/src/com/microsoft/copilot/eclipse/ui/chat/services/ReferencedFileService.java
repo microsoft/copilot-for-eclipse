@@ -77,7 +77,14 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     this.selectionListener = new ISelectionChangedListener() {
       @Override
       public void selectionChanged(SelectionChangedEvent event) {
-        updateCurrentSelection(event.getSelection());
+        // Use currentTrackedEditor instead of getActiveEditor() to ensure we use the correct
+        // document for this selection event (the active editor may have already changed)
+        if (currentTrackedEditor != null) {
+          IDocument document = LSPEclipseUtils.getDocument(currentTrackedEditor);
+          updateCurrentSelection(event.getSelection(), document);
+        } else {
+          ensureRealm(() -> currentSelectionObservable.setValue(null));
+        }
       }
     };
     this.listener = new IPartListener2() {
@@ -344,36 +351,23 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       ensureRealm(() -> currentSelectionObservable.setValue(null));
       return;
     }
-    updateCurrentSelection(textEditor.getSelectionProvider().getSelection());
+    IDocument document = LSPEclipseUtils.getDocument(textEditor);
+    updateCurrentSelection(textEditor.getSelectionProvider().getSelection(), document);
   }
 
-  private void updateCurrentSelection(ISelection selection) {
+  private void updateCurrentSelection(ISelection selection, IDocument document) {
     if (!(selection instanceof ITextSelection textSelection) || textSelection.isEmpty()) {
       ensureRealm(() -> currentSelectionObservable.setValue(null));
       return;
     }
 
-    IEditorPart activeEditor = UiUtils.getActiveEditor();
-    if (activeEditor == null) {
-      ensureRealm(() -> currentSelectionObservable.setValue(null));
-      return;
-    }
-
-    ITextEditor textEditor = activeEditor.getAdapter(ITextEditor.class);
-    if (textEditor == null) {
+    if (document == null) {
       ensureRealm(() -> currentSelectionObservable.setValue(null));
       return;
     }
 
     try {
-      IDocument document = LSPEclipseUtils.getDocument(textEditor);
-      if (document == null) {
-        ensureRealm(() -> currentSelectionObservable.setValue(null));
-        return;
-      }
-
       Range range = convertTextSelectionToRange(textSelection, document);
-
       ensureRealm(() -> currentSelectionObservable.setValue(range));
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to update current selection", e);
