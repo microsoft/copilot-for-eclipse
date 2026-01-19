@@ -11,11 +11,14 @@ import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -30,8 +33,10 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextActivation;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.part.ViewPart;
+import org.osgi.framework.Bundle;
 import org.osgi.service.event.EventHandler;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
@@ -68,6 +73,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AfterLoginWelcomeViewer;
@@ -110,6 +116,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private ChatHistoryViewer chatHistoryViewer;
   private boolean isChatHistoryVisible = false;
 
+  // Auto breakpoint response handler
+  private DebugEventAutoResponseHandler debugEventHandler;
+
   // Event handlers for cleanup
   private EventHandler chatOnSendHandler;
   private EventHandler chatMessageSendHandler;
@@ -120,6 +129,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler historyConversationSelectedHandler;
   private EventHandler conversationTitleUpdatedHandler;
   private EventHandler codingAgentMessageHandler;
+  private EventHandler autoBreakpointToggleHandler;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
@@ -312,6 +322,22 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CODING_AGENT_MESSAGE, this.codingAgentMessageHandler);
 
+    this.autoBreakpointToggleHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (data instanceof Map<?, ?> map) {
+        Boolean enabled = (Boolean) map.get("enabled");
+        if (enabled != null) {
+          if (enabled) {
+            enableAutoBreakpointResponse();
+          } else {
+            disableAutoBreakpointResponse();
+          }
+        }
+      }
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_AUTO_BREAKPOINT_TOGGLE,
+        this.autoBreakpointToggleHandler);
+
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
   }
@@ -334,6 +360,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         buildViewFor(authStatus);
       }
     }, parent);
+
+    // Initialize auto breakpoint response handler if preference is already enabled
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+    if (preferenceStore.getBoolean(Constants.AUTO_BREAKPOINT_RESPONSE)) {
+      enableAutoBreakpointResponse();
+    }
   }
 
   /**
@@ -1146,6 +1178,48 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
+   * Enable auto breakpoint response by creating and registering the handler.
+   */
+  private void enableAutoBreakpointResponse() {
+    if (this.chatServiceManager == null) {
+      return;
+    }
+
+    // Check if debug bundles are available
+    if (!isDebugCoreAvailable()) {
+      return;
+    }
+
+    // Create handler if not already created
+    if (this.debugEventHandler == null) {
+      this.debugEventHandler = new DebugEventAutoResponseHandler(
+          this.chatServiceManager.getAgentToolService());
+    }
+
+    // Register with debug plugin
+    DebugPlugin.getDefault().addDebugEventListener(this.debugEventHandler);
+  }
+
+  /**
+   * Disable auto breakpoint response by unregistering the handler.
+   */
+  private void disableAutoBreakpointResponse() {
+    if (this.debugEventHandler != null && isDebugCoreAvailable()) {
+      DebugPlugin.getDefault().removeDebugEventListener(this.debugEventHandler);
+      this.debugEventHandler = null;
+    }
+  }
+
+  /**
+   * Check if debug core bundle is available.
+   *
+   * @return true if org.eclipse.debug.core bundle is present
+   */
+  private boolean isDebugCoreAvailable() {
+    return com.microsoft.copilot.eclipse.core.utils.JdtUtils.isDebugCoreAvailable();
+  }
+
+  /**
    * Dispose the view.
    */
   @Override
@@ -1195,6 +1269,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (codingAgentMessageHandler != null) {
         this.eventBroker.unsubscribe(this.codingAgentMessageHandler);
         codingAgentMessageHandler = null;
+      }
+      if (autoBreakpointToggleHandler != null) {
+        this.eventBroker.unsubscribe(this.autoBreakpointToggleHandler);
+        autoBreakpointToggleHandler = null;
       }
     }
 
@@ -1263,6 +1341,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       dragReferenceManager.dispose();
       dragReferenceManager = null;
     }
+    // Unregister debug event handler if active
+    disableAutoBreakpointResponse();
 
     // Clean up part listener and context activation
     if (this.partListener != null && getSite() != null && getSite().getPage() != null) {

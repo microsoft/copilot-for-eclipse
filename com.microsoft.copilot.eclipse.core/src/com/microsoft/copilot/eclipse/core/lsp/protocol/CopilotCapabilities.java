@@ -4,6 +4,9 @@ import java.util.Objects;
 
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
+import com.microsoft.copilot.eclipse.core.utils.JdtUtils;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+
 /**
  * Copilot Capabilities of the Copilot language server.
  */
@@ -20,6 +23,8 @@ public class CopilotCapabilities {
 
   private boolean cveRemediatorAgent;
 
+  private boolean debuggerAgent;
+
   /**
    * Creates a new CopilotCapabilities.
    */
@@ -27,6 +32,7 @@ public class CopilotCapabilities {
     this.didChangeFeatureFlags = true;
     this.stateDatabase = true;
     this.cveRemediatorAgent = true;
+    this.debuggerAgent = JdtUtils.isJdtDebugAvailable() && PlatformUtils.isNightly();
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
     this.subAgent = subAgent;
@@ -72,6 +78,14 @@ public class CopilotCapabilities {
     this.cveRemediatorAgent = cveRemediatorAgent;
   }
 
+  public boolean isDebuggerAgent() {
+    return debuggerAgent;
+  }
+
+  public void setDebuggerAgent(boolean debuggerAgent) {
+    this.debuggerAgent = debuggerAgent;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -81,12 +95,14 @@ public class CopilotCapabilities {
     builder.add("stateDatabase", stateDatabase);
     builder.add("subAgent", subAgent);
     builder.add("cveRemediatorAgent", cveRemediatorAgent);
+    builder.add("debuggerAgent", debuggerAgent);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(cveRemediatorAgent, didChangeFeatureFlags, fetch, stateDatabase, subAgent, watchedFiles);
+    return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, fetch, stateDatabase, subAgent,
+        watchedFiles);
   }
 
   @Override
@@ -98,8 +114,8 @@ public class CopilotCapabilities {
       return false;
     }
     CopilotCapabilities other = (CopilotCapabilities) obj;
-    return cveRemediatorAgent == other.cveRemediatorAgent && didChangeFeatureFlags == other.didChangeFeatureFlags
-        && fetch == other.fetch && stateDatabase == other.stateDatabase && subAgent == other.subAgent
-        && watchedFiles == other.watchedFiles;
+    return cveRemediatorAgent == other.cveRemediatorAgent && debuggerAgent == other.debuggerAgent
+        && didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
+        && stateDatabase == other.stateDatabase && subAgent == other.subAgent && watchedFiles == other.watchedFiles;
   }
 }

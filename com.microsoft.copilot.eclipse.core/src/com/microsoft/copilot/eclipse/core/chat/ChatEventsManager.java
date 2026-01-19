@@ -79,6 +79,10 @@ public class ChatEventsManager {
    */
   public CompletableFuture<LanguageModelToolConfirmationResult> confirmAgentToolInvocation(
       InvokeClientToolConfirmationParams params) {
+    if (this.agentToolListener == null) {
+      return CompletableFuture.failedFuture(
+          new IllegalStateException("No agent tool listener registered"));
+    }
     return this.agentToolListener.onToolConfirmation(params);
   }
 
@@ -88,6 +92,10 @@ public class ChatEventsManager {
    * @param params the parameters for the tool invocation
    */
   public CompletableFuture<LanguageModelToolResult[]> invokeAgentTool(InvokeClientToolParams params) {
+    if (this.agentToolListener == null) {
+      return CompletableFuture.failedFuture(
+          new IllegalStateException("No agent tool listener registered"));
+    }
     return this.agentToolListener.onToolInvocation(params);
   }
 }

@@ -18,7 +18,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 public class BuiltInChatModeService {
 
   private static final List<String> ALLOWED_BUILTIN_NAMES = Arrays.asList(BuiltInChatMode.ASK_MODE_NAME,
-      BuiltInChatMode.AGENT_MODE_NAME, BuiltInChatMode.PLAN_MODE_NAME);
+      BuiltInChatMode.AGENT_MODE_NAME, BuiltInChatMode.PLAN_MODE_NAME, BuiltInChatMode.DEBUGGER_MODE_NAME);
 
   /**
    * Loads built-in modes from the LSP API. Only modes with names in ALLOWED_BUILTIN_NAMES are returned.

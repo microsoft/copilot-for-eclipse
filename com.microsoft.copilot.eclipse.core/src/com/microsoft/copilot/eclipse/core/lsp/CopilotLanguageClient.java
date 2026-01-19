@@ -49,6 +49,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
@@ -129,12 +130,24 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public CompletableFuture<Object> invokeClientTool(InvokeClientToolParams params) {
     return CompletableFuture.supplyAsync(() -> {
       try {
-        LanguageModelToolResult[] toolResult = CopilotCore.getPlugin().getChatEventsManager().invokeAgentTool(params)
-            .get();
+        CompletableFuture<LanguageModelToolResult[]> toolFuture =
+            CopilotCore.getPlugin().getChatEventsManager().invokeAgentTool(params);
+        if (toolFuture == null) {
+          CopilotCore.LOGGER.error(
+              new IllegalStateException("invokeAgentTool returned null for tool: " + params.getName()));
+          LanguageModelToolResult errorResult = new LanguageModelToolResult();
+          errorResult.addContent("Failed to invoke the tool: tool invocation returned null");
+          errorResult.setStatus(ToolInvocationStatus.error);
+          return new LanguageModelToolResult[] { errorResult };
+        }
+        LanguageModelToolResult[] toolResult = toolFuture.get();
         return toolResult;
       } catch (InterruptedException | ExecutionException e) {
         CopilotCore.LOGGER.error(e);
-        return new String[] { "Failed to invoke the tool due to exception: " + e.getMessage() };
+        LanguageModelToolResult errorResult = new LanguageModelToolResult();
+        errorResult.addContent("Failed to invoke the tool due to exception: " + e.getMessage());
+        errorResult.setStatus(ToolInvocationStatus.error);
+        return new LanguageModelToolResult[] { errorResult };
       }
     });
   }

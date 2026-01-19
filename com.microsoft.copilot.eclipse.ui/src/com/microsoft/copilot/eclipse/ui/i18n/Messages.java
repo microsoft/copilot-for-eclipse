@@ -139,6 +139,9 @@ public final class Messages extends NLS {
   public static String chat_actionBar_toolButton_disabled_toolTip;
   public static String chat_actionBar_modelPicker_manageModels;
   public static String chat_actionBar_toolButton_detected_toolTip;
+  public static String chat_actionBar_autoBreakpointButton_enabled_Tooltip;
+  public static String chat_actionBar_autoBreakpointButton_disabled_Tooltip;
+  public static String chat_actionBar_autoBreakpointButton_accessibilityName;
   public static String chat_welcomeView_title;
   public static String chat_welcomeView_description;
   public static String chat_welcomeView_agentSuffix;

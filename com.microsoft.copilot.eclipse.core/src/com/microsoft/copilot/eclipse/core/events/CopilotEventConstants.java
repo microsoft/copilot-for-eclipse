@@ -94,6 +94,11 @@ public class CopilotEventConstants {
   public static final String TOPIC_CHAT_MODE_CHANGED = TOPIC_CHAT + "MODE_CHANGED";
 
   /**
+   * Event when the auto breakpoint response toggle is changed.
+   */
+  public static final String TOPIC_CHAT_AUTO_BREAKPOINT_TOGGLE = TOPIC_CHAT + "AUTO_BREAKPOINT_TOGGLE";
+
+  /**
    * Event when the chat history visibility is toggled to hide chat history.
    */
   public static final String TOPIC_CHAT_HIDE_CHAT_HISTORY = TOPIC_CHAT + "HIDE_CHAT_HISTORY";

@@ -21,6 +21,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextListener;
@@ -54,6 +55,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.event.EventHandler;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
@@ -71,6 +73,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
+import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
 import com.microsoft.copilot.eclipse.ui.dialogs.jobs.GitHubCodingAgentDialog;
 import com.microsoft.copilot.eclipse.ui.dialogs.jobs.ProjectSelectionDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -106,6 +109,9 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Button sendToJobButton;
   private Image sendToJobImage;
   private Image sendToJobDisabledImage;
+  private Button autoBreakpointButton;
+  private Image autoBreakpointImage;
+  private Image autoBreakpointDisabledImage;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
@@ -138,6 +144,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     this.updateMcpToolButtonAndPlaceHolderHandler = event -> {
       updateMcpToolButtonVisibility();
+      updateAutoBreakpointButtonVisibility();
       refreshPlaceholder();
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, updateMcpToolButtonAndPlaceHolderHandler);
@@ -270,13 +277,14 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
     Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
-    GridLayout glControlBar = new GridLayout(3, false);
+    GridLayout glControlBar = new GridLayout(4, false);
     glControlBar.marginWidth = 0;
     glControlBar.marginLeft = 0;
     cmpControlBar.setLayout(glControlBar);
     cmpControlBar.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, true, false));
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
+    setUpAutoBreakpointButtonInControlBar(cmpControlBar);
     setUpMcpToolButtonInControlBar(cmpControlBar);
 
     // Create a composite for the bottom-right side buttons
@@ -538,6 +546,56 @@ public class ActionBar extends Composite implements NewConversationListener {
     updateMcpToolButtonVisibility();
   }
 
+  private void setUpAutoBreakpointButtonInControlBar(Composite parent) {
+    if (autoBreakpointImage == null || autoBreakpointImage.isDisposed()) {
+      autoBreakpointImage = UiUtils.buildImageFromPngPath("/icons/chat/breakpoint_auto.png");
+    }
+    if (autoBreakpointDisabledImage == null || autoBreakpointDisabledImage.isDisposed()) {
+      autoBreakpointDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/breakpoint_auto_disabled.png");
+    }
+
+    this.autoBreakpointButton = UiUtils.createIconButton(parent, SWT.CHECK | SWT.FLAT);
+
+    GridData autoBreakpointGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+    autoBreakpointGd.widthHint = autoBreakpointImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
+    autoBreakpointGd.heightHint = autoBreakpointImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
+    this.autoBreakpointButton.setLayoutData(autoBreakpointGd);
+
+    // Get initial state from preferences
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+    boolean autoResponseEnabled = preferenceStore.getBoolean(Constants.AUTO_BREAKPOINT_RESPONSE);
+    this.autoBreakpointButton.setSelection(autoResponseEnabled);
+
+    // Update image and tooltip based on selection state
+    this.autoBreakpointButton.setImage(autoResponseEnabled ? autoBreakpointImage : autoBreakpointDisabledImage);
+    this.autoBreakpointButton.setToolTipText(autoResponseEnabled
+        ? Messages.chat_actionBar_autoBreakpointButton_enabled_Tooltip
+        : Messages.chat_actionBar_autoBreakpointButton_disabled_Tooltip);
+
+    this.autoBreakpointButton.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        boolean selected = autoBreakpointButton.getSelection();
+        preferenceStore.setValue(Constants.AUTO_BREAKPOINT_RESPONSE, selected);
+        autoBreakpointButton.setImage(selected ? autoBreakpointImage : autoBreakpointDisabledImage);
+        autoBreakpointButton.setToolTipText(selected
+            ? Messages.chat_actionBar_autoBreakpointButton_enabled_Tooltip
+            : Messages.chat_actionBar_autoBreakpointButton_disabled_Tooltip);
+
+        // Notify ChatView to enable/disable the handler
+        Map<String, Object> data = new HashMap<>();
+        data.put("enabled", selected);
+        eventBroker.post(CopilotEventConstants.TOPIC_CHAT_AUTO_BREAKPOINT_TOGGLE, data);
+      }
+    });
+
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this.autoBreakpointButton,
+        Messages.chat_actionBar_autoBreakpointButton_accessibilityName);
+
+    // Set initial visibility based on java_debugger tool availability
+    updateAutoBreakpointButtonVisibility();
+  }
+
   //@formatter:off
   /**
    * Update MCP tool button visibility based on whether the current mode allows tool configuration.
@@ -585,6 +643,54 @@ public class ActionBar extends Composite implements NewConversationListener {
     mcpToolButton.setVisible(allowsToolConfiguration);
     ((GridData) mcpToolButton.getLayoutData()).exclude = !allowsToolConfiguration;
     mcpToolButton.requestLayout();
+  }
+
+  /**
+   * Update auto-breakpoint button visibility based on whether java_debugger tool is enabled for the current mode.
+   */
+  public void updateAutoBreakpointButtonVisibility() {
+    if (autoBreakpointButton == null || autoBreakpointButton.isDisposed()) {
+      return;
+    }
+
+    // Check if java_debugger tool is enabled for the current mode
+    boolean isJavaDebuggerEnabled = isJavaDebuggerToolEnabledForCurrentMode();
+
+    autoBreakpointButton.setVisible(isJavaDebuggerEnabled);
+    ((GridData) autoBreakpointButton.getLayoutData()).exclude = !isJavaDebuggerEnabled;
+    autoBreakpointButton.requestLayout();
+  }
+
+  /**
+   * Check if java_debugger tool is enabled for the current mode.
+   *
+   * @return true if java_debugger tool is enabled for the current mode, false otherwise
+   */
+  private boolean isJavaDebuggerToolEnabledForCurrentMode() {
+    // First check if the tool exists in the service
+    if (chatServiceManager.getAgentToolService().getTool(JavaDebuggerToolAdapter.TOOL_NAME) == null) {
+      return false;
+    }
+
+    // Get the active mode and check if java_debugger is in its tools list from CLS
+    String activeModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+    if (activeModeId == null) {
+      return false;
+    }
+
+    // Check built-in modes
+    BuiltInChatMode builtInMode = BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(activeModeId);
+    if (builtInMode != null) {
+      return builtInMode.getTools().contains(JavaDebuggerToolAdapter.TOOL_NAME);
+    }
+
+    // Check custom modes
+    CustomChatMode customMode = CustomChatModeManager.INSTANCE.getCustomModeById(activeModeId);
+    if (customMode != null) {
+      return customMode.getTools().contains(JavaDebuggerToolAdapter.TOOL_NAME);
+    }
+
+    return false;
   }
 
   @Override

@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -29,12 +30,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
+import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,6 +61,8 @@ class ReferencedFileTest {
   private CopilotModel mockModel;
   @Mock
   private McpConfigService mockMcpConfigService;
+  @Mock
+  private AgentToolService mockAgentToolService;
   @Mock
   private ChatFontService mockChatFontService;
 
@@ -94,26 +99,28 @@ class ReferencedFileTest {
   }
 
   private void setupMockFiles() {
-    when(mockImageFile.getName()).thenReturn("test-image.png");
-    when(mockImageFile.getFileExtension()).thenReturn("png");
+    lenient().when(mockImageFile.getName()).thenReturn("test-image.png");
+    lenient().when(mockImageFile.getFileExtension()).thenReturn("png");
 
-    when(mockTextFile.getName()).thenReturn("test-file.txt");
-    when(mockTextFile.getFileExtension()).thenReturn("txt");
+    lenient().when(mockTextFile.getName()).thenReturn("test-file.txt");
+    lenient().when(mockTextFile.getFileExtension()).thenReturn("txt");
   }
 
   private void setupMockServices() {
     mockedCopilotUi = mockStatic(CopilotUi.class);
     mockedCopilotUi.when(CopilotUi::getPlugin).thenReturn(mockCopilotUi);
 
-    when(mockModel.getModelName()).thenReturn("test-model");
-    when(mockModelService.getActiveModel()).thenReturn(mockModel);
-    when(mockChatServiceManager.getUserPreferenceService()).thenReturn(mockUserPreferenceService);
-    when(mockChatServiceManager.getModelService()).thenReturn(mockModelService);
-    when(mockChatServiceManager.getReferencedFileService()).thenReturn(mockReferencedFileService);
-    when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
-    when(mockChatServiceManager.getChatFontService()).thenReturn(mockChatFontService);
-    when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
-    when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
+    lenient().when(mockModel.getModelName()).thenReturn("test-model");
+    lenient().when(mockModelService.getActiveModel()).thenReturn(mockModel);
+    lenient().when(mockChatServiceManager.getUserPreferenceService()).thenReturn(mockUserPreferenceService);
+    lenient().when(mockChatServiceManager.getModelService()).thenReturn(mockModelService);
+    lenient().when(mockChatServiceManager.getReferencedFileService()).thenReturn(mockReferencedFileService);
+    lenient().when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
+    lenient().when(mockChatServiceManager.getAgentToolService()).thenReturn(mockAgentToolService);
+    lenient().when(mockChatServiceManager.getChatFontService()).thenReturn(mockChatFontService);
+    lenient().when(mockAgentToolService.getTool(JavaDebuggerToolAdapter.TOOL_NAME)).thenReturn(null);
+    lenient().when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
+    lenient().when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
     actionBar = spy(new ActionBar(shell, SWT.NONE, mockChatServiceManager));
   }
 

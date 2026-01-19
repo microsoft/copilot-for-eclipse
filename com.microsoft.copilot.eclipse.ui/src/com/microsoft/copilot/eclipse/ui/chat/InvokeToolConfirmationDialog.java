@@ -3,6 +3,8 @@ package com.microsoft.copilot.eclipse.ui.chat;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -37,6 +39,11 @@ public class InvokeToolConfirmationDialog extends Composite {
    * The key for the command in the input map.
    */
   private static final String COMMAND_KEY = "command";
+
+  /**
+   * The key for the action in the input map (used by debugger tool).
+   */
+  private static final String ACTION_KEY = "action";
   private CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture;
   private String cancelMessage;
   private Label titleLbl;
@@ -92,10 +99,42 @@ public class InvokeToolConfirmationDialog extends Composite {
 
     // More information about the tool invocation
     if (input != null) {
-      // TODO: Improve the logic to show more information about the tool invocation when confirm with users. The
-      // following code only works for the run in terminal tool.
       Map<String, Object> inputMap = (Map<String, Object>) input;
-      if (inputMap.containsKey(COMMAND_KEY)) {
+
+      // For debugger tool, show all input parameters
+      if (inputMap.containsKey(ACTION_KEY)) {
+        String displayText = formatDebuggerInput(inputMap);
+
+        // Create a scrollable container for the input text
+        ScrolledComposite commandScroll = new ScrolledComposite(this, SWT.H_SCROLL | SWT.V_SCROLL);
+        commandScroll.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+        commandScroll.setExpandHorizontal(true);
+        commandScroll.setExpandVertical(true);
+
+        Label commandLbl = new Label(commandScroll, SWT.LEFT);
+        // Escape & characters that are followed by non-space characters, needed for SWT labels where & is used as a
+        // mnemonic character
+        String escapedCommand = displayText.replace("&", "&&");
+        commandLbl.setText(escapedCommand);
+        commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
+        this.cancelMessage = escapedCommand;
+        registerControlForFontUpdates(commandLbl);
+
+        commandScroll.setContent(commandLbl);
+        commandScroll.addControlListener(new ControlAdapter() {
+          @Override
+          public void controlResized(ControlEvent e) {
+            Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+            commandLbl.setSize(size);
+            commandScroll.setMinSize(size);
+          }
+        });
+        // Initial size computation
+        Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+        commandLbl.setSize(size);
+        commandScroll.setMinSize(size);
+      } else if (inputMap.containsKey(COMMAND_KEY)) {
+        // For terminal tool, show command
         // Create a scrollable container for the command text
         ScrolledComposite commandScroll = new ScrolledComposite(this, SWT.H_SCROLL);
         commandScroll.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
@@ -235,5 +274,16 @@ public class InvokeToolConfirmationDialog extends Composite {
     if (chatServiceManager != null) {
       chatServiceManager.getChatFontService().registerControl(control);
     }
+  }
+
+  /**
+   * Formats the debugger tool input map into a readable string.
+   *
+   * @param inputMap the input parameters from the debugger tool
+   * @return formatted string with all parameters
+   */
+  private String formatDebuggerInput(Map<String, Object> inputMap) {
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    return gson.toJson(inputMap);
   }
 }

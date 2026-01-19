@@ -23,6 +23,7 @@ public class BuiltInChatMode extends BaseChatMode {
   public static final String ASK_MODE_NAME = "Ask";
   public static final String AGENT_MODE_NAME = "Agent";
   public static final String PLAN_MODE_NAME = "Plan";
+  public static final String DEBUGGER_MODE_NAME = "Debugger";
 
   /**
    * Constructor that creates a BuiltInChatMode from a ConversationMode.

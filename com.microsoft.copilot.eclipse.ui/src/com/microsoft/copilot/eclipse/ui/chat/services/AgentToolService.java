@@ -9,7 +9,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.annotation.Nullable;
+import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
@@ -23,6 +25,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformat
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
+import com.microsoft.copilot.eclipse.core.utils.JdtUtils;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
@@ -32,6 +36,7 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter.GetTerminalOutputTool;
 import com.microsoft.copilot.eclipse.ui.dialogs.MissingTerminalDependenciesDialog;
@@ -89,6 +94,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
 
     // Diagnostic tools
     registerTool(new GetErrorsTool());
+
+    // Debug tools - only register if JDT bundles are available and in nightly build
+    if (JdtUtils.isJdtDebugAvailable() && PlatformUtils.isNightly()) {
+      registerTool(new JavaDebuggerToolAdapter());
+    }
 
     // Register the tools to the language server and cache the result
     registerToolWithServer();
