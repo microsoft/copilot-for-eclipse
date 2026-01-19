@@ -22,6 +22,7 @@ import org.eclipse.swt.widgets.Label;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -42,10 +43,52 @@ public class TodoListBar extends Composite {
   private TodoListTitleBar titleBar;
   private TodoListContent todoListContent;
 
+  // Shared status images
+  private Image completedImage;
+  private Image inProgressImage;
+  private Image notStartedImage;
+
   /** Constructor. */
   public TodoListBar(Composite parent, int style) {
     super(parent, style | SWT.BORDER);
     this.todoListService = CopilotUi.getPlugin().getChatServiceManager().getTodoListService();
+    loadStatusImages();
+    this.addDisposeListener(e -> disposeStatusImages());
+  }
+
+  private void disposeStatusImages() {
+    if (completedImage != null && !completedImage.isDisposed()) {
+      completedImage.dispose();
+    }
+    if (inProgressImage != null && !inProgressImage.isDisposed()) {
+      inProgressImage.dispose();
+    }
+    if (notStartedImage != null && !notStartedImage.isDisposed()) {
+      notStartedImage.dispose();
+    }
+  }
+
+  private void loadStatusImages() {
+    boolean isDarkTheme = UiUtils.isDarkTheme();
+    if (isDarkTheme) {
+      completedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_finish_dark.png");
+      inProgressImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_running_dark.png");
+      notStartedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_waiting_dark.png");
+    } else {
+      completedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_finish.png");
+      inProgressImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_running.png");
+      notStartedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_waiting.png");
+    }
+  }
+
+  Image getStatusImage(String status) {
+    if (TodoItem.Status.COMPLETED.getValue().equals(status)) {
+      return completedImage;
+    } else if (TodoItem.Status.IN_PROGRESS.getValue().equals(status)) {
+      return inProgressImage;
+    } else {
+      return notStartedImage;
+    }
   }
 
   /**
@@ -76,7 +119,7 @@ public class TodoListBar extends Composite {
       titleBar.dispose();
     }
     titleBar = new TodoListTitleBar(this, SWT.NONE);
-    titleBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    titleBar.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
     // Dispose and recreate content
     if (todoListContent != null && !todoListContent.isDisposed()) {
@@ -144,22 +187,25 @@ public class TodoListBar extends Composite {
     private Label expandIcon;
     private Image downArrowImage;
     private Image rightArrowImage;
-    private Label titleLabel;
+    private Label statusIcon;
+    private CLabel titleLabel;
     private Button clearButton;
     private Image clearEnabledImage;
     private Image clearDisabledImage;
 
     public TodoListTitleBar(Composite parent, int style) {
       super(parent, style);
-      GridLayout layout = new GridLayout(3, false);
-      layout.marginWidth = 8;
+      GridLayout layout = new GridLayout(4, false);
+      layout.marginWidth = 4;
       layout.marginHeight = 4;
       layout.horizontalSpacing = 4;
+      layout.verticalSpacing = 0;
       setLayout(layout);
-      setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+      setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
       setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
 
       createExpandIcon();
+      createStatusIcon();
       createTitleLabel();
       createClearButton();
 
@@ -171,6 +217,7 @@ public class TodoListBar extends Composite {
         }
       };
       expandIcon.addMouseListener(clickListener);
+      statusIcon.addMouseListener(clickListener);
       titleLabel.addMouseListener(clickListener);
       addMouseListener(clickListener);
 
@@ -185,10 +232,19 @@ public class TodoListBar extends Composite {
       expandIcon.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
     }
 
+    private void createStatusIcon() {
+      statusIcon = new Label(this, SWT.NONE);
+      statusIcon.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+      statusIcon.setVisible(!isExpanded);
+      statusIcon.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+    }
+
     private void createTitleLabel() {
-      titleLabel = new Label(this, SWT.NONE);
+      titleLabel = new CLabel(this, SWT.NONE);
+      titleLabel.setMargins(0, 0, 0, 0);
       titleLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
       titleLabel.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+      titleLabel.setData(CssConstants.CSS_ID_KEY, "todo-list-title");
     }
 
     private void createClearButton() {
@@ -223,7 +279,33 @@ public class TodoListBar extends Composite {
 
     public void updateDisplay() {
       updateExpandIcon();
+      updateStatusIcon();
       updateTitleText();
+      requestLayout();
+    }
+
+    private void updateStatusIcon() {
+      if (statusIcon == null || statusIcon.isDisposed()) {
+        return;
+      }
+
+      // Show status icon only when collapsed
+      GridData statusData = (GridData) statusIcon.getLayoutData();
+      statusData.exclude = isExpanded;
+      statusIcon.setVisible(!isExpanded);
+
+      if (!isExpanded && currentTodos != null && !currentTodos.isEmpty()) {
+        TodoItem inProgress = currentTodos.stream().filter(TodoItem::isInProgress).findFirst().orElse(null);
+        TodoItem notStarted = currentTodos.stream().filter(TodoItem::isNotStarted).findFirst().orElse(null);
+        TodoItem todoToShow = inProgress != null ? inProgress : notStarted;
+
+        if (todoToShow != null) {
+          statusIcon.setImage(getStatusImage(todoToShow.getStatus()));
+        } else {
+          // All completed
+          statusIcon.setImage(completedImage);
+        }
+      }
     }
 
     private void updateExpandIcon() {
@@ -323,9 +405,6 @@ public class TodoListBar extends Composite {
   }
 
   class TodoListContent extends Composite {
-    private Image completedImage;
-    private Image inProgressImage;
-    private Image notStartedImage;
     private ScrolledComposite scrolledComposite;
     private Composite contentArea;
     private List<Composite> todoRows = new ArrayList<>();
@@ -342,8 +421,6 @@ public class TodoListBar extends Composite {
       layoutData.exclude = !isExpanded;
       setLayoutData(layoutData);
       setVisible(isExpanded);
-
-      loadStatusImages();
 
       int todoCount = currentTodos != null ? currentTodos.size() : 0;
 
@@ -386,21 +463,6 @@ public class TodoListBar extends Composite {
         GridData scrollData = new GridData(SWT.FILL, SWT.FILL, true, false);
         scrollData.heightHint = scrollHeight;
         scrolledComposite.setLayoutData(scrollData);
-      }
-
-      addDisposeListener(e -> disposeStatusImages());
-    }
-
-    private void loadStatusImages() {
-      boolean isDarkTheme = UiUtils.isDarkTheme();
-      if (isDarkTheme) {
-        completedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_finish_dark.png");
-        inProgressImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_running_dark.png");
-        notStartedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_waiting_dark.png");
-      } else {
-        completedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_finish.png");
-        inProgressImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_running.png");
-        notStartedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_waiting.png");
       }
     }
 
@@ -456,31 +518,6 @@ public class TodoListBar extends Composite {
       }
 
       return row;
-    }
-
-    private Image getStatusImage(String status) {
-      if (TodoItem.Status.COMPLETED.getValue().equals(status)) {
-        return completedImage;
-      } else if (TodoItem.Status.IN_PROGRESS.getValue().equals(status)) {
-        return inProgressImage;
-      } else {
-        return notStartedImage;
-      }
-    }
-
-    private void disposeStatusImages() {
-      if (completedImage != null && !completedImage.isDisposed()) {
-        completedImage.dispose();
-        completedImage = null;
-      }
-      if (inProgressImage != null && !inProgressImage.isDisposed()) {
-        inProgressImage.dispose();
-        inProgressImage = null;
-      }
-      if (notStartedImage != null && !notStartedImage.isDisposed()) {
-        notStartedImage.dispose();
-        notStartedImage = null;
-      }
     }
   }
 }
