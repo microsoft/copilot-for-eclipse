@@ -1,6 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.StringWriter;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
@@ -8,12 +13,15 @@ import org.eclipse.jface.text.hyperlink.MultipleHyperlinkPresenter;
 import org.eclipse.jface.text.source.AnnotationModel;
 import org.eclipse.mylyn.wikitext.markdown.MarkdownLanguage;
 import org.eclipse.mylyn.wikitext.parser.builder.HtmlDocumentBuilder;
+import org.eclipse.mylyn.wikitext.parser.css.CssParser;
 import org.eclipse.mylyn.wikitext.ui.viewer.MarkupViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Composite;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 class ChatMarkupViewer extends MarkupViewer {
 
@@ -22,12 +30,9 @@ class ChatMarkupViewer extends MarkupViewer {
     this.setMarkupLanguage(new MarkdownLanguage());
     this.setDisplayImages(false);
 
-    IHyperlinkDetector[] hyperlinkDetectors = {
-        new FileAnnotationHyperlinkDetector()
-    };
+    IHyperlinkDetector[] hyperlinkDetectors = { new FileAnnotationHyperlinkDetector() };
     this.setHyperlinkDetectors(hyperlinkDetectors, SWT.NONE);
 
-    // TODO: set hyperlink color based on theme
     MultipleHyperlinkPresenter hyperlinkPresenter = new MultipleHyperlinkPresenter((RGB) null);
     this.setHyperlinkPresenter(hyperlinkPresenter);
 
@@ -35,6 +40,20 @@ class ChatMarkupViewer extends MarkupViewer {
     var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
     if (chatServiceManager != null) {
       chatServiceManager.getChatFontService().registerControl(getTextWidget());
+    }
+    loadStylesheet();
+  }
+
+  private void loadStylesheet() {
+    if (UiUtils.isDarkTheme()) {
+      URL cssUrl = CopilotUi.getPlugin().getBundle().getEntry("css/markup-viewer-dark.css");
+      if (cssUrl != null) {
+        try (Reader reader = new InputStreamReader(cssUrl.openStream(), StandardCharsets.UTF_8)) {
+          this.setStylesheet(new CssParser().parse(reader));
+        } catch (IOException e) {
+          CopilotCore.LOGGER.error("Failed to load dark mode stylesheet for markup viewer", e);
+        }
+      }
     }
   }
 
