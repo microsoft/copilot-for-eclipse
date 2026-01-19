@@ -196,7 +196,8 @@
 }
 
 /* Todo List Title */
-#todo-list-title {
+#todo-list-title,
+#todo-list-title * {
 	color: #000000;
 	background-color: #F8F8F8;
 }

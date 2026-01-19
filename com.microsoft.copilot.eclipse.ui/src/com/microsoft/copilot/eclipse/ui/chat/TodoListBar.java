@@ -21,6 +21,7 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -36,6 +37,7 @@ public class TodoListBar extends Composite {
   public static final int MAX_VISIBLE_ITEMS = 4;
 
   private TodoListService todoListService;
+  private ChatFontService chatFontService;
   private boolean isExpanded = false;
   private boolean userManuallyExpanded = false;
   private List<TodoItem> currentTodos = List.of();
@@ -52,6 +54,7 @@ public class TodoListBar extends Composite {
   public TodoListBar(Composite parent, int style) {
     super(parent, style | SWT.BORDER);
     this.todoListService = CopilotUi.getPlugin().getChatServiceManager().getTodoListService();
+    this.chatFontService = CopilotUi.getPlugin().getChatServiceManager().getChatFontService();
     loadStatusImages();
     this.addDisposeListener(e -> disposeStatusImages());
   }
@@ -245,6 +248,7 @@ public class TodoListBar extends Composite {
       titleLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
       titleLabel.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
       titleLabel.setData(CssConstants.CSS_ID_KEY, "todo-list-title");
+      chatFontService.registerControl(titleLabel);
     }
 
     private void createClearButton() {
@@ -496,6 +500,7 @@ public class TodoListBar extends Composite {
       CLabel itemTitleLabel = new CLabel(row, SWT.NONE);
       itemTitleLabel.setText(todo.getTitle());
       itemTitleLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+      chatFontService.registerControl(itemTitleLabel);
 
       if (todo.getDescription() != null && !todo.getDescription().trim().isEmpty()) {
         itemTitleLabel.setToolTipText(todo.getDescription());
