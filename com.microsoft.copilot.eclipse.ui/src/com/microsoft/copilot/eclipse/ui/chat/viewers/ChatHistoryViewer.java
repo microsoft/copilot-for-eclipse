@@ -35,6 +35,7 @@ import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ConversationUtils;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -51,6 +52,7 @@ public class ChatHistoryViewer extends Composite {
   private IEventBroker eventBroker;
   private String currentConversationId;
   private IStylingEngine stylingEngine;
+  private ChatFontService chatFontService;
   private final Cursor handCursor;
 
   /**
@@ -69,6 +71,7 @@ public class ChatHistoryViewer extends Composite {
     this.handCursor = Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND);
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
+    this.chatFontService = CopilotUi.getPlugin().getChatServiceManager().getChatFontService();
     this.currentConversationId = currentConversationId;
     this.backImage = UiUtils.buildImageFromPngPath(
         UiUtils.isDarkTheme() ? "/icons/chat/back_arrow_grey.png" : "/icons/chat/back_arrow.png");
@@ -164,6 +167,7 @@ public class ChatHistoryViewer extends Composite {
     label.setText(Messages.chat_historyView_backButton);
     label.setCursor(handCursor);
     addBackClickListener(label);
+    chatFontService.registerControl(label);
 
     backLabelComposite.addPaintListener(new PaintListener() {
       @Override
@@ -267,6 +271,7 @@ public class ChatHistoryViewer extends Composite {
     titleLabel.setText(title);
     GridData titleLabelData = new GridData(SWT.LEFT, SWT.CENTER, true, false);
     titleLabel.setLayoutData(titleLabelData);
+    chatFontService.registerControl(titleLabel);
 
     // Optional "(Current)" label
     Label currentLabel = null;
@@ -275,6 +280,7 @@ public class ChatHistoryViewer extends Composite {
       currentLabel.setText(Messages.chat_topBanner_chatHistoryItem_currentConversation_label);
       currentLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
       applyCssClass(currentLabel, "chat-history-item-current-label");
+      chatFontService.registerControl(currentLabel);
     }
 
     // Title text editor (initially hidden)
@@ -284,6 +290,7 @@ public class ChatHistoryViewer extends Composite {
     editorData.exclude = true;
     titleEditor.setLayoutData(editorData);
     titleEditor.setVisible(false);
+    chatFontService.registerControl(titleEditor);
 
     // Enter icon (initially hidden, shown only when editor is visible)
     Label enterIcon = new Label(leftStack, SWT.NONE);
@@ -300,6 +307,7 @@ public class ChatHistoryViewer extends Composite {
     GridData dateData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
     dateLabel.setLayoutData(dateData);
     applyCssClass(dateLabel, "chat-history-item-date-label");
+    chatFontService.registerControl(dateLabel);
 
     // Actions composite (initially hidden, shown on hover)
     Composite actionsComposite = createActionsComposite(conversationItem, conversation, titleLabel, titleEditor,
