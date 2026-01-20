@@ -63,7 +63,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.T
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
- * Tool adapter for Java debugging operations without confirmation prompts.
+ * Tool adapter for Java debugging operations. Requires user confirmation before executing any debug action.
  */
 public class JavaDebuggerToolAdapter extends BaseTool {
   public static final String TOOL_NAME = "java_debugger";
