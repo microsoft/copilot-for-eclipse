@@ -12,12 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.lsp4j.FileChangeType;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -25,10 +21,10 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
-import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -84,8 +80,8 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
   public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
     LanguageModelToolResult result = new LanguageModelToolResult();
 
-    String pathStr = (String) input.get("filePath");
-    if (StringUtils.isBlank(pathStr)) {
+    String filePath = (String) input.get("filePath");
+    if (StringUtils.isBlank(filePath)) {
       result.setStatus(ToolInvocationStatus.error);
       result.addContent("Invalid file path: path cannot be empty");
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
@@ -93,20 +89,18 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
 
     try {
       // Resolve file in workspace
-      IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-      IPath eclipsePath = Path.fromOSString(pathStr);
-      IFile file = workspaceRoot.getFileForLocation(eclipsePath);
+      IFile file = FileUtils.getFileFromPath(filePath, false);
 
       if (file == null) {
         result.setStatus(ToolInvocationStatus.error);
-        result.addContent("Invalid file path: " + pathStr + " does not exist in the workspace.");
+        result.addContent("Invalid file path: " + filePath + " does not exist in the workspace.");
         return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
       }
 
       // Check if file already exists
       if (file.exists()) {
         result.setStatus(ToolInvocationStatus.error);
-        result.addContent("Failed: file already exists: " + pathStr + ". Please use edit file tool to update.");
+        result.addContent("Failed: file already exists: " + filePath + ". Please use edit file tool to update.");
         return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
       }
 

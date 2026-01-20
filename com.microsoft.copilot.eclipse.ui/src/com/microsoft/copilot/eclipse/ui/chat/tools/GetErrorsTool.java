@@ -1,29 +1,28 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.tools.GetErrorsResult;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
@@ -58,14 +57,16 @@ public class GetErrorsTool extends BaseTool {
     inputSchema.setType("object");
 
     // Define the properties of the input schema
-    InputSchemaPropertyValue items = new InputSchemaPropertyValue("string");
-    InputSchemaPropertyValue propertyValue = new InputSchemaPropertyValue("array");
-    propertyValue.setItems(items);
-    Map<String, InputSchemaPropertyValue> properties = new HashMap<>(Map.of(FILE_PATHS, propertyValue));
+    InputSchemaPropertyValue filePathsProperty = new InputSchemaPropertyValue("array",
+        "Array of absolute file paths to check for errors");
+    filePathsProperty.setItems(new InputSchemaPropertyValue("string",
+        "The absolute path of a file to check for compile/lint errors"));
+    Map<String, InputSchemaPropertyValue> properties = new HashMap<>();
+    properties.put(FILE_PATHS, filePathsProperty);
 
     // Set the properties and required fields for the input schema
     inputSchema.setProperties(properties);
-    inputSchema.setRequired(Arrays.asList(FILE_PATHS));
+    inputSchema.setRequired(List.of(FILE_PATHS));
 
     // Attach the input schema to the tool information
     toolInfo.setInputSchema(inputSchema);
@@ -76,17 +77,17 @@ public class GetErrorsTool extends BaseTool {
   @Override
   public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
     LanguageModelToolResult toolResult = new LanguageModelToolResult();
-    List<String> fileUris = validateInput(input.get(FILE_PATHS));
-    if (fileUris == null) {
+    List<String> filePaths = validateInput(input.get(FILE_PATHS));
+    if (filePaths == null) {
       toolResult.setStatus(ToolInvocationStatus.error);
       toolResult.addContent("The value of filePaths is not in the type of string array.");
-    } else if (fileUris.isEmpty()) {
+    } else if (filePaths.isEmpty()) {
       toolResult.setStatus(ToolInvocationStatus.error);
       toolResult.addContent("The tool cannot be invoked because input is empty.");
     } else {
-      String errors = getErrors(fileUris);
-      toolResult.addContent(errors);
-      toolResult.setStatus(ToolInvocationStatus.success);
+      GetErrorsResult result = getErrors(filePaths);
+      toolResult.addContent(result.content());
+      toolResult.setStatus(result.hasException() ? ToolInvocationStatus.error : ToolInvocationStatus.success);
     }
 
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { toolResult });
@@ -103,15 +104,18 @@ public class GetErrorsTool extends BaseTool {
       if (filePathsList.stream().allMatch(String.class::isInstance)) {
         return (List<String>) filePathsList;
       }
-    } else if (filePathsObj instanceof String filePathsStr) {
+    } else if (filePathsObj instanceof String filePaths) {
       Gson gson = new Gson();
       try {
-        List<?> tempList = gson.fromJson(filePathsStr, List.class);
+        List<?> tempList = gson.fromJson(filePaths, List.class);
         if (tempList.stream().allMatch(String.class::isInstance)) {
           return (List<String>) tempList;
         }
       } catch (JsonSyntaxException e) {
-        return null;
+        // Try lenient parsing for malformed JSON with invalid escape sequences
+        // (e.g., when model sends "[\"\\path\\file\"]" which after JSON parsing
+        // becomes "[\"\path\file\"]" with invalid \p and \f escapes)
+        return parseMalformedJsonArray(filePaths);
       }
     }
 
@@ -119,63 +123,71 @@ public class GetErrorsTool extends BaseTool {
   }
 
   /**
+   * Attempts to parse a malformed JSON array string that may contain invalid escape sequences. This handles cases where
+   * the model sends a JSON string with paths containing backslashes that weren't properly double-escaped.
+   *
+   * @param jsonStr The potentially malformed JSON array string.
+   * @return A list of extracted strings, or null if parsing fails.
+   */
+  private List<String> parseMalformedJsonArray(String jsonStr) {
+    if (jsonStr == null || !jsonStr.startsWith("[") || !jsonStr.endsWith("]")) {
+      return null;
+    }
+
+    // Remove the outer brackets and trim
+    String content = jsonStr.substring(1, jsonStr.length() - 1).trim();
+    if (content.isEmpty()) {
+      return List.of();
+    }
+
+    // Use regex to extract quoted strings, handling escaped quotes within
+    List<String> result = new ArrayList<>();
+    Matcher matcher = Pattern.compile("\"((?:[^\"\\\\]|\\\\.)*)\"").matcher(content);
+    while (matcher.find()) {
+      String value = matcher.group(1);
+      try {
+        value = new Gson().fromJson("\"" + value + "\"", String.class);
+      } catch (JsonSyntaxException e) {
+        value = value.replace("\\\"", "\"").replace("\\\\", "\\");
+      }
+      result.add(value);
+    }
+
+    return result.isEmpty() ? null : result;
+  }
+
+  /**
    * Retrieves errors from the Problems view for the given file URIs.
    *
-   * @param fileUris The list of file URIs to check for errors.
-   * @return A string containing the errors found.
+   * @param filePaths The list of file paths to check for errors.
+   * @return A GetErrorsResult containing the errors found and whether any exceptions occurred.
    */
-  public String getErrors(List<String> fileUris) {
+  public GetErrorsResult getErrors(List<String> filePaths) {
     StringBuilder toolResult = new StringBuilder();
+    boolean hasException = false;
 
-    for (String fileUri : fileUris) {
-      fileUri = String.valueOf(resolveFilePath(fileUri));
+    for (String filePath : filePaths) {
       try {
-        IResource resource = LSPEclipseUtils.findResourceFor(fileUri);
-        if (resource == null) {
-          toolResult.append("Resource not found for fileUri: ").append(fileUri).append(StringUtils.LF);
+        IFile file = FileUtils.getFileFromPath(filePath, true);
+
+        if (file == null || !file.exists()) {
+          toolResult.append("Resource not found for filePath: ").append(filePath).append(StringUtils.LF);
           continue;
         }
 
-        IMarker[] markers = resource.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
+        IMarker[] markers = file.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
         for (IMarker marker : markers) {
           if (marker.getAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO) == IMarker.SEVERITY_ERROR) {
             toolResult.append(marker.toString()).append(StringUtils.LF);
           }
         }
       } catch (CoreException e) {
-        toolResult.append("Failed on file: ").append(fileUri).append(e.getMessage()).append(StringUtils.LF);
+        toolResult.append("Failed on file: ").append(filePath).append(e.getMessage()).append(StringUtils.LF);
+        hasException = true;
       }
     }
 
-    return toolResult.toString();
+    return new GetErrorsResult(toolResult.toString(), hasException);
   }
 
-  /**
-   * Resolves the file path to a URI. Public only for testing purpose
-   *
-   * @param filepath The file path to resolve.
-   * @return The resolved URI, or null if the path is invalid.
-   */
-  public URI resolveFilePath(String filepath) {
-    // Check for posix-like absolute paths or Windows-like absolute paths
-    if (filepath.startsWith("/")
-        || (PlatformUtils.isWindows() && (hasDriveLetter(filepath) || filepath.startsWith("\\")))) {
-      return Paths.get(filepath).toUri();
-    }
-
-    // Check if the filepath starts with a scheme
-    if (Pattern.compile("\\w[\\w\\d+.-]*:\\S").matcher(filepath).find()) {
-      try {
-        return new URI(filepath);
-      } catch (URISyntaxException e) {
-        return null;
-      }
-    }
-
-    return null;
-  }
-
-  private boolean hasDriveLetter(String filepath) {
-    return filepath.length() > 1 && Character.isLetter(filepath.charAt(0)) && filepath.charAt(1) == ':';
-  }
 }

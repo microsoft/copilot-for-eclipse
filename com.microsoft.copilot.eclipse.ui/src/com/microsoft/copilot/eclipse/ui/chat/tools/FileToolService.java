@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -250,7 +251,7 @@ public class FileToolService extends ChatBaseService {
       } else if (getFileChangeTypeOf(file) == FileChangeType.Changed) {
         this.editFileTool.onUndoChange(file);
       }
-    } catch (CoreException e) {
+    } catch (CoreException | IOException e) {
       CopilotCore.LOGGER.error("Error undoing changes for the new file", e);
     }
     this.completeFile(file);
@@ -263,7 +264,7 @@ public class FileToolService extends ChatBaseService {
     try {
       this.createFileTool.onUndoAllChanges(getCreatedFiles());
       this.editFileTool.onUndoAllChanges(getEditedFiles());
-    } catch (CoreException e) {
+    } catch (CoreException | IOException e) {
       CopilotCore.LOGGER.error("Error undoing all changes for the files", e);
     }
     onResolveAllChanges();

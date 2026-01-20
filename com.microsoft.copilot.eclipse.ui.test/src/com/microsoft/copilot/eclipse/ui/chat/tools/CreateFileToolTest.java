@@ -260,7 +260,7 @@ class CreateFileToolTest {
     LanguageModelToolResult[] results = future.get();
 
     // Assert
-    assertErrorResult(results, "does not exist in the workspace");
+    assertErrorResult(results, "Error creating file");
   }
 
   @Test

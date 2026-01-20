@@ -50,8 +50,9 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     NameAndVersion editorInfo = new NameAndVersion(EDITOR_NAME, PlatformUtils.getEclipseVersionString());
     String bundleVersion = PlatformUtils.getBundleVersion();
     NameAndVersion editorPluginInfo = new NameAndVersion(EDITOR_PLUGIN_NAME, bundleVersion);
+    List<String> supportedUriSchemes = PlatformUtils.getSupportedUriSchemes();
     CopilotCapabilities capabilities = new CopilotCapabilities(false, FeatureFlags.isWorkspaceContextEnabled(),
-        FeatureFlags.isSubAgentEnabled());
+        FeatureFlags.isSubAgentEnabled(), supportedUriSchemes);
     return new InitializationOptions(editorInfo, editorPluginInfo, capabilities);
   }
 

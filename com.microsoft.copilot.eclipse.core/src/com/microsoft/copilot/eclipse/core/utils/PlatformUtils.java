@@ -6,6 +6,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
@@ -253,6 +256,31 @@ public class PlatformUtils {
     }
 
     return convertToNodeEncoding(charset);
+  }
+
+  /**
+   * Get the list of supported URI schemes based on installed bundles.
+   *
+   * @return a list of supported URI schemes
+   */
+  public static List<String> getSupportedUriSchemes() {
+    return PlatformUtils.hasBundleWithPrefix("com.sap.adt") ? Arrays.asList("semanticfs") : Collections.emptyList();
+  }
+
+  /**
+   * Check if any bundle with a name starting with the specified prefix is installed.
+   *
+   * @param prefix the bundle name prefix to search for
+   * @return true if a matching bundle is found, false otherwise
+   */
+  public static boolean hasBundleWithPrefix(String prefix) {
+    Bundle[] bundles = CopilotCore.getPlugin().getBundle().getBundleContext().getBundles();
+    for (Bundle bundle : bundles) {
+      if (bundle.getSymbolicName().startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }

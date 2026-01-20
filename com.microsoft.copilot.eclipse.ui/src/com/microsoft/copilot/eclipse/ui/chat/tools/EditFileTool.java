@@ -12,10 +12,8 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.lsp4j.FileChangeType;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -24,6 +22,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
@@ -117,10 +116,10 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
 
   @Override
   public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
-    // Implementation for invoking the edit file tool
     CompletableFuture<LanguageModelToolResult[]> resultFuture = new CompletableFuture<>();
     if (input.get("filePath") instanceof String filePath) {
-      IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(filePath));
+      IFile file = FileUtils.getFileFromPath(filePath, true);
+
       if (file == null || !file.exists()) {
         resultFuture.complete(new LanguageModelToolResult[] {
             new LanguageModelToolResult("The file path provided does not exist. Please check the path and try again.",
@@ -131,7 +130,14 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
       if (input.get("code") instanceof String code) {
         CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Changed);
         cacheTheOriginalFileContent(file);
-        applyChangesToFile(code, file);
+        try {
+          applyChangesToFile(code, file);
+        } catch (CoreException | IOException e) {
+          CopilotCore.LOGGER.error("Error replacing file content", e);
+          resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(
+              "Failed to apply changes to the file: " + e.getMessage(), ToolInvocationStatus.error) });
+          return resultFuture;
+        }
         updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
 
         // Must return the updated content as a result to the CLS.
@@ -151,23 +157,20 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
     return resultFuture;
   }
 
-  private void applyChangesToFile(String changedContent, IFile file) {
-    try {
-      validateEdit(new IFile[] { file });
-
-      ByteArrayInputStream inputStream = getInputStream(changedContent, file);
-
-      // Set the file contents
-      file.setContents(inputStream, true, true, new NullProgressMonitor());
-
-      // Refresh the file to ensure Eclipse recognizes the changes
-      file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
-
-      // Close the input stream
-      inputStream.close();
-    } catch (CoreException | IOException e) {
-      CopilotCore.LOGGER.error("Error replacing file content", e);
+  private void applyChangesToFile(String changedContent, IFile file) throws CoreException, IOException {
+    if (!validateEdit(file)) {
+      throw new IllegalStateException("File validation failed for " + file.getFullPath());
     }
+    ByteArrayInputStream inputStream = getInputStream(changedContent, file);
+
+    // Set the file contents
+    file.setContents(inputStream, true, true, new NullProgressMonitor());
+
+    // Refresh the file to ensure Eclipse recognizes the changes
+    file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
+
+    // Close the input stream
+    inputStream.close();
   }
 
   private ByteArrayInputStream getInputStream(String changedContent, IFile file) {
@@ -196,13 +199,13 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
   }
 
   @Override
-  public void onUndoChange(IFile file) throws CoreException {
+  public void onUndoChange(IFile file) throws CoreException, IOException {
     undoChangesToFile(file);
     closeCompareEditor(file);
   }
 
   @Override
-  public void onUndoAllChanges(List<IFile> files) throws CoreException {
+  public void onUndoAllChanges(List<IFile> files) throws CoreException, IOException {
     for (IFile file : files) {
       onUndoChange(file);
     }
@@ -224,7 +227,7 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
     cleanupChangedFiles();
   }
 
-  private void undoChangesToFile(IFile file) {
+  private void undoChangesToFile(IFile file) throws CoreException, IOException {
     String fileCache = fileContentCache.get(file);
     if (fileCache != null) {
       applyChangesToFile(fileCache, file);

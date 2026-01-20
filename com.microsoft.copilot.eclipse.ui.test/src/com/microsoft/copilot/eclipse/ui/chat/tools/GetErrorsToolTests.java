@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.tools.GetErrorsResult;
 
 class GetErrorsToolTests {
 
@@ -42,6 +41,30 @@ class GetErrorsToolTests {
 	}
 
 	@Test
+	void testValidateInputWithMalformedJsonEscapes() {
+		// This simulates the case where the model sends a JSON string with paths
+		// that have backslashes which become invalid JSON escape sequences after
+		// the outer JSON parsing. For example, "[\"\TRL_EN\\.adt\\..."]" contains
+		// invalid escapes like \T, \., \a, \c, \z which Gson cannot parse.
+		// The string below represents what we receive after the outer JSON is parsed.
+		Object input = "[\"\\TRL_EN\\.adt\\classlib\\classes\\z_class_eclipse\\z_class_eclipse.aclass\"]";
+		List<String> result = tool.validateInput(input);
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals("\\TRL_EN\\.adt\\classlib\\classes\\z_class_eclipse\\z_class_eclipse.aclass", result.get(0));
+	}
+
+	@Test
+	void testValidateInputWithMalformedJsonEscapesMultipleFiles() {
+		Object input = "[\"C:\\Users\\file1.java\", \"C:\\Users\\file2.java\"]";
+		List<String> result = tool.validateInput(input);
+		assertNotNull(result);
+		assertEquals(2, result.size());
+		assertEquals("C:\\Users\\file1.java", result.get(0));
+		assertEquals("C:\\Users\\file2.java", result.get(1));
+	}
+
+	@Test
 	void testValidateInputWithInvalidInputString() {
 		Object input = new String("This is a input string");
 		List<String> result = tool.validateInput(input);
@@ -55,55 +78,15 @@ class GetErrorsToolTests {
 	}
 
 	@Test
-	void testResolveFilePathWithAbsolutePath() {
-		if (PlatformUtils.isWindows()) {
-			// Test with a Windows-like absolute path
-			String windowsPath = "C:\\Users\\User\\project\\file.java";
-			URI resultWindows = tool.resolveFilePath(windowsPath);
-			assertNotNull(resultWindows);
-			assertEquals("file:///C:/Users/User/project/file.java", resultWindows.toString());
-		} else {
-			// Test with a POSIX-like absolute path
-			String posixPath = "/home/user/project/file.java";
-			URI result = tool.resolveFilePath(posixPath);
-			assertNotNull(result);
-			assertEquals("file:///home/user/project/file.java", result.toString());
-		}
-	}
-
-	@Test
-	void testResolveFilePathWithInvalidPath() {
-		// Test with an invalid URI
-		String invalidPath = ":://///////invalidPath";
-		URI result = tool.resolveFilePath(invalidPath);
-		Assertions.assertNull(result);
-	}
-
-	@Test
-	void testResolveFilePathWithRelativePath() {
-		// Test with a relative path
-		String relativePath = "src/com/example/Main.java";
-		URI result = tool.resolveFilePath(relativePath);
-		Assertions.assertNull(result); // Relative paths are not resolved to URIs
-	}
-
-	@Test
-	void testGetErrorsWithNullResolvedFilePath() {
-		// Create a subclass to override the resolveFilePath method
-		GetErrorsTool tool = new GetErrorsTool() {
-			@Override
-			public URI resolveFilePath(String filepath) {
-				return null; // Simulate resolveFilePath returning null
-			}
-		};
-
-		// Prepare input file URIs
-		ArrayList<String> fileUris = new ArrayList<>(Arrays.asList("invalidPath1", "invalidPath2"));
+	void testGetErrorsWithInvalidFilePath() {
+		// Prepare input with invalid file paths
+		ArrayList<String> filePaths = new ArrayList<>(Arrays.asList("invalidPath1", "invalidPath2"));
 
 		// Call the getErrors method
-		String result = tool.getErrors(fileUris);
+		GetErrorsResult result = tool.getErrors(filePaths);
 
 		// Assert that the result contains the expected message
-		assertTrue(result.contains("Resource not found for fileUri: null"));
+		assertTrue(result.content().contains("Resource not found for filePath: invalidPath1"));
+		assertTrue(result.content().contains("Resource not found for filePath: invalidPath2"));
 	}
 }

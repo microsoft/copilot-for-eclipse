@@ -28,15 +28,17 @@ public interface FileChangeSummaryHandler {
    * @param file the file to undo changes for
    *
    * @throws CoreException if an error occurs during the undo operation, such as a failure to delete a file
+   * @throws IOException if an error occurs while writing to the file
    */
-  void onUndoChange(IFile file) throws CoreException;
+  void onUndoChange(IFile file) throws CoreException, IOException;
 
   /**
    * Handles the action of undoing all changes to files.
    *
    * @throws CoreException if error occurs during the undo all operation, such as a failure to delete a file
+   * @throws IOException if an error occurs while writing to the file
    */
-  void onUndoAllChanges(List<IFile> files) throws CoreException;
+  void onUndoAllChanges(List<IFile> files) throws CoreException, IOException;
 
   /**
    * Handles the action of viewing the diff of a file.

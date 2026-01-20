@@ -21,6 +21,7 @@ import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffNode;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspaceRunnable;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -83,12 +84,21 @@ public abstract class FileToolBase extends BaseTool {
 
   /**
    * Validate the edit to ensure the files are writable.
+   *
+   * @throws CoreException If the validation fails.
    */
-  protected void validateEdit(IFile[] files) {
-    IStatus status = ResourcesPlugin.getWorkspace().validateEdit(files, null /* no ui prompts during validation */);
-    if (!status.isOK()) {
-      CopilotCore.LOGGER.error("File edit validation failed: " + status.getMessage(), null);
-    }
+  protected boolean validateEdit(IFile file) throws CoreException {
+    final boolean[] result = new boolean[] { false };
+    ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
+      @Override
+      public void run(IProgressMonitor monitor) throws CoreException {
+        IStatus status = ResourcesPlugin.getWorkspace().validateEdit(new IFile[] { file }, null);
+        if (status != null && status.isOK()) {
+          result[0] = true;
+        }
+      }
+    }, new NullProgressMonitor());
+    return result[0];
   }
 
   /**

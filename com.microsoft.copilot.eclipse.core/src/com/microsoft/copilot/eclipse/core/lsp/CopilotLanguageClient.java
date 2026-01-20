@@ -51,6 +51,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyParams;
@@ -310,6 +311,14 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     CodingAgentMessageResult result = new CodingAgentMessageResult();
     result.setSuccess(true);
     return CompletableFuture.completedFuture(result);
+  }
+
+  /**
+   * Reads the contents and stats of a file given its URI.
+   */
+  @JsonRequest("workspace/readFile")
+  public CompletableFuture<ReadFileResult> readFile(String uri) {
+    return CompletableFuture.supplyAsync(() -> FileUtils.readFileWithStats(uri));
   }
 
   /**

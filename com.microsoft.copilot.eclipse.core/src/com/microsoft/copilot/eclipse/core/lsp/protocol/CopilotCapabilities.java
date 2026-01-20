@@ -1,5 +1,6 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
@@ -25,10 +26,12 @@ public class CopilotCapabilities {
 
   private boolean debuggerAgent;
 
+  private List<String> contentProvider;
+
   /**
    * Creates a new CopilotCapabilities.
    */
-  public CopilotCapabilities(boolean fetch, boolean watchedFiles, boolean subAgent) {
+  public CopilotCapabilities(boolean fetch, boolean watchedFiles, boolean subAgent, List<String> contentProvider) {
     this.didChangeFeatureFlags = true;
     this.stateDatabase = true;
     this.cveRemediatorAgent = true;
@@ -36,6 +39,7 @@ public class CopilotCapabilities {
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
     this.subAgent = subAgent;
+    this.contentProvider = contentProvider;
   }
 
   public boolean isFetch() {
@@ -78,6 +82,15 @@ public class CopilotCapabilities {
     this.cveRemediatorAgent = cveRemediatorAgent;
   }
 
+  public void setContentProvider(List<String> contentProvider) {
+    this.contentProvider = contentProvider;
+  }
+
+  public List<String> getContentProvider() {
+    return contentProvider;
+
+  }
+
   public boolean isDebuggerAgent() {
     return debuggerAgent;
   }
@@ -95,6 +108,7 @@ public class CopilotCapabilities {
     builder.add("stateDatabase", stateDatabase);
     builder.add("subAgent", subAgent);
     builder.add("cveRemediatorAgent", cveRemediatorAgent);
+    builder.add("contentProvider", contentProvider);
     builder.add("debuggerAgent", debuggerAgent);
     return builder.toString();
   }
@@ -102,7 +116,7 @@ public class CopilotCapabilities {
   @Override
   public int hashCode() {
     return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, fetch, stateDatabase, subAgent,
-        watchedFiles);
+        watchedFiles, contentProvider);
   }
 
   @Override
@@ -114,8 +128,10 @@ public class CopilotCapabilities {
       return false;
     }
     CopilotCapabilities other = (CopilotCapabilities) obj;
+
     return cveRemediatorAgent == other.cveRemediatorAgent && debuggerAgent == other.debuggerAgent
         && didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
-        && stateDatabase == other.stateDatabase && subAgent == other.subAgent && watchedFiles == other.watchedFiles;
+        && stateDatabase == other.stateDatabase && subAgent == other.subAgent && watchedFiles == other.watchedFiles
+        && Objects.equals(contentProvider, other.contentProvider);
   }
 }

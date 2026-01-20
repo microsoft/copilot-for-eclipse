@@ -1084,6 +1084,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.hasHistory = false;
     this.conversationId = "";
     this.conversationState = ConversationState.NEW_CONVERSATION;
+
+    if (this.chatServiceManager == null) {
+      return;
+    }
+
     this.chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
     SwtUtils.invokeOnDisplayThreadAsync(this.chatServiceManager.getFileToolService()::disposeFileChangeSummaryBar);
 
