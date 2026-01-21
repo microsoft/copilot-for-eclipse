@@ -117,6 +117,12 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
     this.editor = editor;
     this.viewer = editor.getAdapter(ITextViewer.class);
     this.text = viewer != null ? viewer.getTextWidget() : null;
+
+    // If text is null, NES functionality is not available for this editor
+    if (this.text == null) {
+      return;
+    }
+
     initializePositionTracking();
     this.highlighter = new InlineHighlighter(viewer, text);
     this.actionMenu = new ActionMenu(text);
@@ -228,16 +234,22 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * Release all resources managed by this RenderManager.
    */
   public void dispose() {
-    nesProvider.removeListener(this);
+    if (nesProvider != null) {
+      nesProvider.removeListener(this);
+    }
     if (text != null && !text.isDisposed()) {
       SwtUtils.invokeOnDisplayThread(() -> {
         // Clear UI first (including indent) before disposing resources
         clearSuggestionUi();
-        highlighter.clear();
+        if (highlighter != null) {
+          highlighter.clear();
+        }
         if (actionMenu != null) {
           actionMenu.dispose();
         }
-        diffPopup.dispose();
+        if (diffPopup != null) {
+          diffPopup.dispose();
+        }
         if (bottomBar != null) {
           bottomBar.dispose();
         }
@@ -251,6 +263,9 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * Show suggestion UI for the given model line and texts.
    */
   public void showSuggestion(int modelLine, String removed, String added) {
+    if (text == null) {
+      return;
+    }
     SwtUtils.invokeOnDisplayThread(() -> {
       if (diffModel == null) {
         diffModel = new DiffModel();
@@ -272,8 +287,12 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   }
 
   private void clearSuggestionUi() {
-    highlighter.clear();
-    diffPopup.hideAndClearIndent(text, viewer, indentLinePosition);
+    if (highlighter != null) {
+      highlighter.clear();
+    }
+    if (diffPopup != null) {
+      diffPopup.hideAndClearIndent(text, viewer, indentLinePosition);
+    }
     // Request layout with icon rendering disabled to ensure no icon is drawn
     if (column != null) {
       column.requestLayout(false);
@@ -313,6 +332,9 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * Clear the current suggestion, notifying rejection.
    */
   public void clearSuggestion() {
+    if (text == null) {
+      return;
+    }
     nesProvider.cancelCurrentRequest();
     notifyRejected();
 
@@ -338,6 +360,9 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * @return true if NES is pending or active, false otherwise
    */
   public boolean isNesPendingOrActive() {
+    if (text == null) {
+      return false;
+    }
     return nesProvider.hasRequestInProgress() || hasActiveSuggestion();
   }
 
@@ -690,7 +715,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * Apply the current suggestion to the document, if it still matches the original text.
    */
   public void acceptSuggestion() {
-    if (diffModel == null || nesProvider == null) {
+    if (text == null || diffModel == null || nesProvider == null) {
       return;
     }
     IFile currentFile = lastFile;
@@ -792,7 +817,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   /** Jump to the suggestion line and show diff popup (used by bottom bar + Tab action). */
   private void jumpToSuggestionInternal() {
     int suggestionLine = getSuggestionLine();
-    if (suggestionLine == -1 || text.isDisposed()) {
+    if (suggestionLine == -1 || text == null || text.isDisposed()) {
       return;
     }
     try {

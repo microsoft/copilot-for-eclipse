@@ -53,6 +53,9 @@ public class InlineHighlighter {
    * Register all SWT listeners.
    */
   public void registerListeners() {
+    if (text == null || text.isDisposed()) {
+      return;
+    }
     SwtUtils.invokeOnDisplayThread(() -> {
       lineBackgroundListener = event -> {
         if (highlightedModelLines.isEmpty()) {
