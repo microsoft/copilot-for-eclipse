@@ -39,7 +39,6 @@ import org.eclipse.ui.part.EditorPart;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -51,10 +50,12 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
 
   private BooleanFieldEditor enableWorkspaceInstrField;
   private StringFieldEditor workspaceInstrField;
+  private StringFieldEditor gitCommitInstrField;
 
   // Variables to track initial preference values for change detection
   private boolean initialWorkspaceEnabled;
   private String initialWorkspaceInstructions;
+  private String initialGitCommitInstructions;
 
   private static final String GITHUB = ".github";
   private static final String COPILOT_INSTRUCTIONS = "copilot-instructions.md";
@@ -62,6 +63,10 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
   // Constants for tooltip configuration
   private static final int TOOLTIP_OFFSET_Y = 20;
   private static final int TOOLTIP_AUTO_HIDE_DELAY_MS = 5000;
+
+  // Reusable GridDataFactory for group layout data
+  private static final GridDataFactory GROUP_GRID_DATA_FACTORY =
+      GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
 
   /**
    * Constructor for CustomInstructionPreferencePage.
@@ -85,6 +90,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
 
     createWorkspaceInstructionsField(parent, gl);
     createProjectInstructionsField(parent, gl);
+    createGitCommitInstructionsField(parent, gl);
 
     // Initialize tracking of preference values after fields are created
     initializePreferenceValues();
@@ -96,6 +102,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
   private void initializePreferenceValues() {
     initialWorkspaceEnabled = getPreferenceStore().getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED);
     initialWorkspaceInstructions = getPreferenceStore().getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE);
+    initialGitCommitInstructions = getPreferenceStore().getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT);
   }
 
   /**
@@ -106,9 +113,11 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
   private boolean hasPreferencesChanged() {
     boolean currentWorkspaceEnabled = enableWorkspaceInstrField.getBooleanValue();
     String currentWorkspaceInstructions = workspaceInstrField.getStringValue();
+    String currentGitCommitInstructions = gitCommitInstrField.getStringValue();
 
     return currentWorkspaceEnabled != initialWorkspaceEnabled
-        || !StringUtils.equals(currentWorkspaceInstructions, initialWorkspaceInstructions);
+        || !StringUtils.equals(currentWorkspaceInstructions, initialWorkspaceInstructions)
+        || !StringUtils.equals(currentGitCommitInstructions, initialGitCommitInstructions);
   }
 
   @Override
@@ -116,6 +125,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     // Save the current preference values
     initialWorkspaceEnabled = enableWorkspaceInstrField.getBooleanValue();
     initialWorkspaceInstructions = workspaceInstrField.getStringValue();
+    initialGitCommitInstructions = gitCommitInstrField.getStringValue();
 
     // Call super to save preferences
     return super.performOk();
@@ -123,10 +133,9 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
 
   private void createWorkspaceInstructionsField(Composite parent, GridLayout gl) {
     // workspace instructions group
-    GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
     Group workspaceInstrGroup = new Group(parent, SWT.NONE);
     workspaceInstrGroup.setLayout(gl);
-    gdf.applyTo(workspaceInstrGroup);
+    GROUP_GRID_DATA_FACTORY.applyTo(workspaceInstrGroup);
     workspaceInstrGroup.setText(Messages.preferences_page_custom_instructions_workspace);
 
     // Add workspace instructions field
@@ -156,10 +165,9 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
 
   private void createProjectInstructionsField(Composite parent, GridLayout gl) {
     // project instructions group
-    GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
     Group projectInstrGroup = new Group(parent, SWT.NONE);
     projectInstrGroup.setLayout(gl);
-    gdf.applyTo(projectInstrGroup);
+    GROUP_GRID_DATA_FACTORY.applyTo(projectInstrGroup);
     projectInstrGroup.setText(Messages.preferences_page_custom_instructions_project);
 
     // Add project instructions field
@@ -221,6 +229,33 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     // Add note using WrappableNoteLabel
     new WrappableNoteLabel(projectInstrGroup, Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_custom_instructions_project_table_note);
+  }
+
+  private void createGitCommitInstructionsField(Composite parent, GridLayout gl) {
+    // git commit instructions group
+    Group gitCommitInstrGroup = new Group(parent, SWT.NONE);
+    gitCommitInstrGroup.setLayout(gl);
+    GROUP_GRID_DATA_FACTORY.applyTo(gitCommitInstrGroup);
+    gitCommitInstrGroup.setText(Messages.preferences_page_custom_instructions_git_commit);
+
+    // Add git commit instructions field
+    Composite gitCommitInstrFieldContainer = new Composite(gitCommitInstrGroup, SWT.NONE);
+    gitCommitInstrFieldContainer.setLayout(gl);
+    gitCommitInstrFieldContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    PreferencePageUtils.createExternalLink(gitCommitInstrFieldContainer,
+        Messages.preferences_page_custom_instructions_git_commit_desc, null);
+
+    gitCommitInstrField = new StringFieldEditor(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT, "",
+        StringFieldEditor.UNLIMITED, 4, StringFieldEditor.VALIDATE_ON_KEY_STROKE, gitCommitInstrFieldContainer);
+    // disable the label of the input field, so that the input box can be positioned at the beginning
+    // of the container.
+    gitCommitInstrField.getLabelControl(gitCommitInstrFieldContainer).dispose();
+    addField(gitCommitInstrField);
+
+    // Add note using WrappableNoteLabel
+    new WrappableNoteLabel(gitCommitInstrGroup, Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_custom_instructions_git_commit_note);
   }
 
   private void createButton(Composite tableContainer, Table table) {

@@ -33,6 +33,7 @@ public class Constants {
   public static final String MCP_EXTENSION_POINT_CONTRIB = "mcpExtensionPointContrib";
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE = "customInstructionsWorkspace";
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED = "customInstructionsWorkspaceEnabled";
+  public static final String CUSTOM_INSTRUCTIONS_GIT_COMMIT = "customInstructionsGitCommit";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
   @Deprecated
   public static final String QUICK_START_VERSION = "quickStartVersion";

@@ -51,7 +51,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     workspaceContextComposite.setLayout(new GridLayout(1, true));
     gdf.applyTo(workspaceContextComposite);
     BooleanFieldEditor workspaceContextField = new BooleanFieldEditor(Constants.WORKSPACE_CONTEXT_ENABLED,
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_watched_files, SWT.WRAP,
+        Messages.preferences_page_watched_files, SWT.WRAP,
         workspaceContextComposite);
     GridData workspaceContextFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     workspaceContextFieldGridData.widthHint = 400;
@@ -61,8 +61,8 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     // add chat note using WrappableNoteLabel
     WrappableNoteLabel workspaceContextNote = new WrappableNoteLabel(parent,
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_note_prefix + " ",
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_watched_files_note_content);
+        Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_watched_files_note_content);
     GridData workspaceContextNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     workspaceContextNoteGridData.horizontalSpan = 2;
     workspaceContextNote.setLayoutData(workspaceContextNoteGridData);
@@ -93,7 +93,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     }
 
     BooleanFieldEditor subAgentField = new BooleanFieldEditor(Constants.SUB_AGENT_ENABLED,
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
+        Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
     subAgentField.setEnabled(policyAllowsSubAgent, subAgentComposite);
     GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     subAgentFieldGridData.widthHint = 400;
@@ -102,8 +102,8 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     // add sub-agent note using WrappableNoteLabel
     WrappableNoteLabel subAgentNote = new WrappableNoteLabel(parent,
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_note_prefix + " ",
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_sub_agent_note_content);
+        Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_sub_agent_note_content);
     GridData subAgentNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     subAgentNoteGridData.horizontalSpan = 2;
     subAgentNote.setLayoutData(subAgentNoteGridData);
@@ -126,7 +126,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addField(agentMaxRequestsField);
 
     WrappableNoteLabel agentMaxRequestsNote = new WrappableNoteLabel(parent,
-        com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_agent_max_requests_desc);
     GridData agentMaxRequestsNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     agentMaxRequestsNoteGridData.horizontalSpan = 2;
@@ -188,8 +188,8 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     if (isSubAgentChanged || isWorkspaceContextChanged) {
       boolean restart = MessageDialog.openQuestion(getShell(),
-          com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_restart_required,
-          com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_restart_question);
+          Messages.preferences_page_restart_required,
+          Messages.preferences_page_restart_question);
 
       if (restart) {
         getShell().getDisplay().asyncExec(() -> {
@@ -229,7 +229,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
       // Get or create the Built-in Tools server map
       Map<String, Map<String, Boolean>> agentModeTools = modeToolStatus.get("agent-mode");
-      String builtInToolsKey = com.microsoft.copilot.eclipse.ui.i18n.Messages.preferences_page_mcp_tools_builtin;
+      String builtInToolsKey = Messages.preferences_page_mcp_tools_builtin;
       if (!agentModeTools.containsKey(builtInToolsKey)) {
         agentModeTools.put(builtInToolsKey, new HashMap<>());
       }

@@ -18,7 +18,6 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 /**
  * General preference page.

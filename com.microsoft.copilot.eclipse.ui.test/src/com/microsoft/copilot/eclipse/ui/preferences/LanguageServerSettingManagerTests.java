@@ -192,6 +192,7 @@ class LanguageServerSettingManagerTests {
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     when(mockPreferenceStore.getString(Constants.PROXY_KERBEROS_SP)).thenReturn(null);
     when(mockPreferenceStore.getString(Constants.GITHUB_ENTERPRISE)).thenReturn(null);
+    when(mockPreferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT)).thenReturn(null);
     when(mockPreferenceStore.getString(Constants.MCP_TOOLS_MODE_STATUS)).thenReturn("");
     when(mockPreferenceStore.getString(Constants.MCP_TOOLS_STATUS)).thenReturn("");
 

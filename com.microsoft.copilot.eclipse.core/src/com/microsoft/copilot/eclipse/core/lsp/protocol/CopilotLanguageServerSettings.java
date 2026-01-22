@@ -226,6 +226,15 @@ public class CopilotLanguageServerSettings {
       this.copilotSettings.setWorkspaceCopilotInstructions(workspaceInstructions);
     }
 
+    /**
+     * set git commit Copilot instructions.
+     *
+     * @param gitCommitInstructions the git commit instructions to set
+     */
+    public void setGitCommitCopilotInstructions(String gitCommitInstructions) {
+      this.copilotSettings.setGitCommitCopilotInstructions(gitCommitInstructions);
+    }
+
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
@@ -264,6 +273,9 @@ public class CopilotLanguageServerSettings {
     @SerializedName("globalCopilotInstructions")
     private String workspaceCopilotInstructions;
 
+    @SerializedName("globalGitCommitInstructions")
+    private String gitCommitCopilotInstructions;
+
     private CopilotAgentSettings agent;
 
     /**
@@ -272,6 +284,7 @@ public class CopilotLanguageServerSettings {
     public CopilotSettings() {
       this.mcpServers = null;
       this.workspaceCopilotInstructions = null;
+      this.gitCommitCopilotInstructions = null;
       agent = new CopilotAgentSettings();
     }
 
@@ -291,6 +304,14 @@ public class CopilotLanguageServerSettings {
       this.workspaceCopilotInstructions = workspaceCopilotInstructions;
     }
 
+    public String getGitCommitCopilotInstructions() {
+      return gitCommitCopilotInstructions;
+    }
+
+    public void setGitCommitCopilotInstructions(String gitCommitCopilotInstructions) {
+      this.gitCommitCopilotInstructions = gitCommitCopilotInstructions;
+    }
+
     public CopilotAgentSettings getAgent() {
       return agent;
     }
@@ -304,13 +325,14 @@ public class CopilotLanguageServerSettings {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.add("mcpServers", mcpServers);
       builder.add("workspaceCopilotInstructions", workspaceCopilotInstructions);
+      builder.add("gitCommitCopilotInstructions", gitCommitCopilotInstructions);
       builder.add("agent", agent);
       return builder.toString();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(agent, mcpServers, workspaceCopilotInstructions);
+      return Objects.hash(agent, gitCommitCopilotInstructions, mcpServers, workspaceCopilotInstructions);
     }
 
     @Override
@@ -322,7 +344,9 @@ public class CopilotLanguageServerSettings {
         return false;
       }
       CopilotSettings other = (CopilotSettings) obj;
-      return Objects.equals(agent, other.agent) && Objects.equals(mcpServers, other.mcpServers)
+      return Objects.equals(agent, other.agent)
+          && Objects.equals(gitCommitCopilotInstructions, other.gitCommitCopilotInstructions)
+          && Objects.equals(mcpServers, other.mcpServers)
           && Objects.equals(workspaceCopilotInstructions, other.workspaceCopilotInstructions);
     }
   }

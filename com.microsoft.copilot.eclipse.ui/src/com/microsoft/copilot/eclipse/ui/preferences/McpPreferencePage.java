@@ -70,7 +70,6 @@ import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpRegistryDialog;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -407,7 +406,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       redNoticeLabel = new Label(extMcpTitleComposite, SWT.NONE);
       redNoticeLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
       redNoticeLabel.setImage(redNotice);
-      redNoticeLabel.setToolTipText(Messages.chat_actionBar_toolButton_detected_toolTip);
+      redNoticeLabel
+          .setToolTipText(com.microsoft.copilot.eclipse.ui.i18n.Messages.chat_actionBar_toolButton_detected_toolTip);
       redNoticeLabel.addDisposeListener(e -> {
         if (redNotice != null && !redNotice.isDisposed()) {
           redNotice.dispose();

@@ -36,7 +36,6 @@ import com.microsoft.copilot.eclipse.core.utils.GsonUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 /**
  * A class to manage the proxy service for the Copilot Language Server.
@@ -87,6 +86,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     } else {
       getSettings().getGithubSettings().setWorkspaceCopilotInstructions(null);
     }
+
+    // Initialize the custom instructions git commit preference if not set
+    getSettings().getGithubSettings()
+        .setGitCommitCopilotInstructions(preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT));
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY, event -> {
@@ -140,18 +143,21 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         updateMcpToolsStatus(preferenceStore.getString(Constants.MCP_TOOLS_STATUS), null);
         return;
       case Constants.CUSTOM_INSTRUCTIONS_WORKSPACE:
-        String workspaceInstructions = preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE);
-        settings.getGithubSettings().setWorkspaceCopilotInstructions(workspaceInstructions);
+        settings.getGithubSettings()
+            .setWorkspaceCopilotInstructions(preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE));
         if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
-          GitHubSettings githubSettings = new GitHubSettings();
-          githubSettings.setWorkspaceCopilotInstructions(workspaceInstructions);
-          singleSetting = new CopilotLanguageServerSettings(null, null, null, githubSettings);
+          singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
           break;
         }
         return;
       case Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED:
         singleSetting = updateWorkspaceInstructionEnabled(
             preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED));
+        break;
+      case Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT:
+        String gitCommitInstructions = preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT);
+        settings.getGithubSettings().setGitCommitCopilotInstructions(gitCommitInstructions);
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       case Constants.AGENT_MAX_REQUESTS:
         settings.getGithubSettings().getCopilotSettings().getAgent()

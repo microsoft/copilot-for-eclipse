@@ -88,7 +88,6 @@ public class CopilotCapabilities {
 
   public List<String> getContentProvider() {
     return contentProvider;
-
   }
 
   public boolean isDebuggerAgent() {
