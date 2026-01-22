@@ -2,7 +2,7 @@
 <feature
       id="com.microsoft.copilot.eclipse.feature"
       label="GitHub Copilot"
-      version="0.14.0.qualifier"
+      version="0.15.0.qualifier"
       provider-name="GitHub Copilot"
       plugin="com.microsoft.copilot.eclipse.branding">
 

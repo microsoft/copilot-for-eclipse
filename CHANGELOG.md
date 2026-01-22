@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.15.0
+### Added
+- Add JDT debugger tool for agent. [PR#1476](https://github.com/microsoft/copilot-eclipse/pull/1476)
+- Support increasing or decreasing font size in chat view. [PR#1533](https://github.com/microsoft/copilot-eclipse/pull/1533), [PR#1543](https://github.com/microsoft/copilot-eclipse/pull/1543), [PR#1540](https://github.com/microsoft/copilot-eclipse/pull/1540)
+- Add ManageTodoList tool UI support. [PR#1523](https://github.com/microsoft/copilot-eclipse/pull/1523), [PR#1535](https://github.com/microsoft/copilot-eclipse/pull/1535)
+- Support agent max request preference. [PR#1518](https://github.com/microsoft/copilot-eclipse/pull/1518)
+- Add current editor selection to chat context. [#1214](https://github.com/microsoft/copilot-eclipse/issues/1214)
+- Support custom scheme file creation, edit and get errors. [PR#1531](https://github.com/microsoft/copilot-eclipse/pull/1531)
+- Support commit instruction. [#1117](https://github.com/microsoft/copilot-eclipse/issues/1117)
+
+### Changed
+- Update MCP registry dialog. [PR#1504](https://github.com/microsoft/copilot-eclipse/pull/1504)
+- Remove nightly check for the MCP registry feature. [PR#1516](https://github.com/microsoft/copilot-eclipse/pull/1516)
+- Update file change summary bar hover effect. [#1486](https://github.com/microsoft/copilot-eclipse/issues/1486)
+
+### Fixed
+- NPE from NES feature when working on an editor without text widget. [PR#1553](https://github.com/microsoft/copilot-eclipse/pull/1553)
+- Update Jobs View category to reflect correct labeling. [PR#1552](https://github.com/microsoft/copilot-eclipse/pull/1552)
+- Fix markup rendering under dark theme. [#460](https://github.com/microsoft/copilot-eclipse/issues/460)
+- Fix css for handoff container in dark mode. [PR#1536](https://github.com/microsoft/copilot-eclipse/pull/1536)
+- Support traverse through the chat view via Tab. [PR#1524](https://github.com/microsoft/copilot-eclipse/pull/1524)
+- Fix git repository detection when .git is excluded in .project. [#1521](https://github.com/microsoft/copilot-eclipse/issues/1521)
+- Fix ChatView input undo/redo functionality. [#1437](https://github.com/microsoft/copilot-eclipse/issues/1437)
+- Remove redundant focus listener for created buttons. [PR#1515](https://github.com/microsoft/copilot-eclipse/pull/1515)
+- Defer the status check until setting sync is finished. [#1429](https://github.com/microsoft/copilot-eclipse/issues/1429)
+- Prevent deadlock in updateCodeMinings by using asyncExec. [PR#1510](https://github.com/microsoft/copilot-eclipse/pull/1510)
+- Add focus visual hint for widgets in action bar. [PR#1513](https://github.com/microsoft/copilot-eclipse/pull/1513)
+- Linux terminal shell not working due to incorrect environment property. [PR#1508](https://github.com/microsoft/copilot-eclipse/pull/1508), [PR#1499](https://github.com/microsoft/copilot-eclipse/pull/1499)
+- Add content type to the quickAssistProcessor extension point. [PR#1502](https://github.com/microsoft/copilot-eclipse/pull/1502)
+- Always update modeToolStatus even when no tools are defined. [#1491](https://github.com/microsoft/copilot-eclipse/issues/1491)
+- Refactor action area visibility handling in chat history viewer. [PR#1497](https://github.com/microsoft/copilot-eclipse/pull/1497)
+- Set model apply to always. [PR#1494](https://github.com/microsoft/copilot-eclipse/pull/1494)
+- IllegalArgumentException when parsing Windows file paths in chat hyperlinks. [#1539](https://github.com/microsoft/copilot-eclipse/issues/1539)
+
 ## 0.14.0
 ### Added
 - Set a max file number for the FileChangeSummaryBar and make the bar scrollable. [#1339](https://github.com/microsoft/copilot-eclipse/issues/1339)
