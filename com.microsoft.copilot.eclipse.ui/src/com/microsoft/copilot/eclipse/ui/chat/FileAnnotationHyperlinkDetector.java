@@ -16,6 +16,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -32,7 +33,22 @@ public class FileAnnotationHyperlinkDetector extends AnnotationHyperlinkDetector
   private class FileHyperlink extends URLHyperlink {
 
     public FileHyperlink(IRegion region, String urlString) {
-      super(region, LSPEclipseUtils.toUri(urlString).toString());
+      super(region, normalizePathToUri(urlString));
+    }
+
+    /**
+     * Normalizes a path or URI string to a proper file URI. Handles Windows paths, Unix paths, and existing URIs.
+     *
+     * @param pathOrUri the path or URI to normalize
+     * @return the normalized URI string
+     */
+    private static String normalizePathToUri(String pathOrUri) {
+      String normalized = FileUtils.normalizeToUri(pathOrUri);
+      if (normalized == null) {
+        // Fall back to original behavior which may throw an exception
+        return LSPEclipseUtils.toUri(pathOrUri).toString();
+      }
+      return normalized;
     }
 
     @Override

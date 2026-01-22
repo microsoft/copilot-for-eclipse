@@ -7,9 +7,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IFile;
@@ -34,6 +36,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
  * Utilities for the core module.
  */
 public class FileUtils {
+  private static final Pattern URI_SCHEME_PATTERN = Pattern.compile("^\\w[\\w\\d+.-]*:/");
+
   private FileUtils() {
   }
 
@@ -150,6 +154,80 @@ public class FileUtils {
   }
 
   /**
+   * Normalizes a file path or URI string to a proper file URI string. Handles Windows absolute paths, POSIX absolute
+   * paths, and existing URI strings. Line number fragments (e.g., #L123) are preserved.
+   *
+   * <p>Examples:
+   * <ul>
+   * <li>{@code C:\Users\file.java} → {@code file:///C:/Users/file.java}
+   * <li>{@code /home/user/file.java} → {@code file:///home/user/file.java}
+   * <li>{@code file:///path/file.java} → {@code file:///path/file.java} (unchanged)
+   * <li>{@code C:\file.java#L100} → {@code file:///C:/file.java#L100}
+   * </ul>
+   *
+   * @param pathOrUri the file path or URI string to normalize
+   * @return the normalized URI string, or null if the path is invalid or cannot be converted
+   */
+  public static String normalizeToUri(String pathOrUri) {
+    if (pathOrUri == null || pathOrUri.isEmpty()) {
+      return null;
+    }
+
+    // Split off line number fragment if present (e.g., #L123, #L1-L10)
+    String fragment = null;
+    String pathPart = pathOrUri;
+    int fragmentIndex = pathOrUri.indexOf('#');
+    if (fragmentIndex > 0) {
+      fragment = pathOrUri.substring(fragmentIndex);
+      pathPart = pathOrUri.substring(0, fragmentIndex);
+    }
+
+    URI uri = resolvePathToUri(pathPart);
+    if (uri == null) {
+      return null;
+    }
+
+    // Append fragment if present
+    if (fragment != null) {
+      return uri.toString() + fragment;
+    }
+    return uri.toString();
+  }
+
+  /**
+   * Resolves a file path to a URI. Handles Windows absolute paths, POSIX absolute paths, and existing URI strings.
+   *
+   * @param filepath the file path to resolve
+   * @return the resolved URI, or null if the path is invalid
+   */
+  private static URI resolvePathToUri(String filepath) {
+    // Check for POSIX-like absolute paths or Windows-like absolute paths
+    if (filepath.startsWith("/")
+        || hasDriveLetter(filepath)
+        || (PlatformUtils.isWindows() && filepath.startsWith("\\"))) {
+      try {
+        return Paths.get(filepath).toUri();
+      } catch (Exception e) {
+        CopilotCore.LOGGER.error("Failed to convert path to URI: " + filepath, e);
+        return null;
+      }
+    }
+
+    // Check if the filepath starts with a URI scheme (e.g., file:, http:)
+    // Verify the character after colon is "/" to distinguish from Windows drive letters
+    if (URI_SCHEME_PATTERN.matcher(filepath).find()) {
+      try {
+        return new URI(filepath);
+      } catch (URISyntaxException e) {
+        CopilotCore.LOGGER.error("Failed to parse URI: " + filepath, e);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Get an IFile from a file path string. This method tries multiple approaches to locate the file in the workspace: 1.
    * First tries getFileForLocation for absolute filesystem paths 2. Falls back to getFile for workspace-relative paths
    * (e.g., ADT files)
@@ -185,6 +263,16 @@ public class FileUtils {
     }
 
     return null;
+  }
+
+  /**
+   * Checks if the filepath starts with a Windows drive letter (e.g., C:).
+   *
+   * @param filepath the file path to check
+   * @return true if the path starts with a drive letter, false otherwise
+   */
+  private static boolean hasDriveLetter(String filepath) {
+    return filepath.length() > 1 && Character.isLetter(filepath.charAt(0)) && filepath.charAt(1) == ':';
   }
 
   /**
