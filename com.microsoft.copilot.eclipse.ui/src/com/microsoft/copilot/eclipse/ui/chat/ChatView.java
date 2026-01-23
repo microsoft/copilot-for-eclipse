@@ -850,7 +850,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   @Override
   public void setFocus() {
     ChatEventsManager p = CopilotCore.getPlugin().getChatEventsManager();
-    if (p != null && p.chatProgressListeners.isEmpty()) {
+    if (p != null && !p.chatProgressListeners.contains(this)) {
       p.addChatProgressListener(this);
     }
     if (actionBar != null) {
