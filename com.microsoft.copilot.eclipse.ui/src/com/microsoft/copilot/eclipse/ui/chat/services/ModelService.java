@@ -755,6 +755,6 @@ public class ModelService extends ChatBaseService {
       eventBroker = null;
     }
 
-    disposeAllSideEffects();
+    modelComboSideEffects.clear();
   }
 }

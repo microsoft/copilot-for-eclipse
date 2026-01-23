@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor action area visibility handling in chat history viewer. [PR#1497](https://github.com/microsoft/copilot-eclipse/pull/1497)
 - Set model apply to always. [PR#1494](https://github.com/microsoft/copilot-eclipse/pull/1494)
 - IllegalArgumentException when parsing Windows file paths in chat hyperlinks. [#1539](https://github.com/microsoft/copilot-eclipse/issues/1539)
+- SWTException on shutdown when Chat view is open. [#1301](https://github.com/microsoft/copilot-eclipse/issues/1301)
 
 ## 0.14.0
 ### Added

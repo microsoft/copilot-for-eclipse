@@ -211,7 +211,6 @@ public class TodoListService extends ChatBaseService implements ChatProgressList
     if (eventsManager != null) {
       eventsManager.removeChatProgressListener(this);
     }
-    unbindTodoListBar();
   }
 
 }
