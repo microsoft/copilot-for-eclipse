@@ -1,3 +1,49 @@
+# GitHub Copilot 0.15.0 Release Notes
+### MCP Registry
+Discover and install MCP servers from a centralized registry with just a few clicks. Browse available servers, view their capabilities, and add them to your workspace instantly — no manual configuration required.
+
+<video controls="true" src="./0.15.0/mcp_registry.mp4" title="MCP Registry" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+### Chat View UX Enhancements
+We've refreshed the chat experience with several improvements:
+
+- **Font Size Control**: Adjust the chat view font size to your preference using keyboard shortcuts or the view menu. Use `⌘ + =` / `⌘ + -` on macOS or `Ctrl + =` / `Ctrl + -` on Windows/Linux. Make it easier on your eyes!
+- **Dark Theme Refresh**: A polished dark theme with improved contrast and readability for those late-night coding sessions.
+- **Undo/Redo Support**: Made a typo in your chat input? Now you can undo and redo your edits seamlessly.
+
+<video controls="true" src="./0.15.0/chat_ux_improvements.mp4" title="Chat UX Improvements" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+### Editor Selection Context
+Copilot now automatically includes your current editor selection in the chat context. Simply select some code, open the chat, and Copilot already knows what you're working with — making your conversations more relevant and focused.
+
+<video controls="true" src="./0.15.0/editor_selection.mp4" title="Editor Selection Context" style="max-width: 800px; width: 100%; height: auto;"></video>
+
+---
+
+### Manage Todo List Tool
+Stay organized with the new Todo List feature. When working on complex tasks, Copilot can now create and manage a structured todo list to track progress and plan steps. Watch as todos are checked off in real-time while the agent works through your request — giving you clear visibility into what's done and what's next.
+
+![Manage Todo List Tool](0.15.0/todo_tool.png)
+
+---
+
+### New Preferences
+Fine-tune your Copilot experience with new preference options:
+
+- **Agent Max Requests**: Control how many requests the agent can make before asking to reply 'continue', giving you more control over large, complex tasks.
+
+  ![Agent Max Requests](0.15.0/agent_max_request.png)
+
+- **Commit Instructions**: Customize how Copilot generates commit messages to match your team's conventions and style.
+
+  ![Commit Instructions](0.15.0/commit_instructions.png)
+
+---
+
 # GitHub Copilot 0.14.0 Release Notes
 ### Native Toolbar Integration
 The buttons that used to sit on the chat view’s top bar have now found a new home in the Eclipse view’s toolbar. This change makes the interface feel more natural and integrated with your workflow.
@@ -64,27 +110,3 @@ Next Edit Suggestions (NES) in GitHub Copilot predicts your next changes based o
 
 ### Auto Model
 Auto optimizes for model availability, currently routing to GPT-5, GPT-5 mini, GPT-4.1, Sonnet 4.5, and Haiku 4.5, depending on your subscription type. More models are coming soon.
-
----
-
-# GitHub Copilot 0.12.0 Release Notes
-### Chat History is Here!
-Now you can easily revisit your past conversations anytime. And you can also rename a chat to give it a meaningful title, or remove it with just a click.
-
-<video controls="true" src="./0.12.0/chat_history.mp4" title="Chat History" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Bring Your Own Key (BYOK) - Now in Public Preview
-Bring Your Own Key (BYOK) support is now in public preview. If you already have an API key from a supported model provider, you can connect it in just a minute and start using their models directly.
-
-<video controls="true" src="./0.12.0/byok.mp4" title="Bring Your Own Key" style="max-width: 1000px; width: 100%; height: auto;"></video>
-
-Note: BYOK is available only for individual plans - Free, Pro, and Pro+, with `Editor Preview Features` turned on in your [Copilot Settings](https://github.com/settings/copilot/features).
-
----
-
-### Re-organized Preferences Page.
-As Copilot continues to grow with exciting new features, we’ve redesigned the plug-in preferences page to make it cleaner, more intuitive, and easier for you to discover everything at a glance.
-
-![Re-organized Preferences Page](./0.12.0/preferences_page.png)
