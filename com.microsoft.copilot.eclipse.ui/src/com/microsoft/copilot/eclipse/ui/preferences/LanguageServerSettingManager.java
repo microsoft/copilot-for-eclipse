@@ -22,6 +22,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsStatusCollection;
@@ -215,8 +216,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   }
 
   /**
-   * Initializes the MCP tools status from the preference store for all modes. This loads and applies tool
-   * configurations for agent mode and all custom modes.
+   * Initializes the MCP tools status from the preference store for built-in agent mode only.
+   * Custom agent modes get their tool configuration from the LSP/file, not from preferences.
    */
   public void initializeMcpToolsStatus() {
     // Load per-mode tool status
@@ -228,9 +229,16 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
             .fromJson(savedModeToolsStatus, new TypeToken<Map<String, Map<String, Map<String, Boolean>>>>() {
             }.getType());
 
-        // Initialize tool status for each mode (same approach as updateAllModesToolStatus in McpPreferencePage)
+        // Only initialize tool status for built-in agent mode, not custom modes.
+        // Custom modes get their tool configuration from the LSP/file, not from preferences.
         for (Map.Entry<String, Map<String, Map<String, Boolean>>> modeEntry : modeToolStatus.entrySet()) {
           String modeId = modeEntry.getKey();
+
+          // Skip custom agent modes - they should use tool configuration from their file/LSP
+          if (CustomChatModeManager.INSTANCE.isCustomMode(modeId)) {
+            continue;
+          }
+
           Map<String, Map<String, Boolean>> toolStatus = modeEntry.getValue();
           String toolStatusJson = GsonUtils.getDefault().toJson(toolStatus);
           updateToolStatusForMode(toolStatusJson, modeId);
