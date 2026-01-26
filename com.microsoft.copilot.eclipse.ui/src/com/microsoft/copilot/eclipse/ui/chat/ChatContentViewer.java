@@ -394,8 +394,13 @@ public class ChatContentViewer extends ScrolledComposite {
       return;
     }
 
-    // Wait for layout to complete to get accurate positions
-    SwtUtils.invokeOnDisplayThread(() -> {
+    // Use async execution to ensure layout is computed before reading positions.
+    // Using sync execution would read positions before the layout is complete,
+    // resulting in incorrect scroll position (always scrolling to 0).
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (this.isDisposed() || latestUserTurn.isDisposed()) {
+        return;
+      }
       Point turnLocation = latestUserTurn.getLocation();
       this.setOrigin(0, turnLocation.y);
     }, this);
