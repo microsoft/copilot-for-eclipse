@@ -1018,14 +1018,6 @@
 		<contexts file="contexts.xml" />
 	</extension>
 
-	<extension point="org.eclipse.ui.genericeditor.quickAssistProcessors">
-		<quickAssistProcessor
-			id="com.microsoft.copilot.eclipse.ui.quickfix.toolConfiguration"
-			name="Tool Configuration Quick Fix"
-			class="com.microsoft.copilot.eclipse.ui.quickfix.ToolConfigurationQuickFixProcessor"
-			contentType="com.microsoft.copilot.eclipse.ui.agentFile" />
-	</extension>
-
 	<extension point="org.eclipse.ui.workbench.texteditor.rulerColumns">
 		<column
 			class="com.microsoft.copilot.eclipse.ui.nes.RulerColumn"

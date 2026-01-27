@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update file change summary bar hover effect. [#1486](https://github.com/microsoft/copilot-eclipse/issues/1486)
 
 ### Fixed
+- Remove unimplemented ToolConfigurationQuickFixProcessor causing ClassNotFoundException. [PR#1578](https://github.com/microsoft/copilot-eclipse/pull/1578)
 - NPE from NES feature when working on an editor without text widget. [PR#1553](https://github.com/microsoft/copilot-eclipse/pull/1553)
 - Update Jobs View category to reflect correct labeling. [PR#1552](https://github.com/microsoft/copilot-eclipse/pull/1552)
 - Fix markup rendering under dark theme. [#460](https://github.com/microsoft/copilot-eclipse/issues/460)
