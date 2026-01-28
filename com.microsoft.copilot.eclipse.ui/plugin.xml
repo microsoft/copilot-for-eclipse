@@ -593,6 +593,12 @@
 			sequence="M1+=">
 		</key>
 		<key
+			commandId="com.microsoft.copilot.eclipse.commands.increaseChatFontSize"
+			contextId="com.microsoft.copilot.eclipse.chatViewContext"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1++">
+		</key>
+		<key
 			commandId="com.microsoft.copilot.eclipse.commands.decreaseChatFontSize"
 			contextId="com.microsoft.copilot.eclipse.chatViewContext"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
