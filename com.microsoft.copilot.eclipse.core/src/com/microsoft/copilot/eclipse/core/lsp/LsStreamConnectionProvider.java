@@ -65,7 +65,19 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     }
 
     try {
-      startBinaryLspAgent();
+      try {
+        startBinaryLspAgent();
+      } catch (IOException e) {
+        // Workaround for https://github.com/microsoft/copilot-eclipse-feedback/issues/116
+        // The directory containing the language server binary might not be immediately available
+        // after creating it via LsStreamConnectionProvider.findAgentBinaryDirectoryPath()
+        if (PlatformUtils.isLinux()) {
+          // wait a moment before retrying on Linux
+          Thread.sleep(1000);
+          CopilotCore.LOGGER.info("Retrying binary LSP agent start on Linux.");
+          startBinaryLspAgent();
+        }
+      }
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Binary LSP agent start failed. Retrying with JS agent.", e);
       startJsLspAgent();
