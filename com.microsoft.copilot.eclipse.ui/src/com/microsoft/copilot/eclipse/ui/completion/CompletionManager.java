@@ -10,6 +10,7 @@ import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.codemining.AbstractCodeMining;
 import org.eclipse.jface.text.codemining.ICodeMining;
 import org.eclipse.jface.text.source.ISourceViewerExtension5;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -66,8 +67,12 @@ public class CompletionManager extends BaseCompletionManager {
     // locks which may be held by background threads waiting for the document lock.
     // When called from document change events, the document lock is still held, causing deadlock.
     // See: https://github.com/microsoft/copilot-eclipse-feedback/issues/96
-    textViewer.getTextWidget().getDisplay().asyncExec(() -> {
-      if (!textViewer.getTextWidget().isDisposed() && textViewer instanceof ISourceViewerExtension5 sve) {
+    StyledText textWidget = textViewer.getTextWidget();
+    if (textWidget == null || textWidget.isDisposed()) {
+      return;
+    }
+    textWidget.getDisplay().asyncExec(() -> {
+      if (!textWidget.isDisposed() && textViewer instanceof ISourceViewerExtension5 sve) {
         sve.updateCodeMinings();
       }
     });
