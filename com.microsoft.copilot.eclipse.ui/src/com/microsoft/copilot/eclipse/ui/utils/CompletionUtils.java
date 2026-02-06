@@ -1,10 +1,60 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+
 /**
  * Utility class for completions.
  */
 public class CompletionUtils {
   private CompletionUtils() {
+  }
+
+  /**
+   * Normalize line endings in a string to a specific line delimiter.
+   *
+   * @param text the input text.
+   * @param lineDelimiter the line delimiter to use.
+   * @return the normalized text.
+   */
+  public static String normalizeLineEndings(String text, String lineDelimiter) {
+    if (text == null || text.isEmpty()) {
+      return text;
+    }
+    String delimiter = lineDelimiter != null ? lineDelimiter : System.lineSeparator();
+    String normalized = text.replace("\r\n", "\n").replace("\r", "\n");
+    if ("\n".equals(delimiter)) {
+      return normalized;
+    }
+    return normalized.replace("\n", delimiter);
+  }
+
+  /**
+   * Resolve the line delimiter for a document near the given offset.
+   *
+   * @param document the document to inspect.
+   * @param offset the offset used to determine the line.
+   * @return the resolved line delimiter.
+   */
+  public static String getDocumentLineDelimiter(IDocument document, int offset) {
+    if (document == null) {
+      return System.lineSeparator();
+    }
+    try {
+      int safeOffset = Math.max(0, Math.min(offset, document.getLength()));
+      int line = document.getLineOfOffset(safeOffset);
+      String delimiter = document.getLineDelimiter(line);
+      if (delimiter != null) {
+        return delimiter;
+      }
+    } catch (BadLocationException e) {
+      // fall through to fallback delimiter
+    }
+    String[] legalDelimiters = document.getLegalLineDelimiters();
+    if (legalDelimiters != null && legalDelimiters.length > 0) {
+      return legalDelimiters[0];
+    }
+    return System.lineSeparator();
   }
 
   /**

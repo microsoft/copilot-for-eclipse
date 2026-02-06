@@ -53,6 +53,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.nes.RenderManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
+import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -436,6 +437,8 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
     if (StringUtils.isEmpty(text)) {
       return;
     }
+    String lineDelimiter = CompletionUtils.getDocumentLineDelimiter(this.document, startOffset);
+    text = CompletionUtils.normalizeLineEndings(text, lineDelimiter);
     int endOffset = LSPEclipseUtils.toOffset(item.getRange().getEnd(), this.document);
     this.document.replace(startOffset, endOffset - startOffset, text);
   }

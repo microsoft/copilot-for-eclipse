@@ -43,6 +43,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionListener;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -758,6 +759,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
       // Apply replacement (document operation)
       String replacement = diffModel.replacement == null ? "" : diffModel.replacement;
+      String lineDelimiter = CompletionUtils.getDocumentLineDelimiter(doc, startOff);
+      replacement = CompletionUtils.normalizeLineEndings(replacement, lineDelimiter);
       doc.replace(startOff, endOff - startOff, replacement);
       int newCaretOffset = startOff + replacement.length();
 
