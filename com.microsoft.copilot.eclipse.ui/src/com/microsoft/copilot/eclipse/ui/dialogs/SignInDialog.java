@@ -2,9 +2,6 @@ package com.microsoft.copilot.eclipse.ui.dialogs;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.dnd.Clipboard;
-import org.eclipse.swt.dnd.TextTransfer;
-import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
@@ -93,9 +90,6 @@ public class SignInDialog extends MessageDialog {
   }
 
   private void copyCodeToClipboard() {
-    Clipboard clipboard = new Clipboard(SwtUtils.getDisplay());
-    TextTransfer textTransfer = TextTransfer.getInstance();
-    clipboard.setContents(new Object[] { this.signInInitiateResult.getUserCode() }, new Transfer[] { textTransfer });
-    clipboard.dispose();
+    SwtUtils.copyToClipboard(getShell(), this.signInInitiateResult.getUserCode());
   }
 }
