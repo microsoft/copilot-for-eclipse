@@ -210,6 +210,12 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       return;
     }
     try {
+      if (!doc.containsPositionCategory(POSITION_CATEGORY)) {
+        suggestionStartPosition = null;
+        suggestionEndPosition = null;
+        indentLinePosition = null;
+        return;
+      }
       if (suggestionStartPosition != null) {
         doc.removePosition(POSITION_CATEGORY, suggestionStartPosition);
         suggestionStartPosition = null;
@@ -534,6 +540,12 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   private void setupPositionTracking(IDocument doc, int startOffset, int endOffset) {
     try {
+      if (!doc.containsPositionCategory(POSITION_CATEGORY)) {
+        suggestionStartPosition = null;
+        suggestionEndPosition = null;
+        indentLinePosition = null;
+        return;
+      }
       if (suggestionStartPosition != null) {
         doc.removePosition(POSITION_CATEGORY, suggestionStartPosition);
       }
