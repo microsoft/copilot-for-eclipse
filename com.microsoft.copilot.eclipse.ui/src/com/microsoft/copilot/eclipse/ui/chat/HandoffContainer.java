@@ -129,8 +129,7 @@ public class HandoffContainer extends Composite {
 
       // Create handoff buttons in the buttons container
       for (HandOff handoff : handoffs) {
-        HandoffButtonWidget button = new HandoffButtonWidget(buttonsContainer, handoff, chatServiceManager,
-            chatFontService, actionBar);
+        HandoffButtonWidget button = new HandoffButtonWidget(buttonsContainer, handoff, chatFontService);
         handoffButtons.add(button);
       }
 

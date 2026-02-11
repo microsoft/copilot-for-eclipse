@@ -10,7 +10,6 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
@@ -56,17 +55,12 @@ public class OpenChatViewHandler extends CopilotHandler {
   }
 
   /**
-   * Sets up parameters for the chat view based on the execution event and forces the chat mode to "Ask".
+   * Sets up parameters for the chat view based on the execution event.
    *
    * @param event the execution event containing parameters
    * @param chatView the chat view to set parameters on
    */
   private void setUpParameters(ExecutionEvent event, ChatView chatView) {
-    String inputValue = event.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE);
-    if (StringUtils.isBlank(inputValue)) {
-      return;
-    }
-
     ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
     if (chatServiceManager == null) {
       return;
@@ -77,10 +71,14 @@ public class OpenChatViewHandler extends CopilotHandler {
       return;
     }
 
-    // Force chat mode to Ask if auto-send is enabled
-    boolean autoSend = Boolean.parseBoolean(event.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND));
-    if (autoSend) {
-      userPreferenceService.setActiveChatMode(ChatMode.Ask.toString());
+    String mode = event.getParameter(UiConstants.OPEN_CHAT_VIEW_MODE);
+    if (StringUtils.isNotBlank(mode)) {
+      userPreferenceService.setActiveChatMode(mode);
+    }
+
+    String inputValue = event.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE);
+    if (StringUtils.isBlank(inputValue)) {
+      return;
     }
 
     ActionBar actionBar = chatView.getActionBar();
@@ -90,6 +88,7 @@ public class OpenChatViewHandler extends CopilotHandler {
 
     actionBar.setInputTextViewerContent(inputValue);
 
+    boolean autoSend = Boolean.parseBoolean(event.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND));
     if (autoSend) {
       actionBar.handleSendMessage();
     }

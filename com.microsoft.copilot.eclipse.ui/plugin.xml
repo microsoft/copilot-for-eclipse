@@ -257,6 +257,11 @@
 				name="%command.openChatView.autoSend"
 				values="">
 			</commandParameter>
+			<commandParameter
+				id="com.microsoft.copilot.eclipse.commands.openChatView.mode"
+				name="%command.openChatView.mode"
+				values="">
+			</commandParameter>
 		</command>
 		<command
 			id="com.microsoft.copilot.eclipse.commands.signOut"

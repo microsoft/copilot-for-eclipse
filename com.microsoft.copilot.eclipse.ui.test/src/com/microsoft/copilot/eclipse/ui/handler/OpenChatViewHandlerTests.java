@@ -23,7 +23,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.Constants;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
@@ -94,6 +93,8 @@ public class OpenChatViewHandlerTests {
           .thenReturn("Test message");
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND))
           .thenReturn("true");
+      when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_MODE))
+          .thenReturn("Agent");
 
       // Execute
       Object result = handler.execute(mockEvent);
@@ -103,7 +104,7 @@ public class OpenChatViewHandlerTests {
       verify(mockChatView, times(1)).setFocus();
       verify(mockActionBar, times(1)).setInputTextViewerContent("Test message");
       verify(mockActionBar, times(1)).handleSendMessage();
-      verify(mockUserPreferenceService, times(1)).setActiveChatMode(ChatMode.Ask.displayName());
+      verify(mockUserPreferenceService, times(1)).setActiveChatMode("Agent");
     }
   }
 
@@ -126,6 +127,8 @@ public class OpenChatViewHandlerTests {
           .thenReturn("Test message");
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND))
           .thenReturn("false");
+      when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_MODE))
+          .thenReturn("Ask");
 
       // Execute
       Object result = handler.execute(mockEvent);
@@ -135,7 +138,7 @@ public class OpenChatViewHandlerTests {
       verify(mockChatView, times(1)).setFocus();
       verify(mockActionBar, times(1)).setInputTextViewerContent("Test message");
       verify(mockActionBar, never()).handleSendMessage();
-      verify(mockUserPreferenceService, times(0)).setActiveChatMode("Ask");
+      verify(mockUserPreferenceService, times(1)).setActiveChatMode("Ask");
     }
   }
 
@@ -143,6 +146,8 @@ public class OpenChatViewHandlerTests {
   void testExecute_NoParameters() throws ExecutionException, PartInitException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
+
+      setupCopilotUiMocks(mockedCopilotUi);
 
       // Setup mocks for successful chat view opening
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
@@ -153,6 +158,8 @@ public class OpenChatViewHandlerTests {
       // Setup parameters as null/empty
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn(null);
+      when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_MODE))
+          .thenReturn(null);
 
       // Execute
       Object result = handler.execute(mockEvent);
@@ -162,7 +169,8 @@ public class OpenChatViewHandlerTests {
       verify(mockChatView, times(1)).setFocus();
       verify(mockActionBar, never()).setInputTextViewerContent(any());
       verify(mockActionBar, never()).handleSendMessage();
-      verify(mockUserPreferenceService, times(0)).setActiveChatMode("Ask");
+      verify(mockUserPreferenceService, never()).setActiveChatMode("Ask");
+      verify(mockUserPreferenceService, never()).setActiveChatMode("Agent");
     }
   }
 
@@ -171,7 +179,7 @@ public class OpenChatViewHandlerTests {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
 
-    	mockedCopilotUi.when(() -> CopilotUi.getPlugin()).thenReturn(mockCopilotUi);
+      mockedCopilotUi.when(() -> CopilotUi.getPlugin()).thenReturn(mockCopilotUi);
 
       // Setup mocks with no active window
       mockedPlatformUI.when(() -> PlatformUI.getWorkbench()).thenReturn(mockWorkbench);
@@ -224,6 +232,8 @@ public class OpenChatViewHandlerTests {
       // Setup parameters
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
           .thenReturn("Test message");
+      when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_MODE))
+          .thenReturn("Agent");
 
       // Execute
       Object result = handler.execute(mockEvent);
@@ -233,12 +243,12 @@ public class OpenChatViewHandlerTests {
       verify(mockChatView, times(1)).setFocus();
       verify(mockActionBar, never()).setInputTextViewerContent(any());
       verify(mockActionBar, never()).handleSendMessage();
-      verify(mockUserPreferenceService, times(0)).setActiveChatMode("Ask");
+      verify(mockUserPreferenceService, times(1)).setActiveChatMode("Agent");
     }
   }
 
   @Test
-  void testExecute_SwitchesFromAgentToAskMode() throws ExecutionException, PartInitException {
+  void testExecute_SetsModeEvenWithoutInputValue() throws ExecutionException, PartInitException {
     try (MockedStatic<PlatformUI> mockedPlatformUI = Mockito.mockStatic(PlatformUI.class);
          MockedStatic<CopilotUi> mockedCopilotUi = Mockito.mockStatic(CopilotUi.class)) {
 
@@ -249,21 +259,22 @@ public class OpenChatViewHandlerTests {
       when(mockWorkbench.getActiveWorkbenchWindow()).thenReturn(mockWindow);
       when(mockWindow.getActivePage()).thenReturn(mockPage);
       when(mockPage.showView(Constants.CHAT_VIEW_ID)).thenReturn(mockChatView);
-      when(mockChatView.getActionBar()).thenReturn(mockActionBar);
 
-      // Setup parameters - no auto send
+      // Setup parameters - mode only
       when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE))
-          .thenReturn("Test message");
-      when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_AUTO_SEND))
-          .thenReturn("true");
+          .thenReturn(null);
+      when(mockEvent.getParameter(UiConstants.OPEN_CHAT_VIEW_MODE))
+          .thenReturn("Agent");
 
       // Execute
       Object result = handler.execute(mockEvent);
 
-      // Verify that the mode was switched from Agent to Ask
+      // Verify that the mode was set even without input
       assertNull(result);
       verify(mockChatView, times(1)).setFocus();
-      verify(mockUserPreferenceService, times(1)).setActiveChatMode("Ask");
+      verify(mockActionBar, never()).setInputTextViewerContent(any());
+      verify(mockActionBar, never()).handleSendMessage();
+      verify(mockUserPreferenceService, times(1)).setActiveChatMode("Agent");
     }
   }
 }
