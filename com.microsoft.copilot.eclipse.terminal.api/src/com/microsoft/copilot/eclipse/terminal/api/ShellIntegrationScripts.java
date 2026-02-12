@@ -18,8 +18,10 @@ public final class ShellIntegrationScripts {
 
   /**
    * The marker string output by the shell integration script after each command completes.
+   * Uses OSC (Operating System Command) escape sequence format: ESC ] 7775 ; marker BEL
+   * This is invisible in terminal output but can be detected programmatically.
    */
-  public static final String SHELL_MARKER = "__COPILOT_CMD_COMPLETE__";
+  public static final String SHELL_MARKER = "\u001b]7775;C\u0007";
 
   private static final String SCRIPTS_PATH = "scripts/";
   private static final String SH_SCRIPT = "copilot-sh-integration.sh";

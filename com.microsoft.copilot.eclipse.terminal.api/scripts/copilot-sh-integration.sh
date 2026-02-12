@@ -6,11 +6,13 @@ __copilot_sh_integration_main() {
     [ -n "$COPILOT_SHELL_INTEGRATION" ] && return
     COPILOT_SHELL_INTEGRATION=1
 
-    __COPILOT_MARKER="__COPILOT_CMD_COMPLETE__"
+    # OSC escape sequence: ESC ] 7775 ; C BEL
+    # This is invisible in terminal but detectable programmatically
+    __COPILOT_MARKER=$(printf '\033]7775;C\007')
 
     # The function that prints the marker
     __copilot_precmd() {
-        printf '%s\n' "$__COPILOT_MARKER"
+        printf '%s' "$__COPILOT_MARKER"
     }
 
     # Save original PS1 only if PS1 is already set and not empty
@@ -21,16 +23,10 @@ __copilot_sh_integration_main() {
     # Ensure PS1 has a value (POSIX shells may start without PS1)
     : "${__copilot_original_ps1:=$ }"
 
-    # newline in POSIX sh
-    __NL='
-'
-
     # Assemble PS1:
-    #   <newline>
-    #   <marker output>
-    #   <newline>
+    #   <marker output> (invisible OSC sequence)
     #   <original prompt>
-    PS1="${__NL}\$(__copilot_precmd)${__NL}${__copilot_original_ps1}"
+    PS1="\$(__copilot_precmd)${__copilot_original_ps1}"
 }
 
 __copilot_sh_integration_main

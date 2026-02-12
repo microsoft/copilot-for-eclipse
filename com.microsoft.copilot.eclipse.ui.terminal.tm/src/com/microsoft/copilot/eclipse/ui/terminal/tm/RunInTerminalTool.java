@@ -282,12 +282,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       return;
     }
 
-    // Remove marker line from output
-    int lineStart = output.lastIndexOf(StringUtils.LF, markerIndex);
-    int lineEnd = output.indexOf(StringUtils.LF, markerIndex);
-    lineStart = lineStart < 0 ? 0 : lineStart + 1;
-    lineEnd = lineEnd < 0 ? output.length() : lineEnd;
-    output.delete(lineStart, lineEnd);
+    // Remove marker from output
+    output.delete(markerIndex, markerIndex + ShellIntegrationScripts.SHELL_MARKER.length());
 
     // Skip the initial marker that appears when terminal starts (before any command is run)
     if (!isInitialMarkerHandled) {
