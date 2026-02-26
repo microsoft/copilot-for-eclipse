@@ -249,6 +249,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
   @Override
   public void onCompletionResolved(String uriString, List<CompletionItem> completions) {
+    if (this.lsConnection == null || this.documentUri == null) {
+      return;
+    }
     if (!Objects.equals(uriString, this.documentUri.toASCIIString())) {
       return;
     }
@@ -530,6 +533,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
    * completion suggestions.
    */
   protected void notifyShown() {
+    if (this.lsConnection == null) {
+      return;
+    }
     if (this.suggestionUpdateManager.getSize() == 0) {
       return;
     }
@@ -610,6 +616,9 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
    * Handle caret move, clear and update the ghost text accordingly.
    */
   protected void handleCaretPositionChange() {
+    if (this.lsConnection == null) {
+      return;
+    }
     // it's guaranteed that the document change event comes earlier than keyReleased
     // To verify this behavior, set breakpoints in org.eclipse.lsp4e.DocumentContentSynchronizer
     // at the line: changeParamsToSend.getTextDocument().setVersion(++version); and this class's keyReleased method.

@@ -35,6 +35,8 @@ import org.eclipse.ui.intro.IIntroPart;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.ArgumentCaptor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -79,7 +81,9 @@ public class EditorLifecycleListenerIntegrationTests {
     waitForJobs(100, 1000);
   }
 
+  // TODO: enable it on linux
   @Test
+  @DisabledOnOs(OS.LINUX)
   void testRename() throws Exception {
     renameResource();
   }

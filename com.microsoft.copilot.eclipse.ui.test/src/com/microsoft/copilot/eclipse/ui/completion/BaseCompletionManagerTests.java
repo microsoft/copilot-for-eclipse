@@ -12,6 +12,7 @@ import java.net.URI;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.swt.custom.StyledText;
@@ -25,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
@@ -122,20 +124,16 @@ class BaseCompletionManagerTests extends CompletionBaseTests {
 
   @Test
   void testAutoCompletionDisabledDoesNotTriggerCompletion() {
-    // Disable auto completion
-    CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
-    settings.setEnableAutoCompletions(false);
-    when(mockSettingsManager.getSettings()).thenReturn(settings);
-
-    // Recreate completion manager with disabled auto completion
-    completionManager = new TestableBaseCompletionManager(mockLsConnection, mockCompletionProvider, textEditor,
-        mockSettingsManager);
+    // Disable auto completion via property change (the production code path)
+    completionManager.propertyChange(new PropertyChangeEvent(
+        mockSettingsManager, Constants.AUTO_SHOW_COMPLETION, "true", "false"));
 
     // Setup version change
     when(mockLsConnection.getDocumentVersion(documentUri)).thenReturn(1, 2);
 
     MouseEvent mouseEvent = createMockMouseEvent();
     completionManager.mouseDown(mouseEvent); // Initialize
+    completionManager.setModelOffset(10);
     completionManager.mouseDown(mouseEvent); // Should not trigger due to disabled auto completion
 
     // Verify completion was never triggered
