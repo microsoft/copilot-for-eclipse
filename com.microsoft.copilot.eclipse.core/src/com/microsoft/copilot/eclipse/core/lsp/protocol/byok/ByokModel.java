@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Model representing a BYOK (Bring Your Own Key) model configuration.
@@ -103,13 +103,13 @@ public class ByokModel {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("modelId", modelId);
-    builder.add("providerName", providerName);
-    builder.add("isRegistered", isRegistered);
-    builder.add("isCustomModel", isCustomModel);
-    builder.add("deploymentUrl", deploymentUrl);
-    builder.add("modelCapabilities", modelCapabilities);
-    builder.add("apiKey", apiKey);
+    builder.append("modelId", modelId);
+    builder.append("providerName", providerName);
+    builder.append("isRegistered", isRegistered);
+    builder.append("isCustomModel", isCustomModel);
+    builder.append("deploymentUrl", deploymentUrl);
+    builder.append("modelCapabilities", modelCapabilities);
+    builder.append("apiKey", apiKey);
     return builder.toString();
   }
 }

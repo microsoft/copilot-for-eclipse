@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 import java.util.List;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Information about a remote server configuration in the MCP Registry.
@@ -20,9 +20,9 @@ public record Remote(
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("transportType", transportType);
-    builder.add("url", url);
-    builder.add("headers", headers);
+    builder.append("transportType", transportType);
+    builder.append("url", url);
+    builder.append("headers", headers);
     return builder.toString();
   }
 }

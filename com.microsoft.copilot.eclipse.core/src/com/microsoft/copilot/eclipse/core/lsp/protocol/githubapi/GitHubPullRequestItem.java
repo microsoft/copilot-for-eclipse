@@ -1,7 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a GitHub Pull Request item with relevant details.
@@ -23,15 +23,15 @@ public record GitHubPullRequestItem(
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("number", number);
-    builder.add("title", title);
-    builder.add("user", user);
-    builder.add("htmlUrl", htmlUrl);
-    builder.add("draft", draft);
-    builder.add("body", body);
-    builder.add("repository", repository);
-    builder.add("copilotWorkStatus", copilotWorkStatus);
+    builder.append("id", id);
+    builder.append("number", number);
+    builder.append("title", title);
+    builder.append("user", user);
+    builder.append("htmlUrl", htmlUrl);
+    builder.append("draft", draft);
+    builder.append("body", body);
+    builder.append("repository", repository);
+    builder.append("copilotWorkStatus", copilotWorkStatus);
     return builder.toString();
   }
 }

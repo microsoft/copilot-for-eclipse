@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -52,7 +52,7 @@ public class NotifyRejectedParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("uuids", uuids);
+    builder.append("uuids", uuids);
     return builder.toString();
   }
 

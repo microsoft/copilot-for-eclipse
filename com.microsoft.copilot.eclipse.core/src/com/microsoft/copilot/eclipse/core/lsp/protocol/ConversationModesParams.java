@@ -3,8 +3,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.WorkspaceFolder;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Parameters for the conversation/modes request.
@@ -52,7 +52,7 @@ public class ConversationModesParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("workspaceFolders", workspaceFolders);
+    builder.append("workspaceFolders", workspaceFolders);
     return builder.toString();
   }
 }

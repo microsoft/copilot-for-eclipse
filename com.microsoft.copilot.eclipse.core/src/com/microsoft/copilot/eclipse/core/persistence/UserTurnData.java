@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Represents a user turn (the request) in a conversation. Split out from the original TurnData. Contains only user
@@ -166,21 +166,21 @@ public class UserTurnData extends AbstractTurnData {
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     // Include AbstractTurnData properties
-    builder.add("turnId", getTurnId());
-    builder.add("role", getRole());
-    builder.add("timestamp", getTimestamp());
-    builder.add("data", getData());
+    builder.append("turnId", getTurnId());
+    builder.append("role", getRole());
+    builder.append("timestamp", getTimestamp());
+    builder.append("data", getData());
     // Include UserTurnData specific properties
-    builder.add("message", message);
-    builder.add("currentDocument", currentDocument);
-    builder.add("references", references);
-    builder.add("ignoredSkills", ignoredSkills);
-    builder.add("userLanguage", userLanguage);
-    builder.add("source", source);
-    builder.add("model", model);
-    builder.add("chatMode", chatMode);
-    builder.add("customChatModeId", customChatModeId);
-    builder.add("needToolCallConfirmation", needToolCallConfirmation);
+    builder.append("message", message);
+    builder.append("currentDocument", currentDocument);
+    builder.append("references", references);
+    builder.append("ignoredSkills", ignoredSkills);
+    builder.append("userLanguage", userLanguage);
+    builder.append("source", source);
+    builder.append("model", model);
+    builder.append("chatMode", chatMode);
+    builder.append("customChatModeId", customChatModeId);
+    builder.append("needToolCallConfirmation", needToolCallConfirmation);
     return builder.toString();
   }
 
@@ -427,7 +427,7 @@ public class UserTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("text", text);
+      builder.append("text", text);
       return builder.toString();
     }
 
@@ -483,7 +483,7 @@ public class UserTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("uri", uri);
+      builder.append("uri", uri);
       return builder.toString();
     }
 

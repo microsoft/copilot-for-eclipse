@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Response model for BYOK operations.
@@ -47,8 +47,8 @@ public class ByokStatusResponse {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("success", success);
-    builder.add("message", message);
+    builder.append("success", success);
+    builder.append("message", message);
     return builder.toString();
   }
 }

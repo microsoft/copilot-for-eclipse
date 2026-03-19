@@ -1,6 +1,6 @@
 package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Official metadata about the server.
@@ -15,10 +15,10 @@ public record OfficialMeta(ServerStatus status, String publishedAt, String updat
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("status", status);
-    builder.add("publishedAt", publishedAt);
-    builder.add("updatedAt", updatedAt);
-    builder.add("isLatest", isLatest);
+    builder.append("status", status);
+    builder.append("publishedAt", publishedAt);
+    builder.append("updatedAt", updatedAt);
+    builder.append("isLatest", isLatest);
     return builder.toString();
   }
 

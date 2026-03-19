@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * The result of the confirmation.
@@ -48,7 +48,7 @@ public class LanguageModelToolConfirmationResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("result", result);
+    builder.append("result", result);
     return builder.toString();
   }
 

@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.policy;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for the 'policy/didChange' notification.
@@ -68,9 +68,9 @@ public class DidChangePolicyParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("mcpContributionPointEnabled", mcpContributionPointEnabled);
-    builder.add("subAgentEnabled", subAgentEnabled);
-    builder.add("customAgentEnabled", customAgentEnabled);
+    builder.append("mcpContributionPointEnabled", mcpContributionPointEnabled);
+    builder.append("subAgentEnabled", subAgentEnabled);
+    builder.append("customAgentEnabled", customAgentEnabled);
     return builder.toString();
   }
 }

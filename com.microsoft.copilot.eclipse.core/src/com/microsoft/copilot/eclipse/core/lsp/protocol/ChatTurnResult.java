@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -92,12 +92,12 @@ public class ChatTurnResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("conversationId", conversationId);
-    builder.add("turnId", turnId);
-    builder.add("agentSlug", agentSlug);
-    builder.add("modelName", modelName);
-    builder.add("modelProviderName", modelProviderName);
-    builder.add("billingMultiplier", billingMultiplier);
+    builder.append("conversationId", conversationId);
+    builder.append("turnId", turnId);
+    builder.append("agentSlug", agentSlug);
+    builder.append("modelName", modelName);
+    builder.append("modelProviderName", modelProviderName);
+    builder.append("billingMultiplier", billingMultiplier);
     return builder.toString();
   }
 

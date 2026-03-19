@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -66,10 +66,10 @@ public class InitializationOptions {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("editorInfo", editorInfo);
-    builder.add("editorPluginInfo", editorPluginInfo);
-    builder.add("copilotCapabilities", copilotCapabilities);
-    builder.add("githubAppId", githubAppId);
+    builder.append("editorInfo", editorInfo);
+    builder.append("editorPluginInfo", editorPluginInfo);
+    builder.append("copilotCapabilities", copilotCapabilities);
+    builder.append("githubAppId", githubAppId);
     return builder.toString();
   }
 

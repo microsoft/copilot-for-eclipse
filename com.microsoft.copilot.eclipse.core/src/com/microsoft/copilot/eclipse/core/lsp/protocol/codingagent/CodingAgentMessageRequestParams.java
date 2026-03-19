@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for a coding agent message request.
@@ -79,11 +79,11 @@ public class CodingAgentMessageRequestParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("title", title);
-    builder.add("description", description);
-    builder.add("prLink", prLink);
-    builder.add("conversationId", conversationId);
-    builder.add("turnId", turnId);
+    builder.append("title", title);
+    builder.append("description", description);
+    builder.append("prLink", prLink);
+    builder.append("conversationId", conversationId);
+    builder.append("turnId", turnId);
     return builder.toString();
   }
 

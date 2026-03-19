@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.List;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * A list of MCP servers from the MCP Registry.
@@ -15,8 +15,8 @@ public record ServerList(List<ServerResponse> servers, Metadata metadata) {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("servers", servers);
-    builder.add("metadata", metadata);
+    builder.append("servers", servers);
+    builder.append("metadata", metadata);
     return builder.toString();
   }
 }

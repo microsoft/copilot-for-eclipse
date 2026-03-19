@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
 
@@ -45,7 +45,7 @@ public class OnChangeMcpServerToolsParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("servers", servers);
+    builder.append("servers", servers);
     return builder.toString();
   }
 }

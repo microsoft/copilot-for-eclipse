@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a GitHub repository with its owner and name.
@@ -57,8 +57,8 @@ public class GitHubRepository {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("owner", owner);
-    builder.add("name", name);
+    builder.append("owner", owner);
+    builder.append("name", name);
     return builder.toString();
   }
 

@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Confirmation message for the tool invocation.
@@ -67,8 +67,8 @@ public class ConfirmationMessages {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("title", title);
-    builder.add("message", message);
+    builder.append("title", title);
+    builder.append("message", message);
     return builder.toString();
   }
 

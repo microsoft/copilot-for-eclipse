@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a key-value input parameter for configuring MCP servers.
@@ -44,17 +44,17 @@ public class KeyValueInput extends InputWithVariables {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("getVariables()", getVariables());
-    builder.add("toString()", super.toString());
-    builder.add("getDescription()", getDescription());
-    builder.add("getIsRequired()", getIsRequired());
-    builder.add("getFormat()", getFormat());
-    builder.add("getValue()", getValue());
-    builder.add("getIsSecret()", getIsSecret());
-    builder.add("getDefaultValue()", getDefaultValue());
-    builder.add("getChoices()", getChoices());
-    builder.add("getClass()", getClass());
+    builder.append("name", name);
+    builder.append("getVariables()", getVariables());
+    builder.append("toString()", super.toString());
+    builder.append("getDescription()", getDescription());
+    builder.append("getIsRequired()", getIsRequired());
+    builder.append("getFormat()", getFormat());
+    builder.append("getValue()", getValue());
+    builder.append("getIsSecret()", getIsSecret());
+    builder.append("getDefaultValue()", getDefaultValue());
+    builder.append("getChoices()", getChoices());
+    builder.append("getClass()", getClass());
     return builder.toString();
   }
 

@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a runtime log for the MCP service.
@@ -82,11 +82,11 @@ public class McpRuntimeLog {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("level", level);
-    builder.add("server", server);
-    builder.add("tool", tool);
-    builder.add("message", message);
-    builder.add("time", LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault()));
+    builder.append("level", level);
+    builder.append("server", server);
+    builder.append("tool", tool);
+    builder.append("message", message);
+    builder.append("time", LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault()));
     return builder.toString();
   }
 

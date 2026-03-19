@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
 import org.eclipse.lsp4j.WorkDoneProgressNotification;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Creates a new ChatProgressValue.
@@ -194,21 +194,21 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("kind", kind);
-    builder.add("title", title);
-    builder.add("conversationId", conversationId);
-    builder.add("turnId", turnId);
-    builder.add("parentTurnId", parentTurnId);
-    builder.add("reply", reply);
-    builder.add("annotations", Arrays.toString(annotations));
-    builder.add("references", Arrays.toString(references));
-    builder.add("hideText", hideText);
-    builder.add("notifications", Arrays.toString(notifications));
-    builder.add("steps", Arrays.toString(steps));
-    builder.add("cancellationReason", cancellationReason);
-    builder.add("error", error);
-    builder.add("editAgentRounds", editAgentRounds);
-    builder.add("suggestedTitle", suggestedTitle);
+    builder.append("kind", kind);
+    builder.append("title", title);
+    builder.append("conversationId", conversationId);
+    builder.append("turnId", turnId);
+    builder.append("parentTurnId", parentTurnId);
+    builder.append("reply", reply);
+    builder.append("annotations", Arrays.toString(annotations));
+    builder.append("references", Arrays.toString(references));
+    builder.append("hideText", hideText);
+    builder.append("notifications", Arrays.toString(notifications));
+    builder.append("steps", Arrays.toString(steps));
+    builder.append("cancellationReason", cancellationReason);
+    builder.append("error", error);
+    builder.append("editAgentRounds", editAgentRounds);
+    builder.append("suggestedTitle", suggestedTitle);
     return builder.toString();
   }
 }

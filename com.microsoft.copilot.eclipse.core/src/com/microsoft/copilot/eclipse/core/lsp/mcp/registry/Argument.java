@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 import java.util.Objects;
 
 import com.google.gson.annotations.JsonAdapter;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Base class for different types of arguments in the MCP Registry API. Can be extended by PositionalArgument or
@@ -57,7 +57,7 @@ public class Argument extends InputWithVariables {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
+    builder.append("type", type);
     return builder.toString();
   }
 

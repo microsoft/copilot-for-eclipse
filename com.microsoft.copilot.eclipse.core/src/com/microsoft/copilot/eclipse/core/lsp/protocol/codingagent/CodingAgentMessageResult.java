@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -53,8 +53,8 @@ public class CodingAgentMessageResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("success", success);
-    builder.add("error", error);
+    builder.append("success", success);
+    builder.append("error", error);
     return builder.toString();
   }
 

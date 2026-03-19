@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Agents are used to provide additional functionality to the conversation, e.g. resolving the whole project context.
@@ -74,10 +74,10 @@ public class ConversationAgent {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("slug", slug);
-    builder.add("name", name);
-    builder.add("description", description);
-    builder.add("avatarUrl", avatarUrl);
+    builder.append("slug", slug);
+    builder.append("name", name);
+    builder.append("description", description);
+    builder.append("avatarUrl", avatarUrl);
     return builder.toString();
   }
 }

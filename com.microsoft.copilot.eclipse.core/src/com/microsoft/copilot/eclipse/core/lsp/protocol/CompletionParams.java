@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -62,8 +62,8 @@ public class CompletionParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("doc", doc);
-    builder.add("options", options);
+    builder.append("doc", doc);
+    builder.append("options", options);
     return builder.toString();
   }
 

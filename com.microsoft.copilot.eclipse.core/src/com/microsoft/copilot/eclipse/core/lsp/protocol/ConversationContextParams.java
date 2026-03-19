@@ -1,6 +1,6 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for the conversation context (skills) request.
@@ -10,9 +10,9 @@ public record ConversationContextParams(String conversationId, String turnId, St
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("conversationId", conversationId);
-    builder.add("turnId", turnId);
-    builder.add("skillId", skillId);
+    builder.append("conversationId", conversationId);
+    builder.append("turnId", turnId);
+    builder.append("skillId", skillId);
     return builder.toString();
   }
 }

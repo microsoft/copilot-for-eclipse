@@ -1,6 +1,6 @@
 package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for getting a specific server from the MCP Registry.
@@ -14,9 +14,9 @@ public record GetServerParams(String baseUrl, String serverName, String version)
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("baseUrl", baseUrl);
-    builder.add("serverName", serverName);
-    builder.add("version", version);
+    builder.append("baseUrl", baseUrl);
+    builder.append("serverName", serverName);
+    builder.append("version", version);
     return builder.toString();
   }
 }

@@ -3,8 +3,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.WorkspaceFolder;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsStatusCollection;
 
@@ -67,9 +67,9 @@ public class UpdateMcpToolsStatusParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("servers", servers);
-    builder.add("customChatModeId", customChatModeId);
-    builder.add("workspaceFolders", workspaceFolders);
+    builder.append("servers", servers);
+    builder.append("customChatModeId", customChatModeId);
+    builder.append("workspaceFolders", workspaceFolders);
     return builder.toString();
   }
 }

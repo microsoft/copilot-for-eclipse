@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.utils.JdtUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -101,14 +101,14 @@ public class CopilotCapabilities {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("fetch", fetch);
-    builder.add("watchedFiles", watchedFiles);
-    builder.add("didChangeFeatureFlags", didChangeFeatureFlags);
-    builder.add("stateDatabase", stateDatabase);
-    builder.add("subAgent", subAgent);
-    builder.add("cveRemediatorAgent", cveRemediatorAgent);
-    builder.add("contentProvider", contentProvider);
-    builder.add("debuggerAgent", debuggerAgent);
+    builder.append("fetch", fetch);
+    builder.append("watchedFiles", watchedFiles);
+    builder.append("didChangeFeatureFlags", didChangeFeatureFlags);
+    builder.append("stateDatabase", stateDatabase);
+    builder.append("subAgent", subAgent);
+    builder.append("cveRemediatorAgent", cveRemediatorAgent);
+    builder.append("contentProvider", contentProvider);
+    builder.append("debuggerAgent", debuggerAgent);
     return builder.toString();
   }
 

@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a tool status for conversation mode.
@@ -67,8 +67,8 @@ public class ConversationToolStatus {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("status", status);
+    builder.append("name", name);
+    builder.append("status", status);
     return builder.toString();
   }
 }

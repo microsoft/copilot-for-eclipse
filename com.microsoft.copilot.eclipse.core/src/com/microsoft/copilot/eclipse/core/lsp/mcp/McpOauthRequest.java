@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a request for Dynamic OAuth authentication in the MCP.
@@ -76,10 +76,10 @@ public class McpOauthRequest {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("title", title);
-    builder.add("header", header);
-    builder.add("detail", detail);
-    builder.add("inputs", inputs);
+    builder.append("title", title);
+    builder.append("header", header);
+    builder.append("detail", detail);
+    builder.append("inputs", inputs);
     return builder.toString();
   }
 
@@ -160,11 +160,11 @@ public class McpOauthRequest {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("title", title);
-      builder.add("value", value);
-      builder.add("description", description);
-      builder.add("placeholder", placeholder);
-      builder.add("required", required);
+      builder.append("title", title);
+      builder.append("value", value);
+      builder.append("description", description);
+      builder.append("placeholder", placeholder);
+      builder.append("required", required);
       return builder.toString();
     }
   }

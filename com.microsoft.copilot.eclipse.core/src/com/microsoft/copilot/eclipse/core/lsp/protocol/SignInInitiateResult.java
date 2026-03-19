@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Result for signInInitiate.
@@ -92,11 +92,11 @@ public class SignInInitiateResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("status", status);
-    builder.add("expiresIn", expiresIn);
-    builder.add("interval", interval);
-    builder.add("userCode", userCode);
-    builder.add("verificationUri", verificationUri);
+    builder.append("status", status);
+    builder.append("expiresIn", expiresIn);
+    builder.append("interval", interval);
+    builder.append("userCode", userCode);
+    builder.append("verificationUri", verificationUri);
     return builder.toString();
   }
 }

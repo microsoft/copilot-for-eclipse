@@ -2,8 +2,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Range;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -70,9 +70,9 @@ public class CurrentEditorContext {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("uri", uri);
-    builder.add("visibleRange", visibleRange);
-    builder.add("selection", selection);
+    builder.append("uri", uri);
+    builder.append("visibleRange", visibleRange);
+    builder.append("selection", selection);
     return builder.toString();
   }
 }

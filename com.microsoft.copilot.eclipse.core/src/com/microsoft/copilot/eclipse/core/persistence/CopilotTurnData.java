@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents the Copilot (assistant) side of a turn. Split from original TurnData. Contains only reply related
@@ -67,13 +67,13 @@ public class CopilotTurnData extends AbstractTurnData {
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     // Include AbstractTurnData properties
-    builder.add("turnId", getTurnId());
-    builder.add("role", getRole());
-    builder.add("timestamp", getTimestamp());
-    builder.add("data", getData());
+    builder.append("turnId", getTurnId());
+    builder.append("role", getRole());
+    builder.append("timestamp", getTimestamp());
+    builder.append("data", getData());
     // Include CopilotTurnData specific properties
-    builder.add("reply", reply);
-    builder.add("suggestedTitle", suggestedTitle);
+    builder.append("reply", reply);
+    builder.append("suggestedTitle", suggestedTitle);
     return builder.toString();
   }
 
@@ -338,21 +338,21 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("text", text);
-      builder.add("annotations", annotations);
-      builder.add("references", references);
-      builder.add("hideText", hideText);
-      builder.add("notifications", notifications);
-      builder.add("followups", followups);
-      builder.add("errorMessages", errorMessages);
-      builder.add("editAgentRounds", editAgentRounds);
-      builder.add("panelMessages", panelMessages);
-      builder.add("rating", rating);
-      builder.add("steps", steps);
-      builder.add("agentMessages", agentMessages);
-      builder.add("data", data);
-      builder.add("modelName", modelName);
-      builder.add("billingMultiplier", billingMultiplier);
+      builder.append("text", text);
+      builder.append("annotations", annotations);
+      builder.append("references", references);
+      builder.append("hideText", hideText);
+      builder.append("notifications", notifications);
+      builder.append("followups", followups);
+      builder.append("errorMessages", errorMessages);
+      builder.append("editAgentRounds", editAgentRounds);
+      builder.append("panelMessages", panelMessages);
+      builder.append("rating", rating);
+      builder.append("steps", steps);
+      builder.append("agentMessages", agentMessages);
+      builder.append("data", data);
+      builder.append("modelName", modelName);
+      builder.append("billingMultiplier", billingMultiplier);
       return builder.toString();
     }
   }
@@ -403,8 +403,8 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("error", error);
-      builder.add("data", data);
+      builder.append("error", error);
+      builder.append("data", data);
       return builder.toString();
     }
   }
@@ -464,9 +464,9 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("message", message);
-      builder.add("code", code);
-      builder.add("data", data);
+      builder.append("message", message);
+      builder.append("code", code);
+      builder.append("data", data);
       return builder.toString();
     }
   }
@@ -536,10 +536,10 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("roundId", roundId);
-      builder.add("reply", reply);
-      builder.add("toolCalls", toolCalls);
-      builder.add("data", data);
+      builder.append("roundId", roundId);
+      builder.append("reply", reply);
+      builder.append("toolCalls", toolCalls);
+      builder.append("data", data);
       return builder.toString();
     }
   }
@@ -628,12 +628,12 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("id", id);
-      builder.add("name", name);
-      builder.add("progressMessage", progressMessage);
-      builder.add("status", status);
-      builder.add("result", result);
-      builder.add("data", data);
+      builder.append("id", id);
+      builder.append("name", name);
+      builder.append("progressMessage", progressMessage);
+      builder.append("status", status);
+      builder.append("result", result);
+      builder.append("data", data);
       return builder.toString();
     }
   }
@@ -713,11 +713,11 @@ public class CopilotTurnData extends AbstractTurnData {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("title", title);
-      builder.add("description", description);
-      builder.add("prLink", prLink);
-      builder.add("agentSlug", agentSlug);
-      builder.add("data", data);
+      builder.append("title", title);
+      builder.append("description", description);
+      builder.append("prLink", prLink);
+      builder.append("agentSlug", agentSlug);
+      builder.append("data", data);
       return builder.toString();
     }
   }

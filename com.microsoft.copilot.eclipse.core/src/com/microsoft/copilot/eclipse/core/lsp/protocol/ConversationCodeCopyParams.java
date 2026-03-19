@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -117,12 +117,12 @@ public class ConversationCodeCopyParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("turnId", turnId);
-    builder.add("codeBlockIndex", codeBlockIndex);
-    builder.add("source", source);
-    builder.add("copiedCharacters", copiedCharacters);
-    builder.add("totalCharacters", totalCharacters);
-    builder.add("copiedText", copiedText);
+    builder.append("turnId", turnId);
+    builder.append("codeBlockIndex", codeBlockIndex);
+    builder.append("source", source);
+    builder.append("copiedCharacters", copiedCharacters);
+    builder.append("totalCharacters", totalCharacters);
+    builder.append("copiedText", copiedText);
     return builder.toString();
   }
 

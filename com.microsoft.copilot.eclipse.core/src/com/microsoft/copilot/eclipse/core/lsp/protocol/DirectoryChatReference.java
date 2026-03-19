@@ -2,8 +2,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.core.resources.IFolder;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
@@ -58,8 +58,8 @@ public class DirectoryChatReference implements ChatReference {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
-    builder.add("text", uri);
+    builder.append("type", type);
+    builder.append("text", uri);
     return builder.toString();
   }
 }

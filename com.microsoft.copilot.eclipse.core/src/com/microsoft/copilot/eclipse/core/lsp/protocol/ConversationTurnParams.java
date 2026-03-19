@@ -5,11 +5,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -226,22 +226,22 @@ public class ConversationTurnParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("workDoneToken", workDoneToken);
-    builder.add("conversationId", conversationId);
-    builder.add("message", message);
-    builder.add("references", references);
-    builder.add("textDocument", textDocument);
-    builder.add("computeSuggestions", computeSuggestions);
-    builder.add("workspaceFolder", workspaceFolder);
-    builder.add("workspaceFolders", workspaceFolders);
-    builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
-    builder.add("model", model);
-    builder.add("chatMode", chatMode);
-    builder.add("customChatModeId", customChatModeId);
-    builder.add("needToolCallConfirmation", needToolCallConfirmation);
-    builder.add("modelProviderName", modelProviderName);
-    builder.add("agentSlug", agentSlug);
-    builder.add("todoList", todoList);
+    builder.append("workDoneToken", workDoneToken);
+    builder.append("conversationId", conversationId);
+    builder.append("message", message);
+    builder.append("references", references);
+    builder.append("textDocument", textDocument);
+    builder.append("computeSuggestions", computeSuggestions);
+    builder.append("workspaceFolder", workspaceFolder);
+    builder.append("workspaceFolders", workspaceFolders);
+    builder.append("ignoredSkills", Arrays.toString(ignoredSkills));
+    builder.append("model", model);
+    builder.append("chatMode", chatMode);
+    builder.append("customChatModeId", customChatModeId);
+    builder.append("needToolCallConfirmation", needToolCallConfirmation);
+    builder.append("modelProviderName", modelProviderName);
+    builder.append("agentSlug", agentSlug);
+    builder.append("todoList", todoList);
     return builder.toString();
   }
 }

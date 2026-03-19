@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * This class is used to provide information about a tool that can be used by a language model. It includes the name of
@@ -102,11 +102,11 @@ public class LanguageModelToolInformation {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("description", description);
-    builder.add("displayDescription", displayDescription);
-    builder.add("inputSchema", inputSchema);
-    builder.add("confirmationMessages", confirmationMessages);
+    builder.append("name", name);
+    builder.append("description", description);
+    builder.append("displayDescription", displayDescription);
+    builder.append("inputSchema", inputSchema);
+    builder.append("confirmationMessages", confirmationMessages);
     return builder.toString();
   }
 }

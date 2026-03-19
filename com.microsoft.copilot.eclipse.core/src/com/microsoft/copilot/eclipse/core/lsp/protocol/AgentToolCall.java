@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Tool call from agents.
@@ -80,12 +80,12 @@ public class AgentToolCall {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("name", name);
-    builder.add("progressMessage", progressMessage);
-    builder.add("status", status);
-    builder.add("error", error);
-    builder.add("toolSpecificData", toolSpecificData);
+    builder.append("id", id);
+    builder.append("name", name);
+    builder.append("progressMessage", progressMessage);
+    builder.append("status", status);
+    builder.append("error", error);
+    builder.append("toolSpecificData", toolSpecificData);
     return builder.toString();
   }
 

@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.quota;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Result of the checkQuota request.
@@ -79,11 +79,11 @@ public class CheckQuotaResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("chat", chat);
-    builder.add("completions", completions);
-    builder.add("premiumInteractions", premiumInteractions);
-    builder.add("resetDate", resetDate);
-    builder.add("copilotPlan", copilotPlan);
+    builder.append("chat", chat);
+    builder.append("completions", completions);
+    builder.append("premiumInteractions", premiumInteractions);
+    builder.append("resetDate", resetDate);
+    builder.append("copilotPlan", copilotPlan);
     return builder.toString();
   }
 }

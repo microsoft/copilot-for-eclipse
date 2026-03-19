@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Property value for input schema.
@@ -75,9 +75,9 @@ public class InputSchemaPropertyValue {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
-    builder.add("description", description);
-    builder.add("items", items);
+    builder.append("type", type);
+    builder.append("description", description);
+    builder.append("items", items);
     return builder.toString();
   }
 }

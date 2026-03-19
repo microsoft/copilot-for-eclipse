@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for saving a BYOK model configuration.
@@ -79,11 +79,11 @@ public class ByokModelCapabilities {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("maxInputTokens", maxInputTokens);
-    builder.add("maxOutputTokens", maxOutputTokens);
-    builder.add("toolCalling", toolCalling);
-    builder.add("vision", vision);
+    builder.append("name", name);
+    builder.append("maxInputTokens", maxInputTokens);
+    builder.append("maxOutputTokens", maxOutputTokens);
+    builder.append("toolCalling", toolCalling);
+    builder.append("vision", vision);
     return builder.toString();
   }
 }

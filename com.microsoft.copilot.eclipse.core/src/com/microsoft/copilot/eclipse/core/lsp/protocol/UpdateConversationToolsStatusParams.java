@@ -3,8 +3,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.WorkspaceFolder;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Parameters for updating conversation tools status.
@@ -77,10 +77,10 @@ public class UpdateConversationToolsStatusParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("chatModeKind", chatModeKind);
-    builder.add("customChatModeId", customChatModeId);
-    builder.add("workspaceFolders", workspaceFolders);
-    builder.add("tools", tools);
+    builder.append("chatModeKind", chatModeKind);
+    builder.append("customChatModeId", customChatModeId);
+    builder.append("workspaceFolders", workspaceFolders);
+    builder.append("tools", tools);
     return builder.toString();
   }
 }

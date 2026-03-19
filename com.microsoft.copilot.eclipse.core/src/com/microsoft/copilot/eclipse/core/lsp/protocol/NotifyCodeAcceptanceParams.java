@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameter used for notifying code acceptance.
@@ -77,9 +77,9 @@ public class NotifyCodeAcceptanceParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("turnId", turnId);
-    builder.add("acceptedFileCount", acceptedFileCount);
-    builder.add("totalFileCount", totalFileCount);
+    builder.append("turnId", turnId);
+    builder.append("acceptedFileCount", acceptedFileCount);
+    builder.append("totalFileCount", totalFileCount);
     return builder.toString();
   }
 }

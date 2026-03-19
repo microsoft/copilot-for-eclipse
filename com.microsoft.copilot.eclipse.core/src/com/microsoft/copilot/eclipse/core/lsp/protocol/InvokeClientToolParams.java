@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for invoking a client tool.
@@ -111,12 +111,12 @@ public class InvokeClientToolParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("input", input);
-    builder.add("conversationId", conversationId);
-    builder.add("turnId", turnId);
-    builder.add("roundId", roundId);
-    builder.add("toolCallId", toolCallId);
+    builder.append("name", name);
+    builder.append("input", input);
+    builder.append("conversationId", conversationId);
+    builder.append("turnId", turnId);
+    builder.append("roundId", roundId);
+    builder.append("toolCallId", toolCallId);
     return builder.toString();
   }
 }

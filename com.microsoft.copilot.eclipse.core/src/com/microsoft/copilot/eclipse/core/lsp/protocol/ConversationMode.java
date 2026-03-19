@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a conversation mode from the LSP.
@@ -123,15 +123,15 @@ public class ConversationMode {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("name", name);
-    builder.add("kind", kind);
-    builder.add("isBuiltIn", isBuiltIn);
-    builder.add("uri", uri);
-    builder.add("description", description);
-    builder.add("customTools", customTools);
-    builder.add("model", model);
-    builder.add("handOffs", handOffs);
+    builder.append("id", id);
+    builder.append("name", name);
+    builder.append("kind", kind);
+    builder.append("isBuiltIn", isBuiltIn);
+    builder.append("uri", uri);
+    builder.append("description", description);
+    builder.append("customTools", customTools);
+    builder.append("model", model);
+    builder.append("handOffs", handOffs);
     return builder.toString();
   }
 
@@ -206,10 +206,10 @@ public class ConversationMode {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("agent", agent);
-      builder.add("label", label);
-      builder.add("prompt", prompt);
-      builder.add("send", send);
+      builder.append("agent", agent);
+      builder.append("label", label);
+      builder.append("prompt", prompt);
+      builder.append("send", send);
       return builder.toString();
     }
   }

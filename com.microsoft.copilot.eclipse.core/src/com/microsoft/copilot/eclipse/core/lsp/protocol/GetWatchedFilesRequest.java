@@ -2,8 +2,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Request to get the list of watched files. See:
@@ -80,10 +80,10 @@ public class GetWatchedFilesRequest {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("uri", workspaceUri);
-    builder.add("excludeGitignoredFiles", excludeGitignoredFiles);
-    builder.add("excludeIdeIgnoredFiles", excludeIdeIgnoredFiles);
-    builder.add("partialResultToken", partialResultToken);
+    builder.append("uri", workspaceUri);
+    builder.append("excludeGitignoredFiles", excludeGitignoredFiles);
+    builder.append("excludeIdeIgnoredFiles", excludeIdeIgnoredFiles);
+    builder.append("partialResultToken", partialResultToken);
     return builder.toString();
   }
 

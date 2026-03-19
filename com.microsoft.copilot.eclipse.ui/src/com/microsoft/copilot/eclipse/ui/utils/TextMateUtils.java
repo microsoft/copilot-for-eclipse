@@ -41,9 +41,21 @@ public class TextMateUtils {
   public static SourceViewerConfiguration getConfiguration(String lang) {
     TMPresentationReconciler reconciler = new TMPresentationReconciler();
     IGrammarRegistryManager mgr = TMEclipseRegistryPlugin.getGrammarRegistryManager();
-    IGrammar grammar = mgr.getGrammarForFileExtension(resolveFileExtension(lang));
+    IGrammar grammar = null;
+    try {
+      grammar = mgr.getGrammarForFileExtension(resolveFileExtension(lang));
+    } catch (Throwable e) {
+      // getGrammarForFileExtension not exist in org.eclipse.tm4e.registry versions 0.6.5 or earlier, skip the grammar
+      // setting for eclipse 2023-12 or earlier.
+    }
     reconciler.setGrammar(grammar);
-    reconciler.setTheme(TMUIPlugin.getThemeManager().getDefaultTheme(UiUtils.isDarkTheme()));
+    try {
+      // getDefaultTheme with isDark parameter not exist in org.eclipse.tm4e.ui versions 0.6.5 or earlier, skip the
+      // theme setting for eclipse 2023-12 or earlier.
+      reconciler.setTheme(TMUIPlugin.getThemeManager().getDefaultTheme(UiUtils.isDarkTheme()));
+    } catch (Throwable e) {
+      reconciler.setTheme(TMUIPlugin.getThemeManager().getDefaultTheme());
+    }
     return new SourceViewerConfiguration() {
       @Override
       public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {

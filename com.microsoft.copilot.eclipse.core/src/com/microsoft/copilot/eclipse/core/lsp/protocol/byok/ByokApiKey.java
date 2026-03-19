@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Model representing a BYOK (Bring Your Own Key) API key configuration.
@@ -72,9 +72,9 @@ public class ByokApiKey {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("providerName", providerName);
-    builder.add("modelId", modelId);
-    builder.add("apiKey", apiKey);
+    builder.append("providerName", providerName);
+    builder.append("modelId", modelId);
+    builder.append("apiKey", apiKey);
     return builder.toString();
   }
 }

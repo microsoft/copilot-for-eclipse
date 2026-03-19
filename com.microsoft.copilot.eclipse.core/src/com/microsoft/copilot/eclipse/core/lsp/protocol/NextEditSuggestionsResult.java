@@ -3,10 +3,10 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -27,7 +27,7 @@ public class NextEditSuggestionsResult {
 
   @Override
   public String toString() {
-    return new ToStringBuilder(this).add("edits", edits).toString();
+    return new ToStringBuilder(this).append("edits", edits).toString();
   }
 
   @Override

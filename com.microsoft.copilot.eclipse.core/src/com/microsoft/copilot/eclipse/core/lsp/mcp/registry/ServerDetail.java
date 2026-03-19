@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 import java.util.List;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Detailed information about a server from the MCP Registry.
@@ -36,17 +36,17 @@ public record ServerDetail(
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("description", description);
-    builder.add("title", title);
-    builder.add("repository", repository);
-    builder.add("version", version);
-    builder.add("websiteUrl", websiteUrl);
-    builder.add("icons", icons);
-    builder.add("schema", schema);
-    builder.add("packages", packages);
-    builder.add("remotes", remotes);
-    builder.add("meta", meta);
+    builder.append("name", name);
+    builder.append("description", description);
+    builder.append("title", title);
+    builder.append("repository", repository);
+    builder.append("version", version);
+    builder.append("websiteUrl", websiteUrl);
+    builder.append("icons", icons);
+    builder.append("schema", schema);
+    builder.append("packages", packages);
+    builder.append("remotes", remotes);
+    builder.append("meta", meta);
     return builder.toString();
   }
 }

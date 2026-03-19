@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -78,11 +78,11 @@ public class ConversationError {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("message", message);
-    builder.add("code", code);
-    builder.add("reason", reason);
-    builder.add("responseIsIncomplete", responseIsIncomplete);
-    builder.add("responseIsFiltered", responseIsFiltered);
+    builder.append("message", message);
+    builder.append("code", code);
+    builder.append("reason", reason);
+    builder.append("responseIsIncomplete", responseIsIncomplete);
+    builder.append("responseIsFiltered", responseIsFiltered);
     return builder.toString();
   }
 }

@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a text content part in a chat completion.
@@ -54,8 +54,8 @@ public class TextContentPart implements ChatCompletionContentPart {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
-    builder.add("text", text);
+    builder.append("type", type);
+    builder.append("text", text);
     return builder.toString();
   }
 }

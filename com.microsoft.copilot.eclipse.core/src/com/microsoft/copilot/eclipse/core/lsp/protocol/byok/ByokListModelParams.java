@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for listing BYOK models.
@@ -59,8 +59,8 @@ public class ByokListModelParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("providerName", providerName);
-    builder.add("enableFetchUrl", enableFetchUrl);
+    builder.append("providerName", providerName);
+    builder.append("enableFetchUrl", enableFetchUrl);
     return builder.toString();
   }
 }

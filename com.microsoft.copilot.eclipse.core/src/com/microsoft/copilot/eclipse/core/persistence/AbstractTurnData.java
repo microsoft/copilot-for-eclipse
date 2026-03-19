@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Base abstract turn data class that contains properties shared by all turn types. Base class for UserTurnData and
@@ -72,10 +72,10 @@ public abstract class AbstractTurnData {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("turnId", turnId);
-    builder.add("role", role);
-    builder.add("timestamp", timestamp);
-    builder.add("data", data);
+    builder.append("turnId", turnId);
+    builder.append("role", role);
+    builder.append("timestamp", timestamp);
+    builder.append("data", data);
     return builder.toString();
   }
 }

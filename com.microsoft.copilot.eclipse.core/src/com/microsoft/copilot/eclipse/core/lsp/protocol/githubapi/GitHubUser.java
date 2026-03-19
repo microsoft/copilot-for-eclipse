@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a GitHub user with basic information.
@@ -44,7 +44,7 @@ public class GitHubUser {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("login", login);
+    builder.append("login", login);
     return builder.toString();
   }
 

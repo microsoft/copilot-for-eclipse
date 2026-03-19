@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * A JSON schema for the input this tool accepts. The input must be an object at the top level. A particular language
@@ -74,9 +74,9 @@ public class InputSchema {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
-    builder.add("properties", properties);
-    builder.add("required", required);
+    builder.append("type", type);
+    builder.append("properties", properties);
+    builder.append("required", required);
     return builder.toString();
   }
 }

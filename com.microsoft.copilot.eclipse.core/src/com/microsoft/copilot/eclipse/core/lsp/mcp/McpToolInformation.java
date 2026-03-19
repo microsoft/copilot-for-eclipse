@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 
@@ -49,11 +49,11 @@ public class McpToolInformation extends LanguageModelToolInformation {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("status", status);
-    builder.add("name", getName());
-    builder.add("description", getDescription());
-    builder.add("inputSchema", getInputSchema());
-    builder.add("confirmationMessages", getConfirmationMessages());
+    builder.append("status", status);
+    builder.append("name", getName());
+    builder.append("description", getDescription());
+    builder.append("inputSchema", getInputSchema());
+    builder.append("confirmationMessages", getConfirmationMessages());
     return builder.toString();
   }
 }

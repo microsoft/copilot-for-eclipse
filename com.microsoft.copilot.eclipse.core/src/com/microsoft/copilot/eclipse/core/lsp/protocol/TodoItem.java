@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents a todo item in the chat todo list. This mirrors the structure used in the language server protocol.
@@ -119,10 +119,10 @@ public class TodoItem {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("title", title);
-    builder.add("description", description);
-    builder.add("status", status);
+    builder.append("id", id);
+    builder.append("title", title);
+    builder.append("description", description);
+    builder.append("status", status);
     return builder.toString();
   }
 }

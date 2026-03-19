@@ -2,10 +2,10 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
@@ -127,15 +127,15 @@ public class FileChatReference implements ChatReference {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
-    builder.add("status", status);
-    builder.add("range", range);
-    builder.add("uri", uri);
-    builder.add("position", position);
-    builder.add("visibleRange", visibleRange);
-    builder.add("selection", selection);
-    builder.add("openedAt", openedAt);
-    builder.add("activeAt", activeAt);
+    builder.append("type", type);
+    builder.append("status", status);
+    builder.append("range", range);
+    builder.append("uri", uri);
+    builder.append("position", position);
+    builder.append("visibleRange", visibleRange);
+    builder.append("selection", selection);
+    builder.append("openedAt", openedAt);
+    builder.append("activeAt", activeAt);
     return builder.toString();
   }
 }

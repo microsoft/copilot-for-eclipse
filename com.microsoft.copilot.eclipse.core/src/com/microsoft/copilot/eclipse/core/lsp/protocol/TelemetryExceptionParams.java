@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.utils.AnonymizeUtils;
@@ -101,10 +101,10 @@ public class TelemetryExceptionParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("transaction", transaction);
-    builder.add("stacktrace", stacktrace);
-    builder.add("platform", platform);
-    builder.add("exceptionDetail", exceptionDetail);
+    builder.append("transaction", transaction);
+    builder.append("stacktrace", stacktrace);
+    builder.append("platform", platform);
+    builder.append("exceptionDetail", exceptionDetail);
     return builder.toString();
   }
 

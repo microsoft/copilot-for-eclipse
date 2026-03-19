@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameter used for the checkStatus request.
@@ -52,8 +52,8 @@ public class CheckStatusParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("localChecksOnly", localChecksOnly);
-    builder.add("forceRefresh", forceRefresh);
+    builder.append("localChecksOnly", localChecksOnly);
+    builder.append("forceRefresh", forceRefresh);
     return builder.toString();
   }
 }

@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for the "copilot/didChangeFeatureFlags" notification.
@@ -97,10 +97,10 @@ public class DidChangeFeatureFlagsParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("configurations", featureFlags);
-    builder.add("envelope", envelope);
-    builder.add("activeExps", activeExps);
-    builder.add("byokEnabled", byokEnabled);
+    builder.append("configurations", featureFlags);
+    builder.append("envelope", envelope);
+    builder.append("activeExps", activeExps);
+    builder.append("byokEnabled", byokEnabled);
     return builder.toString();
   }
 }

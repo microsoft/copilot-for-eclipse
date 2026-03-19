@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Parameters for listing servers from the MCP Registry.
@@ -121,12 +121,12 @@ public class ListServersParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("baseUrl", baseUrl);
-    builder.add("cursor", cursor);
-    builder.add("limit", limit);
-    builder.add("search", search);
-    builder.add("updatedSince", updatedSince);
-    builder.add("version", version);
+    builder.append("baseUrl", baseUrl);
+    builder.append("cursor", cursor);
+    builder.append("limit", limit);
+    builder.append("search", search);
+    builder.append("updatedSince", updatedSince);
+    builder.append("version", version);
     return builder.toString();
   }
 

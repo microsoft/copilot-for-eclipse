@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Result of reading a file, containing both text content and file stats.
@@ -82,8 +82,8 @@ public class ReadFileResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("text", text);
-    builder.add("stat", stat);
+    builder.append("text", text);
+    builder.append("stat", stat);
     return builder.toString();
   }
 

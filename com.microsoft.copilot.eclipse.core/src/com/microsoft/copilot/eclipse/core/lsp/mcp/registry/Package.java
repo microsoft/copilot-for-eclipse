@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.List;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * An MCP package definition.
@@ -33,16 +33,16 @@ public record Package(
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("registryType", registryType);
-    builder.add("registryBaseUrl", registryBaseUrl);
-    builder.add("identifier", identifier);
-    builder.add("version", version);
-    builder.add("fileSha256", fileSha256);
-    builder.add("runtimeHint", runtimeHint);
-    builder.add("transport", transport);
-    builder.add("runtimeArguments", runtimeArguments);
-    builder.add("packageArguments", packageArguments);
-    builder.add("environmentVariables", environmentVariables);
+    builder.append("registryType", registryType);
+    builder.append("registryBaseUrl", registryBaseUrl);
+    builder.append("identifier", identifier);
+    builder.append("version", version);
+    builder.append("fileSha256", fileSha256);
+    builder.append("runtimeHint", runtimeHint);
+    builder.append("transport", transport);
+    builder.append("runtimeArguments", runtimeArguments);
+    builder.append("packageArguments", packageArguments);
+    builder.append("environmentVariables", environmentVariables);
     return builder.toString();
   }
 }

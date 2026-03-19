@@ -2,9 +2,9 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -116,12 +116,12 @@ public class CompletionItem {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("uuid", uuid);
-    builder.add("text", text);
-    builder.add("range", range);
-    builder.add("displayText", displayText);
-    builder.add("position", position);
-    builder.add("docVersion", docVersion);
+    builder.append("uuid", uuid);
+    builder.append("text", text);
+    builder.append("range", range);
+    builder.append("displayText", displayText);
+    builder.append("position", position);
+    builder.append("docVersion", docVersion);
     return builder.toString();
   }
 }

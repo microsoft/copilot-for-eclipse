@@ -1,7 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Pagination metadata for MCP Registry responses.
@@ -14,8 +14,8 @@ public record Metadata(String nextCursor, @SerializedName("count") int count) {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("nextCursor", nextCursor);
-    builder.add("count", count);
+    builder.append("nextCursor", nextCursor);
+    builder.append("count", count);
     return builder.toString();
   }
 }

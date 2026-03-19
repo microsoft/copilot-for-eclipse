@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.List;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents the icon of the MCP.
@@ -17,10 +17,10 @@ public record Icon(String src, String mimeType, List<String> sizes, String theme
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("src", src);
-    builder.add("mimeType", mimeType);
-    builder.add("sizes", sizes);
-    builder.add("theme", theme);
+    builder.append("src", src);
+    builder.append("mimeType", mimeType);
+    builder.append("sizes", sizes);
+    builder.append("theme", theme);
     return builder.toString();
   }
 }

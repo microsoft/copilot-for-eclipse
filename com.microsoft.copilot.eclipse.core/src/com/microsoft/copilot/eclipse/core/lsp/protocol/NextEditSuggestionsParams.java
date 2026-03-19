@@ -1,8 +1,8 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -50,8 +50,8 @@ public class NextEditSuggestionsParams {
   @Override
   public String toString() {
     ToStringBuilder b = new ToStringBuilder(this);
-    b.add("textDocument", textDocument);
-    b.add("position", position);
+    b.append("textDocument", textDocument);
+    b.append("position", position);
     return b.toString();
   }
 }

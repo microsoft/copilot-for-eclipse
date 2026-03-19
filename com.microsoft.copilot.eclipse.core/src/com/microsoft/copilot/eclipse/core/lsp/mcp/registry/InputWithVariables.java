@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents an input parameter that can contain nested variables for an MCP package or runtime. Extends the Input
@@ -46,7 +46,7 @@ public class InputWithVariables extends Input {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("variables", variables);
+    builder.append("variables", variables);
     return builder.toString();
   }
 

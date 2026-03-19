@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Result Language Model Tool.
@@ -87,8 +87,8 @@ public class LanguageModelToolResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("status", status);
-    builder.add("content", content);
+    builder.append("status", status);
+    builder.append("content", content);
     return builder.toString();
   }
 

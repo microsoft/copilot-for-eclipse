@@ -10,8 +10,8 @@ import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 
@@ -108,11 +108,11 @@ public class CopilotLanguageServerSettings {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("proxy", proxy);
-      builder.add("proxyAuthorization", proxyAuthorization);
-      builder.add("proxyStrictSsl", proxyStrictSsl);
-      builder.add("proxyKerberosServicePrincipal", proxyKerberosServicePrincipal);
-      builder.add("noProxy", Arrays.toString(noProxy));
+      builder.append("proxy", proxy);
+      builder.append("proxyAuthorization", proxyAuthorization);
+      builder.append("proxyStrictSsl", proxyStrictSsl);
+      builder.append("proxyKerberosServicePrincipal", proxyKerberosServicePrincipal);
+      builder.append("noProxy", Arrays.toString(noProxy));
       return builder.toString();
     }
 
@@ -169,7 +169,7 @@ public class CopilotLanguageServerSettings {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("uri", uri);
+      builder.append("uri", uri);
       return builder.toString();
     }
 
@@ -238,7 +238,7 @@ public class CopilotLanguageServerSettings {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("copilotSettings", copilotSettings);
+      builder.append("copilotSettings", copilotSettings);
       return builder.toString();
     }
 
@@ -323,10 +323,10 @@ public class CopilotLanguageServerSettings {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("mcpServers", mcpServers);
-      builder.add("workspaceCopilotInstructions", workspaceCopilotInstructions);
-      builder.add("gitCommitCopilotInstructions", gitCommitCopilotInstructions);
-      builder.add("agent", agent);
+      builder.append("mcpServers", mcpServers);
+      builder.append("workspaceCopilotInstructions", workspaceCopilotInstructions);
+      builder.append("gitCommitCopilotInstructions", gitCommitCopilotInstructions);
+      builder.append("agent", agent);
       return builder.toString();
     }
 
@@ -522,11 +522,11 @@ public class CopilotLanguageServerSettings {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("showEditorCompletions", showEditorCompletions);
-    builder.add("enableAutoCompletions", enableAutoCompletions);
-    builder.add("githubEnterprise", githubEnterprise);
-    builder.add("http", http);
-    builder.add("githubSettings", githubSettings);
+    builder.append("showEditorCompletions", showEditorCompletions);
+    builder.append("enableAutoCompletions", enableAutoCompletions);
+    builder.append("githubEnterprise", githubEnterprise);
+    builder.append("http", http);
+    builder.append("githubSettings", githubSettings);
     return builder.toString();
   }
 

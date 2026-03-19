@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Creates a new ChatStep.
@@ -58,9 +58,9 @@ public class ChatStep {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("title", title);
-    builder.add("status", status);
+    builder.append("id", id);
+    builder.append("title", title);
+    builder.append("status", status);
     return builder.toString();
   }
 }

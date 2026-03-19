@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents an image content part in a chat completion message.
@@ -55,8 +55,8 @@ public class ImageContentPart implements ChatCompletionContentPart {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", type);
-    builder.add("image_url", imageUrl);
+    builder.append("type", type);
+    builder.append("image_url", imageUrl);
     return builder.toString();
   }
 
@@ -123,8 +123,8 @@ public class ImageContentPart implements ChatCompletionContentPart {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("url", url);
-      builder.add("detail", detail);
+      builder.append("url", url);
+      builder.append("detail", detail);
       return builder.toString();
     }
   }

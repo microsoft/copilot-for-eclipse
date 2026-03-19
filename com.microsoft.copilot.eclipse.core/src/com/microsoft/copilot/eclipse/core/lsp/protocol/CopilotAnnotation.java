@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * This class is a representation of the CopilotAnnotation type in the Language Server Protocol.
@@ -79,11 +79,11 @@ public class CopilotAnnotation {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("startOffset", startOffset);
-    builder.add("stopOffset", stopOffset);
-    builder.add("details", details);
-    builder.add("citations", citations);
+    builder.append("id", id);
+    builder.append("startOffset", startOffset);
+    builder.append("stopOffset", stopOffset);
+    builder.append("details", details);
+    builder.append("citations", citations);
     return builder.toString();
   }
 }

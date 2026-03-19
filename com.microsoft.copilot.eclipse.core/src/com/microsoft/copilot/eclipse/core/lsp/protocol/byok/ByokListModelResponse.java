@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.byok;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Response model for listing BYOK models.
@@ -42,7 +42,7 @@ public class ByokListModelResponse {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("models", models);
+    builder.append("models", models);
     return builder.toString();
   }
 }

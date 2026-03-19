@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.quota;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Completions quota information.
@@ -78,9 +78,9 @@ public class Quota {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("percentRemaining", percentRemaining);
-    builder.add("unlimited", unlimited);
-    builder.add("overagePermitted", overagePermitted);
+    builder.append("percentRemaining", percentRemaining);
+    builder.append("unlimited", unlimited);
+    builder.append("overagePermitted", overagePermitted);
     return builder.toString();
   }
 }

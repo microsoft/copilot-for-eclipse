@@ -6,7 +6,7 @@ import java.util.Objects;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 
 /**
@@ -83,8 +83,8 @@ public class ToolSpecificData {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("kind", kind);
-    builder.add("data", data);
+    builder.append("kind", kind);
+    builder.append("data", data);
     return builder.toString();
   }
 }

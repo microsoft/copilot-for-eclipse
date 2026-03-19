@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.git;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -99,11 +99,11 @@ public class GenerateCommitMessageParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("changes", changes);
-    builder.add("userCommits", userCommits);
-    builder.add("recentCommits", recentCommits);
-    builder.add("workspaceFolder", workspaceFolder);
-    builder.add("userLanguage", userLanguage);
+    builder.append("changes", changes);
+    builder.append("userCommits", userCommits);
+    builder.append("recentCommits", recentCommits);
+    builder.append("workspaceFolder", workspaceFolder);
+    builder.append("userLanguage", userLanguage);
     return builder.toString();
   }
 }

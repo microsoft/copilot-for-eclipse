@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.git;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Result of the 'git/generateCommitMessage' request.
@@ -49,7 +49,7 @@ public class GenerateCommitMessageResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("commitMessage", commitMessage);
+    builder.append("commitMessage", commitMessage);
     return builder.toString();
   }
 

@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -86,8 +86,8 @@ public class CopilotStatusResult {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("status", status);
-    builder.add("user", user);
+    builder.append("status", status);
+    builder.append("user", user);
     return builder.toString();
   }
 

@@ -2,7 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * A positional argument for an MCP server.
@@ -53,9 +53,9 @@ public class PositionalArgument extends Argument {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("type", getType());
-    builder.add("valueHint", valueHint);
-    builder.add("isRepeated", isRepeated);
+    builder.append("type", getType());
+    builder.append("valueHint", valueHint);
+    builder.append("isRepeated", isRepeated);
     return builder.toString();
   }
 }

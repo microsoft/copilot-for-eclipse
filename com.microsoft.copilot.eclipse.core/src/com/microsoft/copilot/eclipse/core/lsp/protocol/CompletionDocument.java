@@ -2,9 +2,9 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -88,11 +88,11 @@ public class CompletionDocument extends TextDocumentIdentifier {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("position", position);
-    builder.add("insertSpaces", insertSpaces);
-    builder.add("tabSize", tabSize);
-    builder.add("version", version);
-    builder.add("uri", getUri());
+    builder.append("position", position);
+    builder.append("insertSpaces", insertSpaces);
+    builder.append("tabSize", tabSize);
+    builder.append("version", version);
+    builder.append("uri", getUri());
     return builder.toString();
   }
 

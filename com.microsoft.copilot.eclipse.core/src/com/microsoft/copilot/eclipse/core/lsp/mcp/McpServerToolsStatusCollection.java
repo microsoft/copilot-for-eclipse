@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.mcp;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Gets the MCP server with its tools status. Referenced by: The request param of the endpoint mcp/updateToolsStatus.
@@ -52,8 +52,8 @@ public class McpServerToolsStatusCollection {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("name", name);
-    builder.add("tools", tools);
+    builder.append("name", name);
+    builder.append("tools", tools);
     return builder.toString();
   }
 }

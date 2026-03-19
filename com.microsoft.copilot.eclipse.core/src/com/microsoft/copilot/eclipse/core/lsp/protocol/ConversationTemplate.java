@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Get the templates.
@@ -69,10 +69,10 @@ public class ConversationTemplate {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("id", id);
-    builder.add("description", description);
-    builder.add("shortDescription", shortDescription);
-    builder.add("scopes", scopes);
+    builder.append("id", id);
+    builder.append("description", description);
+    builder.append("shortDescription", shortDescription);
+    builder.append("scopes", scopes);
     return builder.toString();
   }
 }

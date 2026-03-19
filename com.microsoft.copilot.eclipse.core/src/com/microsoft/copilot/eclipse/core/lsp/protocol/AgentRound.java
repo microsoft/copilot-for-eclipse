@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * A round of a conversation with an agent. Usually a conversation consists of multiple rounds in agent mode.
@@ -57,9 +57,9 @@ public class AgentRound {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("roundId", roundId);
-    builder.add("reply", reply);
-    builder.add("toolCalls", toolCalls);
+    builder.append("roundId", roundId);
+    builder.append("reply", reply);
+    builder.append("toolCalls", toolCalls);
     return builder.toString();
   }
 

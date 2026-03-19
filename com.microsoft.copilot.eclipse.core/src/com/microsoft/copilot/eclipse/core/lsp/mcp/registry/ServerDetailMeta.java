@@ -1,7 +1,7 @@
 package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import com.google.gson.annotations.SerializedName;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Metadata about the server.
@@ -14,7 +14,7 @@ public record ServerDetailMeta(
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("publisherProvided", publisherProvided);
+    builder.append("publisherProvided", publisherProvided);
     return builder.toString();
   }
 
@@ -30,9 +30,9 @@ public record ServerDetailMeta(
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("tool", tool);
-      builder.add("version", version);
-      builder.add("buildInfo", buildInfo);
+      builder.append("tool", tool);
+      builder.append("version", version);
+      builder.append("buildInfo", buildInfo);
       return builder.toString();
     }
   }
@@ -49,9 +49,9 @@ public record ServerDetailMeta(
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("commit", commit);
-      builder.add("timestamp", timestamp);
-      builder.add("pipelineId", pipelineId);
+      builder.append("commit", commit);
+      builder.append("timestamp", timestamp);
+      builder.append("pipelineId", pipelineId);
       return builder.toString();
     }
   }

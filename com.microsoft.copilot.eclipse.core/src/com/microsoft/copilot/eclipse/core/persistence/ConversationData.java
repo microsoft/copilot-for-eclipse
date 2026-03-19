@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 
@@ -132,15 +132,15 @@ public class ConversationData {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("conversationId", conversationId);
-    builder.add("title", title);
-    builder.add("requesterUsername", requesterUsername);
-    builder.add("responderUsername", responderUsername);
-    builder.add("turns", turns);
-    builder.add("todos", todos);
-    builder.add("data", data);
-    builder.add("creationDate", creationDate);
-    builder.add("lastMessageDate", lastMessageDate);
+    builder.append("conversationId", conversationId);
+    builder.append("title", title);
+    builder.append("requesterUsername", requesterUsername);
+    builder.append("responderUsername", responderUsername);
+    builder.append("turns", turns);
+    builder.append("todos", todos);
+    builder.append("data", data);
+    builder.append("creationDate", creationDate);
+    builder.append("lastMessageDate", lastMessageDate);
     return builder.toString();
   }
 }

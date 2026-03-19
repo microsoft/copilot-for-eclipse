@@ -2,8 +2,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.Preconditions;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -23,8 +22,8 @@ public class NameAndVersion {
    * @param version the version.
    */
   public NameAndVersion(@NonNull String name, @NonNull String version) {
-    this.name = Preconditions.<String>checkNotNull(name, "name");
-    this.version = Preconditions.<String>checkNotNull(version, "version");
+    this.name = Objects.requireNonNull(name, "name");
+    this.version = Objects.requireNonNull(version, "version");
   }
 
   @NonNull
@@ -48,8 +47,8 @@ public class NameAndVersion {
   @Override
   public String toString() {
     ToStringBuilder b = new ToStringBuilder(this);
-    b.add("name", name);
-    b.add("version", version);
+    b.append("name", name);
+    b.append("version", version);
     return b.toString();
   }
 

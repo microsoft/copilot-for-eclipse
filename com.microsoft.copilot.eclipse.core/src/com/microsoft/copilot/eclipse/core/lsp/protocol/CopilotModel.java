@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Model for the Copilot model. ref:
@@ -29,8 +29,8 @@ public class CopilotModel {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("state", state);
-      builder.add("terms", terms);
+      builder.append("state", state);
+      builder.append("terms", terms);
       return builder.toString();
     }
   }
@@ -42,7 +42,7 @@ public class CopilotModel {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("vision", vision);
+      builder.append("vision", vision);
       return builder.toString();
     }
   }
@@ -54,7 +54,7 @@ public class CopilotModel {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("supports", supports);
+      builder.append("supports", supports);
       return builder.toString();
     }
   }
@@ -66,8 +66,8 @@ public class CopilotModel {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
-      builder.add("isPremium", isPremium);
-      builder.add("multiplier", multiplier);
+      builder.append("isPremium", isPremium);
+      builder.append("multiplier", multiplier);
       return builder.toString();
     }
   }
@@ -189,17 +189,17 @@ public class CopilotModel {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("modelFamily", modelFamily);
-    builder.add("modelName", modelName);
-    builder.add("id", id);
-    builder.add("modelPolicy", modelPolicy);
-    builder.add("scopes", scopes);
-    builder.add("preview", preview);
-    builder.add("isChatDefault", isChatDefault);
-    builder.add("isChatFallback", isChatFallback);
-    builder.add("capabilities", capabilities);
-    builder.add("billing", billing);
-    builder.add("providerName", providerName);
+    builder.append("modelFamily", modelFamily);
+    builder.append("modelName", modelName);
+    builder.append("id", id);
+    builder.append("modelPolicy", modelPolicy);
+    builder.append("scopes", scopes);
+    builder.append("preview", preview);
+    builder.append("isChatDefault", isChatDefault);
+    builder.append("isChatFallback", isChatFallback);
+    builder.append("capabilities", capabilities);
+    builder.append("billing", billing);
+    builder.append("providerName", providerName);
     return builder.toString();
   }
 }

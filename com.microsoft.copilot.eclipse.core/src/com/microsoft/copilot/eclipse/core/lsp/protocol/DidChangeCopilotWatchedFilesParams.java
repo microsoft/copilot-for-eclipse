@@ -3,9 +3,9 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.FileEvent;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
@@ -17,18 +17,18 @@ public class DidChangeCopilotWatchedFilesParams extends DidChangeWatchedFilesPar
   /**
    * Constructor.
    */
-  public DidChangeCopilotWatchedFilesParams(@NonNull final String workkpaceUri,
+  public DidChangeCopilotWatchedFilesParams(@NonNull final String workspaceUri,
       @NonNull final List<FileEvent> changes) {
     super(changes);
-    this.workspaceUri = workkpaceUri;
+    this.workspaceUri = workspaceUri;
   }
 
   public String getWorkkpaceUri() {
     return workspaceUri;
   }
 
-  public void setWorkkpaceUri(String workkpaceUri) {
-    this.workspaceUri = workkpaceUri;
+  public void setWorkkpaceUri(String workspaceUri) {
+    this.workspaceUri = workspaceUri;
   }
 
   @Override
@@ -57,8 +57,8 @@ public class DidChangeCopilotWatchedFilesParams extends DidChangeWatchedFilesPar
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("workkpaceUri", workspaceUri);
-    builder.add("changes", getChanges());
+    builder.append("workspaceUri", workspaceUri);
+    builder.append("changes", getChanges());
     return builder.toString();
   }
 

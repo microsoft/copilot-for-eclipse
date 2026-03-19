@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.chat;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Preferences per GitHub user. All the getters and setters are synchronized due to that the ChatBaseService holds a
@@ -95,10 +95,10 @@ public class UserPreference {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("chatModel", chatModel);
-    builder.add("chatModeName", chatModeName);
-    builder.add("userInputs", userInputs);
-    builder.add("skipGitHubJobConfirmDialog", skipGitHubJobConfirmDialog);
+    builder.append("chatModel", chatModel);
+    builder.append("chatModeName", chatModeName);
+    builder.append("userInputs", userInputs);
+    builder.append("skipGitHubJobConfirmDialog", skipGitHubJobConfirmDialog);
     return builder.toString();
   }
 }

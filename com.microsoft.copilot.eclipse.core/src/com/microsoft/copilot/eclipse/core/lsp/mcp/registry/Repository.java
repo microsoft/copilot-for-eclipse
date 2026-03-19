@@ -1,6 +1,6 @@
 package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Information about a repository in the MCP Registry.
@@ -15,10 +15,10 @@ public record Repository(String url, String source, String id, String subfolder)
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("url", url);
-    builder.add("source", source);
-    builder.add("id", id);
-    builder.add("subfolder", subfolder);
+    builder.append("url", url);
+    builder.append("source", source);
+    builder.append("id", id);
+    builder.append("subfolder", subfolder);
     return builder.toString();
   }
 }

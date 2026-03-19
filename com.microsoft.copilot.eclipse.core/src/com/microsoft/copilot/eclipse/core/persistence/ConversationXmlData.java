@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Summary information for a conversation used in the conversation index.
@@ -89,10 +89,10 @@ public class ConversationXmlData {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("conversationId", conversationId);
-    builder.add("title", title);
-    builder.add("creationDate", creationDate);
-    builder.add("lastMessageDate", lastMessageDate);
+    builder.append("conversationId", conversationId);
+    builder.append("title", title);
+    builder.append("creationDate", creationDate);
+    builder.append("lastMessageDate", lastMessageDate);
     return builder.toString();
   }
 }

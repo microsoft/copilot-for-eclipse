@@ -3,7 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Capabilities for the conversation.
@@ -54,8 +54,8 @@ public class ConversationCapabilities {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("allSkills", allSkills);
-    builder.add("skills", skills);
+    builder.append("allSkills", allSkills);
+    builder.append("skills", skills);
     return builder.toString();
   }
 

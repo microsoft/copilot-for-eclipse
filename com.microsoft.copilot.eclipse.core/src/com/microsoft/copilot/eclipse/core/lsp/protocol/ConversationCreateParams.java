@@ -5,11 +5,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder;
 
 /**
  * Parameters for creating a conversation.
@@ -236,23 +236,23 @@ public class ConversationCreateParams {
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
-    builder.add("workDoneToken", workDoneToken);
-    builder.add("turns", turns);
-    builder.add("capabilities", capabilities);
-    builder.add("computeSuggestions", computeSuggestions);
-    builder.add("textDocument", textDocument);
-    builder.add("references", references);
-    builder.add("source", source);
-    builder.add("workspaceFolder", workspaceFolder);
-    builder.add("workspaceFolders", workspaceFolders);
-    builder.add("ignoredSkills", Arrays.toString(ignoredSkills));
-    builder.add("userLanguage", userLanguage);
-    builder.add("model", model);
-    builder.add("modelProviderName", modelProviderName);
-    builder.add("chatMode", chatMode);
-    builder.add("customChatModeId", customChatModeId);
-    builder.add("needToolCallConfirmation", needToolCallConfirmation);
-    builder.add("todoList", todoList);
+    builder.append("workDoneToken", workDoneToken);
+    builder.append("turns", turns);
+    builder.append("capabilities", capabilities);
+    builder.append("computeSuggestions", computeSuggestions);
+    builder.append("textDocument", textDocument);
+    builder.append("references", references);
+    builder.append("source", source);
+    builder.append("workspaceFolder", workspaceFolder);
+    builder.append("workspaceFolders", workspaceFolders);
+    builder.append("ignoredSkills", Arrays.toString(ignoredSkills));
+    builder.append("userLanguage", userLanguage);
+    builder.append("model", model);
+    builder.append("modelProviderName", modelProviderName);
+    builder.append("chatMode", chatMode);
+    builder.append("customChatModeId", customChatModeId);
+    builder.append("needToolCallConfirmation", needToolCallConfirmation);
+    builder.append("todoList", todoList);
     return builder.toString();
   }
 }

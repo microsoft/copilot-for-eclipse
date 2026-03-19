@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Represents an input parameter for an MCP package or runtime.
@@ -109,15 +110,15 @@ public class Input {
 
   @Override
   public String toString() {
-    org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder builder = new org.eclipse.lsp4j.jsonrpc.util.ToStringBuilder(this);
-    builder.add("description", description);
-    builder.add("isRequired", isRequired);
-    builder.add("format", format);
-    builder.add("value", value);
-    builder.add("isSecret", isSecret);
-    builder.add("defaultValue", defaultValue);
-    builder.add("placeholder", placeholder);
-    builder.add("choices", choices);
+    ToStringBuilder builder = new ToStringBuilder(this);
+    builder.append("description", description);
+    builder.append("isRequired", isRequired);
+    builder.append("format", format);
+    builder.append("value", value);
+    builder.append("isSecret", isSecret);
+    builder.append("defaultValue", defaultValue);
+    builder.append("placeholder", placeholder);
+    builder.append("choices", choices);
     return builder.toString();
   }
 
