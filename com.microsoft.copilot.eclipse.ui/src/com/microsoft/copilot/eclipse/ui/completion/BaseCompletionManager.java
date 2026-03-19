@@ -252,7 +252,7 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
     if (this.lsConnection == null || this.documentUri == null) {
       return;
     }
-    if (!Objects.equals(uriString, this.documentUri.toASCIIString())) {
+    if (!uriMatches(uriString)) {
       return;
     }
 
@@ -679,5 +679,25 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
       SwtUtils.redrawBlockLineAtModelOffset(textViewer, modelOffset, false);
       this.cachedModelOffset = modelOffset;
     }
+  }
+
+  private boolean uriMatches(String uriString) {
+    if (this.documentUri == null || uriString == null) {
+      return false;
+    }
+    // Fast-path: exact string match
+    if (Objects.equals(uriString, this.documentUri.toASCIIString())) {
+      return true;
+    }
+    try {
+      URI other = new URI(uriString);
+      // URI equality
+      if (other.equals(this.documentUri)) {
+        return true;
+      }
+    } catch (Exception ex) {
+      return false;
+    }
+    return false;
   }
 }
