@@ -41,7 +41,10 @@ public class BuiltInChatModeService {
         if (mode == null || !mode.isBuiltIn()) {
           continue;
         }
-
+        // Exclude InlineAgent kind — it is not a user-facing chat mode
+        if (BuiltInChatMode.INLINE_AGENT_KIND.equalsIgnoreCase(mode.getKind())) {
+          continue;
+        }
         // Filter to only allowed built-in modes by name (case-insensitive)
         if (ALLOWED_BUILTIN_NAMES.stream().anyMatch(name -> name.equalsIgnoreCase(mode.getName()))) {
           BuiltInChatMode builtIn = convertToBuiltInChatMode(mode);

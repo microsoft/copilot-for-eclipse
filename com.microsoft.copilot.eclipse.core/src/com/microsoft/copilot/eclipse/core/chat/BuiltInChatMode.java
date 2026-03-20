@@ -25,6 +25,11 @@ public class BuiltInChatMode extends BaseChatMode {
   public static final String PLAN_MODE_NAME = "Plan";
   public static final String DEBUGGER_MODE_NAME = "Debugger";
 
+  // Built-in mode kinds
+  public static final String INLINE_AGENT_KIND = "InlineAgent";
+
+  private final String kind;
+
   /**
    * Constructor that creates a BuiltInChatMode from a ConversationMode.
    *
@@ -33,6 +38,16 @@ public class BuiltInChatMode extends BaseChatMode {
   public BuiltInChatMode(ConversationMode mode) {
     super(mode.getId(), mode.getName(), mode.getDescription(),
         mode.getCustomTools(), mode.getModel(), mode.getHandOffs());
+    this.kind = mode.getKind();
+  }
+
+  /**
+   * Get the kind of this built-in mode.
+   *
+   * @return the mode kind (e.g., "Ask", "Agent", "InlineAgent")
+   */
+  public String getKind() {
+    return kind;
   }
 
   /**
