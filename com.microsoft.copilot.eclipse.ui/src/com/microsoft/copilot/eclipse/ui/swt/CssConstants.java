@@ -41,13 +41,23 @@ public class CssConstants {
   }
 
   /**
-   * Get the border color for the top banner based on the current theme.
+   * Get the border color for UI elements based on the current theme.
    */
-  public static Color getTopBannerBorderColor(Display display) {
+  public static Color getBorderColor(Display display) {
     if (UiUtils.isDarkTheme()) {
       return new Color(display, 68, 68, 68);
     }
     return new Color(display, 216, 216, 216);
+  }
+
+  /**
+   * Get the separator color for dropdown popup groups based on the current theme.
+   */
+  public static Color getSeparatorColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 68, 68, 68);
+    }
+    return new Color(display, 234, 234, 234);
   }
 
   /**
@@ -61,6 +71,26 @@ public class CssConstants {
   }
 
   /**
+   * Get the background color for dropdown popup based on the current theme.
+   */
+  public static Color getPopupBgColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 30, 31, 34);
+    }
+    return new Color(display, 255, 255, 255);
+  }
+
+  /**
+   * Get the focused background color for dropdown popup items based on the current theme.
+   */
+  public static Color getPopupItemFocusBgColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 24, 71, 133);
+    }
+    return new Color(display, 212, 226, 255);
+  }
+
+  /**
    * Get the focus border color for widgets.
    */
   public static Color getWidgetFocusBorderColor(Display display) {
@@ -68,10 +98,9 @@ public class CssConstants {
   }
 
   /**
-   * Get the Windows Chat History current item border color based on the current theme: #306B98 (light) or #366D91
-   * (dark).
+   * Get the border color for the currently selected/focused item in list-like widgets (chat history, popup menus).
    */
-  public static Color getWindowsChatHistoryCurrentItemBorderColor(Display display) {
+  public static Color getSelectedItemBorderColor(Display display) {
     if (UiUtils.isDarkTheme()) {
       return new Color(display, 54, 109, 145);
     }

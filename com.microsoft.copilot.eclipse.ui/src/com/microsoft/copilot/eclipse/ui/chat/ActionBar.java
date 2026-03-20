@@ -42,7 +42,6 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Listener;
@@ -79,6 +78,7 @@ import com.microsoft.copilot.eclipse.ui.dialogs.jobs.ProjectSelectionDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.swt.DropdownButton;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -89,8 +89,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ActionBar extends Composite implements NewConversationListener {
   private Button btnMsgToggle;
-  private Combo cmbModelPicker;
-  private Combo cmbChatModePicker;
+  private DropdownButton modelPickerButton;
+  private DropdownButton modePickerButton;
   private ChatInputTextViewer inputTextViewer;
   private Composite cmpFileRef;
   private Composite cmpActionArea;
@@ -472,35 +472,28 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void setUpModelPicker(Composite parent) {
-    this.cmbModelPicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
-    this.cmbModelPicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    this.modelPickerButton = new DropdownButton(parent, SWT.NONE);
+    this.modelPickerButton.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
     ModelService modelService = chatServiceManager.getModelService();
-    modelService.bindModelPicker(cmbModelPicker);
-    AccessibilityUtils.addAccessibilityNameForUiComponent(cmbModelPicker, "model picker");
-    AccessibilityUtils.addFocusBorderToComposite(cmbModelPicker);
+    modelService.bindModelPicker(modelPickerButton);
   }
 
   private void setUpChatModePicker(Composite parent) {
-    this.cmbChatModePicker = new Combo(parent, SWT.BORDER | SWT.READ_ONLY);
-    this.cmbChatModePicker.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
+    this.modePickerButton = new DropdownButton(parent, SWT.NONE);
+    this.modePickerButton.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false));
+    this.modePickerButton.setAccessibilityName("chat mode picker");
     UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
-    userPreferenceService.bindChatModePicker(this.cmbChatModePicker);
+    userPreferenceService.bindChatModePicker(this.modePickerButton);
 
     // Add a listener to reload modes when dropdown is about to be shown
-    this.cmbChatModePicker.addListener(SWT.MouseDown, event -> {
+    this.modePickerButton.addListener(SWT.MouseDown, event -> {
       userPreferenceService.reloadChatModes();
     });
 
-    this.cmbChatModePicker.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        int index = cmbChatModePicker.getSelectionIndex();
-        userPreferenceService.setActiveChatMode(index, cmbChatModePicker);
-        updateMcpToolButtonVisibility();
-      }
+    this.modePickerButton.setSelectionListener(id -> {
+      userPreferenceService.setActiveChatMode(id);
+      updateMcpToolButtonVisibility();
     });
-    AccessibilityUtils.addAccessibilityNameForUiComponent(cmbChatModePicker, "chat mode picker");
-    AccessibilityUtils.addFocusBorderToComposite(cmbChatModePicker);
   }
 
   private void setUpMcpToolButtonInControlBar(Composite parent) {
@@ -568,9 +561,9 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Update image and tooltip based on selection state
     this.autoBreakpointButton.setImage(autoResponseEnabled ? autoBreakpointImage : autoBreakpointDisabledImage);
-    this.autoBreakpointButton.setToolTipText(autoResponseEnabled
-        ? Messages.chat_actionBar_autoBreakpointButton_enabled_Tooltip
-        : Messages.chat_actionBar_autoBreakpointButton_disabled_Tooltip);
+    this.autoBreakpointButton
+        .setToolTipText(autoResponseEnabled ? Messages.chat_actionBar_autoBreakpointButton_enabled_Tooltip
+            : Messages.chat_actionBar_autoBreakpointButton_disabled_Tooltip);
 
     this.autoBreakpointButton.addSelectionListener(new SelectionAdapter() {
       @Override
@@ -578,8 +571,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         boolean selected = autoBreakpointButton.getSelection();
         preferenceStore.setValue(Constants.AUTO_BREAKPOINT_RESPONSE, selected);
         autoBreakpointButton.setImage(selected ? autoBreakpointImage : autoBreakpointDisabledImage);
-        autoBreakpointButton.setToolTipText(selected
-            ? Messages.chat_actionBar_autoBreakpointButton_enabled_Tooltip
+        autoBreakpointButton.setToolTipText(selected ? Messages.chat_actionBar_autoBreakpointButton_enabled_Tooltip
             : Messages.chat_actionBar_autoBreakpointButton_disabled_Tooltip);
 
         // Notify ChatView to enable/disable the handler

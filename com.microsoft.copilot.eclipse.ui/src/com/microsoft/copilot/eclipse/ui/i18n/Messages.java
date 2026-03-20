@@ -180,6 +180,10 @@ public final class Messages extends NLS {
   public static String model_billing_included;
   public static String model_billing_multiplier_suffix;
   public static String model_billing_multiplier_variable;
+  public static String model_tooltip_quota;
+  public static String model_hover_family;
+  public static String model_hover_cost;
+  public static String model_hover_cost_premium;
 
   static {
     // initialize resource bundle

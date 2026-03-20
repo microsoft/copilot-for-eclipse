@@ -137,8 +137,11 @@
 	background-color: #26282B;
 }
 
+/* List Items: default state (chat history, popup menus) */
 #chat-history-viewer Composite.chat-history-item,
-#chat-history-viewer Composite.chat-history-item * {
+#chat-history-viewer Composite.chat-history-item *,
+#dropdown-popup,
+#dropdown-popup * {
 	color: #D3D2D2;           /* default/hover exit foreground */
 	background-color: #1E1F22;/* default/hover exit background */
 }
@@ -157,7 +160,9 @@
 }
 
 #chat-history-viewer Label.chat-history-item-current-label,
-#chat-history-viewer Label.chat-history-item-date-label {
+#chat-history-viewer Label.chat-history-item-date-label,
+#popup-item-default Label.popup-secondary-text,
+#popup-item-selected Label.popup-secondary-text {
 	color: #A4A4A4;
 }
 
@@ -199,4 +204,17 @@
 #todo-list-title * {
 	color: #AAAAAA;
 	background-color: #1E1F22;
+}
+
+/* Dropdown popup focused item (mouse hover and keyboard navigation) */
+#popup-item-focused,
+#popup-item-focused * {
+	color: #D3D2D2;
+	background-color: #184785;
+}
+
+/* Action items in dropdown popups */
+#popup-item-default Label.popup-action-text,
+#popup-item-selected Label.popup-action-text {
+	color: #74A7DC;
 }

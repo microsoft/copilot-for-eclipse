@@ -173,7 +173,7 @@ public class ChatHistoryViewer extends Composite {
       @Override
       public void paintControl(PaintEvent e) {
         GC gc = e.gc;
-        gc.setForeground(CssConstants.getTopBannerBorderColor(getDisplay()));
+        gc.setForeground(CssConstants.getBorderColor(getDisplay()));
         gc.setLineWidth(1);
         gc.drawLine(0, e.height - 1, e.width, e.height - 1);
       }
@@ -670,7 +670,7 @@ public class ChatHistoryViewer extends Composite {
 
   // Draw a 1px border around the current conversation item on Windows using SWT painting
   private void addCurrentItemBorder(Composite conversationItem) {
-    final Color borderColor = CssConstants.getWindowsChatHistoryCurrentItemBorderColor(conversationItem.getDisplay());
+    final Color borderColor = CssConstants.getSelectedItemBorderColor(conversationItem.getDisplay());
 
     conversationItem.addPaintListener(new PaintListener() {
       @Override

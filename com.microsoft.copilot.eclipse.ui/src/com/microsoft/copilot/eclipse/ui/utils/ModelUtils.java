@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
@@ -67,4 +69,41 @@ public class ModelUtils {
     }
   }
 
+  /**
+   * Returns the display suffix for a model in the model picker.
+   *
+   * @param model the model
+   * @return the suffix string, or an empty string if no suffix applies
+   */
+  public static String getModelSuffix(CopilotModel model) {
+    if (model.getProviderName() != null) {
+      return model.getProviderName();
+    }
+    if (model.getBilling() != null) {
+      return formatBillingMultiplier(model.getBilling().multiplier());
+    }
+    if ("Auto".equals(model.getModelName())) {
+      return Messages.model_billing_multiplier_variable;
+    }
+    return "";
+  }
+
+  /**
+   * Composes tooltip text for a model item in the model picker.
+   *
+   * @param model the model to compose tooltip for
+   * @param suffix the suffix shown next to the model name in the picker
+   * @return the tooltip text
+   */
+  public static String getModelTooltipText(CopilotModel model, String suffix) {
+    if (model == null) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append(model.getModelName());
+    if (StringUtils.isNotBlank(suffix)) {
+      sb.append("\n").append(String.format(Messages.model_tooltip_quota, suffix));
+    }
+    return sb.toString();
+  }
 }

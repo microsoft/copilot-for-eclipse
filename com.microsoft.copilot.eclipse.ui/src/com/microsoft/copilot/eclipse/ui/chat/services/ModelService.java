@@ -1,13 +1,11 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -16,12 +14,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
@@ -40,25 +32,16 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
+import com.microsoft.copilot.eclipse.ui.chat.ModelPickerGroupsBuilder;
+import com.microsoft.copilot.eclipse.ui.swt.DropdownButton;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
-import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Service for managing AI models and their selection. Handles all model-related functionality including persistence,
  * BYOK integration, UI binding, and communicates with other services through pure events.
  */
 public class ModelService extends ChatBaseService {
-
-  /**
-   * The extra padding that used for the combo on non-Windows platforms.
-   */
-  private static final int EXTRA_PADDING = 40;
-  private static final int MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER = 6;
 
   private static final String AUTO_MODEL_ID = "auto";
 
@@ -73,8 +56,7 @@ public class ModelService extends ChatBaseService {
 
   private ChatMode currentChatMode = ChatMode.Agent;
 
-  // Track side effects for each model combo
-  private final Map<Combo, ISideEffect[]> modelComboSideEffects = new HashMap<>();
+  private final Map<DropdownButton, ISideEffect[]> modelButtonSideEffects = new HashMap<>();
   private ISideEffect actionBarSideEffect;
 
   // Event communication
@@ -412,81 +394,69 @@ public class ModelService extends ChatBaseService {
   }
 
   /**
-   * Register a side effect for the given Combo when the model names change.
+   * Binds a {@link DropdownButton} to this service for model selection. The button displays model groups with per-item
+   * tooltips and billing suffixes.
    *
-   * @param combo the combo to set the items
+   * @param picker the dropdown button to bind
    */
-  public void bindModelPicker(final Combo combo) {
+  public void bindModelPicker(final DropdownButton picker) {
     // First unbind if previously bound to prevent leaks
-    unbindModelPicker(combo);
+    unbindModelPicker(picker);
 
     // Add the selection listener ONCE here
-    combo.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        int index = combo.getSelectionIndex();
-        if (index >= 0 && index < combo.getItemCount()) {
-          String modelNameWithMultiplier = combo.getItem(index);
-          String trimmedModelNameWithMultiplier = modelNameWithMultiplier.replace("-", "");
-          if (trimmedModelNameWithMultiplier.equals(Messages.chat_standardModels)
-              || trimmedModelNameWithMultiplier.equals(Messages.chat_premiumModels)
-              || trimmedModelNameWithMultiplier.equals(Messages.chat_copilotModels)
-              || trimmedModelNameWithMultiplier.equals(Messages.chat_customModels)
-              || StringUtils.isBlank(trimmedModelNameWithMultiplier)) {
-            dismissComboSelection(e, combo);
-          } else if (trimmedModelNameWithMultiplier.equals(Messages.chat_addPremiumModels)) {
-            dismissComboSelection(e, combo);
-            UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan", null);
-          } else if (trimmedModelNameWithMultiplier.equals(Messages.chat_actionBar_modelPicker_manageModels)) {
-            dismissComboSelection(e, combo);
-            Map<String, Object> parameters = new HashMap<>();
-
-            parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.activePageId",
-                ByokPreferencePage.ID);
-
-            parameters.put("com.microsoft.copilot.eclipse.commands.openPreferences.pageIds",
-                String.join(",", PreferencesUtils.getAllPreferenceIds()));
-
-            UiUtils.executeCommandWithParameters("com.microsoft.copilot.eclipse.commands.openPreferences", parameters);
-          } else {
-            setActiveModel(getModelNameFromModelWithMultiplier(modelNameWithMultiplier));
-          }
-        }
-      }
-    });
+    picker.setSelectionListener(this::setActiveModel);
+    picker.setAccessibilityName("model picker");
 
     ensureRealm(() -> {
-      ISideEffect modelNamesSideEffect = ISideEffect.create(() -> {
+      ISideEffect modelsSideEffect = ISideEffect.create(() -> {
         Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
-        if (combo.isDisposed() || modelMap.isEmpty()) {
-          return new String[0];
+        if (picker.isDisposed() || modelMap.isEmpty()) {
+          return Collections.emptyMap();
         }
-        return composeModelList(combo, modelMap);
-      }, (String[] modelNames) -> {
-        if (!combo.isDisposed()) {
-          combo.setItems(modelNames);
-          updateSelectionForActiveModel(combo);
+        return modelMap;
+      }, (Map<String, CopilotModel> modelMap) -> {
+        if (!picker.isDisposed()) {
+          boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
+              .getCopilotPlan() == CopilotPlan.free;
+          // TODO: need to remove this logic after group policy is available
+          FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+          boolean showByokManageOption = flags == null || flags.isByokEnabled();
+          picker.setItemGroups(
+              ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption));
         }
       });
 
       ISideEffect activeModelSideEffect = ISideEffect.create(() -> {
         return this.activeModelObservable.getValue();
       }, (CopilotModel activeModel) -> {
-        if (activeModel == null || combo.isDisposed()) {
+        if (activeModel == null || picker.isDisposed()) {
           return;
         }
-        int index = getModelIndexFromComboByModelName(combo, activeModel.getModelName());
-        if (index >= 0) {
-          updateSelectedItem(combo, activeModel.getModelName(), index);
-        }
+        picker.setSelectedItemId(activeModel.getModelName());
       });
 
       // Store the side effects for later disposal
-      modelComboSideEffects.put(combo, new ISideEffect[] { modelNamesSideEffect, activeModelSideEffect });
+      modelButtonSideEffects.put(picker, new ISideEffect[] { modelsSideEffect, activeModelSideEffect });
 
       // Add a dispose listener to auto-unbind when the combo is disposed
-      combo.addDisposeListener(e -> unbindModelPicker(combo));
+      picker.addDisposeListener(e -> unbindModelPicker(picker));
     });
+  }
+
+  /**
+   * Unbind and dispose side effects for a specific DropdownButton.
+   *
+   * @param picker the dropdown button to unbind
+   */
+  public void unbindModelPicker(DropdownButton picker) {
+    ISideEffect[] effects = modelButtonSideEffects.remove(picker);
+    if (effects != null) {
+      for (ISideEffect effect : effects) {
+        if (effect != null) {
+          effect.dispose();
+        }
+      }
+    }
   }
 
   /**
@@ -525,211 +495,9 @@ public class ModelService extends ChatBaseService {
     }
   }
 
-  private String[] composeModelList(Combo combo, Map<String, CopilotModel> modelMap) {
-    // Get font metrics for proper alignment
-    GC gc = new GC(combo);
-
-    try {
-      // Calculate the width of each model name
-      Map<String, Integer> formattedModelWidths = new HashMap<>();
-      int maxWidth = 0;
-
-      for (CopilotModel model : modelMap.values()) {
-        int width = calculateModelDisplayWidth(gc, model);
-        formattedModelWidths.put(model.getModelName(), width);
-        maxWidth = Math.max(maxWidth, width);
-      }
-
-      // Calculate width of a hair space character
-      int spaceWidth = gc.textExtent(UiUtils.HAIR_SPACE).x;
-
-      // Create properly aligned model names
-      List<String> otherModels = new ArrayList<>(); // preserved for auto model and will be shown on top
-      List<String> standardModels = new ArrayList<>();
-      List<String> premiumModels = new ArrayList<>();
-      List<String> customModels = new ArrayList<>();
-
-      for (CopilotModel model : modelMap.values()) {
-        String formattedModel = formatModelWithAlignment(gc, model, formattedModelWidths, maxWidth, spaceWidth);
-
-        if (model.getProviderName() != null) {
-          customModels.add(formattedModel);
-          continue;
-        }
-        if (model.getBilling() != null) {
-          if (model.getBilling().isPremium()) {
-            premiumModels.add(formattedModel);
-          } else {
-            standardModels.add(formattedModel);
-          }
-        } else {
-          otherModels.add(formattedModel);
-        }
-      }
-
-      if (!customModels.isEmpty()) {
-        customModels.sort(String.CASE_INSENSITIVE_ORDER);
-        customModels.add(0, addDashesAroundModelHeader(Messages.chat_customModels, maxWidth, gc));
-      }
-
-      if (!standardModels.isEmpty()) {
-        standardModels.sort(String.CASE_INSENSITIVE_ORDER);
-        standardModels.add(0, addDashesAroundModelHeader(Messages.chat_standardModels, maxWidth, gc));
-      }
-      if (!premiumModels.isEmpty()) {
-        premiumModels.sort(String.CASE_INSENSITIVE_ORDER);
-        if (standardModels.isEmpty()) {
-          premiumModels.add(0, addDashesAroundModelHeader(Messages.chat_copilotModels, maxWidth, gc));
-        } else {
-          premiumModels.add(0, addDashesAroundModelHeader(Messages.chat_premiumModels, maxWidth, gc));
-        }
-      }
-
-      List<String> allModels = new ArrayList<>(otherModels);
-      allModels.addAll(standardModels);
-      allModels.addAll(premiumModels);
-      allModels.addAll(customModels);
-      if (this.authStatusManager.getQuotaStatus().getCopilotPlan() == CopilotPlan.free) {
-        allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
-        allModels.add(Messages.chat_addPremiumModels);
-      }
-      // TODO: need to remove this logic after group policy is available
-      FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-      if (flags == null || flags.isByokEnabled()) {
-        allModels.add(addDashesAroundModelHeader("", maxWidth, gc));
-        allModels.add(Messages.chat_actionBar_modelPicker_manageModels);
-      }
-      return allModels.toArray(new String[0]);
-    } finally {
-      gc.dispose();
-    }
-  }
-
-  /**
-   * Formats a model name with its multiplier, adding spacing for alignment.
-   */
-  private String formatModelWithAlignment(GC gc, CopilotModel model, Map<String, Integer> modelWidths, int maxWidth,
-      int spaceWidth) {
-    String modelName = model.getModelName();
-    int currentWidth = modelWidths.get(modelName);
-    int spacesToAdd = (int) Math.round((maxWidth - currentWidth) / (double) spaceWidth) + 1;
-
-    String suffix = "";
-    if (model.getProviderName() != null) {
-      suffix = model.getProviderName();
-    } else if (model.getBilling() != null) {
-      suffix = ModelUtils.formatBillingMultiplier(model.getBilling().multiplier());
-    } else if (model.getBilling() == null && model.getModelName().equals("Auto")) {
-      // Special case for Auto model which has a variable multiplier
-      suffix = Messages.model_billing_multiplier_variable;
-    }
-    return UiUtils.getAlignedText(gc, modelName, UiUtils.HAIR_SPACE, suffix, spacesToAdd, maxWidth);
-  }
-
-  /**
-   * Surrounds the model header text with dashes to create a visual separator.
-   */
-  private String addDashesAroundModelHeader(String modelHeader, int maxWidth, GC gc) {
-    int headerWidth = gc.textExtent(modelHeader).x;
-    int dashWidth = gc.textExtent("-").x;
-
-    int dashesToAdd = (int) (Math.round((maxWidth - headerWidth) / (double) dashWidth) + 1) / 2;
-
-    return "-".repeat(dashesToAdd) + modelHeader + "-".repeat(dashesToAdd);
-  }
-
-  /**
-   * Calculates the display width of a model item including its name and multiplier text.
-   */
-  private int calculateModelDisplayWidth(GC gc, CopilotModel model) {
-    String multiplierText;
-
-    // Handle BYOK models (which have providerName but no billing)
-    if (model.getProviderName() != null) {
-      multiplierText = model.getProviderName();
-    } else if (model.getBilling() != null) {
-      multiplierText = ModelUtils.formatBillingMultiplier(model.getBilling().multiplier());
-    } else {
-      // Fallback for models without billing info
-      multiplierText = "";
-    }
-
-    return gc.textExtent(model.getModelName() + multiplierText).x + MIN_WIDTH_BETWEEN_MODEL_NAME_AND_MULTIPLIER;
-  }
-
-  /**
-   * Helper method to update selection based on active model.
-   */
-  private void updateSelectionForActiveModel(Combo combo) {
-    CopilotModel activeModel = this.activeModelObservable.getValue();
-    String modelName = null;
-
-    if (activeModel != null) {
-      modelName = activeModel.getModelName();
-    } else if (defaultModel != null) {
-      modelName = defaultModel.getModelName();
-    }
-
-    if (modelName != null && combo.getItemCount() > 0) {
-      int index = getModelIndexFromComboByModelName(combo, modelName);
-      if (index >= 0) {
-        updateSelectedItem(combo, modelName, index);
-      }
-    }
-  }
-
-  private void dismissComboSelection(SelectionEvent e, Combo combo) {
-    // Prevent selection of header items
-    e.doit = false;
-    updateSelectionForActiveModel(combo);
-  }
-
-  private int getModelIndexFromComboByModelName(Combo combo, String modelName) {
-    return Arrays.stream(combo.getItems())
-        .map(modelNameWithMultiplier -> getModelNameFromModelWithMultiplier(modelNameWithMultiplier)).toList()
-        .indexOf(modelName);
-  }
-
-  private String getModelNameFromModelWithMultiplier(String modelNameWithMultiplier) {
-    return modelNameWithMultiplier.split(UiUtils.HAIR_SPACE)[0].trim();
-  }
-
-  /**
-   * Unbind and dispose side effects for a specific combo.
-   *
-   * @param combo the combo to unbind
-   */
-  public void unbindModelPicker(Combo combo) {
-    ISideEffect[] effects = modelComboSideEffects.remove(combo);
-    if (effects != null) {
-      for (ISideEffect effect : effects) {
-        if (effect != null) {
-          effect.dispose();
-        }
-      }
-    }
-  }
-
-  private void updateSelectedItem(final Combo combo, String itemName, int index) {
-    combo.select(index);
-    // adjust the width according to the item
-    GC gc = new GC(combo);
-    Point textExtent = gc.textExtent(itemName);
-    gc.dispose();
-
-    GridData gridData = (GridData) combo.getLayoutData();
-    // Add some padding (dropdown button width + horizontal margins)
-    int padding = PlatformUtils.isWindows() ? 0 : EXTRA_PADDING;
-    int widthHint = textExtent.x + padding;
-    if (gridData.widthHint != widthHint) {
-      gridData.widthHint = widthHint;
-      combo.requestLayout();
-    }
-  }
-
   private void disposeAllSideEffects() {
     ensureRealm(() -> {
-      for (ISideEffect[] effects : modelComboSideEffects.values()) {
+      for (ISideEffect[] effects : modelButtonSideEffects.values()) {
         for (ISideEffect effect : effects) {
           if (effect != null) {
             effect.dispose();
@@ -738,8 +506,7 @@ public class ModelService extends ChatBaseService {
       }
     });
 
-    modelComboSideEffects.clear();
-
+    modelButtonSideEffects.clear();
   }
 
   /**
@@ -755,6 +522,7 @@ public class ModelService extends ChatBaseService {
       eventBroker = null;
     }
 
-    modelComboSideEffects.clear();
+    // Should not call disposeAllSideEffects here due to issue #1301
+    modelButtonSideEffects.clear();
   }
 }

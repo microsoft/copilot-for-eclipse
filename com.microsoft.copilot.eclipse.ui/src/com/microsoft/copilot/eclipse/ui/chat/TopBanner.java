@@ -76,7 +76,7 @@ public class TopBanner extends Composite {
       public void paintControl(PaintEvent e) {
         GC gc = e.gc;
         int borderWidth = 1;
-        Color borderColor = CssConstants.getTopBannerBorderColor(getDisplay());
+        Color borderColor = CssConstants.getBorderColor(getDisplay());
         gc.setForeground(borderColor);
         gc.setLineWidth(borderWidth);
         Rectangle bounds = parent.getClientArea();
