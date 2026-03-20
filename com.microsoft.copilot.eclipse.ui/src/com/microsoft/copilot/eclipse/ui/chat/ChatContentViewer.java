@@ -25,7 +25,6 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
@@ -178,10 +177,7 @@ public class ChatContentViewer extends ScrolledComposite {
       ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
 
       if (value.getKind() == WorkDoneProgressKind.report) {
-        boolean isAgentMode = chatServiceManager != null
-            && ChatMode.Agent.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode());
-
-        if (isAgentMode && value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
+        if (value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
           // Handle agent mode responses
           AgentRound agentRound = value.getAgentRounds().get(0);
 
