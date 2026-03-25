@@ -162,7 +162,8 @@
 #chat-history-viewer Label.chat-history-item-current-label,
 #chat-history-viewer Label.chat-history-item-date-label,
 #popup-item-default Label.popup-secondary-text,
-#popup-item-selected Label.popup-secondary-text {
+#popup-item-selected Label.popup-secondary-text,
+#dropdown-popup Label.popup-secondary-text {
 	color: #A4A4A4;
 }
 

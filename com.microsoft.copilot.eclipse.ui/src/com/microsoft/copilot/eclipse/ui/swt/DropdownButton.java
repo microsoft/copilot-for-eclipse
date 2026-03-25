@@ -42,7 +42,6 @@ public class DropdownButton extends Composite {
   private static final int ARROW_AREA_WIDTH = 16;
 
   private static Image arrowIcon;
-  private static Image arrowIconDark;
 
   private final DropdownPopup popup;
   private List<DropdownItemGroup> itemGroups;
@@ -59,9 +58,10 @@ public class DropdownButton extends Composite {
     super(parent, style | SWT.NONE);
     popup = new DropdownPopup(getShell(), this);
 
-    if (arrowIcon == null || arrowIcon.isDisposed() || arrowIconDark == null || arrowIconDark.isDisposed()) {
-      arrowIcon = UiUtils.buildImageFromPngPath("/icons/dropdown/down_arrow.png");
-      arrowIconDark = UiUtils.buildImageFromPngPath("/icons/dropdown/down_arrow_dark.png");
+    if (arrowIcon == null || arrowIcon.isDisposed()) {
+      arrowIcon = UiUtils.isDarkTheme()
+          ? UiUtils.buildImageFromPngPath("/icons/dropdown/down_arrow_dark.png")
+          : UiUtils.buildImageFromPngPath("/icons/dropdown/down_arrow.png");
       getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
     }
 
@@ -159,10 +159,6 @@ public class DropdownButton extends Composite {
       arrowIcon.dispose();
       arrowIcon = null;
     }
-    if (arrowIconDark != null && !arrowIconDark.isDisposed()) {
-      arrowIconDark.dispose();
-      arrowIconDark = null;
-    }
   }
 
   private void togglePopup() {
@@ -187,7 +183,6 @@ public class DropdownButton extends Composite {
     Display display = getDisplay();
     DropdownItem selected = findItemById(selectedItemId);
     Image selectedIcon = getSelectedItemIcon(selected);
-    Image arrow = UiUtils.isDarkTheme() ? arrowIconDark : arrowIcon;
     Color bg = mouseHover ? CssConstants.getButtonFocusBgColor(display) : getBackground();
     gc.setBackground(bg);
     gc.fillRectangle(bounds);
@@ -195,7 +190,7 @@ public class DropdownButton extends Composite {
     gc.setForeground(getForeground());
     String text = selected != null ? selected.getLabel() : "";
     Point textExtent = gc.textExtent(text);
-    int contentHeight = getContentHeight(textExtent, selectedIcon, arrow);
+    int contentHeight = getContentHeight(textExtent, selectedIcon, arrowIcon);
     int contentTop = Math.max(0, (bounds.height - contentHeight) / 2);
     int textX = H_PADDING;
     if (selectedIcon != null) {
@@ -208,17 +203,12 @@ public class DropdownButton extends Composite {
     gc.drawText(text, textX, textY, true);
 
     // Dropdown arrow icon
-    if (arrow != null && !arrow.isDisposed()) {
-      Rectangle arrowBounds = arrow.getBounds();
+    if (arrowIcon != null && !arrowIcon.isDisposed()) {
+      Rectangle arrowBounds = arrowIcon.getBounds();
       int arrowX = textX + textExtent.x;
       int arrowY = contentTop + (contentHeight - arrowBounds.height) / 2;
-      gc.drawImage(arrow, arrowX, arrowY);
+      gc.drawImage(arrowIcon, arrowX, arrowY);
     }
-  }
-
-  private String getDisplayText() {
-    DropdownItem selected = findItemById(selectedItemId);
-    return selected != null ? selected.getLabel() : "";
   }
 
   private DropdownItem findItemById(String id) {
@@ -247,7 +237,7 @@ public class DropdownButton extends Composite {
       if (selectedIcon != null) {
         iconWidth = selectedIcon.getBounds().width + ICON_TEXT_GAP;
       }
-      Image arrow = UiUtils.isDarkTheme() ? arrowIconDark : arrowIcon;
+      Image arrow = arrowIcon;
       int arrowWidth = arrowIcon != null && !arrowIcon.isDisposed()
           ? arrowIcon.getBounds().width : ARROW_AREA_WIDTH;
       int width = H_PADDING + iconWidth + textExtent.x + arrowWidth;

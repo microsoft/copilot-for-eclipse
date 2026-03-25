@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -14,6 +15,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
@@ -34,6 +36,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
 import com.microsoft.copilot.eclipse.ui.chat.ModelPickerGroupsBuilder;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.DropdownButton;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
 
@@ -433,6 +436,9 @@ public class ModelService extends ChatBaseService {
           return;
         }
         picker.setSelectedItemId(activeModel.getModelName());
+        String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
+            ? " - " + activeModel.getDegradationReason() : "";
+        picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));
       });
 
       // Store the side effects for later disposal

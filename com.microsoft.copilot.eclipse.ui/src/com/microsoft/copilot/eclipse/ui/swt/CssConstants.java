@@ -65,9 +65,9 @@ public class CssConstants {
    */
   public static Color getButtonFocusBgColor(Display display) {
     if (UiUtils.isDarkTheme()) {
-      return new Color(display, 100, 100, 100);
+      return new Color(display, 64, 64, 64);
     }
-    return new Color(display, 216, 216, 216);
+    return new Color(display, 232, 232, 232);
   }
 
   /**

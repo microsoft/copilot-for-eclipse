@@ -481,6 +481,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private void setUpChatModePicker(Composite parent) {
     this.modePickerButton = new DropdownButton(parent, SWT.NONE);
     this.modePickerButton.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false));
+    this.modePickerButton.setToolTipText(Messages.chat_actionBar_modePicker_Tooltip);
     this.modePickerButton.setAccessibilityName("chat mode picker");
     UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
     userPreferenceService.bindChatModePicker(this.modePickerButton);

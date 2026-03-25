@@ -47,9 +47,9 @@ class DropdownPopup {
   private static final int BORDER_ARC = 8;
   private static final int ITEM_FOCUS_ARC = 6;
   private static final int MAX_VISIBLE_ITEMS = 15;
+  private static final int MAX_HOVER_WIDTH = 300;
 
   private static Image checkIcon;
-  private static Image checkIconDark;
 
   private Shell shell;
   private final Shell parentShell;
@@ -80,9 +80,10 @@ class DropdownPopup {
     this.anchorControl = anchorControl;
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
 
-    if (checkIcon == null || checkIcon.isDisposed() || checkIconDark == null || checkIconDark.isDisposed()) {
-      checkIcon = UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status.png");
-      checkIconDark = UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status_dark.png");
+    if (checkIcon == null || checkIcon.isDisposed()) {
+      checkIcon = UiUtils.isDarkTheme()
+          ? UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status_dark.png")
+          : UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status.png");
       parentShell.getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
     }
   }
@@ -95,10 +96,6 @@ class DropdownPopup {
     if (checkIcon != null && !checkIcon.isDisposed()) {
       checkIcon.dispose();
       checkIcon = null;
-    }
-    if (checkIconDark != null && !checkIconDark.isDisposed()) {
-      checkIconDark.dispose();
-      checkIconDark = null;
     }
   }
 
@@ -327,7 +324,6 @@ class DropdownPopup {
   private void addItem(Composite parent, DropdownItem item) {
     final Display display = parent.getDisplay();
     final boolean isSelected = item.getId() != null && item.getId().equals(selectedItemId);
-    final boolean hasIcon = item.getIcon() != null && !item.getIcon().isDisposed();
     final String itemBaseCssId = isSelected ? POPUP_ITEM_SELECTED_ID : POPUP_ITEM_DEFAULT_ID;
 
     Composite itemComp = new Composite(parent, SWT.NONE);
@@ -345,14 +341,13 @@ class DropdownPopup {
     List<Control> controls = new ArrayList<>();
     controls.add(itemComp);
 
-    // Leading icon column: checkmark for selected, icon if present, empty placeholder otherwise.
+    // Leading icon column: show a selection indicator (checkIcon) for the selected item, or the item's icon otherwise.
     // Always rendered so that item label text aligns across all items (aligned with group headers).
     Label leadingLabel = new Label(itemComp, SWT.NONE);
     GridData leadingGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-    if (isSelected) {
-      leadingLabel.setImage(UiUtils.isDarkTheme() ? checkIconDark : checkIcon);
-    } else if (hasIcon) {
-      leadingLabel.setImage(item.getIcon());
+    Image leadingIcon = resolvePopupLeadingIcon(item, isSelected);
+    if (leadingIcon != null) {
+      leadingLabel.setImage(leadingIcon);
     } else {
       leadingGd.widthHint = 16; // empty placeholder — matches typical 16 px icon width
     }
@@ -458,6 +453,14 @@ class DropdownPopup {
     };
   }
 
+  private Image resolvePopupLeadingIcon(DropdownItem item, boolean selected) {
+    if (selected && checkIcon != null && !checkIcon.isDisposed()) {
+      return checkIcon;
+    }
+    Image icon = item.getIcon();
+    return icon != null && !icon.isDisposed() ? icon : null;
+  }
+
   private void openHoverShell(DropdownItem item, Composite anchorItem) {
     closeHoverShell();
     if (shell == null || shell.isDisposed()) {
@@ -493,6 +496,12 @@ class DropdownPopup {
 
     hoverShell.pack();
     Point hoverSize = hoverShell.getSize();
+    if (hoverSize.x > MAX_HOVER_WIDTH) {
+      // Recompute height at the constrained width so wrapped labels get enough space.
+      hoverSize = hoverShell.computeSize(MAX_HOVER_WIDTH, SWT.DEFAULT);
+      hoverSize.x = MAX_HOVER_WIDTH;
+      hoverShell.setSize(hoverSize);
+    }
 
     // Position the hover shell beside the popup, aligned with the hovered item
     Rectangle popupBounds = shell.getBounds();

@@ -20,6 +20,7 @@ public class CopilotModel {
   private boolean isChatFallback;
   private CopilotModelCapabilities capabilities;
   private CopilotModelBilling billing;
+  private String degradationReason;
   private String providerName;
 
   /**
@@ -152,6 +153,14 @@ public class CopilotModel {
     this.billing = billing;
   }
 
+  public String getDegradationReason() {
+    return degradationReason;
+  }
+
+  public void setDegradationReason(String degradationReason) {
+    this.degradationReason = degradationReason;
+  }
+
   public String getProviderName() {
     return providerName;
   }
@@ -173,17 +182,17 @@ public class CopilotModel {
     }
     CopilotModel other = (CopilotModel) obj;
     return Objects.equals(billing, other.billing) && Objects.equals(capabilities, other.capabilities)
-        && Objects.equals(id, other.id) && isChatDefault == other.isChatDefault
-        && isChatFallback == other.isChatFallback && Objects.equals(modelFamily, other.modelFamily)
-        && Objects.equals(modelName, other.modelName) && Objects.equals(modelPolicy, other.modelPolicy)
-        && preview == other.preview && Objects.equals(scopes, other.scopes)
-        && Objects.equals(providerName, other.providerName);
+        && Objects.equals(degradationReason, other.degradationReason) && Objects.equals(id, other.id)
+        && isChatDefault == other.isChatDefault && isChatFallback == other.isChatFallback
+        && Objects.equals(modelFamily, other.modelFamily) && Objects.equals(modelName, other.modelName)
+        && Objects.equals(modelPolicy, other.modelPolicy) && preview == other.preview
+        && Objects.equals(providerName, other.providerName) && Objects.equals(scopes, other.scopes);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(billing, capabilities, id, isChatDefault, isChatFallback, modelFamily, modelName, modelPolicy,
-        preview, scopes, providerName);
+    return Objects.hash(billing, capabilities, degradationReason, id, isChatDefault, isChatFallback, modelFamily,
+        modelName, modelPolicy, preview, providerName, scopes);
   }
 
   @Override
@@ -199,7 +208,9 @@ public class CopilotModel {
     builder.append("isChatFallback", isChatFallback);
     builder.append("capabilities", capabilities);
     builder.append("billing", billing);
+    builder.append("degradationReason", degradationReason);
     builder.append("providerName", providerName);
     return builder.toString();
   }
+
 }

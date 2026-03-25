@@ -184,6 +184,8 @@ public final class Messages extends NLS {
   public static String model_hover_family;
   public static String model_hover_cost;
   public static String model_hover_cost_premium;
+  public static String chat_actionBar_modePicker_Tooltip;
+  public static String chat_actionBar_modelPicker_Tooltip;
 
   static {
     // initialize resource bundle
