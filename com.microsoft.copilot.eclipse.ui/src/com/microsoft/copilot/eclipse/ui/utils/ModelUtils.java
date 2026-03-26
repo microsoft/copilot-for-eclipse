@@ -54,19 +54,15 @@ public class ModelUtils {
   }
 
   /**
-   * Formats the billing multiplier for display. If the multiplier is 0, returns "Included". Otherwise, returns the
-   * multiplier value with trailing zeros removed and an "x" suffix.
+   * Formats the billing multiplier for display. Returns the multiplier value with trailing zeros removed and an "x"
+   * suffix (e.g., "0x", "1x", "1.5x").
    *
    * @param multiplier the billing multiplier value
    * @return the formatted multiplier text
    */
   public static String formatBillingMultiplier(double multiplier) {
     BigDecimal multiplierValue = BigDecimal.valueOf(multiplier).stripTrailingZeros();
-    if (multiplierValue.toPlainString().equals("0")) {
-      return Messages.model_billing_included;
-    } else {
-      return multiplierValue.toPlainString() + Messages.model_billing_multiplier_suffix;
-    }
+    return multiplierValue.toPlainString() + Messages.model_billing_multiplier_suffix;
   }
 
   /**

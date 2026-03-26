@@ -177,7 +177,6 @@ public final class Messages extends NLS {
   public static String chat_historyView_enterIcon_tooltip;
   public static String chat_historyView_editIcon_tooltip;
   public static String chat_historyView_deleteIcon_tooltip;
-  public static String model_billing_included;
   public static String model_billing_multiplier_suffix;
   public static String model_billing_multiplier_variable;
   public static String model_tooltip_quota;
