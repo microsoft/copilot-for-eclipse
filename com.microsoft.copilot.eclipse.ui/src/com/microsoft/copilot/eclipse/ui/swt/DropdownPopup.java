@@ -47,7 +47,8 @@ class DropdownPopup {
   private static final int BORDER_ARC = 8;
   private static final int ITEM_FOCUS_ARC = 6;
   private static final int MAX_VISIBLE_ITEMS = 15;
-  private static final int MAX_HOVER_WIDTH = 300;
+  private static final int SHORT_POPUP_WIDTH = 230;
+  private static final int LONG_POPUP_WIDTH = 300;
 
   private static Image checkIcon;
 
@@ -214,6 +215,7 @@ class DropdownPopup {
     });
 
     shell.pack();
+    shell.setSize(SHORT_POPUP_WIDTH, shell.getSize().y);
     constrainHeightIfNeeded();
     adjustBounds(location, anchorHeight);
     scrollToFocusedItem();
@@ -496,10 +498,11 @@ class DropdownPopup {
 
     hoverShell.pack();
     Point hoverSize = hoverShell.getSize();
-    if (hoverSize.x > MAX_HOVER_WIDTH) {
-      // Recompute height at the constrained width so wrapped labels get enough space.
-      hoverSize = hoverShell.computeSize(MAX_HOVER_WIDTH, SWT.DEFAULT);
-      hoverSize.x = MAX_HOVER_WIDTH;
+    int width = hoverSize.x <= SHORT_POPUP_WIDTH ? SHORT_POPUP_WIDTH : LONG_POPUP_WIDTH;
+    if (width != hoverSize.x) {
+      // Recompute size at the target width so wrapped labels lay out correctly.
+      hoverSize = hoverShell.computeSize(width, SWT.DEFAULT);
+      hoverSize.x = width;
       hoverShell.setSize(hoverSize);
     }
 
