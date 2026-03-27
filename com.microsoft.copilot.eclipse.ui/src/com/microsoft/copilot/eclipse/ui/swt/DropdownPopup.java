@@ -215,7 +215,6 @@ class DropdownPopup {
     });
 
     shell.pack();
-    shell.setSize(SHORT_POPUP_WIDTH, shell.getSize().y);
     constrainHeightIfNeeded();
     adjustBounds(location, anchorHeight);
     scrollToFocusedItem();
