@@ -120,6 +120,7 @@ public final class Messages extends NLS {
   public static String chat_noAuthView_checkSubButton;
   public static String chat_noAuthView_checkSubButton_Tooltip;
   public static String chat_noAuthView_checkSubLink;
+  public static String chat_addContext_tooltip;
   public static String chat_filePicker_title;
   public static String chat_filePicker_message;
   public static String chat_noQuotaView_fallbackModel;

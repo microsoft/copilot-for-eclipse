@@ -178,6 +178,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     rowLayout.marginLeft = 0;
     rowLayout.marginTop = 0;
     rowLayout.marginBottom = 10;
+    rowLayout.center = true;
     this.cmpFileRef = new Composite(actionBar, SWT.NONE);
     this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.cmpFileRef.setLayout(rowLayout);
