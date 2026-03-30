@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.16.0
+### Added
+- Support tool calling in Ask Mode. [PR#1606](https://github.com/microsoft/copilot-eclipse/pull/1606)
+- Show detailed model information on dropdown hover. [PR#1607](https://github.com/microsoft/copilot-eclipse/pull/1607)
+- Add openChatView mode parameter and wire handoff to command. [PR#1587](https://github.com/microsoft/copilot-eclipse/pull/1587)
+
+### Changed
+- Update chat mode selector and model selector to show more information. [PR#1595](https://github.com/microsoft/copilot-eclipse/pull/1595) [PR#1609](https://github.com/microsoft/copilot-eclipse/pull/1609)
+- Remove 'Included' billing message and simplify multiplier to 0. [PR#1611](https://github.com/microsoft/copilot-eclipse/pull/1611)
+- Remove border for Add Context button and center layout in ActionBar. [#1613](https://github.com/microsoft/copilot-eclipse/issues/1613)
+
+### Fixed
+- Fix NPE under updateCodeMinings() lambda if editor is already disposed [PR#1580](https://github.com/microsoft/copilot-eclipse/pull/1580)
+- Fix bind Ctrl++ shortcut additionally for increaseChatFontSize command [PR#1581](https://github.com/microsoft/copilot-eclipse/pull/1581)
+- Fix Binary LSP agent start failed [PR#1582](https://github.com/microsoft/copilot-eclipse/pull/1582)
+- Fix some languages does not have syntax highlighting [PR#1583](https://github.com/microsoft/copilot-eclipse/pull/1583)
+- Fix wrong line delimiter is generated in completion [PR#1584](https://github.com/microsoft/copilot-eclipse/pull/1584)
+- Fix "Copy and Open" does not copy [PR#1585](https://github.com/microsoft/copilot-eclipse/pull/1585)
+- Fix BadPositionCategoryException in RenderManager when closing markdown editor [PR#1586](https://github.com/microsoft/copilot-eclipse/pull/1586)
+- Fix use invisible OSC escape sequence for terminal command completion marker [PR#1588](https://github.com/microsoft/copilot-eclipse/pull/1588)
+- Fix URI comparison for similar URI schemes. [PR#1596](https://github.com/microsoft/copilot-eclipse/pull/1596)
+- Fix CLS "temperature and top_p cannot both be specified for this model". [PR#1615](https://github.com/microsoft/copilot-eclipse/pull/1615)
+
 ## 0.15.0
 ### Added
 - Add JDT debugger tool for agent. [PR#1476](https://github.com/microsoft/copilot-eclipse/pull/1476)
