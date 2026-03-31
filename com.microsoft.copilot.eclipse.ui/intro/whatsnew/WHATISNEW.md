@@ -1,3 +1,32 @@
+# GitHub Copilot 0.16.0 Release Notes
+
+### Tool Calling in Ask Mode
+
+Ask Mode now supports tool calling. When a question requires additional context, Copilot automatically invokes relevant tools — such as listing directories, searching for files, and reading file contents — to gather the information needed to provide an accurate response. Tools invoked in Ask Mode are read-only and will not modify your codebase.
+
+![Tool Calling in Ask Mode](0.16.0/tool_calling_in_ask_mode.png)
+
+---
+
+### Redesigned Selectors and Chat Input Area
+
+- **Mode and Model Selectors**: The chat mode and model selectors have been redesigned to surface more information at a glance. The updated layout includes icons and descriptions, making it easier to identify the capabilities and warnings associated with each option.
+
+![New Selector](0.16.0/new_selector.png)
+
+- **Chat Input Area**: The chat input area has been refined with a cleaner, borderless button design for a more streamlined appearance.
+![New Chat Input](0.16.0/new_chat_input.png)
+
+---
+
+### Syntax Highlighting in Chat
+
+Code snippets in Copilot's chat view now render with full syntax highlighting. Code blocks in responses are automatically highlighted based on the detected language, improving readability and making it easier to follow along with code suggestions and explanations.
+
+![Syntax Highlighting](0.16.0/syntax_highlighting.png)
+
+---
+
 # GitHub Copilot 0.15.0 Release Notes
 ### MCP Registry
 Discover and install MCP servers from a centralized registry with just a few clicks. Browse available servers, view their capabilities, and add them to your workspace instantly — no manual configuration required.
@@ -66,47 +95,3 @@ This release also squashed bugs, boosted performance, and polished the UI for a 
 Thank you for being part of this journey — here’s to an even better year ahead!
 
 🎉 Wishing you a Happy New Year! 🎉
-
----
-
-# GitHub Copilot 0.13.0 Release Notes
-### Custom Agent
-Custom agents bring customization to your chat mode by letting you specify name, description, tools, and models. Create specialized AI teammates tailored to your workflows and coding standards in Eclipse. Define agents using Markdown files that specify prompts so you can pick them up and run in your Eclipse quickly.
-
-<video controls="true" src="./0.13.0/custom_agent.mp4" title="Custom Agent" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Plan
-`Plan` helps AI think before it acts. It creates a clear plan first, so you can review and adjust it to fit your needs — then let the AI get to work. Simple, smart, and under your control.
-
-<video controls="true" src="./0.13.0/plan.mp4" title="Plan" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Sub-agent
-With Sub-Agent, your custom agents can now work in harmony under the guidance of a main agent. Each sub-agent tackles a specific task within its own isolated context, free from distractions — delivering sharper, more accurate results. Think of it as a team of specialists, each focused on what they do best, all orchestrated for maximum impact.
-
-<video controls="true" src="./0.13.0/sub_agent.mp4" title="Sub-agent" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Copilot Coding Agent
-With Copilot coding agent, GitHub Copilot can work independently in the background to complete tasks, just like a human developer: creating pull requests to solve issues in your GitHub repos.
-
-<video controls="true" src="./0.13.0/coding_agent.mp4" title="Copilot Coding Agent" style="max-width: 800px; width: 100%; height: auto;"></video>
-
-Note: [Click here to check more information](https://aka.ms/learn-copilot-coding-agent)
-
----
-
-### Next Edit Suggestions (NES)
-
-Next Edit Suggestions (NES) in GitHub Copilot predicts your next changes based on recent edits. It suggests updates to code, comments, and tests, which you can preview and apply instantly. Use Tab to move through suggestions and press Tab again to accept—keeping your workflow smooth and uninterrupted.
-
-<video controls="true" src="./0.13.0/nes.mp4" title="NES" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Auto Model
-Auto optimizes for model availability, currently routing to GPT-5, GPT-5 mini, GPT-4.1, Sonnet 4.5, and Haiku 4.5, depending on your subscription type. More models are coming soon.
