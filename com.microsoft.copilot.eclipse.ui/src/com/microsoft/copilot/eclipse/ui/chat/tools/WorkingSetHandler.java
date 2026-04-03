@@ -7,9 +7,9 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 
 /**
- * Interface for handling file change summary actions.
+ * Interface for handling working set actions.
  */
-public interface FileChangeSummaryHandler {
+public interface WorkingSetHandler {
   /**
    * Handles the action of keeping changes to a file.
    *

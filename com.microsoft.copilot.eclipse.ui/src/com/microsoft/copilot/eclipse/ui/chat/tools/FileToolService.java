@@ -23,7 +23,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.ConversationUtils;
-import com.microsoft.copilot.eclipse.ui.chat.FileChangeSummaryBar;
+import com.microsoft.copilot.eclipse.ui.chat.WorkingSetBar;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 
@@ -35,7 +35,7 @@ public class FileToolService extends ChatBaseService {
   private IObservableValue<Map<IFile, FileChangeProperty>> filesObservable;
   private IObservableValue<Boolean> buttonEnableObservable;
 
-  private FileChangeSummaryBar fileChangeSummaryBar;
+  private WorkingSetBar workingSetBar;
   private CreateFileTool createFileTool;
   private EditFileTool editFileTool;
 
@@ -60,9 +60,9 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
-   * Bind the FileChangeSummaryBar to the changed files.
+   * Bind the WorkingSetBar to the changed files.
    */
-  public void bindFileChangeSummaryBar(ChatView chatView) {
+  public void bindWorkingSetBar(ChatView chatView) {
     if (this.createFileTool == null) {
       this.createFileTool = (CreateFileTool) CopilotUi.getPlugin().getChatServiceManager().getAgentToolService()
           .getTool(CreateFileTool.TOOL_NAME);
@@ -73,33 +73,33 @@ public class FileToolService extends ChatBaseService {
     }
 
     ensureRealm(() -> {
-      unbindFileChangeSummaryBar();
+      unbindWorkingSetBar();
       filesSideEffect = ISideEffect.create(() -> filesObservable.getValue(),
           (Map<IFile, FileChangeProperty> filesMap) -> {
             if (filesMap.isEmpty()) {
-              disposeFileChangeSummaryBar();
+              disposeWorkingSetBar();
             } else {
-              if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
-                this.fileChangeSummaryBar = new FileChangeSummaryBar(chatView.getActionBar(), SWT.NONE);
+              if (this.workingSetBar == null || this.workingSetBar.isDisposed()) {
+                this.workingSetBar = new WorkingSetBar(chatView.getActionBar(), SWT.NONE);
               }
-              // Position FileChangeSummaryBar below TodoListBar (if present), otherwise at top
-              positionFileChangeSummaryBar(chatView);
-              this.fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+              // Position WorkingSetBar below TodoListBar (if present), otherwise at top
+              positionWorkingSetBar(chatView);
+              this.workingSetBar.buildSummaryBarFor(filesMap);
             }
           });
       buttonEnableSideEffect = ISideEffect.create(() -> buttonEnableObservable.getValue(), (Boolean status) -> {
-        if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
+        if (this.workingSetBar == null || this.workingSetBar.isDisposed()) {
           return;
         }
-        this.fileChangeSummaryBar.setButtonStatus(status);
+        this.workingSetBar.setButtonStatus(status);
       });
     });
   }
 
   /**
-   * Unbind the FileChangeSummaryBar and dispose side effects.
+   * Unbind the WorkingSetBar and dispose side effects.
    */
-  public void unbindFileChangeSummaryBar() {
+  public void unbindWorkingSetBar() {
     ensureRealm(() -> {
       if (filesSideEffect != null) {
         filesSideEffect.dispose();
@@ -111,7 +111,7 @@ public class FileToolService extends ChatBaseService {
       }
 
       ConversationUtils.confirmEndChat();
-      disposeFileChangeSummaryBar();
+      disposeWorkingSetBar();
 
       // Clear observables to prevent stale data when view is reopened
       filesObservable.setValue(new LinkedHashMap<>());
@@ -120,34 +120,34 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
-   * Position the FileChangeSummaryBar below TodoListBar if present, otherwise at top.
+   * Position the WorkingSetBar below TodoListBar if present, otherwise at top.
    */
-  private void positionFileChangeSummaryBar(ChatView chatView) {
-    if (this.fileChangeSummaryBar == null || this.fileChangeSummaryBar.isDisposed()) {
+  private void positionWorkingSetBar(ChatView chatView) {
+    if (this.workingSetBar == null || this.workingSetBar.isDisposed()) {
       return;
     }
     TodoListService todoListService = CopilotUi.getPlugin().getChatServiceManager().getTodoListService();
     if (todoListService != null && todoListService.getTodoListBar() != null
         && !todoListService.getTodoListBar().isDisposed()) {
       // Position below TodoListBar
-      this.fileChangeSummaryBar.moveBelow(todoListService.getTodoListBar());
+      this.workingSetBar.moveBelow(todoListService.getTodoListBar());
     } else {
       // No TodoListBar, position at top
-      this.fileChangeSummaryBar.moveAbove(null);
+      this.workingSetBar.moveAbove(null);
     }
   }
 
   /**
-   * Enable or disable the buttons for the file change summary bar.
+   * Enable or disable the buttons for the working set bar.
    */
-  public void setFileChangeSummaryBarButtonStatus(boolean status) {
+  public void setWorkingSetBarButtonStatus(boolean status) {
     ensureRealm(() -> {
       buttonEnableObservable.setValue(status);
     });
   }
 
   /**
-   * Set the changed files for the file change summary bar.
+   * Set the changed files for the working set bar.
    */
   public void setChangedFiles(Map<IFile, FileChangeProperty> files) {
     ensureRealm(() -> {
@@ -156,21 +156,21 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
-   * Get the changed files for the file change summary bar.
+   * Get the changed files for the working set bar.
    */
   public Map<IFile, FileChangeProperty> getChangedFiles() {
     return filesObservable.getValue();
   }
 
   /**
-   * Get the FileChangeSummaryBar instance.
+   * Get the WorkingSetBar instance.
    */
-  public FileChangeSummaryBar getFileChangeSummaryBar() {
-    return fileChangeSummaryBar;
+  public WorkingSetBar getWorkingSetBar() {
+    return workingSetBar;
   }
 
   /**
-   * Add a newly created file to the file change summary bar.
+   * Add a newly created file to the working set bar.
    */
   public void addChangedFile(IFile file, FileChangeType fileChangeType) {
     ensureRealm(() -> {
@@ -185,7 +185,7 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
-   * Complete a changed file action and remove it from the file change summary bar.
+   * Complete a changed file action and remove it from the working set bar.
    *
    * @param file the file to complete
    */
@@ -292,18 +292,18 @@ public class FileToolService extends ChatBaseService {
     ensureRealm(() -> {
       this.filesObservable.setValue(new LinkedHashMap<>());
       this.buttonEnableObservable.setValue(false);
-      this.disposeFileChangeSummaryBar();
+      this.disposeWorkingSetBar();
     });
   }
 
   /**
-   * Dispose the FileChangeSummaryBar.
+   * Dispose the WorkingSetBar.
    */
-  public void disposeFileChangeSummaryBar() {
-    if (fileChangeSummaryBar != null && !fileChangeSummaryBar.isDisposed()) {
-      Composite control = fileChangeSummaryBar.getParent();
-      fileChangeSummaryBar.dispose();
-      fileChangeSummaryBar = null;
+  public void disposeWorkingSetBar() {
+    if (workingSetBar != null && !workingSetBar.isDisposed()) {
+      Composite control = workingSetBar.getParent();
+      workingSetBar.dispose();
+      workingSetBar = null;
       control.requestLayout();
     }
   }

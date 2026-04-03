@@ -31,7 +31,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 /**
  * Tool for creating files.
  */
-public class CreateFileTool extends FileToolBase implements FileChangeSummaryHandler {
+public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
   public static final String TOOL_NAME = "create_file";
 
   /**
@@ -117,8 +117,6 @@ public class CreateFileTool extends FileToolBase implements FileChangeSummaryHan
       CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Created);
       file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
 
-      // Open file in editor
-      SwtUtils.invokeOnDisplayThread(() -> UiUtils.openInEditor(file));
       result.addContent("File created at: " + file.getFullPath().toOSString());
       result.setStatus(ToolInvocationStatus.success);
     } catch (CoreException e) {

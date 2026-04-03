@@ -40,10 +40,10 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangePro
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
- * Tests for FileChangeSummaryBar, focusing on scroll behavior and file list rendering.
+ * Tests for WorkingSetBar, focusing on scroll behavior and file list rendering.
  */
 @ExtendWith(MockitoExtension.class)
-class FileChangeSummaryBarTest {
+class WorkingSetBarTest {
 
   @Mock
   private CopilotUi mockCopilotUi;
@@ -54,7 +54,7 @@ class FileChangeSummaryBarTest {
 
   private Shell shell;
   private Composite parent;
-  private FileChangeSummaryBar fileChangeSummaryBar;
+  private WorkingSetBar workingSetBar;
   private MockedStatic<CopilotUi> mockedCopilotUi;
 
   @BeforeEach
@@ -68,8 +68,8 @@ class FileChangeSummaryBarTest {
   @AfterEach
   void tearDown() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      if (fileChangeSummaryBar != null && !fileChangeSummaryBar.isDisposed()) {
-        fileChangeSummaryBar.dispose();
+      if (workingSetBar != null && !workingSetBar.isDisposed()) {
+        workingSetBar.dispose();
       }
       if (shell != null && !shell.isDisposed()) {
         shell.dispose();
@@ -99,12 +99,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testNoScrollForFewFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
@@ -118,12 +118,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testNoScrollForExactlyMaxFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(5, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
@@ -137,12 +137,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testScrollCreatedForManyFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(10, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
@@ -160,12 +160,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testScrollHeightHintForManyFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(8, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
@@ -185,13 +185,13 @@ class FileChangeSummaryBarTest {
   @Test
   void testAllFileRowsRenderedWithScroll() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       int fileCount = 7;
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(fileCount, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       // Get the file rows list
@@ -211,12 +211,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testContentAreaSetInScrolledComposite() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(8, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
@@ -238,12 +238,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testMinHeightSetForScrolledComposite() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(10, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles, "ChangedFiles should be created");
 
       ScrolledComposite scrolledComposite = getScrolledComposite(changedFiles);
@@ -260,22 +260,22 @@ class FileChangeSummaryBarTest {
   @Test
   void testRebuildSummaryBarChangesScrollBehavior() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
 
       // First build with few files (no scroll)
       Map<IFile, FileChangeProperty> fewFiles = createMockFilesMap(3, false);
-      fileChangeSummaryBar.buildSummaryBarFor(fewFiles);
+      workingSetBar.buildSummaryBarFor(fewFiles);
 
-      Object changedFiles1 = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles1 = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles1, "ChangedFiles should be created");
       ScrolledComposite scroll1 = getScrolledComposite(changedFiles1);
       assertNull(scroll1, "No scroll should exist for 3 files");
 
       // Rebuild with many files (should have scroll)
       Map<IFile, FileChangeProperty> manyFiles = createMockFilesMap(10, false);
-      fileChangeSummaryBar.buildSummaryBarFor(manyFiles);
+      workingSetBar.buildSummaryBarFor(manyFiles);
 
-      Object changedFiles2 = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles2 = getFieldValue(workingSetBar, "changedFiles");
       assertNotNull(changedFiles2, "ChangedFiles should be recreated");
       assertFalse(changedFiles1.equals(changedFiles2), "ChangedFiles should be a new instance");
 
@@ -290,12 +290,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testExpandIconImageWhenExpanded() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      Object titleBar = getFieldValue(workingSetBar, "titleBar");
       assertNotNull(titleBar, "TitleBar should be created");
 
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
@@ -318,22 +318,22 @@ class FileChangeSummaryBarTest {
   @Test
   void testExpandIconImageWhenCollapsed() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
       // Toggle to collapse
-      boolean isExpanded = (Boolean) getFieldValue(fileChangeSummaryBar, "isExpanded");
+      boolean isExpanded = (Boolean) getFieldValue(workingSetBar, "isExpanded");
       assertTrue(isExpanded, "Should be expanded initially");
 
       // Simulate collapse by calling toggleExpanded via reflection
-      invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
+      invokePrivateMethod(workingSetBar, "toggleExpanded");
 
-      isExpanded = (Boolean) getFieldValue(fileChangeSummaryBar, "isExpanded");
+      isExpanded = (Boolean) getFieldValue(workingSetBar, "isExpanded");
       assertFalse(isExpanded, "Should be collapsed after toggle");
 
-      Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      Object titleBar = getFieldValue(workingSetBar, "titleBar");
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
       Label expandIconLabel = (Label) expandIcon;
 
@@ -350,12 +350,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testTooltipTextWhenExpanded() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      Object titleBar = getFieldValue(workingSetBar, "titleBar");
       assertNotNull(titleBar, "TitleBar should be created");
 
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
@@ -391,18 +391,18 @@ class FileChangeSummaryBarTest {
   @Test
   void testTooltipTextWhenCollapsed() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(5, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
       // Toggle to collapse
-      invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
+      invokePrivateMethod(workingSetBar, "toggleExpanded");
 
-      boolean isExpanded = (Boolean) getFieldValue(fileChangeSummaryBar, "isExpanded");
+      boolean isExpanded = (Boolean) getFieldValue(workingSetBar, "isExpanded");
       assertFalse(isExpanded, "Should be collapsed after toggle");
 
-      Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      Object titleBar = getFieldValue(workingSetBar, "titleBar");
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
       Object titleLabel = getFieldValue(titleBar, "titleLabel");
 
@@ -432,12 +432,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testTooltipAndImageToggleBehavior() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> filesMap = createMockFilesMap(4, false);
 
-      fileChangeSummaryBar.buildSummaryBarFor(filesMap);
+      workingSetBar.buildSummaryBarFor(filesMap);
 
-      Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      Object titleBar = getFieldValue(workingSetBar, "titleBar");
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
       Label expandIconLabel = (Label) expandIcon;
 
@@ -448,7 +448,7 @@ class FileChangeSummaryBarTest {
           "Should have collapse tooltip initially");
 
       // Toggle to collapse
-      invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
+      invokePrivateMethod(workingSetBar, "toggleExpanded");
 
       Object rightArrowImage = getFieldValue(titleBar, "rightArrowImage");
       assertEquals(rightArrowImage, expandIconLabel.getImage(), "Should show right arrow after first toggle");
@@ -456,7 +456,7 @@ class FileChangeSummaryBarTest {
           "Should have expand tooltip after first toggle");
 
       // Toggle back to expand
-      invokePrivateMethod(fileChangeSummaryBar, "toggleExpanded");
+      invokePrivateMethod(workingSetBar, "toggleExpanded");
 
       assertEquals(downArrowImage, expandIconLabel.getImage(), "Should show down arrow after second toggle");
       assertTrue(expandIconLabel.getToolTipText().toLowerCase().contains("collapse"),
@@ -470,13 +470,13 @@ class FileChangeSummaryBarTest {
   @Test
   void testTooltipContainsCorrectFileCount() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
 
       // Test with 1 file
       Map<IFile, FileChangeProperty> oneFile = createMockFilesMap(1, false);
-      fileChangeSummaryBar.buildSummaryBarFor(oneFile);
+      workingSetBar.buildSummaryBarFor(oneFile);
 
-      Object titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      Object titleBar = getFieldValue(workingSetBar, "titleBar");
       Object expandIcon = getFieldValue(titleBar, "expandIcon");
       Label expandIconLabel = (Label) expandIcon;
 
@@ -486,9 +486,9 @@ class FileChangeSummaryBarTest {
 
       // Test with 10 files
       Map<IFile, FileChangeProperty> tenFiles = createMockFilesMap(10, false);
-      fileChangeSummaryBar.buildSummaryBarFor(tenFiles);
+      workingSetBar.buildSummaryBarFor(tenFiles);
 
-      titleBar = getFieldValue(fileChangeSummaryBar, "titleBar");
+      titleBar = getFieldValue(workingSetBar, "titleBar");
       expandIcon = getFieldValue(titleBar, "expandIcon");
       expandIconLabel = (Label) expandIcon;
 
@@ -504,12 +504,12 @@ class FileChangeSummaryBarTest {
   @Test
   void testEmptyFilesMapDoesNotCreateChangedFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
-      fileChangeSummaryBar = new FileChangeSummaryBar(parent, SWT.NONE);
+      workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       Map<IFile, FileChangeProperty> emptyMap = new LinkedHashMap<>();
 
-      fileChangeSummaryBar.buildSummaryBarFor(emptyMap);
+      workingSetBar.buildSummaryBarFor(emptyMap);
 
-      Object changedFiles = getFieldValue(fileChangeSummaryBar, "changedFiles");
+      Object changedFiles = getFieldValue(workingSetBar, "changedFiles");
       // ChangedFiles should not be created or should be disposed
       assertTrue(changedFiles == null || ((Composite) changedFiles).isDisposed(),
           "ChangedFiles should not exist for empty map");

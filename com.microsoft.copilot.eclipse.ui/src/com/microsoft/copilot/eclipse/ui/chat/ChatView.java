@@ -351,7 +351,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.persistenceManager = this.chatServiceManager.getPersistenceManager();
     chatServiceManager.getUserPreferenceService().bindChatView(this);
     chatServiceManager.getAgentToolService().bindChatView(this);
-    chatServiceManager.getFileToolService().bindFileChangeSummaryBar(this);
+    chatServiceManager.getFileToolService().bindWorkingSetBar(this);
     chatServiceManager.getTodoListService().bindTodoListBar(this);
 
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
@@ -1090,7 +1090,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     this.chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
-    SwtUtils.invokeOnDisplayThreadAsync(this.chatServiceManager.getFileToolService()::disposeFileChangeSummaryBar);
+    SwtUtils.invokeOnDisplayThreadAsync(this.chatServiceManager.getFileToolService()::disposeWorkingSetBar);
 
     // Clear todo list UI (no need to notify CLS as we're just clearing the UI)
     TodoListService todoListService = chatServiceManager.getTodoListService();
@@ -1289,7 +1289,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         this.chatServiceManager.getAgentToolService().unbindChatView();
       }
       if (this.chatServiceManager.getFileToolService() != null) {
-        this.chatServiceManager.getFileToolService().unbindFileChangeSummaryBar();
+        this.chatServiceManager.getFileToolService().unbindWorkingSetBar();
       }
       if (this.chatServiceManager.getTodoListService() != null) {
         this.chatServiceManager.getTodoListService().unbindTodoListBar();
@@ -1392,14 +1392,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       actionBar.setVisible(false);
     }
 
-    // Hide FileChangeSummaryBar if it exists
-    FileChangeSummaryBar fileChangeSummaryBar = chatServiceManager.getFileToolService().getFileChangeSummaryBar();
-    if (fileChangeSummaryBar != null && !fileChangeSummaryBar.isDisposed()) {
-      Object ld = fileChangeSummaryBar.getLayoutData();
+    // Hide WorkingSetBar if it exists
+    WorkingSetBar workingSetBar = chatServiceManager.getFileToolService().getWorkingSetBar();
+    if (workingSetBar != null && !workingSetBar.isDisposed()) {
+      Object ld = workingSetBar.getLayoutData();
       if (ld instanceof GridData gd) {
         gd.exclude = true;
       }
-      fileChangeSummaryBar.setVisible(false);
+      workingSetBar.setVisible(false);
     }
 
     // Get conversations from persistence service
@@ -1448,14 +1448,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       actionBar.setVisible(true);
     }
 
-    // Show FileChangeSummaryBar if it exists
-    FileChangeSummaryBar fileChangeSummaryBar = chatServiceManager.getFileToolService().getFileChangeSummaryBar();
-    if (fileChangeSummaryBar != null && !fileChangeSummaryBar.isDisposed()) {
-      Object ld = fileChangeSummaryBar.getLayoutData();
+    // Show WorkingSetBar if it exists
+    WorkingSetBar workingSetBar = chatServiceManager.getFileToolService().getWorkingSetBar();
+    if (workingSetBar != null && !workingSetBar.isDisposed()) {
+      Object ld = workingSetBar.getLayoutData();
       if (ld instanceof GridData gd) {
         gd.exclude = false;
       }
-      fileChangeSummaryBar.setVisible(true);
+      workingSetBar.setVisible(true);
     }
 
     isChatHistoryVisible = false;
