@@ -5,7 +5,6 @@ import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
@@ -216,12 +215,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   }
 
   private Font createBoldFont(Label label) {
-    Display display = label.getDisplay();
-    FontData[] fontData = label.getFont().getFontData();
-    for (FontData data : fontData) {
-      data.setStyle(SWT.BOLD);
-    }
-    Font boldFont = new Font(display, fontData);
+    Font boldFont = UiUtils.getBoldFont(label.getDisplay(), label.getFont());
     label.addDisposeListener(event -> boldFont.dispose());
     return boldFont;
   }
@@ -229,24 +223,15 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   private void addWarningRow(Composite parent, String warningText) {
     Label warningLabel = new Label(parent, SWT.WRAP);
     warningLabel.setText(warningText);
-    setCssClass(warningLabel, POPUP_SECONDARY_TEXT_CLASS);
+    UiUtils.applyCssClass(warningLabel, POPUP_SECONDARY_TEXT_CLASS, stylingEngine);
     warningLabel.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
   }
 
   private Label createSecondaryTextLabel(Composite parent, String text) {
     Label label = new Label(parent, SWT.NONE);
     label.setText(text);
-    setCssClass(label, POPUP_SECONDARY_TEXT_CLASS);
+    UiUtils.applyCssClass(label, POPUP_SECONDARY_TEXT_CLASS, stylingEngine);
     return label;
-  }
-
-  private void setCssClass(Label control, String className) {
-    if (stylingEngine != null) {
-      stylingEngine.setClassname(control, className);
-      stylingEngine.style(control);
-    } else {
-      control.setData(CssConstants.CSS_CLASS_NAME_KEY, className);
-    }
   }
 
   private void addSeparator(Composite parent) {
