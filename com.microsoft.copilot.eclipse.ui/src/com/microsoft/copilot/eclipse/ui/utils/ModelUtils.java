@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
@@ -43,7 +41,13 @@ public class ModelUtils {
     if (byokModel.getModelCapabilities() != null) {
       CopilotModel.CopilotModelCapabilitiesSupports supports = new CopilotModel.CopilotModelCapabilitiesSupports(
           byokModel.getModelCapabilities().isVision());
-      copilotModel.setCapabilities(new CopilotModel.CopilotModelCapabilities(supports));
+      int maxInputTokens = byokModel.getModelCapabilities().getMaxInputTokens() != null
+          ? byokModel.getModelCapabilities().getMaxInputTokens() : -1;
+      int maxOutputTokens = byokModel.getModelCapabilities().getMaxOutputTokens() != null
+          ? byokModel.getModelCapabilities().getMaxOutputTokens() : -1;
+      CopilotModel.CopilotModelCapabilitiesLimits limits = new CopilotModel.CopilotModelCapabilitiesLimits(
+          maxInputTokens, maxOutputTokens, -1);
+      copilotModel.setCapabilities(new CopilotModel.CopilotModelCapabilities(supports, limits));
     }
     copilotModel.setBilling(null);
     copilotModel.setPreview(false);
@@ -85,21 +89,41 @@ public class ModelUtils {
   }
 
   /**
-   * Composes tooltip text for a model item in the model picker.
+   * Formats a token count into a compact human-readable string (e.g. 128K, 1M, 1.5M).
    *
-   * @param model the model to compose tooltip for
-   * @param suffix the suffix shown next to the model name in the picker
-   * @return the tooltip text
+   * @param tokens the token count
+   * @return the formatted string
    */
-  public static String getModelTooltipText(CopilotModel model, String suffix) {
-    if (model == null) {
-      return "";
+  public static String formatTokenCount(int tokens) {
+    if (tokens >= 1_000_000 && tokens % 1_000_000 == 0) {
+      return tokens / 1_000_000 + "M";
+    } else if (tokens >= 1_000_000) {
+      String formatted = String.format("%.1f", tokens / 1_000_000.0);
+      formatted = formatted.replaceAll("0+$", "").replaceAll("\\.$", "");
+      return formatted + "M";
+    } else if (tokens >= 1_000 && tokens % 1_000 == 0) {
+      return tokens / 1_000 + "K";
+    } else if (tokens >= 1_000) {
+      String formatted = String.format("%.1f", tokens / 1_000.0);
+      formatted = formatted.replaceAll("0+$", "").replaceAll("\\.$", "");
+      return formatted + "K";
     }
-    StringBuilder sb = new StringBuilder();
-    sb.append(model.getModelName());
-    if (StringUtils.isNotBlank(suffix)) {
-      sb.append("\n").append(String.format(Messages.model_tooltip_quota, suffix));
+    return String.valueOf(tokens);
+  }
+
+  /**
+   * Formats the numeric part of a per-million-token price.
+   *
+   * @param price the price in dollars
+   * @return the formatted price value string (e.g. "$1.25", "$10.00", "$0.0013")
+   */
+  public static String formatPriceValue(double price) {
+    if (price == 0.0) {
+      return "$0";
+    } else if (price < 0.01) {
+      return String.format("$%.4f", price).replaceAll("0+$", "");
+    } else {
+      return String.format("$%.2f", price);
     }
-    return sb.toString();
   }
 }

@@ -470,6 +470,8 @@ class DropdownPopup {
     hoverShell = new Shell(shell, SWT.NO_TRIM | SWT.ON_TOP);
     hoverShell.setData(CssConstants.CSS_ID_KEY, "dropdown-popup");
     final Display display = hoverShell.getDisplay();
+    Color popupBg = CssConstants.getPopupBgColor(display);
+    hoverShell.setBackground(popupBg);
     styleControl(hoverShell);
     GridLayout layout = new GridLayout(1, false);
     layout.marginWidth = ITEM_H_PADDING;
@@ -478,11 +480,14 @@ class DropdownPopup {
 
     Composite hoverContent = new Composite(hoverShell, SWT.NONE);
     hoverContent.setData(CssConstants.CSS_ID_KEY, "dropdown-popup");
+    hoverContent.setBackground(popupBg);
     styleControl(hoverContent);
     hoverContent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     GridLayout contentLayout = new GridLayout(1, false);
     contentLayout.marginWidth = 0;
     contentLayout.marginHeight = 0;
+    contentLayout.marginTop = ITEM_V_PADDING;
+    contentLayout.marginBottom = ITEM_V_PADDING;
     hoverContent.setLayout(contentLayout);
 
     item.getHoverProvider().configureHover(hoverContent, item);

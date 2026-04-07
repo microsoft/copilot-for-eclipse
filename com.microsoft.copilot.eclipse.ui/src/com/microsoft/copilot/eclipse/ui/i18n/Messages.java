@@ -180,10 +180,12 @@ public final class Messages extends NLS {
   public static String chat_historyView_deleteIcon_tooltip;
   public static String model_billing_multiplier_suffix;
   public static String model_billing_multiplier_variable;
-  public static String model_tooltip_quota;
-  public static String model_hover_family;
-  public static String model_hover_cost;
-  public static String model_hover_cost_premium;
+  public static String model_hover_contextSize;
+  public static String model_hover_contextWindow;
+  public static String model_hover_costPerMillionTokens;
+  public static String model_hover_inputPrice;
+  public static String model_hover_outputPrice;
+  public static String model_hover_cachedPrice;
   public static String chat_actionBar_modePicker_Tooltip;
   public static String chat_actionBar_modelPicker_Tooltip;
 

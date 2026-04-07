@@ -53,4 +53,23 @@ class ModelUtilsTests {
     assertTrue(result.getScopes().contains(CopilotScope.CHAT_PANEL));
     assertTrue(result.getScopes().contains(CopilotScope.AGENT_PANEL));
   }
+
+  @Test
+  void testConvertByokModelToCopilotModel_preservesTokenLimits() {
+    ByokModel byokModel = new ByokModel();
+    byokModel.setModelId("gpt-4.1");
+
+    ByokModelCapabilities capabilities = new ByokModelCapabilities();
+    capabilities.setMaxInputTokens(128000);
+    capabilities.setMaxOutputTokens(16000);
+    byokModel.setModelCapabilities(capabilities);
+
+    CopilotModel result = ModelUtils.convertByokModelToCopilotModel(byokModel);
+
+    assertNotNull(result.getCapabilities());
+    assertNotNull(result.getCapabilities().limits());
+    assertEquals(-1, result.getCapabilities().limits().maxContextWindowTokens());
+    assertEquals(128000, result.getCapabilities().limits().maxInputTokens());
+    assertEquals(16000, result.getCapabilities().limits().maxOutputTokens());
+  }
 }
