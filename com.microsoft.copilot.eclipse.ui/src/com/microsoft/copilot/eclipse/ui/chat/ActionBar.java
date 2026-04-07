@@ -68,6 +68,7 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.chat.contextwindow.ContextSizeDonut;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
@@ -112,6 +113,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Button autoBreakpointButton;
   private Image autoBreakpointImage;
   private Image autoBreakpointDisabledImage;
+  private ContextSizeDonut contextSizeDonut;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
@@ -278,7 +280,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
     Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
-    GridLayout glControlBar = new GridLayout(4, false);
+    GridLayout glControlBar = new GridLayout(5, false);
     glControlBar.marginWidth = 0;
     glControlBar.marginLeft = 0;
     cmpControlBar.setLayout(glControlBar);
@@ -287,6 +289,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     setUpModelPicker(cmpControlBar);
     setUpAutoBreakpointButtonInControlBar(cmpControlBar);
     setUpMcpToolButtonInControlBar(cmpControlBar);
+    setUpContextSizeDonutInControlBar(cmpControlBar);
 
     // Create a composite for the bottom-right side buttons
     GridLayout buttonsLayout = new GridLayout(2, false);
@@ -541,6 +544,10 @@ public class ActionBar extends Composite implements NewConversationListener {
     updateMcpToolButtonVisibility();
   }
 
+  private void setUpContextSizeDonutInControlBar(Composite parent) {
+    this.contextSizeDonut = new ContextSizeDonut(parent, chatServiceManager.getContextWindowService());
+  }
+
   private void setUpAutoBreakpointButtonInControlBar(Composite parent) {
     if (autoBreakpointImage == null || autoBreakpointImage.isDisposed()) {
       autoBreakpointImage = UiUtils.buildImageFromPngPath("/icons/chat/breakpoint_auto.png");
@@ -701,7 +708,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     } else {
       updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
     }
-    this.chatServiceManager.getFileToolService().setFileChangeSummaryBarButtonStatus(true);
+    this.chatServiceManager.getFileToolService().setWorkingSetBarButtonStatus(true);
   }
 
   /**

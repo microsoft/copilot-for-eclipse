@@ -30,7 +30,7 @@ import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 /**
  * Tool for editing files.
  */
-public class EditFileTool extends FileToolBase implements FileChangeSummaryHandler {
+public class EditFileTool extends FileToolBase implements WorkingSetHandler {
   public static final String TOOL_NAME = "insert_edit_into_file";
 
   /**
@@ -138,8 +138,7 @@ public class EditFileTool extends FileToolBase implements FileChangeSummaryHandl
               "Failed to apply changes to the file: " + e.getMessage(), ToolInvocationStatus.error) });
           return resultFuture;
         }
-        updateOrCreateCompareStringWithFile(fileContentCache.get(file), file);
-
+        refreshCompareEditorIfOpen(fileContentCache.get(file), file);
         // Must return the updated content as a result to the CLS.
         resultFuture.complete(
             new LanguageModelToolResult[] { new LanguageModelToolResult(code, ToolInvocationStatus.success) });

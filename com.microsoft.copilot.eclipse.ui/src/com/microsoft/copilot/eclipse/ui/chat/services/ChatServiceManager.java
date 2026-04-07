@@ -5,6 +5,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
+import com.microsoft.copilot.eclipse.ui.chat.contextwindow.ContextWindowService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 
 /**
@@ -30,6 +31,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private ConversationPersistenceManager persistenceManager;
   private TodoListService todoListService;
   private ChatFontService chatFontService;
+  private ContextWindowService contextWindowService;
 
   /**
    * Constructor for the ChatServiceManager.
@@ -49,6 +51,7 @@ public class ChatServiceManager implements IChatServiceManager {
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
     chatFontService = new ChatFontService();
+    contextWindowService = new ContextWindowService();
   }
 
   /**
@@ -177,6 +180,15 @@ public class ChatServiceManager implements IChatServiceManager {
   }
 
   /**
+   * Get the context window service.
+   *
+   * @return the context window service
+   */
+  public ContextWindowService getContextWindowService() {
+    return contextWindowService;
+  }
+
+  /**
    * Dispose of the chat services.
    */
   public void dispose() {
@@ -187,6 +199,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpConfigService.dispose();
+    this.contextWindowService.dispose();
     if (this.byokService != null) {
       this.byokService.dispose();
     }

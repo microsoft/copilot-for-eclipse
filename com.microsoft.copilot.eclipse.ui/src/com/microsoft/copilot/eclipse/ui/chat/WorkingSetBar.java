@@ -34,27 +34,27 @@ import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * FileChangeSummaryBar is a composite that displays the file change summary bar in the Copilot chat view. It is used to
+ * WorkingSetBar is a composite that displays the working set bar in the Copilot chat view. It is used to
  * show the summary of file changes in the Copilot chat view.
  */
-public class FileChangeSummaryBar extends Composite {
+public class WorkingSetBar extends Composite {
   private FileToolService fileToolService;
   private ChatFontService chatFontService;
   private IStylingEngine stylingEngine;
 
-  private FileChangeSummaryTitleBar titleBar;
+  private WorkingSetTitleBar titleBar;
   private ChangedFiles changedFiles;
   private Composite parent;
   private boolean enableButtons = false;
   private boolean isExpanded = true;
 
   /**
-   * Constructs a new FileChangeSummaryBar with the given parent and style.
+   * Constructs a new WorkingSetBar with the given parent and style.
    *
    * @param parent the parent composite
    * @param style the style of the composite
    */
-  public FileChangeSummaryBar(Composite parent, int style) {
+  public WorkingSetBar(Composite parent, int style) {
     super(parent, style | SWT.BORDER);
     this.parent = parent;
     this.fileToolService = CopilotUi.getPlugin().getChatServiceManager().getFileToolService();
@@ -63,7 +63,7 @@ public class FileChangeSummaryBar extends Composite {
   }
 
   /**
-   * Builds the file change summary bar for the given files.
+   * Builds the working set bar for the given files.
    *
    * @param filesMap a map of files and their change status
    */
@@ -87,7 +87,7 @@ public class FileChangeSummaryBar extends Composite {
     if (titleBar != null) {
       titleBar.dispose();
     }
-    titleBar = new FileChangeSummaryTitleBar(this, SWT.NONE, filesMap);
+    titleBar = new WorkingSetTitleBar(this, SWT.NONE, filesMap);
     titleBar.setLayout(new GridLayout(4, false));
     titleBar.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
@@ -138,11 +138,11 @@ public class FileChangeSummaryBar extends Composite {
   }
 
   /**
-   * Disposes of the FileChangeSummaryBar and its resources.
+   * Disposes of the WorkingSetBar and its resources.
    */
   @Override
   public void dispose() {
-    // Notify the parent node to release the FileChangeSummaryBar related resources
+    // Notify the parent node to release the WorkingSetBar related resources
     if (titleBar != null) {
       titleBar.dispose();
       titleBar = null;
@@ -155,7 +155,7 @@ public class FileChangeSummaryBar extends Composite {
     this.parent.layout(true, true);
   }
 
-  class FileChangeSummaryTitleBar extends Composite {
+  class WorkingSetTitleBar extends Composite {
     private Label expandIcon;
     private Image downArrowImage;
     private Image rightArrowImage;
@@ -164,7 +164,7 @@ public class FileChangeSummaryBar extends Composite {
     private Button undoButton;
     private String changeFilesTitle;
 
-    public FileChangeSummaryTitleBar(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
+    public WorkingSetTitleBar(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
       super(parent, style);
       GridLayout gl = new GridLayout(3, false);
       gl.marginWidth = 0;

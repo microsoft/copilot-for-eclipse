@@ -156,6 +156,30 @@ public abstract class FileToolBase extends BaseTool {
   }
 
   /**
+   * Refreshes the compare editor for the given file only if it is already open.
+   * Does not open a new editor or steal focus.
+   *
+   * @param fileContent The original file content to compare against.
+   * @param file The file whose compare editor should be refreshed.
+   */
+  protected void refreshCompareEditorIfOpen(String fileContent, IFile file) {
+    if (fileContent == null) {
+      return;
+    }
+    CompareEditorInput input = compareEditorInputMap.get(file);
+    if (input != null) {
+      CompareEditorInput newInput = createCompareEditorInput(fileContent, file);
+      compareEditorInputMap.put(file, newInput);
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        IEditorPart editor = getCompareEditor(input);
+        if (editor != null) {
+          CompareUI.reuseCompareEditor(newInput, (IReusableEditor) editor);
+        }
+      });
+    }
+  }
+
+  /**
    * Brings the compare editor to the top of the workbench.
    *
    * @param input The CompareEditorInput to be brought to the top.

@@ -155,4 +155,34 @@ public class CssConstants {
     return new Color(display, 53, 132, 241);
   }
 
+  /**
+   * Returns the color for the filled portion of the context size donut.
+   */
+  public static Color getDonutFilledColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 223, 225, 229); // #DFE1E5
+    }
+    return new Color(display, 108, 112, 126); // #6C707E
+  }
+
+  /**
+   * Returns the warning color for the filled portion when utilisation is high (>= 90%).
+   */
+  public static Color getDonutWarningColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 242, 197, 92); // #F2C55C
+    }
+    return new Color(display, 255, 175, 15); // #FFAF0F
+  }
+
+  /**
+   * Returns the color for the track portion of the context size donut.
+   */
+  public static Color getDonutTrackColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 111, 115, 122); // #6F737A
+    }
+    return new Color(display, 223, 225, 229); // #DFE1E5
+  }
+
 }
