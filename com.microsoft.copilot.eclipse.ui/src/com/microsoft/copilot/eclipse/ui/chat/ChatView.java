@@ -53,6 +53,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStep;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepTitles;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ContextSizeInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
@@ -784,6 +785,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         });
         break;
       case report:
+        // Update context size donut if data is available
+        ContextSizeInfo contextSize = value.getContextSize();
+        if (contextSize != null) {
+          this.chatServiceManager.getContextWindowService().updateContextSize(contextSize);
+        }
+
         if (value.getSteps() != null) {
           for (ChatStep step : value.getSteps()) {
             if (step.getStatus().equals(ChatStepStatus.CANCELLED)

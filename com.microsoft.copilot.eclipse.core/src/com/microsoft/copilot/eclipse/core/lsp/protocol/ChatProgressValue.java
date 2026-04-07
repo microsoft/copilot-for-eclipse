@@ -27,6 +27,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
   private ConversationError error;
   private List<AgentRound> editAgentRounds;
   private String suggestedTitle;
+  private ContextSizeInfo contextSize;
 
   public WorkDoneProgressKind getKind() {
     return kind;
@@ -144,6 +145,14 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     this.suggestedTitle = suggestedTitle;
   }
 
+  public ContextSizeInfo getContextSize() {
+    return contextSize;
+  }
+
+  public void setContextSize(ContextSizeInfo contextSize) {
+    this.contextSize = contextSize;
+  }
+
   public String getCancellationReason() {
     return cancellationReason;
   }
@@ -164,8 +173,8 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     result = prime * result + Arrays.hashCode(notifications);
     result = prime * result + Arrays.hashCode(references);
     result = prime * result + Arrays.hashCode(steps);
-    result = prime * result + Objects.hash(editAgentRounds, cancellationReason, conversationId, error, hideText, kind,
-        reply, title, turnId, parentTurnId, suggestedTitle);
+    result = prime * result + Objects.hash(editAgentRounds, cancellationReason, contextSize, conversationId, error,
+        hideText, kind, reply, title, turnId, parentTurnId, suggestedTitle);
     return result;
   }
 
@@ -183,6 +192,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     ChatProgressValue other = (ChatProgressValue) obj;
     return Objects.equals(editAgentRounds, other.editAgentRounds) && Arrays.equals(annotations, other.annotations)
         && Objects.equals(cancellationReason, other.cancellationReason)
+        && Objects.equals(contextSize, other.contextSize)
         && Objects.equals(conversationId, other.conversationId) && Objects.equals(error, other.error)
         && hideText == other.hideText && kind == other.kind && Arrays.equals(notifications, other.notifications)
         && Arrays.equals(references, other.references) && Objects.equals(reply, other.reply)
@@ -209,6 +219,7 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     builder.append("error", error);
     builder.append("editAgentRounds", editAgentRounds);
     builder.append("suggestedTitle", suggestedTitle);
+    builder.append("contextSize", contextSize);
     return builder.toString();
   }
 }

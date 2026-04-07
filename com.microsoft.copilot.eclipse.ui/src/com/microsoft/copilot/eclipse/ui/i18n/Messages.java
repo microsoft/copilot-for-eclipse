@@ -186,6 +186,15 @@ public final class Messages extends NLS {
   public static String model_hover_cost_premium;
   public static String chat_actionBar_modePicker_Tooltip;
   public static String chat_actionBar_modelPicker_Tooltip;
+  public static String context_window_title;
+  public static String context_window_tokens;
+  public static String context_window_system;
+  public static String context_window_system_instructions;
+  public static String context_window_tool_definitions;
+  public static String context_window_user_context;
+  public static String context_window_messages;
+  public static String context_window_files;
+  public static String context_window_tool_results;
 
   static {
     // initialize resource bundle
