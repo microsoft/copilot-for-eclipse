@@ -185,4 +185,32 @@ public class CssConstants {
     return new Color(display, 223, 225, 229); // #DFE1E5
   }
 
+  /**
+   * Returns the active (blue) fill color for the usage bar.
+   */
+  public static Color getUsageBarActiveColor(Display display) {
+    return new Color(display, 53, 116, 240);
+  }
+
+  /**
+   * Returns the approaching (yellow) fill color for the usage bar.
+   */
+  public static Color getUsageBarApproachingColor(Display display) {
+    return new Color(display, 255, 184, 36);
+  }
+
+  /**
+   * Returns the exhausted (red) fill color for the usage bar.
+   */
+  public static Color getUsageBarExhaustedColor(Display display) {
+    return new Color(display, 224, 81, 81);
+  }
+
+  /**
+   * Returns the remaining (gray) track color for the usage bar.
+   */
+  public static Color getUsageBarRemainingColor(Display display) {
+    return new Color(display, 223, 225, 229);
+  }
+
 }
