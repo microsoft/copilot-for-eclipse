@@ -20,6 +20,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ContextSizeInfo;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.ContextWindowBar;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -38,8 +39,6 @@ class ContextWindowPopup {
   private static final int BORDER_ARC = 8;
   private static final int H_MARGIN = 8;
   private static final int V_MARGIN = 8;
-  private static final int PROGRESS_BAR_HEIGHT = 4;
-  private static final int PROGRESS_BAR_ARC = 4;
   private static final int POLL_INTERVAL_MS = 100;
 
   private Shell shell;
@@ -51,7 +50,7 @@ class ContextWindowPopup {
   // Updatable labels
   private Label tokenUsageLabel;
   private Label percentageLabel;
-  private Composite progressBar;
+  private ContextWindowBar progressBar;
   private Label systemInstructionsValue;
   private Label toolDefinitionsValue;
   private Label messagesValue;
@@ -77,7 +76,6 @@ class ContextWindowPopup {
 
     Shell parentShell = anchor.getShell();
     shell = new Shell(parentShell, SWT.NO_TRIM | SWT.ON_TOP);
-    applyCssId(shell, DROPDOWN_POPUP_CSS_ID);
 
     GridLayout shellLayout = new GridLayout(1, false);
     shellLayout.marginWidth = H_MARGIN;
@@ -86,6 +84,7 @@ class ContextWindowPopup {
     shell.setLayout(shellLayout);
 
     buildContent(shell, info);
+    applyCssId(shell, DROPDOWN_POPUP_CSS_ID);
     addBorder(shell);
 
     shell.pack();
@@ -187,7 +186,9 @@ class ContextWindowPopup {
     percentageLabel = createSecondaryTextLabel(tokenRow, formatPercentage(info.utilizationPercentage()));
     percentageLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, false, false));
 
-    progressBar = createProgressBar(parent);
+    progressBar = new ContextWindowBar(parent, SWT.NONE);
+    progressBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    progressBar.setPercentage((int) Math.round(info.utilizationPercentage()));
 
     addSeparator(parent, SECTION_SPACING);
 
@@ -221,7 +222,7 @@ class ContextWindowPopup {
     setLabelText(attachedFilesValue, percentageOf(info.attachedFilesTokens(), info.totalTokenLimit()));
     setLabelText(toolResultsValue, percentageOf(info.toolResultsTokens(), info.totalTokenLimit()));
     if (progressBar != null && !progressBar.isDisposed()) {
-      progressBar.redraw();
+      progressBar.setPercentage((int) Math.round(info.utilizationPercentage()));
     }
     shell.requestLayout();
   }
@@ -274,33 +275,6 @@ class ContextWindowPopup {
     Label valueLabel = createSecondaryTextLabel(row, value);
     valueLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, false, false));
     return valueLabel;
-  }
-
-  private Composite createProgressBar(Composite parent) {
-    Composite bar = new Composite(parent, SWT.NONE);
-    applyCssId(bar, DROPDOWN_POPUP_CSS_ID);
-    GridData pbGd = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    pbGd.heightHint = PROGRESS_BAR_HEIGHT;
-    bar.setLayoutData(pbGd);
-    Display display = parent.getDisplay();
-    bar.addPaintListener(e -> {
-      ContextSizeInfo state = contextWindowService.getState();
-      if (state == null) {
-        return;
-      }
-      Rectangle r = bar.getClientArea();
-      Color restColor = CssConstants.getDonutTrackColor(display);
-      e.gc.setAntialias(SWT.ON);
-      e.gc.setBackground(restColor);
-      e.gc.fillRoundRectangle(0, 0, r.width, r.height, PROGRESS_BAR_ARC, PROGRESS_BAR_ARC);
-      int fill = (int) (r.width * Math.min(state.utilizationPercentage(), 100) / 100.0);
-      if (fill > 0) {
-        Color usedColor = CssConstants.getDonutFilledColor(display);
-        e.gc.setBackground(usedColor);
-        e.gc.fillRoundRectangle(0, 0, fill, r.height, PROGRESS_BAR_ARC, PROGRESS_BAR_ARC);
-      }
-    });
-    return bar;
   }
 
   private Label createSecondaryTextLabel(Composite parent, String text) {
