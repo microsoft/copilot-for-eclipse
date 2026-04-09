@@ -7,12 +7,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,10 +27,12 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningNotification;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +48,9 @@ class CopilotLanguageClientTests {
 
   @Mock
   private IReferencedFileService fileService;
+
+  @Mock
+  private IEventBroker eventBroker;
 
   @BeforeEach
   void setUp() {
@@ -126,6 +133,26 @@ class CopilotLanguageClientTests {
       verify(mockFeatureFlags).setAgentModeEnabled(true);
       verify(mockFeatureFlags).setMcpEnabled(true);
       verify(mockFeatureFlags).setByokEnabled(true);
+    }
+  }
+
+  @Test
+  void testOnQuotaWarning_PostsNotificationToEventBroker() {
+    QuotaWarningNotification notification = new QuotaWarningNotification("Approaching quota", 90.0);
+    setEventBroker(eventBroker);
+
+    client.onQuotaWarning(notification);
+
+    verify(eventBroker).post(CopilotEventConstants.TOPIC_QUOTA_WARNING, notification);
+  }
+
+  private void setEventBroker(IEventBroker broker) {
+    try {
+      Field field = CopilotLanguageClient.class.getDeclaredField("eventBroker");
+      field.setAccessible(true);
+      field.set(client, broker);
+    } catch (ReflectiveOperationException e) {
+      throw new AssertionError("Failed to inject event broker", e);
     }
   }
 }

@@ -220,8 +220,9 @@ public class ChatContentViewer extends ScrolledComposite {
           String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
               : Messages.chat_noQuotaView_fallbackModel;
 
-          if (userPlan == CopilotPlan.individual || userPlan == CopilotPlan.individual_pro) {
-            // Pro and Pro+ message
+          if (userPlan == CopilotPlan.individual || userPlan == CopilotPlan.individual_pro
+              || userPlan == CopilotPlan.individual_max) {
+            // Paid individual plan message
             errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
           } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
             // CE and CB message

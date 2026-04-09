@@ -11,6 +11,8 @@ public class CheckQuotaResult {
   private Quota chat;
   private Quota completions;
   private Quota premiumInteractions;
+  private IntervalQuota immediateUsageInterval;
+  private IntervalQuota extendedUsageInterval;
   private String resetDate;
   private CopilotPlan copilotPlan;
 
@@ -38,6 +40,28 @@ public class CheckQuotaResult {
     this.premiumInteractions = premiumInteractions;
   }
 
+  /**
+   * Gets the immediate usage interval quota (for individual plans).
+   */
+  public IntervalQuota getImmediateUsageInterval() {
+    return immediateUsageInterval;
+  }
+
+  public void setImmediateUsageInterval(IntervalQuota immediateUsageInterval) {
+    this.immediateUsageInterval = immediateUsageInterval;
+  }
+
+  /**
+   * Gets the extended usage interval quota (for individual plans).
+   */
+  public IntervalQuota getExtendedUsageInterval() {
+    return extendedUsageInterval;
+  }
+
+  public void setExtendedUsageInterval(IntervalQuota extendedUsageInterval) {
+    this.extendedUsageInterval = extendedUsageInterval;
+  }
+
   public String getResetDate() {
     return resetDate;
   }
@@ -56,7 +80,8 @@ public class CheckQuotaResult {
 
   @Override
   public int hashCode() {
-    return Objects.hash(chat, completions, copilotPlan, premiumInteractions, resetDate);
+    return Objects.hash(chat, completions, copilotPlan, extendedUsageInterval,
+        immediateUsageInterval, premiumInteractions, resetDate);
   }
 
   @Override
@@ -72,7 +97,10 @@ public class CheckQuotaResult {
     }
     CheckQuotaResult other = (CheckQuotaResult) obj;
     return Objects.equals(chat, other.chat) && Objects.equals(completions, other.completions)
-        && copilotPlan == other.copilotPlan && Objects.equals(premiumInteractions, other.premiumInteractions)
+        && copilotPlan == other.copilotPlan
+        && Objects.equals(extendedUsageInterval, other.extendedUsageInterval)
+        && Objects.equals(immediateUsageInterval, other.immediateUsageInterval)
+        && Objects.equals(premiumInteractions, other.premiumInteractions)
         && Objects.equals(resetDate, other.resetDate);
   }
 
@@ -82,6 +110,8 @@ public class CheckQuotaResult {
     builder.append("chat", chat);
     builder.append("completions", completions);
     builder.append("premiumInteractions", premiumInteractions);
+    builder.append("immediateUsageInterval", immediateUsageInterval);
+    builder.append("extendedUsageInterval", extendedUsageInterval);
     builder.append("resetDate", resetDate);
     builder.append("copilotPlan", copilotPlan);
     return builder.toString();

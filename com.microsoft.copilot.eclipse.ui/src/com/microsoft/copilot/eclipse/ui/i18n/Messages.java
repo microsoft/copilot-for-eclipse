@@ -188,6 +188,9 @@ public final class Messages extends NLS {
   public static String model_hover_cachedPrice;
   public static String chat_actionBar_modePicker_Tooltip;
   public static String chat_actionBar_modelPicker_Tooltip;
+  public static String quotaWarning_title;
+  public static String quotaWarning_closeButton;
+  public static String quotaWarning_increaseBudgetButton;
   public static String context_window_title;
   public static String context_window_tokens;
   public static String context_window_system;

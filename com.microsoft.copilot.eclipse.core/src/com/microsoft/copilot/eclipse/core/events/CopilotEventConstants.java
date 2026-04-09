@@ -28,6 +28,11 @@ public class CopilotEventConstants {
   private static final String TOPIC_MCP = TOPIC_BASE + "MCP/";
 
   /**
+   * Topic for quota events.
+   */
+  private static final String TOPIC_QUOTA = TOPIC_BASE + "QUOTA/";
+
+  /**
    * Topic for Next Edit Suggestion (NES) events.
    */
   private static final String TOPIC_NES = TOPIC_BASE + "NES/";
@@ -152,4 +157,9 @@ public class CopilotEventConstants {
    * Event when NES suggestion is rejected.
    */
   public static final String TOPIC_NES_REJECT_SUGGESTION = TOPIC_NES + "REJECT_SUGGESTION";
+
+  /**
+   * Event when a quota warning notification is received from the language server.
+   */
+  public static final String TOPIC_QUOTA_WARNING = TOPIC_QUOTA + "WARNING";
 }

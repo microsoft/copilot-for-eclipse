@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListener;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
+import com.microsoft.copilot.eclipse.ui.notifications.QuotaNotificationManager;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -46,6 +47,7 @@ public class CopilotUi extends AbstractUIPlugin {
   private EditorsManager editorsManager;
   private ChatServiceManager chatServiceManager;
   private LanguageServerSettingManager settingMgr;
+  private QuotaNotificationManager quotaNotificationManager;
 
   public static final String INIT_JOB_FAMILY = "com.microsoft.copilot.eclipse.ui.initJob";
 
@@ -111,6 +113,7 @@ public class CopilotUi extends AbstractUIPlugin {
         // some server to client request that needs to be handled with UI logics.
         CopilotCore.getPlugin().setChatServiceManager(chatServiceManager);
         CopilotUi.this.copilotStatusManager = new CopilotStatusManager();
+        CopilotUi.this.quotaNotificationManager = new QuotaNotificationManager();
         settingMgr.syncMcpRegistrationConfiguration();
 
         registerPartListener();
@@ -222,6 +225,10 @@ public class CopilotUi extends AbstractUIPlugin {
 
     if (this.chatServiceManager != null) {
       this.chatServiceManager.dispose();
+    }
+
+    if (this.quotaNotificationManager != null) {
+      this.quotaNotificationManager.dispose();
     }
   }
 
