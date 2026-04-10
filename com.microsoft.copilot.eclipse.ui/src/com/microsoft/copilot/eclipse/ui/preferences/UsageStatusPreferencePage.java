@@ -93,7 +93,6 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
   @Override
   public void init(IWorkbench workbench) {
     setPreferenceStore(CopilotUi.getPlugin().getPreferenceStore());
-    scheduleQuotaLoad();
   }
 
   @Override
@@ -104,6 +103,8 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     mainLayout.marginHeight = 0;
     mainComposite.setLayout(mainLayout);
     mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+    scheduleQuotaLoad();
 
     return mainComposite;
   }
