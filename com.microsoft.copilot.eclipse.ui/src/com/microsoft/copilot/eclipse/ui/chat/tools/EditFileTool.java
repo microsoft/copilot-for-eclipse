@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
@@ -212,12 +213,15 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
 
   @Override
   public void onViewDiff(IFile file) {
-    // Check if the file is already open in a compare editor and bring it to the top if is exists
-    if (compareEditorInputMap.containsKey(file) && bringCompareEditorToTop(compareEditorInputMap.get(file))) {
-      return;
+    CompareEditorInput input = compareEditorInputMap.get(file);
+    if (input != null) {
+      if (isCompareEditorOpen(input)) {
+        bringCompareEditorToTop(input);
+        return;
+      }
+      // Compare editor was closed by the user, remove stale entry and recreate
+      compareEditorInputMap.remove(file);
     }
-    // If the compare editor is created but closed, remove it from the map and create a new one
-    compareEditorInputMap.remove(file);
     compareStringWithFile(fileContentCache.get(file), file);
   }
 
