@@ -151,6 +151,35 @@ public class Messages extends NLS {
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 
+  // Usage Status
+  public static String usage_status_account;
+  public static String usage_status_account_label;
+  public static String usage_status_plan_prefix;
+  public static String usage_status_plan_free;
+  public static String usage_status_plan_pro;
+  public static String usage_status_plan_pro_plus;
+  public static String usage_status_plan_business;
+  public static String usage_status_plan_enterprise;
+  public static String usage_status_plan_unknown;
+  public static String usage_status_upgrade_plan;
+  public static String usage_status_configure_overage;
+  public static String usage_status_copilot_usage;
+  public static String usage_status_session_limit;
+  public static String usage_status_session_limit_description;
+  public static String usage_status_weekly_limit;
+  public static String usage_status_weekly_limit_description;
+  public static String usage_status_monthly_limit;
+  public static String usage_status_not_signed_in;
+  public static String usage_status_no_monthly_limit;
+  public static String usage_status_resets_in;
+  public static String usage_status_resets_on_at;
+  public static String usage_status_alert_threshold;
+  public static String usage_status_duration_hours_mins;
+  public static String usage_status_duration_hour_mins;
+  public static String usage_status_duration_hours;
+  public static String usage_status_duration_hour;
+  public static String usage_status_duration_mins;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

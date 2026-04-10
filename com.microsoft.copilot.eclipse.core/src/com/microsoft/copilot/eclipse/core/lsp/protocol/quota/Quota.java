@@ -2,30 +2,23 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.quota;
 
 import java.util.Objects;
 
+import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
- * Completions quota information.
+ * Quota information for Copilot usage (completions, chat, premium interactions, etc.).
  */
 public class Quota {
   private double percentRemaining;
   private boolean unlimited;
   private boolean overagePermitted;
-  private Integer entitlement;
-  private Integer quotaRemaining;
-  private String timeStamp;
+  private int entitlement;
+  private int quotaRemaining;
+  @SerializedName("timeStamp")
+  private String timestamp;
 
   /**
-   * Creates a new CompletionsQuota quota information with default values.
-   */
-  public Quota() {
-    this.percentRemaining = 0.0;
-    this.unlimited = false;
-    this.overagePermitted = false;
-  }
-
-  /**
-   * Gets the percentage of the quota remaining within the range of 0.0 to 100.0.
+   * Gets the percentage of the quota remaining, clamped to [0.0, 100.0].
    */
   public double getPercentRemaining() {
     if (percentRemaining < 0.0) {
@@ -56,42 +49,33 @@ public class Quota {
     this.overagePermitted = overagePermitted;
   }
 
-  /**
-   * Gets the total entitlement (quota limit).
-   */
-  public Integer getEntitlement() {
+  public int getEntitlement() {
     return entitlement;
   }
 
-  public void setEntitlement(Integer entitlement) {
+  public void setEntitlement(int entitlement) {
     this.entitlement = entitlement;
   }
 
-  /**
-   * Gets the remaining quota count.
-   */
-  public Integer getQuotaRemaining() {
+  public int getQuotaRemaining() {
     return quotaRemaining;
   }
 
-  public void setQuotaRemaining(Integer quotaRemaining) {
+  public void setQuotaRemaining(int quotaRemaining) {
     this.quotaRemaining = quotaRemaining;
   }
 
-  /**
-   * Gets the timestamp of the quota snapshot.
-   */
-  public String getTimeStamp() {
-    return timeStamp;
+  public String getTimestamp() {
+    return timestamp;
   }
 
-  public void setTimeStamp(String timeStamp) {
-    this.timeStamp = timeStamp;
+  public void setTimestamp(String timestamp) {
+    this.timestamp = timestamp;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(entitlement, overagePermitted, percentRemaining, quotaRemaining, timeStamp, unlimited);
+    return Objects.hash(entitlement, overagePermitted, percentRemaining, quotaRemaining, timestamp, unlimited);
   }
 
   @Override
@@ -99,17 +83,14 @@ public class Quota {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     Quota other = (Quota) obj;
-    return Objects.equals(entitlement, other.entitlement) && overagePermitted == other.overagePermitted
-        && Double.doubleToLongBits(percentRemaining) == Double.doubleToLongBits(other.percentRemaining)
-        && Objects.equals(quotaRemaining, other.quotaRemaining) && Objects.equals(timeStamp, other.timeStamp)
-        && unlimited == other.unlimited;
+    return Double.doubleToLongBits(percentRemaining) == Double.doubleToLongBits(other.percentRemaining)
+        && unlimited == other.unlimited && overagePermitted == other.overagePermitted
+        && entitlement == other.entitlement && quotaRemaining == other.quotaRemaining
+        && Objects.equals(timestamp, other.timestamp);
   }
 
   @Override
@@ -120,7 +101,7 @@ public class Quota {
     builder.append("overagePermitted", overagePermitted);
     builder.append("entitlement", entitlement);
     builder.append("quotaRemaining", quotaRemaining);
-    builder.append("timeStamp", timeStamp);
+    builder.append("timestamp", timestamp);
     return builder.toString();
   }
 }

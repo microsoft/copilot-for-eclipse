@@ -8,6 +8,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferenceP
 import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
+import com.microsoft.copilot.eclipse.ui.preferences.UsageStatusPreferencePage;
 
 /**
  * Utility class for managing user preferences in the Eclipse Copilot plugin.
@@ -21,7 +22,7 @@ public class PreferencesUtils {
   public static String[] getAllPreferenceIds() {
     return new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
         CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-        McpPreferencePage.ID, ByokPreferencePage.ID };
+        McpPreferencePage.ID, ByokPreferencePage.ID, UsageStatusPreferencePage.ID };
   }
 
 }

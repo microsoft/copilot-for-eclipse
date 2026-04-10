@@ -18,6 +18,7 @@ public class Constants {
 
   public static final String PLUGIN_ID = "com.microsoft.copilot.eclipse";
   public static final String AUTO_SHOW_COMPLETION = "enableAutoCompletions";
+  public static final String USAGE_ALERT_THRESHOLD = "usageAlertThreshold";
   public static final String ENABLE_NEXT_EDIT_SUGGESTION = "enableNextEditSuggestion";
   public static final String ENABLE_STRICT_SSL = "enableStrictSsl";
   public static final String PROXY_KERBEROS_SP = "proxyKerberosSp";
@@ -35,6 +36,8 @@ public class Constants {
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED = "customInstructionsWorkspaceEnabled";
   public static final String CUSTOM_INSTRUCTIONS_GIT_COMMIT = "customInstructionsGitCommit";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
+  public static final String GITHUB_COPILOT_SETTINGS_URL = "https://github.com/settings/copilot";
+  public static final String GITHUB_COPILOT_INDIVIDUAL_UPGRADE_URL = "https://gh.io/ghcp-individual-upgrade";
   @Deprecated
   public static final String QUICK_START_VERSION = "quickStartVersion";
   public static final String COPILOT_QUICK_START_VERSION = "copilotQuickStartVersion";

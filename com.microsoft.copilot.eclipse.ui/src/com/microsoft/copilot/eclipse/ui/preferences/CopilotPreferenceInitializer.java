@@ -29,6 +29,7 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED, false);
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE, "");
     pref.setDefault(Constants.AUTO_BREAKPOINT_RESPONSE, false);
+    pref.setDefault(Constants.USAGE_ALERT_THRESHOLD, 90);
     pref.setDefault(Constants.MCP, """
         {
           "servers": {

@@ -75,6 +75,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
     getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
     getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
+    getSettings().getGithubSettings().getCopilotSettings()
+        .setUsageAlertThreshold(preferenceStore.getInt(Constants.USAGE_ALERT_THRESHOLD));
 
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
@@ -163,6 +165,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.AGENT_MAX_REQUESTS:
         settings.getGithubSettings().getCopilotSettings().getAgent()
             .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
+      case Constants.USAGE_ALERT_THRESHOLD:
+        settings.getGithubSettings().getCopilotSettings()
+            .setUsageAlertThreshold(preferenceStore.getInt(Constants.USAGE_ALERT_THRESHOLD));
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:
