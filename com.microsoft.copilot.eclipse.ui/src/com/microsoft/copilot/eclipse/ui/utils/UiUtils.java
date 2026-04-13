@@ -37,6 +37,7 @@ import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.fieldassist.ControlDecoration;
+import org.eclipse.jface.fieldassist.FieldDecorationRegistry;
 import org.eclipse.jface.resource.FontRegistry;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
@@ -979,8 +980,8 @@ public class UiUtils {
    */
   public static void addTooltipDecoration(Control control, Composite parent, String tooltip) {
     ControlDecoration decoration = new ControlDecoration(control, SWT.RIGHT | SWT.TOP, parent);
-    Image image = buildImageFromPngPath("/icons/information.png");
-    decoration.setImage(image);
+    decoration.setImage(
+        FieldDecorationRegistry.getDefault().getFieldDecoration(FieldDecorationRegistry.DEC_INFORMATION).getImage());
     decoration.setMarginWidth(3);
     decoration.setDescriptionText(tooltip);
     decoration.setShowHover(true);

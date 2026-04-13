@@ -9,6 +9,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
@@ -29,10 +31,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -61,6 +61,7 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM d", Locale.getDefault());
 
   private Composite mainComposite;
+  private final List<CopilotUsageBar> usageBars = new ArrayList<>();
 
   @Override
   public void init(IWorkbench workbench) {
@@ -79,6 +80,16 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     scheduleQuotaLoad();
 
     return mainComposite;
+  }
+
+  @Override
+  public boolean performOk() {
+    for (CopilotUsageBar bar : usageBars) {
+      if (!bar.isDisposed()) {
+        bar.refreshBar();
+      }
+    }
+    return super.performOk();
   }
 
   private void scheduleQuotaLoad() {
@@ -118,32 +129,16 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     mainComposite.requestLayout();
   }
 
-  // TODO: Remove defaultLink once TBB is released in CAPI; always show the usage
-  private void defaultLink() {
-    if (mainComposite == null || mainComposite.isDisposed()) {
-      return;
-    }
-    Link link = new Link(mainComposite, SWT.NONE);
-    link.setText(Messages.usage_get_more_info);
-    link.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-    link.addListener(SWT.Selection, e -> UiUtils.openLink(Constants.GITHUB_COPILOT_SETTINGS_URL));
-    mainComposite.requestLayout();
-  }
-
   private void renderUsageStatus(CheckQuotaResult quotaResult) {
-    // TODO: Remove tokenBasedBillingEnabled check once TBB is released in CAPI
-    if (quotaResult == null || !quotaResult.isTokenBasedBillingEnabled()) {
-      defaultLink();
-      return;
+    if (quotaResult != null) {
+      CopilotPlan plan = quotaResult.getCopilotPlan();
+      Group group = createUsageGroup(mainComposite);
+      createPlanLabel(group, plan != null ? getPlanDisplayName(plan) : StringUtils.EMPTY);
+
+      PageLayout layout = PageLayout.fromPlan(plan, quotaResult.getPremiumInteractionsQuota());
+      renderUsageLayout(group, layout, quotaResult);
+      createActionButtons(group, layout);
     }
-
-    CopilotPlan plan = quotaResult.getCopilotPlan();
-    Group group = createUsageGroup(mainComposite);
-    createPlanLabel(group, plan != null ? getPlanDisplayName(plan) : StringUtils.EMPTY);
-
-    PageLayout layout = PageLayout.fromPlan(plan, quotaResult.getPremiumInteractionsQuota());
-    renderUsageLayout(group, layout, quotaResult);
-    createActionButtons(group, layout);
 
     mainComposite.requestLayout();
   }
@@ -205,10 +200,6 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
   private void createBusinessEnterpriseUsage(Composite parent, CheckQuotaResult quotaResult) {
     createLimitCompound(parent, Messages.usage_monthly_limit, Messages.usage_monthly_limit_description,
         quotaResult.getPremiumInteractionsQuota(), formatDateReset(quotaResult.getResetDateUtc(), DATE_FORMATTER));
-
-    Label contactAdminLabel = new Label(parent, SWT.NONE);
-    contactAdminLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
-    contactAdminLabel.setText(Messages.usage_contact_admin);
   }
 
   private void createIndividualUsage(Composite parent, CheckQuotaResult quotaResult) {
@@ -258,6 +249,7 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     CopilotUsageBar usageBar = new CopilotUsageBar(limitCompound, SWT.NONE);
     usageBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     usageBar.setPercentage(percentUsed);
+    usageBars.add(usageBar);
 
     Label percentLabel = new Label(limitCompound, SWT.RIGHT);
     percentLabel.setText(NLS.bind(Messages.usage_percentage_suffix, percentUsed));
@@ -279,10 +271,21 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     overageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
     boolean overagePermitted = (sessionQuota != null && sessionQuota.isOveragePermitted())
         || (weeklyQuota != null && weeklyQuota.isOveragePermitted());
+    int totalOverageCount = 0;
+    if (sessionQuota != null) {
+      totalOverageCount += sessionQuota.getOverageCount();
+    }
+    if (weeklyQuota != null) {
+      totalOverageCount += weeklyQuota.getOverageCount();
+    }
 
-    overageLabel.setText(
-        overagePermitted ? Messages.usage_overage_configured : Messages.usage_overage_not_configured);
-    overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
+    if (overagePermitted) {
+      overageLabel.setText(Messages.usage_overage_configured);
+      overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
+    } else if (totalOverageCount == 0) {
+      overageLabel.setText(Messages.usage_overage_not_configured);
+      overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
+    }
 
     UiUtils.addTooltipDecoration(overageLabel, parent, Messages.usage_overage_spend_tooltip);
   }
@@ -376,10 +379,8 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
         duration = NLS.bind(Messages.usage_duration_hours, hours);
       } else if (hours == 1) {
         duration = Messages.usage_duration_hour;
-      } else if (mins > 0) {
-        duration = NLS.bind(Messages.usage_duration_mins, mins);
       } else {
-        duration = Messages.usage_duration_less_than_min;
+        duration = NLS.bind(Messages.usage_duration_mins, mins);
       }
       return NLS.bind(Messages.usage_resets_in, duration);
     });

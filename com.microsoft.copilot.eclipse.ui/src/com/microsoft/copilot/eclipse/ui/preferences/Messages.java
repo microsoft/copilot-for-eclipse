@@ -175,9 +175,8 @@ public class Messages extends NLS {
   public static String usage_overage_configured;
   public static String usage_overage_spend_tooltip;
   public static String usage_overage_not_configured;
-  public static String usage_contact_admin;
   public static String usage_not_signed_in;
-  public static String usage_get_more_info;
+  public static String usage_not_signed_in;
   public static String usage_no_monthly_limit;
   public static String usage_no_session_limit;
   public static String usage_no_weekly_limit;
@@ -189,7 +188,6 @@ public class Messages extends NLS {
   public static String usage_duration_hours;
   public static String usage_duration_hour;
   public static String usage_duration_mins;
-  public static String usage_duration_less_than_min;
 
   static {
     // initialize resource bundle

@@ -70,6 +70,15 @@ public abstract class AbstractUsageBar extends Composite {
   }
 
   /**
+   * Redraws the usage bar canvas, picking up any changes in fill/track colors.
+   */
+  public void refreshBar() {
+    if (!barCanvas.isDisposed()) {
+      barCanvas.redraw();
+    }
+  }
+
+  /**
    * Returns the background track color for the unused portion of the bar.
    */
   protected abstract Color getTrackColor();
