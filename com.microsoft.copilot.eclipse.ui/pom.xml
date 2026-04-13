@@ -1,0 +1,56 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.microsoft.copilot.eclipse</groupId>
+		<artifactId>github-copilot-for-eclipse</artifactId>
+		<version>${copilot-plugin-version}</version>
+	</parent>
+	<artifactId>com.microsoft.copilot.eclipse.ui</artifactId>
+	<packaging>eclipse-plugin</packaging>
+	<name>${base.name} :: UI</name>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho-version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>copy-terminal-jars</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<copy file="../com.microsoft.copilot.eclipse.ui.terminal/target/com.microsoft.copilot.eclipse.ui.terminal-${project.version}.jar" 
+									  tofile="terminal-bundles/com.microsoft.copilot.eclipse.ui.terminal.jar" 
+									  failonerror="false"/>
+								<copy file="../com.microsoft.copilot.eclipse.ui.terminal.tm/target/com.microsoft.copilot.eclipse.ui.terminal.tm-${project.version}.jar" 
+									  tofile="terminal-bundles/com.microsoft.copilot.eclipse.ui.terminal.tm.jar" 
+									  failonerror="false"/>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-packaging-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+</project>

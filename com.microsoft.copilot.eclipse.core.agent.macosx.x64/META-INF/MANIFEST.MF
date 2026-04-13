@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: com.microsoft.copilot.eclipse.core.agent.macosx.x64
+Bundle-SymbolicName: com.microsoft.copilot.eclipse.core.agent.macosx.x64
+Automatic-Module-NAME: com.microsoft.copilot.eclipse.core.agent.macosx.x64
+Bundle-Version: 0.16.0.qualifier
+Bundle-Vendor: GitHub Copilot
+Fragment-Host: com.microsoft.copilot.eclipse.core
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Eclipse-PlatformFilter: (&(osgi.os=macosx)(osgi.arch=x86_64))

@@ -1,0 +1,157 @@
+/*
+Referenced from https://github.com/eclipse-mylyn/org.eclipse.mylyn/blob/9352d82e0cf109c7429dd0c89b018162f961d160/mylyn.docs/wikitext/ui/org.eclipse.mylyn.wikitext.ui/src/org/eclipse/mylyn/internal/wikitext/ui/viewer/default.css
+*/
+
+* {
+	 font-family:  Arial, Helvetica, sans-serif;
+}
+
+h1 {
+	font-size: 120%;
+	font-weight: bold;
+	color: #DEE1E5;
+}
+
+h2 {
+	font-size: 110%;
+	font-weight: bold;
+	color: #DEE1E5;
+}
+
+h3 {
+	font-size: 105%;
+	font-weight: bold;
+	color: #DEE1E5;
+}
+
+h4 {
+	font-weight: bold;
+	color: #DEE1E5;
+}
+
+h5 {
+	font-size: 90%;
+	font-weight: bold;
+	color: #DEE1E5;
+}
+
+h6 {
+	font-size: 80%;
+	font-weight: bold;
+	color: #DEE1E5;
+}
+
+b {
+	font-weight: bold;
+}
+
+strong {
+	font-weight: bold;
+}
+
+i {
+	font-style: italic;
+}
+
+cite {
+	font-style: italic;
+}
+
+em {
+	font-style: italic;
+}
+
+mark {
+	background-color: yellow;
+}
+
+var {
+	font-style: italic;
+}
+
+dfn {
+	font-style: italic;
+}
+
+code {
+	font-family: monospace;
+	color:#E0C576;
+}
+
+pre {
+	font-family: monospace;
+}
+
+ins {
+	text-decoration: underline;
+}
+
+del {
+	text-decoration: line-through;
+}
+
+sup {
+	font-size: smaller;
+	vertical-align: super;
+}
+
+a {
+	text-decoration: underline;
+	color: #89BBEF;
+}
+
+sup a {
+	text-decoration: none;
+}
+
+sub {
+	font-size: smaller;
+	vertical-align: sub;
+}
+
+dt {
+	font-weight: bold;
+}
+
+blockquote {
+	color: #E0C576;
+}
+
+tt {
+	font-family: monospace;	
+}
+
+q {
+	color:#E0C576;
+}
+
+h1.editorPreview, h2.editorPreview, h3.editorPreview, h4.editorPreview {
+  padding-bottom: 0.3em;
+  font-size: 1.75em;
+  border-bottom: 1px solid #eee;
+}
+
+pre.editorPreview {
+  padding: 16px;
+  overflow: auto;
+  line-height: 1.45;
+  background-color: #f7f7f7;
+  border-radius: 3px;
+}
+  
+table.editorPreview {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-color: grey;
+}
+  
+tr.editorPreview td.editorPreview {
+  border: 1px solid #ddd;
+  padding: 6px 13px;
+}
+
+tr.editorPreview th.editorPreview {
+  border: 1px solid #ddd;
+  padding: 6px 13px;
+  background-color: #f0f0f0;
+}

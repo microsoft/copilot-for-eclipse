@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?NLS TYPE="org.eclipse.help.contexts"?>
+<contexts>
+   <context id="add_byok_model_dialog_azure" >
+     <description>
+This dialog allows you to add a new Azure OpenAI model to GitHub Copilot.
+
+For Azure models, you need to provide:
+- Model ID: The identifier for your deployed model (e.g., gpt-4, gpt-35-turbo)
+- Deployment URL: The endpoint URL from your Azure AI deployment
+- API Key: The access key for your Azure AI resource
+- Display Name: Optional friendly name for the model
+
+For help with deploying Azure OpenAI models, see the link below.
+     </description>
+     <topic href="https://aka.ms/how-to-deploy-azure-openai-models" label="How to deploy Azure OpenAI models" />
+   </context>
+   <context id="add_byok_model_dialog_openaiCompatible" >
+     <description>
+This dialog allows you to add custom models to GitHub Copilot.
+
+1) First-Time Setup (No API Key Yet):
+  - You will first be prompted to enter and save your API Key for the selected provider.
+
+2) Adding a Model (API Key Already Present):
+  - Provide the Model ID (e.g., gpt-4o).
+  - (Optional) Provide a Display Name for easier identification in the UI.
+     </description>
+   </context>
+</contexts>

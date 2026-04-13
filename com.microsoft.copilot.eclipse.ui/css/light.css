@@ -1,0 +1,226 @@
+#quick-start-container {
+	color: #5A5A5A;
+	background-color: #FFFFFF;
+}
+
+#quick-start-feature-card {
+	color: #000000;
+	background-color: #FFFFFF;
+}
+
+#quick-start-feature-card-selected {
+	color: #000000;
+	background-color: #F1F1F2;
+}
+
+#quick-start-continue-button {
+	color: #FFFFFF;
+	background-color: #0078D4;
+}
+
+#not-supported-referenced-file-name {
+	color: #b2640A;
+	background-color: #ffffff;
+}
+
+#normal-referenced-file-name {
+	color: #000000;
+	background-color: #ffffff;
+}
+
+/* General btn-primary style for dialogs and other components */
+.btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-container > BeforeLoginWelcomeViewer .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-top-banner,
+#chat-top-banner * {
+	color: #808080;
+	background-color: #F8F8F8;
+}
+
+#chat-container,
+#chat-container > LoadingViewer,
+#chat-container > LoadingViewer *,
+#chat-container > BeforeLoginWelcomeViewer,
+#chat-container > BeforeLoginWelcomeViewer *,
+#chat-content-wrapper,
+#chat-content-wrapper > ChatHistoryViewer,
+#chat-content-wrapper > ChatHistoryViewer *,
+#chat-content-wrapper > AfterLoginWelcomeViewer,
+#chat-content-wrapper > AfterLoginWelcomeViewer *,
+#chat-content-wrapper > AgentModeViewer,
+#chat-content-wrapper  > AgentModeViewer *{
+	color: #808080;
+	background-color: #F8F8F8;
+}
+
+#chat-action-bar-wrapper,
+#chat-action-bar-wrapper * {
+	background-color: #F8F8F8;
+}
+
+#chat-action-bar,
+#chat-action-bar * {
+	color: #000000;
+	background-color: #FFFFFF; 
+}
+#chat-action-bar CurrentReferencedFile > Label.text-secondary {
+	color: #808080;
+}
+
+#chat-container > HandoffContainer,
+#chat-container > HandoffContainer > * {
+	background-color: #F8F8F8;
+}
+#chat-container > HandoffContainer > Label.text-secondary {
+	color: #808080;
+}
+
+#chat-content-viewer .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
+	background-color: #FFFFFF;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block {
+	background-color: #FFFFFF;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite,
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget,
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget * {
+	background-color: #FFFFFF;
+}
+
+/* Override button and command panel styles inside subagent message block */
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block .btn-primary {
+	color: #FFFFFF;
+	background-color: #3584F1;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block .bg-command-panel {
+	background-color: #F1F1F2;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary {
+	color: #808080;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > AgentToolCancelLabel > Label.text-secondary {
+	color: #808080;
+}
+
+#chat-content-viewer > Composite > CopilotTurnWidget > Composite > Label.model-info-label {
+	color: #808080;
+}
+
+#chat-content-viewer,
+#chat-content-viewer > Composite,
+#chat-content-viewer > Composite * {
+    color: #000000;
+    background-color: #F8F8F8;
+}
+
+#chat-content-viewer > Composite > UserTurnWidget,
+#chat-content-viewer > Composite > UserTurnWidget * {
+	color: #000000;
+	background-color: #EFEFEE;
+}
+
+/* Chat history list items - light theme */
+#chat-history-viewer Composite.chat-history-item,
+#chat-history-viewer Composite.chat-history-item * {
+	color: #000000;           /* default/hover exit foreground */
+	background-color: #F8F8F8;/* default/hover exit background */
+}
+
+/* Dropdown popup default state */
+#dropdown-popup,
+#dropdown-popup * {
+	color: #000000;           /* default/hover exit foreground */
+	background-color: #FFFFFF;/* default/hover exit background */
+}
+
+#chat-history-viewer Composite.chat-history-item-current,
+#chat-history-viewer Composite.chat-history-item-current * {
+	color: #000000;           /* current item foreground */
+	background-color: #C6E2F9;/* current item background */
+}
+
+/* Hover state should override default/current */
+#chat-history-viewer Composite.chat-history-item-hover,
+#chat-history-viewer Composite.chat-history-item-hover * {
+	color: #000000;           /* hover foreground */
+	background-color: #D8D8D8;/* hover background */
+}
+
+#chat-history-viewer Label.chat-history-item-current-label,
+#chat-history-viewer Label.chat-history-item-date-label,
+#popup-item-default Label.popup-secondary-text,
+#popup-item-selected Label.popup-secondary-text,
+#dropdown-popup Label.popup-secondary-text {
+	color: #808080;
+}
+
+/* File Change Summary Bar - File Row Styles */
+#file-row,
+#file-row * {
+	color: #000000;           /* default foreground */
+	background-color: #F8F8F8;/* default background */
+}
+
+/* Hover state for file rows */
+#file-row-hover,
+#file-row-hover * {
+	color: #000000;           /* hover foreground */
+	background-color: #C6E2F9;/* hover background */
+}
+
+.mcp-registry-dialog-actions {
+	color: #000000;
+    background-color: #FFFFFF;
+}
+
+/* Next Edit Suggestion - Bottom Bar */
+#nes-bottom-bar,
+#nes-bottom-bar * {
+	color: #000000;
+	background-color: #FFFFFF;
+}
+
+/* MCP Server Item */
+.mcp-server-item,
+.mcp-server-item * {
+	color: #000000;
+	background-color: #FFFFFF;
+}
+
+/* Todo List Title */
+#todo-list-title,
+#todo-list-title * {
+	color: #000000;
+	background-color: #F8F8F8;
+}
+
+/* Dropdown popup focused item (mouse hover and keyboard navigation) */
+#popup-item-focused,
+#popup-item-focused * {
+	color: #000000;
+	background-color: #D4E2FF;
+}
+
+/* Action items in dropdown popups */
+#popup-item-default Label.popup-action-text,
+#popup-item-selected Label.popup-action-text {
+	color: #286EC5;
+}

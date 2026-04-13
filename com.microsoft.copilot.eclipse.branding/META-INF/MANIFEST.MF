@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: GitHub Copilot
+Bundle-SymbolicName: com.microsoft.copilot.eclipse.branding;singleton:=true
+Bundle-Version: 0.16.0.qualifier
+Bundle-Vendor: GitHub Copilot
+Automatic-Module-Name: com.microsoft.copilot.eclipse.branding

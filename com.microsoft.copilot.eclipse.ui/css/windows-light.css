@@ -1,0 +1,5 @@
+/* Windows Light theme overrides */
+#chat-history-viewer Label.chat-history-item-current-label,
+#chat-history-viewer Label.chat-history-item-date-label {
+	color: #808080;
+}

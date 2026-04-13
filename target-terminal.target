@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+<target name="Copilot for Eclipse Target Definition - Terminal">
+	<locations>
+		<location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner"
+            includeSource="true" type="InstallableUnit">
+            <repository
+                location="https://download.eclipse.org/eclipse/updates/4.37/R-4.37-202509050730/" />
+					<unit id="org.eclipse.terminal.feature.feature.group" version="0.0.0" />
+        </location>
+		<location type="Target"
+            uri="file:${project_loc:/github-copilot-for-eclipse}/base.target" />
+    </locations>
+</target>

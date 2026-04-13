@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="com.microsoft.copilot.eclipse.ui" xmlns="http://www.w3.org/2001/XMLSchema">
+	<annotation>
+		<appinfo>
+			<meta.schema plugin="com.microsoft.copilot.eclipse.ui" id="mcpRegistration" name="MCP Registration"/>
+		</appinfo>
+		<documentation>
+			This extension point allows plugins to contribute MCP (Model Context Protocol) server configurations to the Github Copilot plugin through provider implementations.
+		</documentation>
+	</annotation>
+
+	<element name="extension">
+		<annotation>
+			<appinfo>
+				<meta.element />
+			</appinfo>
+		</annotation>
+		<complexType>
+			<sequence minOccurs="1" maxOccurs="unbounded">
+				<element ref="provider"/>
+			</sequence>
+			<attribute name="point" type="string" use="required">
+				<annotation>
+					<documentation>
+
+					</documentation>
+				</annotation>
+			</attribute>
+			<attribute name="id" type="string">
+				<annotation>
+					<documentation>
+
+					</documentation>
+				</annotation>
+			</attribute>
+			<attribute name="name" type="string">
+				<annotation>
+					<documentation>
+
+					</documentation>
+					<appinfo>
+						<meta.attribute translatable="true"/>
+					</appinfo>
+				</annotation>
+			</attribute>
+		</complexType>
+	</element>
+
+	<element name="provider">
+		<annotation>
+			<documentation>
+				Defines an MCP registration provider that implements IMcpRegistrationProvider interface.
+			</documentation>
+		</annotation>
+		<complexType>
+			<attribute name="class" type="string" use="required">
+				<annotation>
+					<documentation>
+						The fully qualified name of a class that implements com.microsoft.copilot.eclipse.ui.extensions.IMcpRegistrationProvider interface.
+					</documentation>
+					<appinfo>
+						<meta.attribute kind="java" basedOn=":com.microsoft.copilot.eclipse.ui.extensions.IMcpRegistrationProvider"/>
+					</appinfo>
+				</annotation>
+			</attribute>
+			<attribute name="id" type="string">
+				<annotation>
+					<documentation>
+						Optional unique identifier for this provider.
+					</documentation>
+				</annotation>
+			</attribute>
+		</complexType>
+	</element>
+
+	<annotation>
+		<appinfo>
+			<meta.section type="examples"/>
+		</appinfo>
+		<documentation>
+			The following is an example of the MCP registration extension:
+	&lt;pre&gt;
+	&lt;extension point=&quot;com.microsoft.copilot.eclipse.ui.mcpRegistration&quot;&gt;
+		&lt;provider class=&quot;com.example.MyMcpRegistrationProvider&quot; id=&quot;myProvider&quot;/&gt;
+	&lt;/extension&gt;
+	&lt;/pre&gt;
+		</documentation>
+	</annotation>
+</schema>

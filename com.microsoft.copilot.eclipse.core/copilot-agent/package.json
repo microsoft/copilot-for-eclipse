@@ -1,0 +1,22 @@
+{
+  "name": "github-copilot-eclipse",
+  "version": "0.0.1",
+  "description": "Sub package for managing @github/copilot-language-server dependency",
+  "publisher": "GitHub",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/copilot-for-eclipse.git"
+  },
+  "scripts": {
+    "postinstall": "node copy-binaries.js"
+  },
+  "dependencies": {
+    "@github/copilot-language-server": "1.457.0",
+    "@github/copilot-language-server-win32-x64": "1.457.0",
+    "@github/copilot-language-server-darwin-x64": "1.457.0",
+    "@github/copilot-language-server-darwin-arm64": "1.457.0",
+    "@github/copilot-language-server-linux-x64": "1.457.0",
+    "@github/copilot-language-server-linux-arm64": "1.457.0"
+  }
+}

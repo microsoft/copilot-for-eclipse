@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature id="com.microsoft.copilot.eclipse.feature" version="0.16.0.qualifier">
+      <category name="com.microsoft.copilot.eclipse.category"/>
+   </feature>
+   <category-def name="com.microsoft.copilot.eclipse.category" label="GitHub Copilot"/>
+</site>

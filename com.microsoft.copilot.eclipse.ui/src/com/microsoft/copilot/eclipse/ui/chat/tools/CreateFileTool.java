@@ -1,0 +1,185 @@
+package com.microsoft.copilot.eclipse.ui.chat.tools;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.lsp4j.FileChangeType;
+
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+
+/**
+ * Tool for creating files.
+ */
+public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
+  public static final String TOOL_NAME = "create_file";
+
+  /**
+   * Constructor for CreateFileTool.
+   */
+  public CreateFileTool() {
+    super();
+    this.name = TOOL_NAME;
+  }
+
+  @Override
+  public boolean needConfirmation() {
+    return false;
+  }
+
+  @Override
+  public LanguageModelToolInformation getToolInformation() {
+    LanguageModelToolInformation toolInfo = super.getToolInformation();
+
+    // Set the name and description of the tool
+    toolInfo.setName(TOOL_NAME);
+    toolInfo.setDescription("""
+        This is a tool for creating a new file in the workspace.
+        The file will be created with the specified content.
+        """);
+
+    // Define the input schema for the tool
+    InputSchema inputSchema = new InputSchema();
+    inputSchema.setType("object");
+
+    // Define the properties of the input schema
+    Map<String, InputSchemaPropertyValue> properties = new HashMap<>();
+    properties.put("filePath", new InputSchemaPropertyValue("string", "The absolute path to the file to create."));
+    properties.put("content", new InputSchemaPropertyValue("string", "The content to write to the file."));
+
+    // Set the properties and required fields for the input schema
+    inputSchema.setProperties(properties);
+    inputSchema.setRequired(Arrays.asList("filePath", "content"));
+
+    // Attach the input schema to the tool information
+    toolInfo.setInputSchema(inputSchema);
+    return toolInfo;
+  }
+
+  @Override
+  public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
+    LanguageModelToolResult result = new LanguageModelToolResult();
+
+    String filePath = (String) input.get("filePath");
+    if (StringUtils.isBlank(filePath)) {
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Invalid file path: path cannot be empty");
+      return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+    }
+
+    try {
+      // Resolve file in workspace
+      IFile file = FileUtils.getFileFromPath(filePath, false);
+
+      if (file == null) {
+        result.setStatus(ToolInvocationStatus.error);
+        result.addContent("Invalid file path: " + filePath + " does not exist in the workspace.");
+        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+      }
+
+      // Check if file already exists
+      if (file.exists()) {
+        result.setStatus(ToolInvocationStatus.error);
+        result.addContent("Failed: file already exists: " + filePath + ". Please use edit file tool to update.");
+        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+      }
+
+      // Create parent folders if needed
+      createParentFolders(file.getParent());
+
+      // Create file with content
+      String content = StringUtils.isBlank((String) input.get("content")) ? "" : (String) input.get("content");
+      try (ByteArrayInputStream contentStream = new ByteArrayInputStream(
+          content.getBytes(PlatformUtils.getFileCharset(file)))) {
+        file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
+        cacheTheOriginalFileContent(file);
+      }
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Created);
+      file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
+
+      result.addContent("File created at: " + file.getFullPath().toOSString());
+      result.setStatus(ToolInvocationStatus.success);
+    } catch (CoreException e) {
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Error creating file: " + e.getMessage());
+    } catch (IOException e) {
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Error handling file stream: " + e.getMessage());
+    }
+
+    return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+  }
+
+  /**
+   * Creates parent folders if they don't exist.
+   *
+   * @param parent The parent resource
+   * @throws CoreException If there's an error creating the folders
+   */
+  private void createParentFolders(IResource parent) throws CoreException {
+    if (parent == null || parent.exists()) {
+      return;
+    }
+
+    createParentFolders(parent.getParent());
+
+    if (parent instanceof IFolder) {
+      ((IFolder) parent).create(IResource.FORCE, true, new NullProgressMonitor());
+    }
+  }
+
+  @Override
+  public void onKeepAllChanges(List<IFile> files) {
+    files.forEach(this::onKeepChange);
+  }
+
+  @Override
+  public void onKeepChange(IFile file) {
+    closeCompareEditor(file);
+  }
+
+  @Override
+  public void onUndoAllChanges(List<IFile> files) throws CoreException {
+    for (IFile file : files) {
+      onUndoChange(file);
+    }
+  }
+
+  @Override
+  public void onUndoChange(IFile file) throws CoreException {
+    if (file != null && file.exists()) {
+      file.delete(true, new NullProgressMonitor());
+    }
+    closeCompareEditor(file);
+  }
+
+  @Override
+  public void onViewDiff(IFile file) {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file));
+  }
+
+  @Override
+  public void onResolveAllChanges() {
+    cleanupChangedFiles();
+  }
+}

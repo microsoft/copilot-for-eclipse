@@ -1,0 +1,91 @@
+package com.microsoft.copilot.eclipse.ui.chat;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+import org.eclipse.jface.text.Document;
+import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
+import org.eclipse.jface.text.hyperlink.MultipleHyperlinkPresenter;
+import org.eclipse.jface.text.source.AnnotationModel;
+import org.eclipse.mylyn.wikitext.markdown.MarkdownLanguage;
+import org.eclipse.mylyn.wikitext.parser.builder.HtmlDocumentBuilder;
+import org.eclipse.mylyn.wikitext.parser.css.CssParser;
+import org.eclipse.mylyn.wikitext.ui.viewer.MarkupViewer;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.widgets.Composite;
+
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+
+class ChatMarkupViewer extends MarkupViewer {
+
+  public ChatMarkupViewer(Composite parent, int styles) {
+    super(parent, null, styles);
+    this.setMarkupLanguage(new MarkdownLanguage());
+    this.setDisplayImages(false);
+
+    IHyperlinkDetector[] hyperlinkDetectors = { new FileAnnotationHyperlinkDetector() };
+    this.setHyperlinkDetectors(hyperlinkDetectors, SWT.NONE);
+
+    MultipleHyperlinkPresenter hyperlinkPresenter = new MultipleHyperlinkPresenter((RGB) null);
+    this.setHyperlinkPresenter(hyperlinkPresenter);
+
+    // Register for chat font updates via centralized service
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(getTextWidget());
+    }
+    loadStylesheet();
+  }
+
+  private void loadStylesheet() {
+    if (UiUtils.isDarkTheme()) {
+      URL cssUrl = CopilotUi.getPlugin().getBundle().getEntry("css/markup-viewer-dark.css");
+      if (cssUrl != null) {
+        try (Reader reader = new InputStreamReader(cssUrl.openStream(), StandardCharsets.UTF_8)) {
+          this.setStylesheet(new CssParser().parse(reader));
+        } catch (IOException e) {
+          CopilotCore.LOGGER.error("Failed to load dark mode stylesheet for markup viewer", e);
+        }
+      }
+    }
+  }
+
+  // MarkupViewer will write errors when failed to parse the markup, which will send the error to the Copilot.
+  // so overwrite the setMarkup method to avoid sending the error.
+  @Override
+  public void setMarkup(String source) {
+    try {
+      String htmlText = this.computeHtml(source);
+      setHtml(htmlText);
+      // reset text presentation to update the style, otherwise the style won't be updated
+      this.setTextPresentation(getTextPresentation());
+    } catch (Throwable t) {
+      if (getTextPresentation() != null) {
+        getTextPresentation().clear();
+      }
+      setDocumentNoMarkup(new Document(source), new AnnotationModel());
+      // TODO: Whether we should track the parse exception?
+    }
+  }
+
+  // computeHtml(String) is a private method in MarkupViewer, so copy it here.
+  private String computeHtml(String markupContent) {
+    StringWriter out = new StringWriter();
+    HtmlDocumentBuilder builder = new HtmlDocumentBuilder(out);
+    builder.setFilterEntityReferences(true);
+
+    getParser().setBuilder(builder);
+    getParser().parse(markupContent);
+    getParser().setBuilder(null);
+
+    String htmlText = out.toString();
+    return htmlText;
+  }
+}

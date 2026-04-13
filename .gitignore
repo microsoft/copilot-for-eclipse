@@ -1,0 +1,47 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
+
+# Mac files
+.DS_Store
+
+# Maven
+**/target/
+
+# Copilot agent
+**/node_modules/
+**/copilot-agent/dist/
+
+# whatisnew html file in runtime
+**/whatisnew.html
+
+# Terminal bundles
+**/terminal-bundles/*.jar
+
+# Fragment bundle copilot-agent directories
+com.microsoft.copilot.eclipse.core.agent.linux.x64/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.linux.aarch64/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.win32/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.macosx.x64/copilot-agent/
+com.microsoft.copilot.eclipse.core.agent.macosx.aarch64/copilot-agent/

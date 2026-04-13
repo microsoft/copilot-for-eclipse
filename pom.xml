@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.microsoft.copilot.eclipse</groupId>
+	<artifactId>github-copilot-for-eclipse</artifactId>
+	<version>${copilot-plugin-version}</version>
+	<packaging>pom</packaging>
+	<name>${base.name}</name>
+
+	<properties>
+		<copilot-plugin-version>0.16.0-SNAPSHOT</copilot-plugin-version>
+		<base.name>GitHub Copilot</base.name>
+		<tycho-version>4.0.13</tycho-version>
+		<checkstyle-version>3.6.0</checkstyle-version>
+	</properties>
+
+	<modules>
+        <!-- terminal bundles must be built before ui bundle as ui bundle depends on terminal bundle artifacts -->
+		<module>com.microsoft.copilot.eclipse.terminal.api</module>
+		<module>com.microsoft.copilot.eclipse.ui.terminal</module>
+		<module>com.microsoft.copilot.eclipse.ui.terminal.tm</module>
+
+		<module>com.microsoft.copilot.eclipse.core</module>
+		<module>com.microsoft.copilot.eclipse.ui</module>
+		<module>com.microsoft.copilot.eclipse.ui.jobs</module>
+
+		<!-- branding -->
+		<module>com.microsoft.copilot.eclipse.branding</module>
+
+		<!-- agent modules for different os and arch-->
+	    <module>com.microsoft.copilot.eclipse.core.agent.linux.x64</module>
+	    <module>com.microsoft.copilot.eclipse.core.agent.linux.aarch64</module>
+	    <module>com.microsoft.copilot.eclipse.core.agent.win32</module>
+	    <module>com.microsoft.copilot.eclipse.core.agent.macosx.x64</module>
+	    <module>com.microsoft.copilot.eclipse.core.agent.macosx.aarch64</module>
+
+		<!-- features and update site -->
+		<module>com.microsoft.copilot.eclipse.feature</module>
+		<module>com.microsoft.copilot.eclipse.repository</module>
+
+		<!-- modules for tests -->
+		<module>com.microsoft.copilot.eclipse.core.test</module>
+		<module>com.microsoft.copilot.eclipse.ui.test</module>
+	</modules>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${checkstyle-version}</version>
+				<dependencies>
+					<dependency>
+					<groupId>com.puppycrawl.tools</groupId>
+					<artifactId>checkstyle</artifactId>
+					<version>10.20.1</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<configLocation>checkstyle.xml</configLocation>
+					<sourceDirectories>
+						<sourceDirectory>src</sourceDirectory>
+					</sourceDirectories>
+					<encoding>UTF-8</encoding>
+					<consoleOutput>true</consoleOutput>
+					<failsOnError>true</failsOnError>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho-version}</version>
+				<configuration>
+					<target>
+						<file>../base.target</file>
+					</target>
+					<executionEnvironment>JavaSE-21</executionEnvironment>
+					<environments>
+						<environment>
+							<os>macosx</os>
+							<ws>cocoa</ws>
+							<arch>x86_64</arch>
+						</environment>
+						<environment>
+							<os>macosx</os>
+							<ws>cocoa</ws>
+							<arch>aarch64</arch>
+						</environment>
+						<environment>
+							<os>linux</os>
+							<ws>gtk</ws>
+							<arch>x86_64</arch>
+						</environment>
+						<environment>
+							<os>linux</os>
+							<ws>gtk</ws>
+							<arch>aarch64</arch>
+						</environment>
+						<environment>
+							<os>win32</os>
+							<ws>win32</ws>
+							<arch>x86_64</arch>
+						</environment>
+					</environments>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>osx</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<!-- SWT on Mac OS needs to be started on main thread -->
+				<tycho.testArgLine>-XstartOnFirstThread</tycho.testArgLine>
+			</properties>
+		</profile>
+		<profile>
+			<id>nightly</id>
+			<activation>
+				<property>
+					<name>env.BUILD_TYPE</name>
+					<value>nightly</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>tycho-packaging-plugin</artifactId>
+						<version>${tycho-version}</version>
+						<configuration>
+							<format>yyyyMMddHHmm'_nightly'</format>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
