@@ -81,6 +81,36 @@ public class CssConstants {
   }
 
   /**
+   * Returns the color for the "Powerful" model picker category badge.
+   */
+  public static Color getCategoryPowerfulColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 116, 167, 220); // #74A7DC
+    }
+    return new Color(display, 15, 108, 189); // #0F6CBD
+  }
+
+  /**
+   * Returns the color for the "Versatile" model picker category badge.
+   */
+  public static Color getCategoryVersatileColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 222, 225, 229); // #DEE1E5
+    }
+    return new Color(display, 97, 97, 97); // #616161
+  }
+
+  /**
+   * Returns the color for the "Lightweight" model picker category badge.
+   */
+  public static Color getCategoryLightweightColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 110, 185, 110); // #6EB96E
+    }
+    return new Color(display, 16, 124, 16); // #107C10
+  }
+
+  /**
    * Get the focused background color for dropdown popup items based on the current theme.
    */
   public static Color getPopupItemFocusBgColor(Display display) {
