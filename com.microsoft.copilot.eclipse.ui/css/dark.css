@@ -137,9 +137,14 @@
 	background-color: #26282B;
 }
 
-/* List Items: default state (chat history, popup menus) */
+/* Chat history list items - dark theme */
 #chat-history-viewer Composite.chat-history-item,
-#chat-history-viewer Composite.chat-history-item *,
+#chat-history-viewer Composite.chat-history-item * {
+	color: #D3D2D2;           /* default/hover exit foreground */
+	background-color: #1E1F22;/* default/hover exit background */
+}
+
+/* Dropdown popup default state */
 #dropdown-popup,
 #dropdown-popup * {
 	color: #D3D2D2;           /* default/hover exit foreground */
