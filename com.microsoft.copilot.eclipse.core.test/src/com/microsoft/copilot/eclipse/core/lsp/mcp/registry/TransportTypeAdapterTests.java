@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.core.lsp.mcp.registry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
