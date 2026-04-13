@@ -128,7 +128,7 @@ Once the user accepts the changes:
    ```
 3. Reply to the PR comment:
    ```shell
-   gh api -X POST /repos/microsoft/copilot-eclipse/pulls/{pr_number}/comments/{comment_id}/replies -f body="Done. <description of what was changed and why>"
+   gh api -X POST /repos/microsoft/copilot-for-eclipse/pulls/{pr_number}/comments/{comment_id}/replies -f body="Done. <description of what was changed and why>"
    ```
 
 **Only after step 9 completes successfully should this comment be marked as "completed" in the TODO list.**

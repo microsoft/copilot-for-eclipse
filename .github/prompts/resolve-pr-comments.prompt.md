@@ -25,7 +25,7 @@ Resolve PR review comments for PR #${input:pr_number:Enter PR number}
 Use pagination to retrieve all comments (gh CLI defaults to 30 results) and save to a file for reference:
 ```shell
 mkdir -p .github/pullrequests/${input:pr_number}
-gh api repos/microsoft/copilot-eclipse/pulls/${input:pr_number}/comments --paginate --jq '.[] | {id: .id, path: .path, line: .line, body: .body, in_reply_to_id: .in_reply_to_id, user: .user.login}' > .github/pullrequests/${input:pr_number}/comments.json
+gh api repos/microsoft/copilot-for-eclipse/pulls/${input:pr_number}/comments --paginate --jq '.[] | {id: .id, path: .path, line: .line, body: .body, in_reply_to_id: .in_reply_to_id, user: .user.login}' > .github/pullrequests/${input:pr_number}/comments.json
 ```
 
 **Note**: The `line` field from the API points directly to the line in the current file where the comment was made. No diff parsing is needed - just read the file at that line number to see the code context.
