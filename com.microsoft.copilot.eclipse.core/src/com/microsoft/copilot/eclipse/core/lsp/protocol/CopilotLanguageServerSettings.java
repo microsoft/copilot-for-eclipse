@@ -278,8 +278,6 @@ public class CopilotLanguageServerSettings {
 
     private CopilotAgentSettings agent;
 
-    private int usageAlertThreshold;
-
     /**
      * Constructor.
      */
@@ -322,14 +320,6 @@ public class CopilotLanguageServerSettings {
       this.agent = agent;
     }
 
-    public int getUsageAlertThreshold() {
-      return usageAlertThreshold;
-    }
-
-    public void setUsageAlertThreshold(int usageAlertThreshold) {
-      this.usageAlertThreshold = usageAlertThreshold;
-    }
-
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
@@ -337,14 +327,12 @@ public class CopilotLanguageServerSettings {
       builder.append("workspaceCopilotInstructions", workspaceCopilotInstructions);
       builder.append("gitCommitCopilotInstructions", gitCommitCopilotInstructions);
       builder.append("agent", agent);
-      builder.append("usageAlertThreshold", usageAlertThreshold);
       return builder.toString();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(agent, gitCommitCopilotInstructions, mcpServers, usageAlertThreshold,
-          workspaceCopilotInstructions);
+      return Objects.hash(agent, gitCommitCopilotInstructions, mcpServers, workspaceCopilotInstructions);
     }
 
     @Override
@@ -358,7 +346,7 @@ public class CopilotLanguageServerSettings {
       CopilotSettings other = (CopilotSettings) obj;
       return Objects.equals(agent, other.agent)
           && Objects.equals(gitCommitCopilotInstructions, other.gitCommitCopilotInstructions)
-          && Objects.equals(mcpServers, other.mcpServers) && usageAlertThreshold == other.usageAlertThreshold
+          && Objects.equals(mcpServers, other.mcpServers)
           && Objects.equals(workspaceCopilotInstructions, other.workspaceCopilotInstructions);
     }
   }

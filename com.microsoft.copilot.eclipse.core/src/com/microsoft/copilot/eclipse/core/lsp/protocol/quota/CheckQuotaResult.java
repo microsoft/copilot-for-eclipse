@@ -11,7 +11,17 @@ public class CheckQuotaResult {
   private Quota chat;
   private Quota completions;
   private Quota premiumInteractions;
+
+  /**
+   * Quota usage for the 5-hour rolling interval (session limit). Only included for CFI (Copilot for Individuals)
+   * token-based billing users
+   */
   private TbbQuota immediateUsageInterval;
+
+  /**
+   * Quota usage for the 7-day rolling interval (weekly limit). Only included for CFI (Copilot for Individuals)
+   * token-based billing users (all CFI plans).
+   */
   private TbbQuota extendedUsageInterval;
   private String resetDate;
   private String resetDateUtc;
@@ -101,8 +111,7 @@ public class CheckQuotaResult {
     CheckQuotaResult other = (CheckQuotaResult) obj;
     return Objects.equals(chat, other.chat) && Objects.equals(completions, other.completions)
         && copilotPlan == other.copilotPlan && Objects.equals(premiumInteractions, other.premiumInteractions)
-        && Objects.equals(resetDate, other.resetDate)
-        && Objects.equals(resetDateUtc, other.resetDateUtc)
+        && Objects.equals(resetDate, other.resetDate) && Objects.equals(resetDateUtc, other.resetDateUtc)
         && Objects.equals(immediateUsageInterval, other.immediateUsageInterval)
         && Objects.equals(extendedUsageInterval, other.extendedUsageInterval);
   }

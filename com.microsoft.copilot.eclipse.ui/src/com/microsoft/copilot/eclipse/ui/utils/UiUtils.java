@@ -33,6 +33,8 @@ import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.fieldassist.ControlDecoration;
+import org.eclipse.jface.fieldassist.FieldDecorationRegistry;
 import org.eclipse.jface.resource.FontRegistry;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
@@ -969,5 +971,18 @@ public class UiUtils {
       }
     }
     return imageData;
+  }
+
+  /**
+   * Adds an info tooltip decoration to the right of the given control.
+   */
+  public static void addTooltipDecoration(Control control, Composite parent, String tooltip) {
+    ControlDecoration decoration = new ControlDecoration(control, SWT.RIGHT | SWT.TOP, parent);
+    decoration.setImage(
+        FieldDecorationRegistry.getDefault().getFieldDecoration(FieldDecorationRegistry.DEC_INFORMATION).getImage());
+    decoration.setMarginWidth(3);
+    decoration.setDescriptionText(tooltip);
+    decoration.setShowHover(true);
+    decoration.setShowOnlyOnFocus(false);
   }
 }

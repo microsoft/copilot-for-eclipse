@@ -12,6 +12,8 @@ public class Quota {
   private double percentRemaining;
   private boolean unlimited;
   private boolean overagePermitted;
+  @SerializedName("overage_count")
+  private int overageCount;
   private int entitlement;
   private int quotaRemaining;
   @SerializedName("timeStamp")
@@ -49,6 +51,14 @@ public class Quota {
     this.overagePermitted = overagePermitted;
   }
 
+  public int getOverageCount() {
+    return overageCount;
+  }
+
+  public void setOverageCount(int overageCount) {
+    this.overageCount = overageCount;
+  }
+
   public int getEntitlement() {
     return entitlement;
   }
@@ -75,7 +85,8 @@ public class Quota {
 
   @Override
   public int hashCode() {
-    return Objects.hash(entitlement, overagePermitted, percentRemaining, quotaRemaining, timestamp, unlimited);
+    return Objects.hash(entitlement, overagePermitted, overageCount, percentRemaining, quotaRemaining, timestamp,
+        unlimited);
   }
 
   @Override
@@ -89,8 +100,8 @@ public class Quota {
     Quota other = (Quota) obj;
     return Double.doubleToLongBits(percentRemaining) == Double.doubleToLongBits(other.percentRemaining)
         && unlimited == other.unlimited && overagePermitted == other.overagePermitted
-        && entitlement == other.entitlement && quotaRemaining == other.quotaRemaining
-        && Objects.equals(timestamp, other.timestamp);
+        && overageCount == other.overageCount && entitlement == other.entitlement
+        && quotaRemaining == other.quotaRemaining && Objects.equals(timestamp, other.timestamp);
   }
 
   @Override
@@ -99,6 +110,7 @@ public class Quota {
     builder.append("percentRemaining", percentRemaining);
     builder.append("unlimited", unlimited);
     builder.append("overagePermitted", overagePermitted);
+    builder.append("overageCount", overageCount);
     builder.append("entitlement", entitlement);
     builder.append("quotaRemaining", quotaRemaining);
     builder.append("timestamp", timestamp);

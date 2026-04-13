@@ -35,7 +35,7 @@ public class CopilotPreferencesPage extends PreferencePage implements IWorkbench
         McpPreferencePage.ID);
     PreferencePageUtils.createPreferenceLink(getShell(), container, "<a>Model Management</a>", null,
         ByokPreferencePage.ID);
-    PreferencePageUtils.createPreferenceLink(getShell(), container, "<a>Usage Status</a>", null,
+    PreferencePageUtils.createPreferenceLink(getShell(), container, "<a>Usage</a>", null,
         UsageStatusPreferencePage.ID);
     return container;
   }
