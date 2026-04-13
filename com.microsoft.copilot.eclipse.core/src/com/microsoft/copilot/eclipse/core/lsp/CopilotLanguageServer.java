@@ -3,6 +3,7 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -27,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
@@ -261,4 +263,10 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("githubApi/searchPR")
   CompletableFuture<SearchPrResponse> searchPr(SearchPrParams params);
+
+  /**
+   * Notify that an inline edit was shown.
+   */
+  @JsonNotification("textDocument/didShowInlineEdit")
+  void didShowInlineEdit(DidShowInlineEditParams params);
 }

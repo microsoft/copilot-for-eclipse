@@ -11,7 +11,9 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
+import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
@@ -44,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
@@ -630,6 +633,32 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<SearchPrResponse> searchPr(SearchPrParams params) {
     Function<LanguageServer, CompletableFuture<SearchPrResponse>> fn = server -> ((CopilotLanguageServer) server)
         .searchPr(params);
+    return this.languageServerWrapper.execute(fn);
+  }
+
+
+  /**
+   * Notify that an inline edit was shown.
+   */
+  public void didShowInlineEdit(DidShowInlineEditParams params) {
+    this.languageServerWrapper.sendNotification(server -> ((CopilotLanguageServer) server).didShowInlineEdit(params));
+  }
+
+  /**
+   * Accept the next edit suggestion (inline edit).
+   */
+  public CompletableFuture<Object> acceptNextEditSuggestion(Command command) {
+    if (command == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+    ExecuteCommandParams params = new ExecuteCommandParams();
+    params.setCommand("github.copilot.didAcceptNextEditSuggestionItem");
+    List<Object> arguments = command.getArguments();
+    if (arguments != null) {
+      params.setArguments(arguments);
+    }
+    Function<LanguageServer, CompletableFuture<Object>> fn = server -> server.getWorkspaceService()
+        .executeCommand(params);
     return this.languageServerWrapper.execute(fn);
   }
 
