@@ -26,6 +26,8 @@ public class CopilotCapabilities {
 
   private boolean debuggerAgent;
 
+  private boolean manageTodoListTool;
+
   private List<String> contentProvider;
 
   /**
@@ -36,6 +38,7 @@ public class CopilotCapabilities {
     this.stateDatabase = true;
     this.cveRemediatorAgent = true;
     this.debuggerAgent = JdtUtils.isJdtDebugAvailable() && PlatformUtils.isNightly();
+    this.manageTodoListTool = true;
     this.fetch = fetch;
     this.watchedFiles = watchedFiles;
     this.subAgent = subAgent;
@@ -98,6 +101,14 @@ public class CopilotCapabilities {
     this.debuggerAgent = debuggerAgent;
   }
 
+  public boolean isManageTodoListTool() {
+    return manageTodoListTool;
+  }
+
+  public void setManageTodoListTool(boolean manageTodoListTool) {
+    this.manageTodoListTool = manageTodoListTool;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -109,13 +120,14 @@ public class CopilotCapabilities {
     builder.append("cveRemediatorAgent", cveRemediatorAgent);
     builder.append("contentProvider", contentProvider);
     builder.append("debuggerAgent", debuggerAgent);
+    builder.append("manageTodoListTool", manageTodoListTool);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, fetch, stateDatabase, subAgent,
-        watchedFiles, contentProvider);
+    return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, fetch, manageTodoListTool,
+        stateDatabase, subAgent, watchedFiles, contentProvider);
   }
 
   @Override
@@ -130,7 +142,8 @@ public class CopilotCapabilities {
 
     return cveRemediatorAgent == other.cveRemediatorAgent && debuggerAgent == other.debuggerAgent
         && didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
-        && stateDatabase == other.stateDatabase && subAgent == other.subAgent && watchedFiles == other.watchedFiles
+        && manageTodoListTool == other.manageTodoListTool && stateDatabase == other.stateDatabase
+        && subAgent == other.subAgent && watchedFiles == other.watchedFiles
         && Objects.equals(contentProvider, other.contentProvider);
   }
 }
