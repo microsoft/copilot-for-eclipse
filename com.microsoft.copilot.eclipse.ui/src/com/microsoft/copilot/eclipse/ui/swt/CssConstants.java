@@ -189,6 +189,9 @@ public class CssConstants {
    * Returns the active (blue) fill color for the usage bar.
    */
   public static Color getUsageBarActiveColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 53, 116, 240);
+    }
     return new Color(display, 53, 116, 240);
   }
 
@@ -196,6 +199,9 @@ public class CssConstants {
    * Returns the approaching (yellow) fill color for the usage bar.
    */
   public static Color getUsageBarApproachingColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 242, 197, 92);
+    }
     return new Color(display, 255, 184, 36);
   }
 
@@ -203,6 +209,9 @@ public class CssConstants {
    * Returns the exhausted (red) fill color for the usage bar.
    */
   public static Color getUsageBarExhaustedColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 224, 81, 81);
+    }
     return new Color(display, 224, 81, 81);
   }
 
@@ -210,6 +219,9 @@ public class CssConstants {
    * Returns the remaining (gray) track color for the usage bar.
    */
   public static Color getUsageBarRemainingColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 100, 99, 99);
+    }
     return new Color(display, 223, 225, 229);
   }
 
