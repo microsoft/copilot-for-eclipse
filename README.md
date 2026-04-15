@@ -45,6 +45,7 @@ Inline suggestions (ghost text) appear as you type in the editor. Suggestions ca
 ### Next Edit Suggestions
 
 Next Edit Suggestions predict your next edit location and propose the next change based on your recent edits and context.
+
 ### Agent and Ask Mode
 
 **Ask Mode** provides conversational AI assistance for explaining code, generating code from requirements, suggesting refactors, and providing debugging guidance.
@@ -62,7 +63,6 @@ MCP support enables integrating external tools and services into Copilot workflo
 - **Plan Agent** can generate multi-step plans to accomplish complex tasks, breaking them down into manageable actions.
 
 For other available features in Eclipse, see the [Copilot feature matrix](https://docs.github.com/en/copilot/reference/copilot-feature-matrix?tool=eclipse).
-
 
 ## Usage tips
 
@@ -82,7 +82,6 @@ To get the latest security fixes, please use the latest version of GitHub Copilo
 
 The GitHub Copilot for Eclipse plugin collects usage data and sends it to Microsoft to help improve our products and services. Read our [privacy statement](https://privacy.microsoft.com/privacystatement) to learn more.
 
-
 ## Security
 
 Please do not report security vulnerabilities in public issues.
@@ -94,7 +93,6 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting instructions.
 For bug reports and feature requests, use this repository’s Issues.
 
 For support guidance, see [SUPPORT.md](SUPPORT.md).
-
 
 ## Trademarks
 
