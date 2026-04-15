@@ -45,8 +45,6 @@ Inline suggestions (ghost text) appear as you type in the editor. Suggestions ca
 ### Next Edit Suggestions
 
 Next Edit Suggestions predict your next edit location and propose the next change based on your recent edits and context.
-
-
 ### Agent and Ask Mode
 
 **Ask Mode** provides conversational AI assistance for explaining code, generating code from requirements, suggesting refactors, and providing debugging guidance.
