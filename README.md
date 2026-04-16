@@ -94,6 +94,12 @@ For bug reports and feature requests, use this repository’s Issues.
 
 For support guidance, see [SUPPORT.md](SUPPORT.md).
 
+## Contributing
+
+This project welcomes contributions and suggestions. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started, build the project, submit pull requests, and follow our code style guidelines.
+
+Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit [Contributor License Agreements](https://cla.opensource.microsoft.com).
+
 ## Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
