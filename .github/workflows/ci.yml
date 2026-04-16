@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "feature/agent-mode" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "feature/agent-mode" ]
+    branches: [ "main" ]
 
 jobs:
   build:

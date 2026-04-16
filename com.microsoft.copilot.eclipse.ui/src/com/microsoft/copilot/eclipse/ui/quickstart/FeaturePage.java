@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.quickstart;
 
 import org.eclipse.e4.ui.css.swt.CSSSWTConstants;

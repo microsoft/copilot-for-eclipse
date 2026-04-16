@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.swt;
 
 import org.apache.commons.lang3.StringUtils;
@@ -43,6 +46,10 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   @Override
   public void configureHover(Composite parent, DropdownItem item) {
     renderHeader(parent, item);
+
+    if (StringUtils.isNotBlank(model.getModelPickerCategory())) {
+      CategoryBadge.create(parent, model.getModelPickerCategory());
+    }
 
     // Degradation warning
     if (StringUtils.isNotBlank(model.getDegradationReason())) {
