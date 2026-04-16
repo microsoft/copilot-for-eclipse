@@ -22,8 +22,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 /**
  * Base class for hover popups that appear near an anchor widget and auto-close when the cursor leaves.
  *
- * <p>
- * Subclasses implement {@link #populateContent(Composite)} to add their specific widgets, then call
+ * <p>Subclasses implement {@link #populateContent(Composite)} to add their specific widgets, then call
  * {@link #openPopup(Control)} to display the popup.
  */
 public abstract class BaseHoverPopup {

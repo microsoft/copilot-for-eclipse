@@ -21,7 +21,6 @@ class ContextWindowPopup extends BaseHoverPopup {
 
   private final ContextWindowService contextWindowService;
 
-  // Updatable labels
   private Label tokenUsageLabel;
   private Label percentageLabel;
   private ContextWindowBar progressBar;
