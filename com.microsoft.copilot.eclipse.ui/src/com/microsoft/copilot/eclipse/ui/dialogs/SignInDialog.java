@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.dialogs;
 
 import org.eclipse.jface.dialogs.MessageDialog;
