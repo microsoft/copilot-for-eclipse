@@ -47,6 +47,10 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   public void configureHover(Composite parent, DropdownItem item) {
     renderHeader(parent, item);
 
+    if (StringUtils.isNotBlank(model.getModelPickerCategory())) {
+      CategoryBadge.create(parent, model.getModelPickerCategory());
+    }
+
     // Degradation warning
     if (StringUtils.isNotBlank(model.getDegradationReason())) {
       addWarningRow(parent, model.getDegradationReason());
