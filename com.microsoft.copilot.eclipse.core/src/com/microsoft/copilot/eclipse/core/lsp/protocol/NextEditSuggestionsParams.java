@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
