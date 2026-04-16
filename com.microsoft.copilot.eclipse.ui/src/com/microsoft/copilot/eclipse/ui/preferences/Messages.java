@@ -188,6 +188,7 @@ public class Messages extends NLS {
   public static String usage_duration_hours;
   public static String usage_duration_hour;
   public static String usage_duration_mins;
+  public static String usage_duration_less_than_min;
 
   static {
     // initialize resource bundle

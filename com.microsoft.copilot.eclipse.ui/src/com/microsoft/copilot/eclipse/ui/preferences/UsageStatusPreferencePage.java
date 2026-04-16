@@ -9,8 +9,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
@@ -61,7 +59,6 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM d", Locale.getDefault());
 
   private Composite mainComposite;
-  private final List<CopilotUsageBar> usageBars = new ArrayList<>();
 
   @Override
   public void init(IWorkbench workbench) {
@@ -80,16 +77,6 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     scheduleQuotaLoad();
 
     return mainComposite;
-  }
-
-  @Override
-  public boolean performOk() {
-    for (CopilotUsageBar bar : usageBars) {
-      if (!bar.isDisposed()) {
-        bar.refreshBar();
-      }
-    }
-    return super.performOk();
   }
 
   private void scheduleQuotaLoad() {
@@ -249,7 +236,6 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     CopilotUsageBar usageBar = new CopilotUsageBar(limitCompound, SWT.NONE);
     usageBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     usageBar.setPercentage(percentUsed);
-    usageBars.add(usageBar);
 
     Label percentLabel = new Label(limitCompound, SWT.RIGHT);
     percentLabel.setText(NLS.bind(Messages.usage_percentage_suffix, percentUsed));
@@ -271,18 +257,11 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     overageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
     boolean overagePermitted = (sessionQuota != null && sessionQuota.isOveragePermitted())
         || (weeklyQuota != null && weeklyQuota.isOveragePermitted());
-    int totalOverageCount = 0;
-    if (sessionQuota != null) {
-      totalOverageCount += sessionQuota.getOverageCount();
-    }
-    if (weeklyQuota != null) {
-      totalOverageCount += weeklyQuota.getOverageCount();
-    }
 
     if (overagePermitted) {
       overageLabel.setText(Messages.usage_overage_configured);
       overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
-    } else if (totalOverageCount == 0) {
+    } else {
       overageLabel.setText(Messages.usage_overage_not_configured);
       overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
     }
@@ -379,8 +358,10 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
         duration = NLS.bind(Messages.usage_duration_hours, hours);
       } else if (hours == 1) {
         duration = Messages.usage_duration_hour;
-      } else {
+      } else if (mins > 0) {
         duration = NLS.bind(Messages.usage_duration_mins, mins);
+      } else {
+        duration = Messages.usage_duration_less_than_min;
       }
       return NLS.bind(Messages.usage_resets_in, duration);
     });
