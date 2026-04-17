@@ -64,13 +64,6 @@ MCP support enables integrating external tools and services into Copilot workflo
 
 For other available features in Eclipse, see the [Copilot feature matrix](https://docs.github.com/en/copilot/reference/copilot-feature-matrix?tool=eclipse).
 
-## Usage tips
-
-- Keep prompts specific and include constraints
-- Request small, reviewable edits
-- Validate output with tests and static analysis
-- Treat AI output as draft code and review before committing
-
 ## Privacy and responsible use
 
 We follow responsible practices in accordance with our
