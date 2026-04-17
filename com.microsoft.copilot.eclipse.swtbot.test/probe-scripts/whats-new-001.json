@@ -1,0 +1,20 @@
+[
+  { "action": "waitForIdle" },
+  { "action": "screenshot", "id": "01-startup" },
+
+  { "action": "invokeCommand", "idRef": "com.microsoft.copilot.eclipse.commands.showWhatIsNew" },
+  { "action": "waitForIdle" },
+  { "action": "sleep", "timeoutSec": 2 },
+  { "action": "waitForIdle" },
+  { "action": "screenshot", "id": "02-whats-new-opened" },
+
+  { "action": "dumpUi", "id": "02b-whats-new-editor" },
+
+  { "action": "waitFor",
+    "locator": { "by": "widgetClass", "value": "Browser" },
+    "timeoutSec": 30 },
+  { "action": "assertExists",
+    "locator": { "by": "widgetClass", "value": "Browser" } },
+
+  { "action": "screenshot", "id": "03-whats-new-rendered" }
+]
