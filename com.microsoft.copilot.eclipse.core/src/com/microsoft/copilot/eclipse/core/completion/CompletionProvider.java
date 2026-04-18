@@ -3,10 +3,10 @@
 
 package com.microsoft.copilot.eclipse.core.completion;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -68,7 +68,7 @@ public class CompletionProvider {
   public CompletionProvider(CopilotLanguageServerConnection lsConnection, AuthStatusManager statusManager) {
     this.statusManager = statusManager;
     this.completionJob = new CompletionJob(lsConnection);
-    this.completionListeners = new LinkedHashSet<>();
+    this.completionListeners = new CopyOnWriteArraySet<>();
     this.formatOptionProvider = CopilotCore.getPlugin().getFormatOptionProvider();
     this.usingCodeMining = IdeCapabilities.canUseCodeMining();
   }
