@@ -412,6 +412,7 @@ public class ModelService extends ChatBaseService {
     // Add the selection listener ONCE here
     picker.setSelectionListener(this::setActiveModel);
     picker.setAccessibilityName("model picker");
+    picker.setData("org.eclipse.swtbot.widget.key", "model-picker");
 
     ensureRealm(() -> {
       ISideEffect modelsSideEffect = ISideEffect.create(() -> {

@@ -154,7 +154,10 @@ Each contains `copilot-agent/` directory with Node.js binary and agent code.
 **`com.microsoft.copilot.eclipse.ui.test`** - UI bundle tests
 - JUnit tests for UI components
 - Fragment of `com.microsoft.copilot.eclipse.ui`
-- Note: SWTBot integration is planned for future enhancement
+**`com.microsoft.copilot.eclipse.swtbot.test`** - SWTBot UI probe bundle
+- JSON probe scripts executed by a generic `ProbeRunner` against a real Eclipse workbench
+- Drives the `ui-action` skill at `.github/skills/ui-action/SKILL.md`
+- Add new UI test cases by dropping JSON into `probe-scripts/` (no Java compile needed)
 
 ### Key Architecture Patterns
 
@@ -324,7 +327,7 @@ CompletableFuture.supplyAsync(() -> {
 
 **When** naming test methods → use descriptive names: `testMethodName_scenario_expectedOutcome`
 
-**When** testing UI → use SWTBot; run in dedicated test fragments; clean up resources after tests
+**When** testing UI → author a JSON probe under `com.microsoft.copilot.eclipse.swtbot.test/probe-scripts/` and run the `ProbeRunner` via `./mvnw -pl com.microsoft.copilot.eclipse.swtbot.test -am -Dprobe.script=probe-scripts/<name>.json verify`. See `.github/skills/ui-action/SKILL.md` for the full action vocabulary, locator reference, and pass/fail judgment rules.
 
 **When** testing async operations → use appropriate timeouts
 
@@ -464,7 +467,7 @@ CompletableFuture.supplyAsync(() -> {
 
 1. Create test class in appropriate test bundle fragment
 2. Use JUnit 5 annotations: `@Test`, `@BeforeEach`, `@AfterEach`
-3. For UI tests, extend SWTBot test base classes
+3. For UI tests, add a JSON probe to `com.microsoft.copilot.eclipse.swtbot.test/probe-scripts/` (see the `ui-action` skill). For unit-style Eclipse tests, use JUnit 5 inside `com.microsoft.copilot.eclipse.ui.test`.
 4. Mock external dependencies (LSP server, file system, etc.)
 5. Clean up resources in teardown methods
 

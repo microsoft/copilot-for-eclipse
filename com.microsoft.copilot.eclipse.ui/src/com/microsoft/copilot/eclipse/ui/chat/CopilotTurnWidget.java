@@ -29,6 +29,7 @@ public class CopilotTurnWidget extends BaseTurnWidget {
    */
   public CopilotTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
     super(parent, style, serviceManager, turnId, true, null);
+    setData("org.eclipse.swtbot.widget.key", "copilot-turn");
   }
 
   @Override

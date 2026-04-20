@@ -1,0 +1,49 @@
+[
+  { "action": "waitForIdle" },
+  { "action": "screenshot", "id": "01-startup" },
+
+  { "action": "showView", "idRef": "com.microsoft.copilot.eclipse.ui.chat.ChatView" },
+  { "action": "waitForIdle" },
+  { "action": "screenshot", "id": "02-chat-open" },
+
+  { "action": "assertExists",
+    "locator": { "by": "viewId", "id": "com.microsoft.copilot.eclipse.ui.chat.ChatView" } },
+
+  { "action": "waitFor",
+    "locator": { "by": "styledText" },
+    "timeoutSec": 30 },
+
+  { "action": "click", "locator": { "by": "styledText" } },
+  { "action": "clearElement", "locator": { "by": "styledText" } },
+  { "action": "typeIn", "locator": { "by": "styledText" }, "text": "hello" },
+  { "action": "screenshot", "id": "03-typed" },
+
+  { "action": "dumpUi",     "id": "03b-pre-model-poll" },
+  { "action": "screenshot", "id": "03c-pre-model-poll" },
+
+  { "action": "waitForMethod",
+    "locator": { "by": "widgetId", "value": "model-picker" },
+    "method": "getSelectedItemId",
+    "timeoutSec": 60 },
+
+  { "action": "waitFor",
+    "locator": { "by": "buttonWithTooltip", "tooltip": "Send" },
+    "timeoutSec": 30 },
+  { "action": "click", "locator": { "by": "buttonWithTooltip", "tooltip": "Send" } },
+
+  { "action": "waitFor",
+    "locator": { "by": "widgetId", "value": "user-turn" },
+    "timeoutSec": 30 },
+  { "action": "screenshot", "id": "04-user-message" },
+  { "action": "assertExists",
+    "locator": { "by": "widgetId", "value": "user-turn" } },
+
+  { "action": "waitFor",
+    "locator": { "by": "cssClass", "value": "model-info-label" },
+    "timeoutSec": 120 },
+  { "action": "screenshot", "id": "05-agent-response" },
+  { "action": "assertExists",
+    "locator": { "by": "widgetId", "value": "copilot-turn" } },
+  { "action": "assertExists",
+    "locator": { "by": "cssClass", "value": "model-info-label" } }
+]

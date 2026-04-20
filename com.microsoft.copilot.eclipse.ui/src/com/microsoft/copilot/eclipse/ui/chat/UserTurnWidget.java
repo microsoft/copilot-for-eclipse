@@ -34,6 +34,7 @@ public class UserTurnWidget extends BaseTurnWidget {
    */
   public UserTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
     super(parent, style, serviceManager, turnId, false, null);
+    setData("org.eclipse.swtbot.widget.key", "user-turn");
   }
 
   @Override
