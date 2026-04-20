@@ -64,7 +64,9 @@
 					<configLocation>checkstyle.xml</configLocation>
 					<sourceDirectories>
 						<sourceDirectory>src</sourceDirectory>
+						<sourceDirectory>css</sourceDirectory>
 					</sourceDirectories>
+					<includes>**\/*.java,**\/*.css</includes>
 					<encoding>UTF-8</encoding>
 					<consoleOutput>true</consoleOutput>
 					<failsOnError>true</failsOnError>
