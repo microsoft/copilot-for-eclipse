@@ -222,6 +222,9 @@ public class CssConstants {
    * Returns the active (blue) fill color for the usage bar.
    */
   public static Color getUsageBarActiveColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 53, 116, 240);
+    }
     return new Color(display, 53, 116, 240);
   }
 
@@ -229,9 +232,6 @@ public class CssConstants {
    * Returns the approaching (yellow) fill color for the usage bar.
    */
   public static Color getQuotaApproachingColor(Display display) {
-    if (UiUtils.isDarkTheme()) {
-      return new Color(display, 242, 197, 92); // #F2C55C
-    }
     return new Color(display, 255, 175, 15); // #FFAF0F
   }
 
@@ -252,4 +252,23 @@ public class CssConstants {
     return new Color(display, 223, 225, 229);
   }
 
+  /**
+   * Returns the text color used in the chat top banner.
+   */
+  public static Color getTopBannerTextColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 164, 164, 164); // #A4A4A4
+    }
+    return new Color(display, 128, 128, 128); // #808080
+  }
+
+  /**
+   * Returns the active color for the quota pie chart border and fill.
+   */
+  public static Color getQuotaPieActiveColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 188, 187, 187); // #BCBBBB
+    }
+    return new Color(display, 128, 128, 128); // #808080
+  }
 }

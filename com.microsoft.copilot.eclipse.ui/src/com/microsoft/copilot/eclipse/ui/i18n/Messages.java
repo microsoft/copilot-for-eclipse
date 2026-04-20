@@ -203,6 +203,13 @@ public final class Messages extends NLS {
   public static String context_window_messages;
   public static String context_window_files;
   public static String context_window_tool_results;
+  public static String quota_popup_title;
+  public static String quota_popup_session_limit;
+  public static String quota_popup_weekly_limit;
+  public static String quota_popup_monthly_limit;
+  public static String quota_popup_unlimited;
+  public static String quota_popup_percent_used_suffix;
+  public static String quota_popup_click_to_view_details;
 
   static {
     // initialize resource bundle

@@ -132,4 +132,28 @@ public class CheckQuotaResult {
     builder.append("extendedUsageInterval", extendedUsageInterval);
     return builder.toString();
   }
+
+  /**
+   * Updates this result with fields from a push quota change notification. Fields not present in the notification
+   * (chat, completions, resetDate) are left unchanged.
+   *
+   * @param notification the push notification from the language server
+   */
+  public void updateFromNotification(QuotaChangeNotification notification) {
+    if (notification == null) {
+      return;
+    }
+    if (notification.premiumInteractions() != null) {
+      this.premiumInteractions = notification.premiumInteractions().toQuota();
+    }
+    if (notification.immediateUsageInterval() != null) {
+      this.immediateUsageInterval = notification.immediateUsageInterval().toTbbQuota();
+    }
+    if (notification.extendedUsageInterval() != null) {
+      this.extendedUsageInterval = notification.extendedUsageInterval().toTbbQuota();
+    }
+    if (notification.copilotPlan() != null) {
+      this.copilotPlan = notification.copilotPlan();
+    }
+  }
 }

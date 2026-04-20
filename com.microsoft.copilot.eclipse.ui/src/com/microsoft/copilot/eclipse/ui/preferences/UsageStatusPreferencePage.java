@@ -191,7 +191,6 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     Label contactAdminLabel = new Label(parent, SWT.NONE);
     contactAdminLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
     contactAdminLabel.setText(Messages.usage_contact_admin);
-    contactAdminLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
   }
 
   private void createIndividualUsage(Composite parent, CheckQuotaResult quotaResult) {
