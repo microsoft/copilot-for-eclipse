@@ -269,22 +269,20 @@ public class QuotaUsageIndicator extends Composite {
     gc.drawOval(x, y, PIE_SIZE - 1, PIE_SIZE - 1);
 
     // Draw filled arc for usage inside the border
-    if (usedPercent > 0) {
-      int inset = PIE_BORDER_WIDTH;
-      int innerSize = PIE_SIZE - 2 * inset;
-      gc.setBackground(pieColor);
-      int arcAngle = (int) Math.round(-usedPercent * 360.0 / 100.0);
-      gc.fillArc(x + inset, y + inset, innerSize, innerSize, START_ANGLE, arcAngle);
-    }
-  }
-
-  private Color getDynamicPieColor() {
-    if (usedPercent >= EXHAUSTED_THRESHOLD) {
-      return CssConstants.getQuotaExhaustedColor(getDisplay());
-    } else if (usedPercent >= APPROACHING_THRESHOLD) {
-      return CssConstants.getQuotaApproachingColor(getDisplay());
-    }
-    return CssConstants.getQuotaPieActiveColor(getDisplay());
+          popup.open(QuotaUsageIndicator.this, QuotaChangeNotification.fromCheckQuotaResult(status));
+        }
+      }
+    });
+    control.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseUp(MouseEvent e) {
+        Shell shell = getShell();
+        popup.close();
+        PreferencesUtil
+            .createPreferenceDialogOn(shell, UsageStatusPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
+            .open();
+      }
+    });
   }
 
   private void disposeImage() {

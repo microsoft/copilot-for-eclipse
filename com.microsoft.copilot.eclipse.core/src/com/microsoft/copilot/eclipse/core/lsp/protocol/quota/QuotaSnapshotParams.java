@@ -43,4 +43,35 @@ public record QuotaSnapshotParams(
     return new QuotaSnapshotParams(entitlement, pctRemaining, q.getOverageCount(), q.isOveragePermitted(),
         q.isUnlimited(), resetDate);
   }
+
+  /**
+   * Converts this snapshot back to a {@link Quota} object.
+   *
+   * @return a new {@link Quota} populated from this snapshot
+   */
+  public Quota toQuota() {
+    Quota q = new Quota();
+    q.setUnlimited(unlimited);
+    q.setPercentRemaining(percentRemaining);
+    q.setEntitlement(quota);
+    q.setOverageCount(overageUsed);
+    q.setOveragePermitted(overageEnabled);
+    return q;
+  }
+
+  /**
+   * Converts this snapshot back to a {@link TbbQuota} object.
+   *
+   * @return a new {@link TbbQuota} populated from this snapshot
+   */
+  public TbbQuota toTbbQuota() {
+    TbbQuota q = new TbbQuota();
+    q.setUnlimited(unlimited);
+    q.setPercentRemaining(percentRemaining);
+    q.setEntitlement(quota);
+    q.setOverageCount(overageUsed);
+    q.setOveragePermitted(overageEnabled);
+    q.setResetAt(resetDate != null && !resetDate.isEmpty() ? resetDate : null);
+    return q;
+  }
 }

@@ -187,6 +187,15 @@ public class AuthStatusManager {
   }
 
   /**
+   * Patch the cached quota result with fields from a push quota change notification.
+   *
+   * @param notification the push notification received from the language server
+   */
+  public void patchQuotaFromNotification(QuotaChangeNotification notification) {
+    getQuotaStatus().updateFromNotification(notification);
+  }
+
+  /**
    * Get the current CopilotStatusResult.
    */
   public CheckQuotaResult getQuotaStatus() {

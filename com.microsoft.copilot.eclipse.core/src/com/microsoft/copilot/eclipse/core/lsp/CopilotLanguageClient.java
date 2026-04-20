@@ -334,6 +334,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    */
   @JsonNotification("copilot/quotaChange")
   public void onQuotaChange(QuotaChangeNotification notification) {
+    CopilotCore.getPlugin().getAuthStatusManager().patchQuotaFromNotification(notification);
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_SNAPSHOT_CHANGED, notification);
     }
