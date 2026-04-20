@@ -1,0 +1,72 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.microsoft.copilot.eclipse</groupId>
+		<artifactId>github-copilot-for-eclipse</artifactId>
+		<version>${copilot-plugin-version}</version>
+	</parent>
+	<artifactId>com.microsoft.copilot.eclipse.swtbot.test</artifactId>
+	<packaging>eclipse-test-plugin</packaging>
+	<name>${base.name} :: SWTBot UI Probe Tests</name>
+
+	<properties>
+		<checkstyle.skip>true</checkstyle.skip>
+		<!-- Default to empty; the osx profile below overrides to -XstartOnFirstThread. -->
+		<swtbot.platformArgLine></swtbot.platformArgLine>
+	</properties>
+
+	<profiles>
+		<profile>
+			<id>swtbot-osx</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<!-- SWT on macOS must be started on the main thread. -->
+				<swtbot.platformArgLine>-XstartOnFirstThread</swtbot.platformArgLine>
+			</properties>
+		</profile>
+	</profiles>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho-version}</version>
+				<configuration>
+					<dependency-resolution>
+						<extraRequirements>
+							<!-- Pulls the platform-appropriate Copilot LS agent fragment into the
+							     provisioned test runtime so the language server can actually start.
+							     The feature itself carries the per-OS/arch filters, so we avoid
+							     referencing any single platform fragment here. -->
+							<requirement>
+								<type>eclipse-feature</type>
+								<id>com.microsoft.copilot.eclipse.feature</id>
+								<versionRange>0.0.0</versionRange>
+							</requirement>
+						</extraRequirements>
+					</dependency-resolution>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-surefire-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<configuration>
+					<useUIHarness>true</useUIHarness>
+					<useUIThread>false</useUIThread>
+					<includes>
+						<include>**/ProbeRunner.java</include>
+					</includes>
+					<argLine>${swtbot.platformArgLine} -Dprobe.script=${probe.script}</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
