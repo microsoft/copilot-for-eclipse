@@ -334,7 +334,7 @@ CompletableFuture.supplyAsync(() -> {
 
 ### GitHub Interaction
 
-**Always use GitHub CLI (`gh`) for interacting with the repository at https://github.com/microsoft/copilot-eclipse**
+**Always use GitHub CLI (`gh`) for interacting with the repository at https://github.com/microsoft/copilot-for-eclipse**
 
 **When** viewing PRs → use `gh pr view <number>`, `gh pr list`, `gh pr status`
 

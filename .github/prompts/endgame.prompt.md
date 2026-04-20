@@ -22,12 +22,12 @@ Your workflow is ONLY:
    - Todo 1: "Fetch endgame issue" (mark as in-progress)
 
 2. **Ask the user** for the following information:
-   - The GitHub endgame issue link (e.g., `https://github.com/microsoft/copilot-eclipse/issues/XXXX`)
+   - The GitHub endgame issue link (e.g., `https://github.com/microsoft/copilot-for-eclipse/issues/XXXX`)
    - The user's GitHub account name
 
 3. **Fetch the endgame issue** (this is the ONLY `gh issue view` you should run):
    ```shell
-   gh issue view <issue_number> --repo microsoft/copilot-eclipse
+   gh issue view <issue_number> --repo microsoft/copilot-for-eclipse
    ```
    Parse the issue body to find all tasks (checkboxes) assigned to the specified user.
    Extract the task title and any linked PR/issue URL as plain text.

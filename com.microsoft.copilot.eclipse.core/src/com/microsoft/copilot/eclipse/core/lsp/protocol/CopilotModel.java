@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.List;
@@ -23,6 +26,7 @@ public class CopilotModel {
   private CopilotModelBilling billing;
   private String degradationReason;
   private String providerName;
+  private String modelPickerCategory;
 
   /**
    * Policy for the model.
@@ -213,6 +217,14 @@ public class CopilotModel {
     this.providerName = providerName;
   }
 
+  public String getModelPickerCategory() {
+    return modelPickerCategory;
+  }
+
+  public void setModelPickerCategory(String modelPickerCategory) {
+    this.modelPickerCategory = modelPickerCategory;
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -229,6 +241,7 @@ public class CopilotModel {
         && Objects.equals(degradationReason, other.degradationReason) && Objects.equals(id, other.id)
         && isChatDefault == other.isChatDefault && isChatFallback == other.isChatFallback
         && Objects.equals(modelFamily, other.modelFamily) && Objects.equals(modelName, other.modelName)
+        && Objects.equals(modelPickerCategory, other.modelPickerCategory)
         && Objects.equals(modelPolicy, other.modelPolicy) && preview == other.preview
         && Objects.equals(providerName, other.providerName) && Objects.equals(scopes, other.scopes)
         && Objects.equals(vendor, other.vendor);
@@ -237,7 +250,7 @@ public class CopilotModel {
   @Override
   public int hashCode() {
     return Objects.hash(billing, capabilities, degradationReason, id, isChatDefault, isChatFallback, modelFamily,
-        modelName, modelPolicy, preview, providerName, scopes, vendor);
+        modelName, modelPickerCategory, modelPolicy, preview, providerName, scopes);
   }
 
   @Override
@@ -256,6 +269,7 @@ public class CopilotModel {
     builder.append("billing", billing);
     builder.append("degradationReason", degradationReason);
     builder.append("providerName", providerName);
+    builder.append("modelPickerCategory", modelPickerCategory);
     return builder.toString();
   }
 

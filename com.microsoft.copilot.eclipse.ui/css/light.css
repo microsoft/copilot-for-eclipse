@@ -1,3 +1,6 @@
+/* Copyright (c) Microsoft Corporation. */
+/* Licensed under the MIT license. */
+
 #quick-start-container {
 	color: #5A5A5A;
 	background-color: #FFFFFF;
@@ -137,9 +140,14 @@
 	background-color: #EFEFEE;
 }
 
-/* List Items: default state (chat history, popup menus) */
+/* Chat history list items - light theme */
 #chat-history-viewer Composite.chat-history-item,
-#chat-history-viewer Composite.chat-history-item *,
+#chat-history-viewer Composite.chat-history-item * {
+	color: #000000;           /* default/hover exit foreground */
+	background-color: #F8F8F8;/* default/hover exit background */
+}
+
+/* Dropdown popup default state */
 #dropdown-popup,
 #dropdown-popup * {
 	color: #000000;           /* default/hover exit foreground */

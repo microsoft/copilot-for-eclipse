@@ -1,7 +1,9 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.nes;
 
 import java.net.URI;
-import java.util.Collections;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
@@ -21,11 +23,11 @@ import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.text.source.IAnnotationModel;
 import org.eclipse.jface.text.source.IAnnotationModelListener;
-import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
 import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
@@ -36,12 +38,11 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult.CopilotInlineEdit;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyRejectedParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyShownParams;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionListener;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -88,6 +89,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   private Range lastRange; // precise range of current suggestion
   private IFile lastFile; // track file for extension-based fallback
   private String currentSuggestionUuid; // UUID for telemetry
+  private Command currentSuggestionCommand; // Command for acceptance
   private int suggestionDocumentVersion = -1; // document version when suggestion was received
   private Position suggestionStartPosition; // start offset of suggestion range
   private Position suggestionEndPosition; // end offset of suggestion range
@@ -332,6 +334,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
     diffModel = null;
     lastRange = null;
     currentSuggestionUuid = null;
+    currentSuggestionCommand = null;
     suggestionDocumentVersion = -1;
   }
 
@@ -343,8 +346,6 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       return;
     }
     nesProvider.cancelCurrentRequest();
-    notifyRejected();
-
     SwtUtils.invokeOnDisplayThread(() -> {
       clearSuggestionUi();
       clearSuggestionData();
@@ -505,6 +506,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
     this.lastFile = file;
     this.lastRange = range;
     this.currentSuggestionUuid = edit.getUuid();
+    this.currentSuggestionCommand = edit.getCommand();
     this.suggestionDocumentVersion = edit.getTextDocument() != null && edit.getTextDocument().getVersion() != null
         ? edit.getTextDocument().getVersion()
         : -1;
@@ -533,7 +535,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   private boolean isCurrentDocument(IDocument doc, IFile file) {
     URI currentDocUri = LSPEclipseUtils.toUri(doc);
-    String fileUriString = file != null ? com.microsoft.copilot.eclipse.core.utils.FileUtils.getResourceUri(file)
+    String fileUriString = file != null ? FileUtils.getResourceUri(file)
         : null;
     return currentDocUri != null && fileUriString != null && currentDocUri.toString().equals(fileUriString);
   }
@@ -769,6 +771,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
         diffPopup.hideAndClearIndent(text, viewer, indentLinePosition);
       }, text);
 
+      notifyAccepted();
+
       // Apply replacement (document operation)
       String replacement = diffModel.replacement == null ? "" : diffModel.replacement;
       String lineDelimiter = CompletionUtils.getDocumentLineDelimiter(doc, startOff);
@@ -785,9 +789,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
         clearSuggestionUi();
       }, text);
 
-      // Clear data and notify (non-UI operations)
+      // Clear data
       clearSuggestionData();
-      notifyAccepted();
       scheduleNextSuggestionRequest(doc, currentFile, newCaretOffset);
 
     } catch (BadLocationException ex) {
@@ -909,8 +912,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
       return;
     }
     try {
-      NotifyShownParams params = new NotifyShownParams(currentSuggestionUuid);
-      lsConnection.notifyShown(params);
+      DidShowInlineEditParams params = DidShowInlineEditParams.fromUuid(currentSuggestionUuid);
+      lsConnection.didShowInlineEdit(params);
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to notify shown telemetry", e);
     }
@@ -920,31 +923,13 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
    * Notify Language Server that suggestion is accepted (telemetry).
    */
   private void notifyAccepted() {
-    if (currentSuggestionUuid == null || lsConnection == null) {
+    if (currentSuggestionCommand == null || lsConnection == null) {
       return;
     }
     try {
-      NotifyAcceptedParams params = new NotifyAcceptedParams(currentSuggestionUuid);
-      lsConnection.notifyAccepted(params);
-      currentSuggestionUuid = null; // Clear after accepting
+      lsConnection.acceptNextEditSuggestion(currentSuggestionCommand);
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to notify accepted telemetry", e);
-    }
-  }
-
-  /**
-   * Notify Language Server that suggestion is rejected (telemetry).
-   */
-  private void notifyRejected() {
-    if (currentSuggestionUuid == null || lsConnection == null) {
-      return;
-    }
-    try {
-      NotifyRejectedParams params = new NotifyRejectedParams(Collections.singletonList(currentSuggestionUuid));
-      lsConnection.notifyRejected(params);
-      currentSuggestionUuid = null; // Clear after rejecting
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to notify rejected telemetry", e);
     }
   }
 }

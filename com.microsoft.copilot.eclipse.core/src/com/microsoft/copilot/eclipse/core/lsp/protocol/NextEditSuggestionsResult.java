@@ -1,8 +1,12 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.List;
 import java.util.Objects;
 
+import com.google.gson.JsonPrimitive;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.Range;
@@ -90,7 +94,14 @@ public class NextEditSuggestionsResult {
         return null;
       }
       Object arg0 = command.getArguments().get(0);
-      return arg0 == null ? null : arg0.toString();
+      if (arg0 == null) {
+        return null;
+      }
+      // Handle JsonPrimitive from Gson deserialization
+      if (arg0 instanceof JsonPrimitive jsonPrimitive) {
+        return jsonPrimitive.getAsString();
+      }
+      return arg0.toString();
     }
   }
 }
