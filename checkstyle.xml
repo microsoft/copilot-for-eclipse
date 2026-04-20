@@ -22,7 +22,7 @@
 
   <property name="severity" value="error"/>
 
-  <property name="fileExtensions" value="java, properties, xml"/>
+  <property name="fileExtensions" value="java, properties, xml, css"/>
   <!-- Excludes all 'module-info.java' files              -->
   <!-- See https://checkstyle.org/filefilters/index.html -->
   <module name="BeforeExecutionExclusionFileFilter">
@@ -55,6 +55,7 @@
   <!-- See http://checkstyle.org/checks/whitespace/index.html -->
   <module name="FileTabCharacter">
     <property name="eachLine" value="true"/>
+    <property name="fileExtensions" value="java, xml"/>
   </module>
 
   <!-- Check for trailing whitespace -->
@@ -64,6 +65,15 @@
     <property name="minimum" value="0"/>
     <property name="maximum" value="0"/>
     <property name="message" value="Trailing whitespace is not allowed"/>
+    <property name="fileExtensions" value="java, xml"/>
+  </module>
+
+  <!-- Require the standard two-line Microsoft MIT license header. -->
+  <!-- Supports Java ("// ...") and CSS ("/* ... */") comment styles. -->
+  <module name="RegexpHeader">
+    <property name="header"
+             value="^(// |/\* )Copyright \(c\) Microsoft Corporation\.( \*/)?$\n^(// |/\* )Licensed under the MIT license\.( \*/)?$"/>
+    <property name="fileExtensions" value="java, css"/>
   </module>
 
   <module name="LineLength">
