@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -27,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaChangeNotification;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaSnapshotParams;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.UsageStatusPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
@@ -162,7 +166,7 @@ public class QuotaUsageIndicator extends Composite {
       // Unlimited — show static icon with "Unlimited" label
       this.renderMode = RenderMode.STATIC;
       this.usedPercent = 0;
-      this.labelText = "Unlimited";
+      this.labelText = Messages.quota_popup_unlimited;
       disposeImage();
       String theme = UiUtils.isDarkTheme() ? "dark" : "light";
       this.currentImage = UiUtils.buildImageFromPngPath("/icons/quota/quota_active_" + theme + ".png");
@@ -276,6 +280,9 @@ public class QuotaUsageIndicator extends Composite {
     control.addMouseTrackListener(new MouseTrackAdapter() {
       @Override
       public void mouseEnter(MouseEvent e) {
+        if (popup.isOpen()) {
+          return;
+        }
         CheckQuotaResult status = CopilotCore.getPlugin().getAuthStatusManager().getQuotaStatus();
         if (status.getCopilotPlan() != null) {
           popup.open(QuotaUsageIndicator.this, QuotaChangeNotification.fromCheckQuotaResult(status));

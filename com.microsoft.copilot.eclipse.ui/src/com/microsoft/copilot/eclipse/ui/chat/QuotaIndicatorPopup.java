@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.osgi.util.NLS;
@@ -112,10 +115,15 @@ class QuotaIndicatorPopup extends BaseHoverPopup {
     link.addMouseListener(new MouseAdapter() {
       @Override
       public void mouseUp(MouseEvent e) {
-        Shell preferencesShell = anchor != null && !anchor.isDisposed() ? anchor.getShell()
-            : PlatformUI.getWorkbench().getActiveWorkbenchWindow() != null
-                ? PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell()
-                : parent.getShell();
+        Shell preferencesShell;
+        if (anchor != null && !anchor.isDisposed()) {
+          preferencesShell = anchor.getShell();
+        } else if (PlatformUI.getWorkbench().getActiveWorkbenchWindow() != null
+            && PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell() != null) {
+          preferencesShell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+        } else {
+          return;
+        }
         close();
         PreferencesUtil.createPreferenceDialogOn(preferencesShell, UsageStatusPreferencePage.ID,
             PreferencesUtils.getAllPreferenceIds(), null).open();
