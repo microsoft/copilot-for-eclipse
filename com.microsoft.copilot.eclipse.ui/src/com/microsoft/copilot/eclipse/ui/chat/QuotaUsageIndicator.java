@@ -23,6 +23,7 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaChangeNotification;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaSnapshotParams;
@@ -57,7 +58,6 @@ public class QuotaUsageIndicator extends Composite {
   private Canvas pieCanvas;
   private Label percentLabel;
   private String labelText;
-  private QuotaChangeNotification lastNotification;
   private final QuotaIndicatorPopup popup = new QuotaIndicatorPopup();
   private IEventBroker eventBroker;
   private EventHandler quotaStatusChangedHandler;
@@ -137,7 +137,6 @@ public class QuotaUsageIndicator extends Composite {
     CopilotPlan plan = notification.copilotPlan();
     boolean isCbce = plan == CopilotPlan.business || plan == CopilotPlan.enterprise;
 
-    this.lastNotification = notification;
     popup.updateNotification(notification);
 
     if (isCbce) {
@@ -277,8 +276,9 @@ public class QuotaUsageIndicator extends Composite {
     control.addMouseTrackListener(new MouseTrackAdapter() {
       @Override
       public void mouseEnter(MouseEvent e) {
-        if (lastNotification != null) {
-          popup.open(QuotaUsageIndicator.this, lastNotification);
+        CheckQuotaResult status = CopilotCore.getPlugin().getAuthStatusManager().getQuotaStatus();
+        if (status.getCopilotPlan() != null) {
+          popup.open(QuotaUsageIndicator.this, QuotaChangeNotification.fromCheckQuotaResult(status));
         }
       }
     });
