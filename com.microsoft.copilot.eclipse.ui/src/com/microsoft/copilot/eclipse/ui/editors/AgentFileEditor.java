@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.editors;
 
 import org.eclipse.jface.bindings.keys.KeySequence;
