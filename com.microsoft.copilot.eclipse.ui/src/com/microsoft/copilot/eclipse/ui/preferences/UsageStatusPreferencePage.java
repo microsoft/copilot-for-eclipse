@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.time.Duration;
@@ -184,6 +187,10 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
   private void createBusinessEnterpriseUsage(Composite parent, CheckQuotaResult quotaResult) {
     createLimitCompound(parent, Messages.usage_monthly_limit, Messages.usage_monthly_limit_description,
         quotaResult.getPremiumInteractionsQuota(), formatDateReset(quotaResult.getResetDateUtc(), DATE_FORMATTER));
+
+    Label contactAdminLabel = new Label(parent, SWT.NONE);
+    contactAdminLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
+    contactAdminLabel.setText(Messages.usage_contact_admin);
   }
 
   private void createIndividualUsage(Composite parent, CheckQuotaResult quotaResult) {
@@ -255,13 +262,9 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     boolean overagePermitted = (sessionQuota != null && sessionQuota.isOveragePermitted())
         || (weeklyQuota != null && weeklyQuota.isOveragePermitted());
 
-    if (overagePermitted) {
-      overageLabel.setText(Messages.usage_overage_configured);
-      overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
-    } else {
-      overageLabel.setText(Messages.usage_overage_not_configured);
-      overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
-    }
+    overageLabel.setText(
+        overagePermitted ? Messages.usage_overage_configured : Messages.usage_overage_not_configured);
+    overageLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
 
     UiUtils.addTooltipDecoration(overageLabel, parent, Messages.usage_overage_spend_tooltip);
   }
