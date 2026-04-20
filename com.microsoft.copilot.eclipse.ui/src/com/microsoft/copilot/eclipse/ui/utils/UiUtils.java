@@ -868,8 +868,8 @@ public class UiUtils {
    * @param urlString the URL of the image to load
    * @param width the desired width of the image, or -1 to keep original width
    * @param height the desired height of the image, or -1 to keep original height
-   * @return a CompletableFuture that completes with the loaded image on the UI thread, or fails if loading fails
-   * (caller is responsible for disposing the image)
+   * @return a CompletableFuture that completes with the loaded image on the UI thread,
+   *     or fails if loading fails (caller is responsible for disposing the image)
    */
   public static CompletableFuture<Image> loadImageFromUrl(String urlString, int width, int height) {
     return CompletableFuture.supplyAsync(() -> {

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -14,6 +17,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
@@ -22,9 +26,11 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaChangeNotification;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaSnapshotParams;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.UsageStatusPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
@@ -56,7 +62,6 @@ public class QuotaUsageIndicator extends Composite {
   private Canvas pieCanvas;
   private Label percentLabel;
   private String labelText;
-  private QuotaChangeNotification lastNotification;
   private final QuotaIndicatorPopup popup = new QuotaIndicatorPopup();
   private IEventBroker eventBroker;
   private EventHandler quotaStatusChangedHandler;
@@ -81,6 +86,7 @@ public class QuotaUsageIndicator extends Composite {
     layout.marginHeight = 0;
     layout.horizontalSpacing = 4;
     setLayout(layout);
+    addInteractionListeners(this);
 
     this.pieCanvas = new Canvas(this, SWT.NONE);
     GridData canvasData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
@@ -88,31 +94,14 @@ public class QuotaUsageIndicator extends Composite {
     canvasData.heightHint = PIE_FULL_SIZE;
     this.pieCanvas.setLayoutData(canvasData);
     this.pieCanvas.addPaintListener(this::paint);
-    this.pieCanvas.setCursor(parent.getDisplay().getSystemCursor(SWT.CURSOR_HAND));
-    this.pieCanvas.addMouseTrackListener(new MouseTrackAdapter() {
-      @Override
-      public void mouseEnter(MouseEvent e) {
-        if (lastNotification != null) {
-          popup.open(pieCanvas, lastNotification);
-        }
-      }
-    });
-    this.pieCanvas.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseUp(MouseEvent e) {
-        Shell shell = getShell();
-        popup.close();
-        PreferencesUtil
-            .createPreferenceDialogOn(shell, UsageStatusPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
-            .open();
-      }
-    });
+    addInteractionListeners(this.pieCanvas);
 
     this.percentLabel = new Label(this, SWT.NONE);
     this.percentLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
     this.percentLabel.setVisible(false);
     GridData labelData = (GridData) this.percentLabel.getLayoutData();
     labelData.exclude = true;
+    addInteractionListeners(this.percentLabel);
 
     setVisible(false);
 
@@ -152,7 +141,6 @@ public class QuotaUsageIndicator extends Composite {
     CopilotPlan plan = notification.copilotPlan();
     boolean isCbce = plan == CopilotPlan.business || plan == CopilotPlan.enterprise;
 
-    this.lastNotification = notification;
     popup.updateNotification(notification);
 
     if (isCbce) {
@@ -178,7 +166,7 @@ public class QuotaUsageIndicator extends Composite {
       // Unlimited — show static icon with "Unlimited" label
       this.renderMode = RenderMode.STATIC;
       this.usedPercent = 0;
-      this.labelText = "Unlimited";
+      this.labelText = Messages.quota_popup_unlimited;
       disposeImage();
       String theme = UiUtils.isDarkTheme() ? "dark" : "light";
       this.currentImage = UiUtils.buildImageFromPngPath("/icons/quota/quota_active_" + theme + ".png");
@@ -269,6 +257,34 @@ public class QuotaUsageIndicator extends Composite {
     gc.drawOval(x, y, PIE_SIZE - 1, PIE_SIZE - 1);
 
     // Draw filled arc for usage inside the border
+    if (usedPercent > 0) {
+      int inset = PIE_BORDER_WIDTH;
+      int innerSize = PIE_SIZE - 2 * inset;
+      gc.setBackground(pieColor);
+      int arcAngle = (int) Math.round(-usedPercent * 360.0 / 100.0);
+      gc.fillArc(x + inset, y + inset, innerSize, innerSize, START_ANGLE, arcAngle);
+    }
+  }
+
+  private Color getDynamicPieColor() {
+    if (usedPercent >= EXHAUSTED_THRESHOLD) {
+      return CssConstants.getQuotaExhaustedColor(getDisplay());
+    } else if (usedPercent >= APPROACHING_THRESHOLD) {
+      return CssConstants.getQuotaApproachingColor(getDisplay());
+    }
+    return CssConstants.getQuotaPieActiveColor(getDisplay());
+  }
+
+  private void addInteractionListeners(Control control) {
+    control.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+    control.addMouseTrackListener(new MouseTrackAdapter() {
+      @Override
+      public void mouseEnter(MouseEvent e) {
+        if (popup.isOpen()) {
+          return;
+        }
+        CheckQuotaResult status = CopilotCore.getPlugin().getAuthStatusManager().getQuotaStatus();
+        if (status.getCopilotPlan() != null) {
           popup.open(QuotaUsageIndicator.this, QuotaChangeNotification.fromCheckQuotaResult(status));
         }
       }

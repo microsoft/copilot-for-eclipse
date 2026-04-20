@@ -54,3 +54,4 @@ public class CopilotUsageBar extends AbstractUsageBar {
     return colorActive;
   }
 }
+
