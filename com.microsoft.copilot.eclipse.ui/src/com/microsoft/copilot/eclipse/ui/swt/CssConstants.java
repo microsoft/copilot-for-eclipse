@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.swt;
 
 import org.eclipse.swt.graphics.Color;
@@ -78,6 +81,36 @@ public class CssConstants {
       return new Color(display, 30, 31, 34);
     }
     return new Color(display, 255, 255, 255);
+  }
+
+  /**
+   * Returns the color for the "Powerful" model picker category badge.
+   */
+  public static Color getCategoryPowerfulColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 116, 167, 220); // #74A7DC
+    }
+    return new Color(display, 15, 108, 189); // #0F6CBD
+  }
+
+  /**
+   * Returns the color for the "Versatile" model picker category badge.
+   */
+  public static Color getCategoryVersatileColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 222, 225, 229); // #DEE1E5
+    }
+    return new Color(display, 97, 97, 97); // #616161
+  }
+
+  /**
+   * Returns the color for the "Lightweight" model picker category badge.
+   */
+  public static Color getCategoryLightweightColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 110, 185, 110); // #6EB96E
+    }
+    return new Color(display, 16, 124, 16); // #107C10
   }
 
   /**

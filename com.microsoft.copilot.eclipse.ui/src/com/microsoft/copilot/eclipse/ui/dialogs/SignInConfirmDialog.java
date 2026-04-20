@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.dialogs;
 
 import static com.microsoft.copilot.eclipse.core.AuthStatusManager.SIGNIN_TIMEOUT_MILLIS;

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.HashSet;
@@ -1096,6 +1099,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
+    this.chatServiceManager.getContextWindowService().clearContextSize();
     this.chatServiceManager.getReferencedFileService().updateReferencedFiles(List.of());
     SwtUtils.invokeOnDisplayThreadAsync(this.chatServiceManager.getFileToolService()::disposeWorkingSetBar);
 

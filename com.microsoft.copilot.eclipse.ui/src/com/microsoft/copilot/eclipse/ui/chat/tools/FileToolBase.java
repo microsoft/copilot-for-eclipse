@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
@@ -113,11 +116,13 @@ public abstract class FileToolBase extends BaseTool {
     try {
       CompareEditorInput input = createCompareEditorInput(originalFileContent, file);
       input.run(new NullProgressMonitor());
-
-      // TODO: Add a progress monitor to show the progress of the operation input.run(new NullProgressMonitor());
       compareEditorInputMap.put(file, input);
-      SwtUtils.invokeOnDisplayThread(() -> {
-        CompareUI.openCompareEditor(input);
+      // TODO: Add a progress monitor to show the progress of the operation input.run(new NullProgressMonitor());
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
+        if (compareEditorInput != null) {
+          CompareUI.openCompareEditor(compareEditorInput);
+        }
       });
     } catch (InvocationTargetException | InterruptedException e) {
       CopilotCore.LOGGER.error("Error opening compare editor", e);
@@ -138,15 +143,18 @@ public abstract class FileToolBase extends BaseTool {
     CompareEditorInput input = compareEditorInputMap.get(file);
     if (input != null) {
       if (fileContent.equals(fileContentCache.get(file))) {
-        SwtUtils.invokeOnDisplayThread(() -> {
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
           CompareUI.reuseCompareEditor(input, (IReusableEditor) getCompareEditor(input));
         });
       } else {
         CompareEditorInput newInput = createCompareEditorInput(fileContent, file);
-        SwtUtils.invokeOnDisplayThread(() -> {
-          CompareUI.reuseCompareEditor(newInput, (IReusableEditor) getCompareEditor(input));
-        });
         compareEditorInputMap.put(file, newInput);
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
+          if (compareEditorInput != null) {
+            CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) getCompareEditor(compareEditorInput));
+          }
+        });
       }
       bringCompareEditorToTop(input);
     } else {
@@ -156,8 +164,8 @@ public abstract class FileToolBase extends BaseTool {
   }
 
   /**
-   * Refreshes the compare editor for the given file only if it is already open.
-   * Does not open a new editor or steal focus.
+   * Refreshes the compare editor for the given file only if it is already open. Does not open a new editor or steal
+   * focus.
    *
    * @param fileContent The original file content to compare against.
    * @param file The file whose compare editor should be refreshed.
@@ -172,8 +180,15 @@ public abstract class FileToolBase extends BaseTool {
       compareEditorInputMap.put(file, newInput);
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
         IEditorPart editor = getCompareEditor(input);
-        if (editor != null) {
-          CompareUI.reuseCompareEditor(newInput, (IReusableEditor) editor);
+        if (editor == null) {
+          // If the compare editor is closed, remove the input from the map and skip refreshing.
+          compareEditorInputMap.remove(file);
+          return;
+        } else {
+          CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
+          if (compareEditorInput != null) {
+            CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) editor);
+          }
         }
       });
     }
@@ -183,19 +198,27 @@ public abstract class FileToolBase extends BaseTool {
    * Brings the compare editor to the top of the workbench.
    *
    * @param input The CompareEditorInput to be brought to the top.
-   * @return true if the editor was successfully brought to the top, false otherwise.
    */
-  protected boolean bringCompareEditorToTop(CompareEditorInput input) {
-    AtomicReference<Boolean> ref = new AtomicReference<>(false);
-    SwtUtils.invokeOnDisplayThread(() -> {
+  protected void bringCompareEditorToTop(CompareEditorInput input) {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
       IWorkbenchPage page = UiUtils.getActivePage();
       IEditorPart editor = getCompareEditor(input);
       if (editor != null) {
         page.bringToTop(editor);
-        ref.set(true);
       }
     });
-    return ref.get();
+  }
+
+  /**
+   * Checks whether the compare editor for the given input is still open.
+   *
+   * @param input The CompareEditorInput to check.
+   * @return true if the editor is open, false otherwise.
+   */
+  protected boolean isCompareEditorOpen(CompareEditorInput input) {
+    AtomicReference<Boolean> isOpen = new AtomicReference<>(false);
+    SwtUtils.invokeOnDisplayThread(() -> isOpen.set(getCompareEditor(input) != null));
+    return isOpen.get();
   }
 
   private IEditorPart getCompareEditor(CompareEditorInput input) {
