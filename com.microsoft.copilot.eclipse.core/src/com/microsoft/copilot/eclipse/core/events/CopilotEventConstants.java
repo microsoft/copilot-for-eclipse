@@ -162,4 +162,9 @@ public class CopilotEventConstants {
    * Event when a quota warning notification is received from the language server.
    */
   public static final String TOPIC_QUOTA_WARNING = TOPIC_QUOTA + "WARNING";
+
+  /**
+   * Event when the quota snapshot is updated after a checkQuota call.
+   */
+  public static final String TOPIC_QUOTA_SNAPSHOT_CHANGED = TOPIC_QUOTA + "SNAPSHOT_CHANGED";
 }

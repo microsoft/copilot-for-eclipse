@@ -17,6 +17,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaChangeNotification;
 
 /**
  * Manager for the authentication status.
@@ -130,6 +131,14 @@ public class AuthStatusManager {
   public CompletableFuture<CheckQuotaResult> checkQuota() {
     return this.connection.checkQuota().thenApply(result -> {
       setQuotaStatus(result);
+
+      // Post a quota snapshot changed event so that QuotaUsageIndicator can react to the new quota status.
+      if (result != null && eventBroker != null) {
+        QuotaChangeNotification notification = QuotaChangeNotification.fromCheckQuotaResult(result);
+        if (notification != null) {
+          eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_SNAPSHOT_CHANGED, notification);
+        }
+      }
       return result;
     }).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);

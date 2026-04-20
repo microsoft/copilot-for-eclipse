@@ -29,6 +29,7 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  */
 public class TopBanner extends Composite {
   private CLabel chatTitle;
+  private QuotaUsageIndicator quotaIndicator;
   private LinkedHashSet<NewConversationListener> newConversationListeners = new LinkedHashSet<>();
   private IEventBroker eventBroker;
   private EventHandler newConversationEventHandler;
@@ -53,9 +54,11 @@ public class TopBanner extends Composite {
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_HIDE_CHAT_HISTORY, newConversationEventHandler);
 
-    GridLayout gl = new GridLayout(1, false);
+    GridLayout gl = new GridLayout(2, false);
     gl.marginWidth = 0;
     gl.marginHeight = 4;
+    gl.marginLeft = 10;
+    gl.marginRight = 10;
     gl.horizontalSpacing = 0;
     setLayout(gl);
     GridData layoutData = new GridData(SWT.FILL, SWT.TOP, true, false);
@@ -68,8 +71,11 @@ public class TopBanner extends Composite {
     registerControlForFontUpdates(this.chatTitle);
 
     GridData labelGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    labelGridData.horizontalIndent = 10;
     this.chatTitle.setLayoutData(labelGridData);
+
+    this.quotaIndicator = new QuotaUsageIndicator(this, SWT.NONE);
+    GridData iconGridData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
+    this.quotaIndicator.setLayoutData(iconGridData);
 
     this.addPaintListener(new PaintListener() {
       @Override
