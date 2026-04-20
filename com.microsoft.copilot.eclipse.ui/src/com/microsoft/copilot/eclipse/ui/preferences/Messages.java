@@ -154,6 +154,41 @@ public class Messages extends NLS {
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 
+  // Usage
+  public static String usage_plan_free;
+  public static String usage_plan_pro;
+  public static String usage_plan_pro_plus;
+  public static String usage_plan_max;
+  public static String usage_plan_business;
+  public static String usage_plan_enterprise;
+  public static String usage_plan_unknown;
+  public static String usage_upgrade_plan;
+  public static String usage_manage_budget;
+  public static String usage_copilot_usage;
+  public static String usage_session_limit;
+  public static String usage_session_limit_description;
+  public static String usage_weekly_limit;
+  public static String usage_weekly_limit_description;
+  public static String usage_monthly_limit;
+  public static String usage_monthly_limit_description;
+  public static String usage_percentage_suffix;
+  public static String usage_overage_configured;
+  public static String usage_overage_spend_tooltip;
+  public static String usage_overage_not_configured;
+  public static String usage_not_signed_in;
+  public static String usage_no_monthly_limit;
+  public static String usage_no_session_limit;
+  public static String usage_no_weekly_limit;
+  public static String usage_resets_in;
+  public static String usage_resets_on_at;
+  public static String usage_resets_no_usage_yet;
+  public static String usage_duration_hours_mins;
+  public static String usage_duration_hour_mins;
+  public static String usage_duration_hours;
+  public static String usage_duration_hour;
+  public static String usage_duration_mins;
+  public static String usage_duration_less_than_min;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

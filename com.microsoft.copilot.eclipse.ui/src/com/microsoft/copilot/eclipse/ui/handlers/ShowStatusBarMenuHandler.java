@@ -237,6 +237,10 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
       percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
           quotaStatus.getChatQuota().getPercentRemaining());
     } else {
+      if (quotaStatus.getPremiumInteractionsQuota() == null
+          || quotaStatus.getCompletionsQuota() == null || quotaStatus.getChatQuota() == null) {
+        return;
+      }
       // For paid plans, also consider premium interactions quota
       percentRemaining = Math.min(quotaStatus.getCompletionsQuota().getPercentRemaining(),
           Math.min(quotaStatus.getChatQuota().getPercentRemaining(),

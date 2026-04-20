@@ -231,21 +231,21 @@ public class CssConstants {
   /**
    * Returns the approaching (yellow) fill color for the usage bar.
    */
-  public static Color getUsageBarApproachingColor(Display display) {
+  public static Color getQuotaApproachingColor(Display display) {
     if (UiUtils.isDarkTheme()) {
-      return new Color(display, 242, 197, 92);
+      return new Color(display, 242, 197, 92); // #F2C55C
     }
-    return new Color(display, 255, 184, 36);
+    return new Color(display, 255, 175, 15); // #FFAF0F
   }
 
   /**
    * Returns the exhausted (red) fill color for the usage bar.
    */
-  public static Color getUsageBarExhaustedColor(Display display) {
+  public static Color getQuotaExhaustedColor(Display display) {
     if (UiUtils.isDarkTheme()) {
-      return new Color(display, 224, 81, 81);
+      return new Color(display, 224, 81, 81); // #E05151
     }
-    return new Color(display, 224, 81, 81);
+    return new Color(display, 229, 87, 101); // #E55765
   }
 
   /**

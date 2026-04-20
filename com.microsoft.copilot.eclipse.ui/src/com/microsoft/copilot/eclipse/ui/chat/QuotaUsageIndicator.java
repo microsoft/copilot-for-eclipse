@@ -14,6 +14,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
@@ -81,6 +82,7 @@ public class QuotaUsageIndicator extends Composite {
     layout.marginHeight = 0;
     layout.horizontalSpacing = 4;
     setLayout(layout);
+    addInteractionListeners(this);
 
     this.pieCanvas = new Canvas(this, SWT.NONE);
     GridData canvasData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
@@ -88,31 +90,14 @@ public class QuotaUsageIndicator extends Composite {
     canvasData.heightHint = PIE_FULL_SIZE;
     this.pieCanvas.setLayoutData(canvasData);
     this.pieCanvas.addPaintListener(this::paint);
-    this.pieCanvas.setCursor(parent.getDisplay().getSystemCursor(SWT.CURSOR_HAND));
-    this.pieCanvas.addMouseTrackListener(new MouseTrackAdapter() {
-      @Override
-      public void mouseEnter(MouseEvent e) {
-        if (lastNotification != null) {
-          popup.open(pieCanvas, lastNotification);
-        }
-      }
-    });
-    this.pieCanvas.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseUp(MouseEvent e) {
-        Shell shell = getShell();
-        popup.close();
-        PreferencesUtil
-            .createPreferenceDialogOn(shell, UsageStatusPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
-            .open();
-      }
-    });
+    addInteractionListeners(this.pieCanvas);
 
     this.percentLabel = new Label(this, SWT.NONE);
     this.percentLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
     this.percentLabel.setVisible(false);
     GridData labelData = (GridData) this.percentLabel.getLayoutData();
     labelData.exclude = true;
+    addInteractionListeners(this.percentLabel);
 
     setVisible(false);
 
@@ -285,6 +270,28 @@ public class QuotaUsageIndicator extends Composite {
       return CssConstants.getQuotaApproachingColor(getDisplay());
     }
     return CssConstants.getQuotaPieActiveColor(getDisplay());
+  }
+
+  private void addInteractionListeners(Control control) {
+    control.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
+    control.addMouseTrackListener(new MouseTrackAdapter() {
+      @Override
+      public void mouseEnter(MouseEvent e) {
+        if (lastNotification != null) {
+          popup.open(QuotaUsageIndicator.this, lastNotification);
+        }
+      }
+    });
+    control.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseUp(MouseEvent e) {
+        Shell shell = getShell();
+        popup.close();
+        PreferencesUtil
+            .createPreferenceDialogOn(shell, UsageStatusPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
+            .open();
+      }
+    });
   }
 
   private void disposeImage() {
