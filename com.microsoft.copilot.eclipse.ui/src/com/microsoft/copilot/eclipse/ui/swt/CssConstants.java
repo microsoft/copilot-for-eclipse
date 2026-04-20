@@ -252,4 +252,23 @@ public class CssConstants {
     return new Color(display, 223, 225, 229);
   }
 
+  /**
+   * Returns the text color used in the chat top banner.
+   */
+  public static Color getTopBannerTextColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 164, 164, 164); // #A4A4A4
+    }
+    return new Color(display, 128, 128, 128); // #808080
+  }
+
+  /**
+   * Returns the active color for the quota pie chart border and fill.
+   */
+  public static Color getQuotaPieActiveColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 188, 187, 187); // #BCBBBB
+    }
+    return new Color(display, 128, 128, 128); // #808080
+  }
 }
