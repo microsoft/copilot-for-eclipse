@@ -14,9 +14,20 @@ public class CheckQuotaResult {
   private Quota chat;
   private Quota completions;
   private Quota premiumInteractions;
-  private IntervalQuota immediateUsageInterval;
-  private IntervalQuota extendedUsageInterval;
+
+  /**
+   * Quota usage for the 5-hour rolling interval (session limit). Only included for CFI (Copilot for Individuals)
+   * token-based billing users
+   */
+  private TbbQuota immediateUsageInterval;
+
+  /**
+   * Quota usage for the 7-day rolling interval (weekly limit). Only included for CFI (Copilot for Individuals)
+   * token-based billing users (all CFI plans).
+   */
+  private TbbQuota extendedUsageInterval;
   private String resetDate;
+  private String resetDateUtc;
   private CopilotPlan copilotPlan;
 
   public Quota getChatQuota() {
@@ -43,34 +54,20 @@ public class CheckQuotaResult {
     this.premiumInteractions = premiumInteractions;
   }
 
-  /**
-   * Gets the immediate usage interval quota (for individual plans).
-   */
-  public IntervalQuota getImmediateUsageInterval() {
-    return immediateUsageInterval;
-  }
-
-  public void setImmediateUsageInterval(IntervalQuota immediateUsageInterval) {
-    this.immediateUsageInterval = immediateUsageInterval;
-  }
-
-  /**
-   * Gets the extended usage interval quota (for individual plans).
-   */
-  public IntervalQuota getExtendedUsageInterval() {
-    return extendedUsageInterval;
-  }
-
-  public void setExtendedUsageInterval(IntervalQuota extendedUsageInterval) {
-    this.extendedUsageInterval = extendedUsageInterval;
-  }
-
   public String getResetDate() {
     return resetDate;
   }
 
   public void setResetDate(String resetDate) {
     this.resetDate = resetDate;
+  }
+
+  public String getResetDateUtc() {
+    return resetDateUtc;
+  }
+
+  public void setResetDateUtc(String resetDateUtc) {
+    this.resetDateUtc = resetDateUtc;
   }
 
   public CopilotPlan getCopilotPlan() {
@@ -81,10 +78,26 @@ public class CheckQuotaResult {
     this.copilotPlan = copilotPlan;
   }
 
+  public TbbQuota getImmediateUsageInterval() {
+    return immediateUsageInterval;
+  }
+
+  public void setImmediateUsageInterval(TbbQuota immediateUsageInterval) {
+    this.immediateUsageInterval = immediateUsageInterval;
+  }
+
+  public TbbQuota getExtendedUsageInterval() {
+    return extendedUsageInterval;
+  }
+
+  public void setExtendedUsageInterval(TbbQuota extendedUsageInterval) {
+    this.extendedUsageInterval = extendedUsageInterval;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(chat, completions, copilotPlan, extendedUsageInterval,
-        immediateUsageInterval, premiumInteractions, resetDate);
+    return Objects.hash(chat, completions, copilotPlan, extendedUsageInterval, immediateUsageInterval,
+        premiumInteractions, resetDate, resetDateUtc);
   }
 
   @Override
@@ -100,11 +113,10 @@ public class CheckQuotaResult {
     }
     CheckQuotaResult other = (CheckQuotaResult) obj;
     return Objects.equals(chat, other.chat) && Objects.equals(completions, other.completions)
-        && copilotPlan == other.copilotPlan
-        && Objects.equals(extendedUsageInterval, other.extendedUsageInterval)
+        && copilotPlan == other.copilotPlan && Objects.equals(premiumInteractions, other.premiumInteractions)
+        && Objects.equals(resetDate, other.resetDate) && Objects.equals(resetDateUtc, other.resetDateUtc)
         && Objects.equals(immediateUsageInterval, other.immediateUsageInterval)
-        && Objects.equals(premiumInteractions, other.premiumInteractions)
-        && Objects.equals(resetDate, other.resetDate);
+        && Objects.equals(extendedUsageInterval, other.extendedUsageInterval);
   }
 
   @Override
@@ -113,10 +125,11 @@ public class CheckQuotaResult {
     builder.append("chat", chat);
     builder.append("completions", completions);
     builder.append("premiumInteractions", premiumInteractions);
+    builder.append("resetDate", resetDate);
+    builder.append("resetDateUtc", resetDateUtc);
+    builder.append("copilotPlan", copilotPlan);
     builder.append("immediateUsageInterval", immediateUsageInterval);
     builder.append("extendedUsageInterval", extendedUsageInterval);
-    builder.append("resetDate", resetDate);
-    builder.append("copilotPlan", copilotPlan);
     return builder.toString();
   }
 }
