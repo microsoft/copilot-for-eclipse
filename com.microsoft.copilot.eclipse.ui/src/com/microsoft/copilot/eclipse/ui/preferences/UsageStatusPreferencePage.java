@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.time.Duration;
@@ -184,6 +187,11 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
   private void createBusinessEnterpriseUsage(Composite parent, CheckQuotaResult quotaResult) {
     createLimitCompound(parent, Messages.usage_monthly_limit, Messages.usage_monthly_limit_description,
         quotaResult.getPremiumInteractionsQuota(), formatDateReset(quotaResult.getResetDateUtc(), DATE_FORMATTER));
+
+    Label contactAdminLabel = new Label(parent, SWT.NONE);
+    contactAdminLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
+    contactAdminLabel.setText(Messages.usage_contact_admin);
+    contactAdminLabel.setForeground(CssConstants.getInputPlaceHolderColor(parent.getDisplay()));
   }
 
   private void createIndividualUsage(Composite parent, CheckQuotaResult quotaResult) {
