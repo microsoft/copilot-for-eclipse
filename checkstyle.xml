@@ -55,7 +55,7 @@
   <!-- See http://checkstyle.org/checks/whitespace/index.html -->
   <module name="FileTabCharacter">
     <property name="eachLine" value="true"/>
-    <property name="fileExtensions" value="java"/>
+    <property name="fileExtensions" value="java, xml"/>
   </module>
 
   <!-- Check for trailing whitespace -->
@@ -65,7 +65,7 @@
     <property name="minimum" value="0"/>
     <property name="maximum" value="0"/>
     <property name="message" value="Trailing whitespace is not allowed"/>
-    <property name="fileExtensions" value="java"/>
+    <property name="fileExtensions" value="java, xml"/>
   </module>
 
   <!-- Require the standard two-line Microsoft MIT license header. -->
