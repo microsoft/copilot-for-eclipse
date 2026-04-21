@@ -165,4 +165,9 @@ public class CopilotEventConstants {
    * Event when a quota warning notification is received from the language server.
    */
   public static final String TOPIC_QUOTA_WARNING = TOPIC_QUOTA + "WARNING";
+
+  /**
+   * Event when a rate limit warning is received from the language server.
+   */
+  public static final String TOPIC_RATE_LIMIT_WARNING = TOPIC_CHAT + "RATE_LIMIT_WARNING";
 }
