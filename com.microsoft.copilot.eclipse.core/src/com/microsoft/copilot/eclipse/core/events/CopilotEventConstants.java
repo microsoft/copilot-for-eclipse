@@ -155,4 +155,9 @@ public class CopilotEventConstants {
    * Event when NES suggestion is rejected.
    */
   public static final String TOPIC_NES_REJECT_SUGGESTION = TOPIC_NES + "REJECT_SUGGESTION";
+
+  /**
+   * Event when a rate limit warning is received from the language server.
+   */
+  public static final String TOPIC_RATE_LIMIT_WARNING = TOPIC_CHAT + "RATE_LIMIT_WARNING";
 }

@@ -14,7 +14,6 @@ import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
@@ -36,7 +35,6 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextActivation;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.part.ViewPart;
-import org.osgi.framework.Bundle;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -59,6 +57,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ContextSizeInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
@@ -134,6 +133,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler conversationTitleUpdatedHandler;
   private EventHandler codingAgentMessageHandler;
   private EventHandler autoBreakpointToggleHandler;
+  private EventHandler rateLimitWarningHandler;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
@@ -243,6 +243,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       clearCurrentConversation();
 
+      if (actionBar != null && !actionBar.isDisposed()) {
+        actionBar.disposeStaticBanner();
+      }
+
       if (conversation == null) {
         // Handle "New Chat" selection.
         hideChatHistory();
@@ -341,6 +345,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_AUTO_BREAKPOINT_TOGGLE,
         this.autoBreakpointToggleHandler);
+
+    this.rateLimitWarningHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (data instanceof RateLimitWarningParams params) {
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          if (actionBar != null && !actionBar.isDisposed()) {
+            actionBar.createStaticBanner(params.message());
+          }
+        }, parent);
+      }
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_RATE_LIMIT_WARNING, this.rateLimitWarningHandler);
 
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
@@ -1289,6 +1305,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (autoBreakpointToggleHandler != null) {
         this.eventBroker.unsubscribe(this.autoBreakpointToggleHandler);
         autoBreakpointToggleHandler = null;
+      }
+      if (rateLimitWarningHandler != null) {
+        this.eventBroker.unsubscribe(this.rateLimitWarningHandler);
+        rateLimitWarningHandler = null;
       }
     }
 

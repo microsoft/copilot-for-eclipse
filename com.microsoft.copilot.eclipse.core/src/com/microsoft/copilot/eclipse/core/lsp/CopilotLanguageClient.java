@@ -54,6 +54,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
@@ -239,6 +240,16 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public void mcpRuntimeLogs(McpRuntimeLog mcpRuntimeLog) {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MCP_RUNTIME_LOG, mcpRuntimeLog);
+    }
+  }
+
+  /**
+   * Notify when rate limit usage warning is received from the language server.
+   */
+  @JsonNotification("$/copilot/rateLimitWarning")
+  public void onRateLimitWarning(RateLimitWarningParams params) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_RATE_LIMIT_WARNING, params);
     }
   }
 

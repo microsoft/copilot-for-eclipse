@@ -198,6 +198,9 @@ public final class Messages extends NLS {
   public static String context_window_messages;
   public static String context_window_files;
   public static String context_window_tool_results;
+  public static String chat_staticBanner_messageWithLink;
+  public static String chat_rateLimitBanner_getMoreInfo;
+  public static String chat_rateLimitBanner_closeTooltip;
 
   static {
     // initialize resource bundle
