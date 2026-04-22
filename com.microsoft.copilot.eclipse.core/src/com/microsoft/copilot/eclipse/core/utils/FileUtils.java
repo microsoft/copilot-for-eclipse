@@ -325,7 +325,6 @@ public class FileUtils {
       // Try to find containers (folders/projects) for the given URI
       IContainer[] containers = root.findContainersForLocationURI(parsedUri);
       if (containers == null || containers.length == 0) {
-        CopilotCore.LOGGER.info("Directory not found: " + uri);
         return new ReadDirectoryResult(Collections.emptyList());
       }
 
@@ -336,14 +335,14 @@ public class FileUtils {
         int type;
         switch (member.getType()) {
           case IResource.FILE:
-            type = 1; // FileType.File
+            type = ReadDirectoryResult.DirectoryEntry.FILE_TYPE_FILE;
             break;
           case IResource.FOLDER:
           case IResource.PROJECT:
-            type = 2; // FileType.Directory
+            type = ReadDirectoryResult.DirectoryEntry.FILE_TYPE_DIRECTORY;
             break;
           default:
-            type = 0; // FileType.Unknown
+            type = ReadDirectoryResult.DirectoryEntry.FILE_TYPE_UNKNOWN;
             break;
         }
         entries.add(new ReadDirectoryResult.DirectoryEntry(member.getName(), type));

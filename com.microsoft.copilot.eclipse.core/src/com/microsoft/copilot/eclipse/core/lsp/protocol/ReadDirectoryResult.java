@@ -69,6 +69,11 @@ public class ReadDirectoryResult {
    */
   public static class DirectoryEntry {
 
+    /** VS Code FileType constants. */
+    public static final int FILE_TYPE_UNKNOWN = 0;
+    public static final int FILE_TYPE_FILE = 1;
+    public static final int FILE_TYPE_DIRECTORY = 2;
+
     private String name;
     private int type;
 
