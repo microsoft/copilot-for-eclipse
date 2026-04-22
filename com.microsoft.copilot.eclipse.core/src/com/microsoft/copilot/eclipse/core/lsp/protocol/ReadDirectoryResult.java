@@ -81,7 +81,7 @@ public class ReadDirectoryResult {
      * Constructor with name and type.
      *
      * @param name the entry name
-     * @param type the file type (0=Unknown, 1=File, 2=Directory, 64=SymbolicLink)
+     * @param type the file type (0=Unknown, 1=File, 2=Directory)
      */
     public DirectoryEntry(String name, int type) {
       this.name = name;
