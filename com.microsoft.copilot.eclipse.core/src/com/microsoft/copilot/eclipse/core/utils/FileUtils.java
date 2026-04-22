@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -37,6 +38,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileStat;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult.DirectoryEntry;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 
 /**
@@ -314,7 +316,7 @@ public class FileUtils {
    * @return ReadDirectoryResult containing the directory entries
    */
   public static ReadDirectoryResult readDirectoryEntries(String uri) {
-    if (uri == null || uri.isEmpty()) {
+    if (StringUtils.isBlank(uri)) {
       return new ReadDirectoryResult(Collections.emptyList());
     }
 
@@ -342,22 +344,22 @@ public class FileUtils {
       }
 
       IResource[] members = container.members();
-      List<ReadDirectoryResult.DirectoryEntry> entries = new ArrayList<>();
+      List<DirectoryEntry> entries = new ArrayList<>();
       for (IResource member : members) {
         int type;
         switch (member.getType()) {
           case IResource.FILE:
-            type = ReadDirectoryResult.DirectoryEntry.FILE_TYPE_FILE;
+            type = DirectoryEntry.FILE_TYPE_FILE;
             break;
           case IResource.FOLDER:
           case IResource.PROJECT:
-            type = ReadDirectoryResult.DirectoryEntry.FILE_TYPE_DIRECTORY;
+            type = DirectoryEntry.FILE_TYPE_DIRECTORY;
             break;
           default:
-            type = ReadDirectoryResult.DirectoryEntry.FILE_TYPE_UNKNOWN;
+            type = DirectoryEntry.FILE_TYPE_UNKNOWN;
             break;
         }
-        entries.add(new ReadDirectoryResult.DirectoryEntry(member.getName(), type));
+        entries.add(new DirectoryEntry(member.getName(), type));
       }
       return new ReadDirectoryResult(entries);
     } catch (URISyntaxException e) {
