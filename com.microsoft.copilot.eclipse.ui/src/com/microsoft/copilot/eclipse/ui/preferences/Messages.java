@@ -177,6 +177,7 @@ public class Messages extends NLS {
   public static String usage_overage_not_configured;
   public static String usage_contact_admin;
   public static String usage_not_signed_in;
+  public static String usage_get_more_info;
   public static String usage_no_monthly_limit;
   public static String usage_no_session_limit;
   public static String usage_no_weekly_limit;

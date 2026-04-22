@@ -29,6 +29,7 @@ public class CheckQuotaResult {
   private String resetDate;
   private String resetDateUtc;
   private CopilotPlan copilotPlan;
+  private boolean tokenBasedBillingEnabled;
 
   public Quota getChatQuota() {
     return chat;
@@ -94,10 +95,18 @@ public class CheckQuotaResult {
     this.extendedUsageInterval = extendedUsageInterval;
   }
 
+  public boolean isTokenBasedBillingEnabled() {
+    return tokenBasedBillingEnabled;
+  }
+
+  public void setTokenBasedBillingEnabled(boolean tokenBasedBillingEnabled) {
+    this.tokenBasedBillingEnabled = tokenBasedBillingEnabled;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(chat, completions, copilotPlan, extendedUsageInterval, immediateUsageInterval,
-        premiumInteractions, resetDate, resetDateUtc);
+        premiumInteractions, resetDate, resetDateUtc, tokenBasedBillingEnabled);
   }
 
   @Override
@@ -116,7 +125,8 @@ public class CheckQuotaResult {
         && copilotPlan == other.copilotPlan && Objects.equals(premiumInteractions, other.premiumInteractions)
         && Objects.equals(resetDate, other.resetDate) && Objects.equals(resetDateUtc, other.resetDateUtc)
         && Objects.equals(immediateUsageInterval, other.immediateUsageInterval)
-        && Objects.equals(extendedUsageInterval, other.extendedUsageInterval);
+        && Objects.equals(extendedUsageInterval, other.extendedUsageInterval)
+        && tokenBasedBillingEnabled == other.tokenBasedBillingEnabled;
   }
 
   @Override
@@ -130,6 +140,7 @@ public class CheckQuotaResult {
     builder.append("copilotPlan", copilotPlan);
     builder.append("immediateUsageInterval", immediateUsageInterval);
     builder.append("extendedUsageInterval", extendedUsageInterval);
+    builder.append("tokenBasedBillingEnabled", tokenBasedBillingEnabled);
     return builder.toString();
   }
 }

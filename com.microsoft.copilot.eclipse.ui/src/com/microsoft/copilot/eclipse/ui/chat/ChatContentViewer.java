@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -24,6 +25,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
@@ -213,7 +215,7 @@ public class ChatContentViewer extends ScrolledComposite {
       String reason = value.getErrorReason();
       if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
         // TODO: add enable button for better UX.
-        errMsg = Messages.chat_model_unsupported_message;
+        errMsg = NLS.bind(Messages.chat_model_unsupported_message, Constants.GITHUB_COPILOT_SETTINGS_URL);
       }
       if (StringUtils.isNotEmpty(errMsg)) {
         // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.

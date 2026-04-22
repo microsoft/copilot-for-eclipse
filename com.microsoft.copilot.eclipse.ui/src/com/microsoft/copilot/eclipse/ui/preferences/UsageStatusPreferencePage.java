@@ -29,8 +29,10 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -116,16 +118,32 @@ public class UsageStatusPreferencePage extends PreferencePage implements IWorkbe
     mainComposite.requestLayout();
   }
 
-  private void renderUsageStatus(CheckQuotaResult quotaResult) {
-    if (quotaResult != null) {
-      CopilotPlan plan = quotaResult.getCopilotPlan();
-      Group group = createUsageGroup(mainComposite);
-      createPlanLabel(group, plan != null ? getPlanDisplayName(plan) : StringUtils.EMPTY);
-
-      PageLayout layout = PageLayout.fromPlan(plan, quotaResult.getPremiumInteractionsQuota());
-      renderUsageLayout(group, layout, quotaResult);
-      createActionButtons(group, layout);
+  // TODO: Remove defaultLink once TBB is released in CAPI; always show the usage
+  private void defaultLink() {
+    if (mainComposite == null || mainComposite.isDisposed()) {
+      return;
     }
+    Link link = new Link(mainComposite, SWT.NONE);
+    link.setText(Messages.usage_get_more_info);
+    link.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+    link.addListener(SWT.Selection, e -> UiUtils.openLink(Constants.GITHUB_COPILOT_SETTINGS_URL));
+    mainComposite.requestLayout();
+  }
+
+  private void renderUsageStatus(CheckQuotaResult quotaResult) {
+    // TODO: Remove tokenBasedBillingEnabled check once TBB is released in CAPI
+    if (quotaResult == null || !quotaResult.isTokenBasedBillingEnabled()) {
+      defaultLink();
+      return;
+    }
+
+    CopilotPlan plan = quotaResult.getCopilotPlan();
+    Group group = createUsageGroup(mainComposite);
+    createPlanLabel(group, plan != null ? getPlanDisplayName(plan) : StringUtils.EMPTY);
+
+    PageLayout layout = PageLayout.fromPlan(plan, quotaResult.getPremiumInteractionsQuota());
+    renderUsageLayout(group, layout, quotaResult);
+    createActionButtons(group, layout);
 
     mainComposite.requestLayout();
   }

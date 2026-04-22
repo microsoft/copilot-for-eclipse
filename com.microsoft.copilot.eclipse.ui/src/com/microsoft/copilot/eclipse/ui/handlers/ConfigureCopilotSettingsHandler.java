@@ -7,6 +7,7 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -15,12 +16,10 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ConfigureCopilotSettingsHandler extends AbstractHandler {
 
-  private static final String COPILOT_SETTINGS_URL = "https://github.com/settings/copilot";
-
   @Override
   public Object execute(ExecutionEvent event) throws ExecutionException {
     try {
-      UiUtils.openLink(COPILOT_SETTINGS_URL);
+      UiUtils.openLink(Constants.GITHUB_COPILOT_SETTINGS_URL);
     } catch (Exception e) {
       CopilotCore.LOGGER.error(e);
     }
