@@ -130,7 +130,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP Registry - Cannot restore MCP registry URL.
 - MCP Registry - Auto load more not working on MacOS.
 - MCP Registry - Check server ID and base URL for MCP servers from registry.
-- MCP Registry - Dynamically set the table row height for MCP registry dialog.- MCP Registry - Only store the MCP registry URL to configuration scope.
+- MCP Registry - Dynamically set the table row height for MCP registry dialog.
+- MCP Registry - Only store the MCP registry URL to configuration scope.
 - MCP Registry - Refresh the tool bar of MCP registry dialog after clicking.
 - Chat History - Persisted chat history title contains line breaks.
 - Chat History - Conversation with id does not exist.
