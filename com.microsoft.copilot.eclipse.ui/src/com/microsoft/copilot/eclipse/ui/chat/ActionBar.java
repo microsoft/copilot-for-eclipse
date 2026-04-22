@@ -117,6 +117,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image autoBreakpointImage;
   private Image autoBreakpointDisabledImage;
   private ContextSizeDonut contextSizeDonut;
+  private StaticBanner staticBanner;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
@@ -700,6 +701,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   @Override
   public void onNewConversation() {
     resetSendButton();
+    disposeStaticBanner();
   }
 
   /**
@@ -942,6 +944,43 @@ public class ActionBar extends Composite implements NewConversationListener {
       return result;
     }
     return result;
+  }
+
+  /**
+   * Show the static banner above the bordered action bar area.
+   *
+   * @param message the message to display
+   */
+  public void createStaticBanner(String message) {
+    if (isDisposed()) {
+      return;
+    }
+    if (this.staticBanner != null && !this.staticBanner.isDisposed()) {
+      this.staticBanner.dispose();
+    }
+
+    this.staticBanner = new StaticBanner(this, SWT.NONE, message, Messages.chat_rateLimitBanner_getMoreInfo,
+        UiConstants.COPILOT_RATE_LIMIT_INFO_URL, Messages.chat_rateLimitBanner_closeTooltip);
+    // Position the banner above the first child (the bordered action bar composite)
+    if (getChildren().length > 0) {
+      this.staticBanner.moveAbove(getChildren()[0]);
+    }
+    this.staticBanner.show();
+    requestLayout();
+  }
+
+  /**
+   * Dispose the current static banner, if present.
+   */
+  public void disposeStaticBanner() {
+    if (isDisposed()) {
+      return;
+    }
+    if (this.staticBanner != null && !this.staticBanner.isDisposed()) {
+      this.staticBanner.dispose();
+    }
+    this.staticBanner = null;
+    requestLayout();
   }
 
   private void refreshLayout() {
