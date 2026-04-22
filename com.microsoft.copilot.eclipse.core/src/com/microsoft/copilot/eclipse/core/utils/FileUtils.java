@@ -12,11 +12,14 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
@@ -33,6 +36,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileStat;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 
 /**
@@ -300,6 +304,58 @@ public class FileUtils {
       return new ReadFileResult("Failed to read file: " + e.getMessage(), null);
     }
 
+  }
+
+  /**
+   * Reads the contents of a directory given its URI. Used by workspace/readDirectory API to list directory entries.
+   * Works with both local filesystem URIs and virtual URIs (e.g., semanticfs://) through Eclipse's IResource API.
+   *
+   * @param uri the directory URI
+   * @return ReadDirectoryResult containing the directory entries
+   */
+  public static ReadDirectoryResult readDirectoryEntries(String uri) {
+    if (uri == null || uri.isEmpty()) {
+      return new ReadDirectoryResult(Collections.emptyList());
+    }
+
+    try {
+      URI parsedUri = new URI(uri);
+      IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+
+      // Try to find containers (folders/projects) for the given URI
+      IContainer[] containers = root.findContainersForLocationURI(parsedUri);
+      if (containers == null || containers.length == 0) {
+        CopilotCore.LOGGER.info("Directory not found: " + uri);
+        return new ReadDirectoryResult(Collections.emptyList());
+      }
+
+      IContainer container = containers[0];
+      IResource[] members = container.members();
+      List<ReadDirectoryResult.DirectoryEntry> entries = new ArrayList<>();
+      for (IResource member : members) {
+        int type;
+        switch (member.getType()) {
+          case IResource.FILE:
+            type = 1; // FileType.File
+            break;
+          case IResource.FOLDER:
+          case IResource.PROJECT:
+            type = 2; // FileType.Directory
+            break;
+          default:
+            type = 0; // FileType.Unknown
+            break;
+        }
+        entries.add(new ReadDirectoryResult.DirectoryEntry(member.getName(), type));
+      }
+      return new ReadDirectoryResult(entries);
+    } catch (URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid directory URI: " + uri, e);
+      return new ReadDirectoryResult(Collections.emptyList());
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Failed to read directory: " + uri, e);
+      return new ReadDirectoryResult(Collections.emptyList());
+    }
   }
 
   private static String readFileContent(IFile file) throws CoreException, IOException {

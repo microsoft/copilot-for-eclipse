@@ -54,6 +54,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
@@ -322,6 +323,15 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   @JsonRequest("workspace/readFile")
   public CompletableFuture<ReadFileResult> readFile(String uri) {
     return CompletableFuture.supplyAsync(() -> FileUtils.readFileWithStats(uri));
+  }
+
+  /**
+   * Reads the contents of a directory given its URI. Used by the language server to list directory entries for URIs
+   * with external content provider schemes (e.g., semanticfs://) that cannot be read from the local file system.
+   */
+  @JsonRequest("workspace/readDirectory")
+  public CompletableFuture<ReadDirectoryResult> readDirectory(String uri) {
+    return CompletableFuture.supplyAsync(() -> FileUtils.readDirectoryEntries(uri));
   }
 
   /**
