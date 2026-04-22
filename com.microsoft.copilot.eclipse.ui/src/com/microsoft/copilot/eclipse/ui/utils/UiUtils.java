@@ -37,7 +37,6 @@ import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.fieldassist.ControlDecoration;
-import org.eclipse.jface.fieldassist.FieldDecorationRegistry;
 import org.eclipse.jface.resource.FontRegistry;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
@@ -578,9 +577,8 @@ public class UiUtils {
   }
 
   /**
-   * Returns a bold version of the chat font for the Copilot Chat view.
-   * Falls back to a bold version of the provided fallback font if chat font is not available.
-   * The caller is responsible for disposing the returned font.
+   * Returns a bold version of the chat font for the Copilot Chat view. Falls back to a bold version of the provided
+   * fallback font if chat font is not available. The caller is responsible for disposing the returned font.
    *
    * @param display the display to create the font on
    * @param fallbackFont the font to use if chat font is not available
@@ -870,7 +868,7 @@ public class UiUtils {
    * @param width the desired width of the image, or -1 to keep original width
    * @param height the desired height of the image, or -1 to keep original height
    * @return a CompletableFuture that completes with the loaded image on the UI thread, or fails if loading fails
-   *         (caller is responsible for disposing the image)
+   * (caller is responsible for disposing the image)
    */
   public static CompletableFuture<Image> loadImageFromUrl(String urlString, int width, int height) {
     return CompletableFuture.supplyAsync(() -> {
@@ -981,8 +979,8 @@ public class UiUtils {
    */
   public static void addTooltipDecoration(Control control, Composite parent, String tooltip) {
     ControlDecoration decoration = new ControlDecoration(control, SWT.RIGHT | SWT.TOP, parent);
-    decoration.setImage(
-        FieldDecorationRegistry.getDefault().getFieldDecoration(FieldDecorationRegistry.DEC_INFORMATION).getImage());
+    Image image = buildImageFromPngPath("/icons/information.png");
+    decoration.setImage(image);
     decoration.setMarginWidth(3);
     decoration.setDescriptionText(tooltip);
     decoration.setShowHover(true);
