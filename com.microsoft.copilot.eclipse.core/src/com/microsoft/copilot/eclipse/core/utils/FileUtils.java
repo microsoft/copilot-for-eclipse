@@ -328,7 +328,19 @@ public class FileUtils {
         return new ReadDirectoryResult(Collections.emptyList());
       }
 
-      IContainer container = containers[0];
+      // findContainersForLocationURI may return multiple matches;
+      // pick the first accessible one to avoid reading a closed/phantom project
+      IContainer container = null;
+      for (IContainer c : containers) {
+        if (c.isAccessible()) {
+          container = c;
+          break;
+        }
+      }
+      if (container == null) {
+        return new ReadDirectoryResult(Collections.emptyList());
+      }
+
       IResource[] members = container.members();
       List<ReadDirectoryResult.DirectoryEntry> entries = new ArrayList<>();
       for (IResource member : members) {
