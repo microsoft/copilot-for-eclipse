@@ -25,11 +25,9 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A reusable banner widget that displays an informational message with an inline link and a close button. Shows an info
  * icon, the provided message with an appended link, and a dismiss (×) button.
  *
- * <p>
- * Usage example:
- * 
- * <pre>
- * var banner = new StaticBanner(parent, SWT.NONE, "You've used 90% of your rate limit.", "Get more info",
+ * <p>Usage example:
+ *
+ * <pre>var banner = new StaticBanner(parent, SWT.NONE, "You've used 90% of your rate limit.", "Get more info",
  *     "https://example.com", "Dismiss");
  * banner.show();
  * </pre>
@@ -106,19 +104,6 @@ public class StaticBanner extends Composite {
     setVisible(true);
     GridData gd = (GridData) getLayoutData();
     gd.exclude = false;
-    getParent().requestLayout();
-  }
-
-  /**
-   * Hide the banner.
-   */
-  public void hide() {
-    if (isDisposed()) {
-      return;
-    }
-    setVisible(false);
-    GridData gd = (GridData) getLayoutData();
-    gd.exclude = true;
     getParent().requestLayout();
   }
 
