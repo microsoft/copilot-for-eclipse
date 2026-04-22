@@ -38,6 +38,8 @@ public class Constants {
   public static final String CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED = "customInstructionsWorkspaceEnabled";
   public static final String CUSTOM_INSTRUCTIONS_GIT_COMMIT = "customInstructionsGitCommit";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
+  public static final String GITHUB_COPILOT_SETTINGS_URL = "https://github.com/settings/copilot";
+  public static final String GITHUB_COPILOT_INDIVIDUAL_UPGRADE_URL = "https://gh.io/ghcp-individual-upgrade";
   @Deprecated
   public static final String QUICK_START_VERSION = "quickStartVersion";
   public static final String COPILOT_QUICK_START_VERSION = "copilotQuickStartVersion";

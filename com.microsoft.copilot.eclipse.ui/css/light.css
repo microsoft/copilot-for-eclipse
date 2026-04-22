@@ -224,6 +224,7 @@
 
 /* Action items in dropdown popups */
 #popup-item-default Label.popup-action-text,
-#popup-item-selected Label.popup-action-text {
+#popup-item-selected Label.popup-action-text,
+#dropdown-popup Label.popup-action-text {
 	color: #286EC5;
 }

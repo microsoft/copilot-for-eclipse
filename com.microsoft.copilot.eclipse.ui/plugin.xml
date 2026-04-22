@@ -175,6 +175,12 @@
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
 			class="com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage">
 		</page>
+		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.UsageStatusPreferencePage"
+			name="%page.preferencesPage.usageStatus.name"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.UsageStatusPreferencePage">
+		</page>
 	</extension>
 	<!-- Content type for agent.md files
 	     Matches *.md files but the describer validates only *.agent.md -->
