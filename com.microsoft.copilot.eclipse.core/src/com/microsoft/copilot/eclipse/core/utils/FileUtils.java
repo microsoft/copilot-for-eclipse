@@ -12,11 +12,15 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
@@ -33,6 +37,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileStat;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult.DirectoryEntry;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 
 /**
@@ -300,6 +306,80 @@ public class FileUtils {
       return new ReadFileResult("Failed to read file: " + e.getMessage(), null);
     }
 
+  }
+
+  /**
+   * Reads the contents of a directory given its URI. Used by workspace/readDirectory API to list directory entries.
+   * Works with local filesystem URIs, platform:/resource URIs (produced by {@link #getResourceUri(IResource)}), and
+   * virtual URIs (e.g., semanticfs://) through Eclipse's IResource API.
+   *
+   * @param uri the directory URI
+   * @return ReadDirectoryResult containing the directory entries
+   */
+  public static ReadDirectoryResult readDirectoryEntries(String uri) {
+    if (StringUtils.isBlank(uri)) {
+      return new ReadDirectoryResult(Collections.emptyList());
+    }
+
+    try {
+      URI parsedUri = new URI(uri);
+      IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+
+      IContainer container = null;
+      if ("platform".equals(parsedUri.getScheme())) {
+        // Handle platform:/resource/... URIs by resolving via workspace path
+        String path = parsedUri.getPath();
+        String prefix = "/resource";
+        if (path != null && path.startsWith(prefix)) {
+          String workspacePath = path.substring(prefix.length());
+          IResource resource = root.findMember(workspacePath);
+          if (resource instanceof IContainer c && c.isAccessible()) {
+            container = c;
+          }
+        }
+      } else {
+        // For file://, semanticfs://, and other URIs, use location URI lookup
+        IContainer[] containers = root.findContainersForLocationURI(parsedUri);
+        if (containers != null) {
+          for (IContainer c : containers) {
+            if (c.isAccessible()) {
+              container = c;
+              break;
+            }
+          }
+        }
+      }
+
+      if (container == null) {
+        return new ReadDirectoryResult(Collections.emptyList());
+      }
+
+      IResource[] members = container.members();
+      List<DirectoryEntry> entries = new ArrayList<>();
+      for (IResource member : members) {
+        int type;
+        switch (member.getType()) {
+          case IResource.FILE:
+            type = DirectoryEntry.FILE_TYPE_FILE;
+            break;
+          case IResource.FOLDER:
+          case IResource.PROJECT:
+            type = DirectoryEntry.FILE_TYPE_DIRECTORY;
+            break;
+          default:
+            type = DirectoryEntry.FILE_TYPE_UNKNOWN;
+            break;
+        }
+        entries.add(new DirectoryEntry(member.getName(), type));
+      }
+      return new ReadDirectoryResult(entries);
+    } catch (URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid directory URI: " + uri, e);
+      return new ReadDirectoryResult(Collections.emptyList());
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Failed to read directory: " + uri, e);
+      return new ReadDirectoryResult(Collections.emptyList());
+    }
   }
 
   private static String readFileContent(IFile file) throws CoreException, IOException {
