@@ -310,7 +310,8 @@ public class FileUtils {
 
   /**
    * Reads the contents of a directory given its URI. Used by workspace/readDirectory API to list directory entries.
-   * Works with both local filesystem URIs and virtual URIs (e.g., semanticfs://) through Eclipse's IResource API.
+   * Works with local filesystem URIs, platform:/resource URIs (produced by {@link #getResourceUri(IResource)}), and
+   * virtual URIs (e.g., semanticfs://) through Eclipse's IResource API.
    *
    * @param uri the directory URI
    * @return ReadDirectoryResult containing the directory entries
@@ -324,21 +325,31 @@ public class FileUtils {
       URI parsedUri = new URI(uri);
       IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 
-      // Try to find containers (folders/projects) for the given URI
-      IContainer[] containers = root.findContainersForLocationURI(parsedUri);
-      if (containers == null || containers.length == 0) {
-        return new ReadDirectoryResult(Collections.emptyList());
-      }
-
-      // findContainersForLocationURI may return multiple matches;
-      // pick the first accessible one to avoid reading a closed/phantom project
       IContainer container = null;
-      for (IContainer c : containers) {
-        if (c.isAccessible()) {
-          container = c;
-          break;
+      if ("platform".equals(parsedUri.getScheme())) {
+        // Handle platform:/resource/... URIs by resolving via workspace path
+        String path = parsedUri.getPath();
+        String prefix = "/resource";
+        if (path != null && path.startsWith(prefix)) {
+          String workspacePath = path.substring(prefix.length());
+          IResource resource = root.findMember(workspacePath);
+          if (resource instanceof IContainer c && c.isAccessible()) {
+            container = c;
+          }
+        }
+      } else {
+        // For file://, semanticfs://, and other URIs, use location URI lookup
+        IContainer[] containers = root.findContainersForLocationURI(parsedUri);
+        if (containers != null) {
+          for (IContainer c : containers) {
+            if (c.isAccessible()) {
+              container = c;
+              break;
+            }
+          }
         }
       }
+
       if (container == null) {
         return new ReadDirectoryResult(Collections.emptyList());
       }
