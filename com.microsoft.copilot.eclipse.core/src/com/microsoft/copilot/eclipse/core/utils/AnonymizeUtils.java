@@ -13,8 +13,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Copied from
- * https://devdiv.visualstudio.com/DevDiv/_git/copilot-plugin-telemetry?path=%2Fvscode-extension-telemetry-java%2Fsrc%2Fmain%2Fjava%2Fcom%2Fmicrosoft%2Fcopilot%2Fapplicationinsights%2Ftelemetry%2Finternal%2Futils%2FAnonymizeUtils.java.
+ * Utilities for anonymizing / redacting PII and sensitive tokens (file paths, credentials, etc.)
+ * from telemetry payloads before they are emitted.
  */
 public class AnonymizeUtils {
 
