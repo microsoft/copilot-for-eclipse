@@ -26,6 +26,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -34,6 +35,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 
@@ -373,7 +375,11 @@ public class FileUtils {
   }
 
   private static String readFileContent(IFile file) throws CoreException, IOException {
-    try (InputStream is = file.getContents()) {
+    // Use EFS.getStore().openInputStream() instead of IFile.getContents() to avoid holding the
+    // Eclipse workspace resource-tree lock during the I/O. For virtual URI schemes (e.g.
+    // semanticfs://) IFile.getContents() would hold the lock across a synchronous network request,
+    // potentially stalling the UI thread.
+    try (InputStream is = EFS.getStore(file.getLocationURI()).openInputStream(EFS.NONE, new NullProgressMonitor())) {
       return new String(is.readAllBytes(), file.getCharset());
     }
   }
@@ -403,9 +409,10 @@ public class FileUtils {
     FileStat stat = new FileStat();
 
     if (file.getLocationURI() != null) {
-      try (InputStream is = file.getContents(true)) {
-        stat.setSize(is.readAllBytes().length);
-      } catch (IOException | CoreException e) {
+      // Use EFS to query the file size without acquiring the workspace resource-tree lock.
+      try {
+        stat.setSize(EFS.getStore(file.getLocationURI()).fetchInfo().getLength());
+      } catch (CoreException e) {
         // Ignore; size stays 0.
       }
     }
@@ -563,7 +570,12 @@ public class FileUtils {
     if (uri == null) {
       return;
     }
-    try (InputStream is = file.getContents(true);
+    // Use EFS.getStore().openInputStream() instead of IFile.getContents() to avoid holding the
+    // Eclipse workspace resource-tree lock during the I/O. IFile.getContents() acquires that lock
+    // for the lifetime of the call; for virtual URI schemes (e.g. semanticfs://) the underlying
+    // EFS provider may issue a synchronous network request, which would stall the UI thread and
+    // any background Jobs waiting to acquire the same lock.
+    try (InputStream is = EFS.getStore(file.getLocationURI()).openInputStream(EFS.NONE, new NullProgressMonitor());
         BufferedReader reader = new BufferedReader(new InputStreamReader(is, file.getCharset()))) {
       long totalChars = 0;
       String line;
