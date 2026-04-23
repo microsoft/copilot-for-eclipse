@@ -266,11 +266,26 @@ public class FileUtils {
       return null;
     }
 
-    // Try URI-based resolution first for non-filesystem URI schemes (e.g., semanticfs://)
-    if (URI_SCHEME_PATTERN.matcher(filePath).find() && !filePath.startsWith("file:")) {
+    // Try URI-based resolution first for non-filesystem URI schemes (e.g., semanticfs://).
+    // Exclude drive-letter paths (e.g., C:/project/file.txt) — they match the URI_SCHEME_PATTERN
+    // but must be handled as filesystem paths below.
+    if (URI_SCHEME_PATTERN.matcher(filePath).find() && !filePath.startsWith("file:") && !hasDriveLetter(filePath)) {
       IResource resource = getResourceFromUri(filePath);
       if (resource instanceof IFile file) {
         return file;
+      }
+      // getResourceFromUri only returns existing resources. When checkExistence=false, try to
+      // obtain an IFile handle without requiring the resource to already exist on disk.
+      if (!checkExistence) {
+        try {
+          URI uri = new URI(filePath);
+          IFile[] files = ResourcesPlugin.getWorkspace().getRoot().findFilesForLocationURI(uri);
+          if (files != null && files.length > 0 && files[0] != null) {
+            return files[0];
+          }
+        } catch (URISyntaxException e) {
+          CopilotCore.LOGGER.error("Invalid URI in getFileFromPath: " + filePath, e);
+        }
       }
       return null;
     }
@@ -375,11 +390,19 @@ public class FileUtils {
   }
 
   private static String readFileContent(IFile file) throws CoreException, IOException {
+    URI locationUri = file.getLocationURI();
+    if (locationUri == null) {
+      // IResource#getLocationURI() can be null for resources without a defined location.
+      // Fall back to IFile.getContents() which works for any local resource.
+      try (InputStream is = file.getContents()) {
+        return new String(is.readAllBytes(), file.getCharset());
+      }
+    }
     // Use EFS.getStore().openInputStream() instead of IFile.getContents() to avoid holding the
     // Eclipse workspace resource-tree lock during the I/O. For virtual URI schemes (e.g.
     // semanticfs://) IFile.getContents() would hold the lock across a synchronous network request,
     // potentially stalling the UI thread.
-    try (InputStream is = EFS.getStore(file.getLocationURI()).openInputStream(EFS.NONE, new NullProgressMonitor())) {
+    try (InputStream is = EFS.getStore(locationUri).openInputStream(EFS.NONE, new NullProgressMonitor())) {
       return new String(is.readAllBytes(), file.getCharset());
     }
   }
@@ -432,8 +455,9 @@ public class FileUtils {
       return new FindFilesResult(List.of());
     }
 
-    int maxResults = params.maxResults() != null && params.maxResults() > 0 ? params.maxResults()
-        : Integer.MAX_VALUE;
+    int maxResults = params.maxResults() != null && params.maxResults() > 0
+        ? Math.min(params.maxResults(), MAX_SEARCH_RESULTS)
+        : MAX_SEARCH_RESULTS;
 
     try {
       IContainer container = findContainerForUri(params.baseUri());
@@ -495,8 +519,9 @@ public class FileUtils {
       return new FindTextInFilesResult(List.of());
     }
 
-    int maxResults = params.maxResults() != null && params.maxResults() > 0 ? params.maxResults()
-        : Integer.MAX_VALUE;
+    int maxResults = params.maxResults() != null && params.maxResults() > 0
+        ? Math.min(params.maxResults(), MAX_SEARCH_RESULTS)
+        : MAX_SEARCH_RESULTS;
     boolean isRegexp = Boolean.TRUE.equals(params.isRegexp());
 
     Pattern pattern;
@@ -560,6 +585,13 @@ public class FileUtils {
   }
 
   /**
+   * Upper bound on the number of results returned by {@link #findFiles} and {@link #findTextInFiles} when the caller
+   * does not specify {@code maxResults} or specifies a value exceeding this limit. Capping the default prevents
+   * accidental out-of-memory conditions and excessively long workspace traversals on large projects.
+   */
+  private static final int MAX_SEARCH_RESULTS = 20;
+
+  /**
    * Default maximum number of characters for text search. Files exceeding this are skipped to avoid loading very large
    * blobs into memory.
    */
@@ -570,12 +602,18 @@ public class FileUtils {
     if (uri == null) {
       return;
     }
+    URI locationUri = file.getLocationURI();
+    if (locationUri == null) {
+      // IResource#getLocationURI() can be null for resources without a defined location; skip them.
+      CopilotCore.LOGGER.info("findTextInFiles: skipping file without location URI: " + uri);
+      return;
+    }
     // Use EFS.getStore().openInputStream() instead of IFile.getContents() to avoid holding the
     // Eclipse workspace resource-tree lock during the I/O. IFile.getContents() acquires that lock
     // for the lifetime of the call; for virtual URI schemes (e.g. semanticfs://) the underlying
     // EFS provider may issue a synchronous network request, which would stall the UI thread and
     // any background Jobs waiting to acquire the same lock.
-    try (InputStream is = EFS.getStore(file.getLocationURI()).openInputStream(EFS.NONE, new NullProgressMonitor());
+    try (InputStream is = EFS.getStore(locationUri).openInputStream(EFS.NONE, new NullProgressMonitor());
         BufferedReader reader = new BufferedReader(new InputStreamReader(is, file.getCharset()))) {
       long totalChars = 0;
       String line;
