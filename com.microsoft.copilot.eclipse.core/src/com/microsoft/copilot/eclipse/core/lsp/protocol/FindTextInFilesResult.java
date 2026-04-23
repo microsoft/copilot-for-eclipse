@@ -4,57 +4,13 @@
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.List;
-import java.util.Objects;
-
-import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Result of the {@code workspace/findTextInFiles} request, containing the list of matches.
+ *
+ * @param matches the list of text search matches
  */
-public class FindTextInFilesResult {
-
-  private List<TextSearchMatch> matches;
-
-  /**
-   * Constructs a new FindTextInFilesResult object.
-   *
-   * @param matches the list of text search matches
-   */
-  public FindTextInFilesResult(List<TextSearchMatch> matches) {
-    this.matches = matches;
-  }
-
-  public List<TextSearchMatch> getMatches() {
-    return matches;
-  }
-
-  public void setMatches(List<TextSearchMatch> matches) {
-    this.matches = matches;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(matches);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    FindTextInFilesResult other = (FindTextInFilesResult) obj;
-    return Objects.equals(matches, other.matches);
-  }
-
-  @Override
-  public String toString() {
-    ToStringBuilder builder = new ToStringBuilder(this);
-    builder.append("matches", matches);
-    return builder.toString();
-  }
+public record FindTextInFilesResult(List<TextSearchMatch> matches) {
 
   /**
    * A single text search match. Field names mirror the CLS protocol.

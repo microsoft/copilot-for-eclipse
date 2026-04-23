@@ -428,31 +428,31 @@ public class FileUtils {
    * @return a {@link FindFilesResult} containing the matching file URIs
    */
   public static FindFilesResult findFiles(FindFilesParams params) {
-    if (params == null || StringUtils.isBlank(params.getBaseUri()) || StringUtils.isBlank(params.getPattern())) {
+    if (params == null || StringUtils.isBlank(params.baseUri()) || StringUtils.isBlank(params.pattern())) {
       return new FindFilesResult(List.of());
     }
 
-    int maxResults = params.getMaxResults() != null && params.getMaxResults() > 0 ? params.getMaxResults()
+    int maxResults = params.maxResults() != null && params.maxResults() > 0 ? params.maxResults()
         : Integer.MAX_VALUE;
 
     try {
-      IContainer container = findContainerForUri(params.getBaseUri());
+      IContainer container = findContainerForUri(params.baseUri());
       if (container == null) {
-        CopilotCore.LOGGER.info("findFiles: base URI not found in workspace: " + params.getBaseUri());
+        CopilotCore.LOGGER.info("findFiles: base URI not found in workspace: " + params.baseUri());
         return new FindFilesResult(List.of());
       }
 
-      PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + params.getPattern());
+      PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + params.pattern());
       List<String> uris = new ArrayList<>();
       IPath basePath = container.getFullPath();
 
       collectMatchingFiles(container, basePath, matcher, uris, maxResults);
       return new FindFilesResult(uris);
     } catch (CoreException e) {
-      CopilotCore.LOGGER.error("Failed to find files under: " + params.getBaseUri(), e);
+      CopilotCore.LOGGER.error("Failed to find files under: " + params.baseUri(), e);
       return new FindFilesResult(List.of());
     } catch (IllegalArgumentException e) {
-      CopilotCore.LOGGER.error("Invalid glob pattern for findFiles: " + params.getPattern(), e);
+      CopilotCore.LOGGER.error("Invalid glob pattern for findFiles: " + params.pattern(), e);
       return new FindFilesResult(List.of());
     }
   }
@@ -491,38 +491,38 @@ public class FileUtils {
    * @return a {@link FindTextInFilesResult} containing the matches
    */
   public static FindTextInFilesResult findTextInFiles(FindTextInFilesParams params) {
-    if (params == null || StringUtils.isBlank(params.getBaseUri()) || StringUtils.isBlank(params.getQuery())) {
+    if (params == null || StringUtils.isBlank(params.baseUri()) || StringUtils.isBlank(params.query())) {
       return new FindTextInFilesResult(List.of());
     }
 
-    int maxResults = params.getMaxResults() != null && params.getMaxResults() > 0 ? params.getMaxResults()
+    int maxResults = params.maxResults() != null && params.maxResults() > 0 ? params.maxResults()
         : Integer.MAX_VALUE;
-    boolean isRegexp = Boolean.TRUE.equals(params.getIsRegexp());
+    boolean isRegexp = Boolean.TRUE.equals(params.isRegexp());
 
     Pattern pattern;
     try {
-      pattern = isRegexp ? Pattern.compile(params.getQuery()) : Pattern.compile(Pattern.quote(params.getQuery()));
+      pattern = isRegexp ? Pattern.compile(params.query()) : Pattern.compile(Pattern.quote(params.query()));
     } catch (PatternSyntaxException e) {
-      CopilotCore.LOGGER.error("Invalid regex for findTextInFiles: " + params.getQuery(), e);
+      CopilotCore.LOGGER.error("Invalid regex for findTextInFiles: " + params.query(), e);
       return new FindTextInFilesResult(List.of());
     }
 
     // Compile the optional include glob pattern to filter which files are searched
     PathMatcher includeMatcher = null;
-    if (params.getIncludePattern() != null && !params.getIncludePattern().isEmpty()) {
+    if (params.includePattern() != null && !params.includePattern().isEmpty()) {
       try {
-        includeMatcher = FileSystems.getDefault().getPathMatcher("glob:" + params.getIncludePattern());
+        includeMatcher = FileSystems.getDefault().getPathMatcher("glob:" + params.includePattern());
       } catch (IllegalArgumentException e) {
-        CopilotCore.LOGGER.error("Invalid glob for findTextInFiles includePattern: " + params.getIncludePattern(), e);
+        CopilotCore.LOGGER.error("Invalid glob for findTextInFiles includePattern: " + params.includePattern(), e);
         return new FindTextInFilesResult(List.of());
       }
     }
 
     // Resolve the base URI to a workspace container and recursively search for text matches
     try {
-      IContainer container = findContainerForUri(params.getBaseUri());
+      IContainer container = findContainerForUri(params.baseUri());
       if (container == null) {
-        CopilotCore.LOGGER.info("findTextInFiles: base URI not found in workspace: " + params.getBaseUri());
+        CopilotCore.LOGGER.info("findTextInFiles: base URI not found in workspace: " + params.baseUri());
         return new FindTextInFilesResult(List.of());
       }
 
@@ -530,7 +530,7 @@ public class FileUtils {
       searchTextInContainer(container, container.getFullPath(), pattern, includeMatcher, matches, maxResults);
       return new FindTextInFilesResult(matches);
     } catch (CoreException e) {
-      CopilotCore.LOGGER.error("Failed to search text under: " + params.getBaseUri(), e);
+      CopilotCore.LOGGER.error("Failed to search text under: " + params.baseUri(), e);
       return new FindTextInFilesResult(List.of());
     }
   }
