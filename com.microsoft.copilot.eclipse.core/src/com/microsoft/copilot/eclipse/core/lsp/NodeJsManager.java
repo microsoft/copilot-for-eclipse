@@ -35,9 +35,14 @@ public class NodeJsManager {
   private static final String MACOS_DSCL_SHELL_PREFIX = "UserShell: ";
 
   /**
-   * The minimum required version of Node.js for Copilot Language Server.
+   * The minimum required major version of Node.js for Copilot Language Server.
    */
-  private static final int REQUIRED_MINIMUM_VERSION = 22;
+  private static final int REQUIRED_MINIMUM_MAJOR_VERSION = 22;
+
+  /**
+   * The minimum required minor version of Node.js for Copilot Language Server (when major equals the minimum).
+   */
+  private static final int REQUIRED_MINIMUM_MINOR_VERSION = 13;
 
   private static final String NODE_NAME = "node";
 
@@ -276,9 +281,14 @@ public class NodeJsManager {
     }
 
     try {
-      String majorVersionStr = nodeVersion.split("\\.")[0];
-      int majorVersion = Integer.parseInt(majorVersionStr);
-      return majorVersion >= REQUIRED_MINIMUM_VERSION;
+      String[] versionParts = nodeVersion.split("\\.");
+      int majorVersion = Integer.parseInt(versionParts[0]);
+      int minorVersion = versionParts.length > 1 ? Integer.parseInt(versionParts[1]) : 0;
+
+      if (majorVersion != REQUIRED_MINIMUM_MAJOR_VERSION) {
+        return majorVersion > REQUIRED_MINIMUM_MAJOR_VERSION;
+      }
+      return minorVersion >= REQUIRED_MINIMUM_MINOR_VERSION;
     } catch (Exception e) {
       Activator.getDefault().getLog().log(new Status(IStatus.ERROR,
           Activator.getDefault().getBundle().getSymbolicName(), "Failed to parse Node.js version: " + nodeVersion, e));
