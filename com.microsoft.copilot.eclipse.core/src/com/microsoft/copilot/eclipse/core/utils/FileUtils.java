@@ -526,7 +526,8 @@ public class FileUtils {
 
     Pattern pattern;
     try {
-      pattern = isRegexp ? Pattern.compile(params.query()) : Pattern.compile(Pattern.quote(params.query()));
+      pattern = isRegexp ? Pattern.compile(params.query(), Pattern.CASE_INSENSITIVE)
+          : Pattern.compile(Pattern.quote(params.query()), Pattern.CASE_INSENSITIVE);
     } catch (PatternSyntaxException e) {
       CopilotCore.LOGGER.error("Invalid regex for findTextInFiles: " + params.query(), e);
       return new FindTextInFilesResult(List.of());
