@@ -35,6 +35,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
  */
 public class ChatPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
   public static final String ID = "com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage";
+  private static final int FIELD_WIDTH_HINT = 400;
 
   /**
    * Constructor.
@@ -57,7 +58,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
         Messages.preferences_page_watched_files, SWT.WRAP,
         workspaceContextComposite);
     GridData workspaceContextFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    workspaceContextFieldGridData.widthHint = 400;
+    workspaceContextFieldGridData.widthHint = FIELD_WIDTH_HINT;
     workspaceContextField.getDescriptionControl(workspaceContextComposite).setLayoutData(workspaceContextFieldGridData);
 
     addField(workspaceContextField);
@@ -99,7 +100,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
         Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
     subAgentField.setEnabled(policyAllowsSubAgent, subAgentComposite);
     GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    subAgentFieldGridData.widthHint = 400;
+    subAgentFieldGridData.widthHint = FIELD_WIDTH_HINT;
     subAgentField.getDescriptionControl(subAgentComposite).setLayoutData(subAgentFieldGridData);
     addField(subAgentField);
 
@@ -134,6 +135,31 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     GridData agentMaxRequestsNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     agentMaxRequestsNoteGridData.horizontalSpan = 2;
     agentMaxRequestsNote.setLayoutData(agentMaxRequestsNoteGridData);
+
+    // add separator
+    Label separator3 = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
+    GridData separator3GridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    separator3GridData.horizontalSpan = 2;
+    separator3.setLayoutData(separator3GridData);
+
+    // Add Enable Skills toggle
+    Composite skillsComposite = new Composite(parent, SWT.NONE);
+    skillsComposite.setLayout(new GridLayout(1, true));
+    gdf.applyTo(skillsComposite);
+
+    BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
+        Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
+    GridData skillsFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    skillsFieldGridData.widthHint = FIELD_WIDTH_HINT;
+    skillsField.getDescriptionControl(skillsComposite).setLayoutData(skillsFieldGridData);
+    addField(skillsField);
+
+    WrappableNoteLabel skillsNote = new WrappableNoteLabel(parent,
+        Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_skills_enabled_note_content);
+    GridData skillsNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    skillsNoteGridData.horizontalSpan = 2;
+    skillsNote.setLayoutData(skillsNoteGridData);
   }
 
   @Override
