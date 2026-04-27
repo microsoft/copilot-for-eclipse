@@ -204,9 +204,17 @@ public class ChatContentViewer extends ScrolledComposite {
       }
       refreshScrollerLayout();
 
-      // Auto-scroll to bottom if enabled
-      if (shouldAutoScrollToBottom()) {
-        scrollToBottom();
+      // For agent-mode responses (agent rounds/tool calls) we always force the view
+      // to scroll to the bottom so prompts that require user action (e.g. Continue,
+      // permission dialogs) are visible even if the user previously scrolled away.
+      if (value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
+        // Use a forced scroll to ensure visibility regardless of manual scroll state.
+        forceScrollToBottom();
+      } else {
+        // Auto-scroll to bottom if enabled for regular chat-mode responses
+        if (shouldAutoScrollToBottom()) {
+          scrollToBottom();
+        }
       }
 
       String errMsg = value.getErrorMessage();
@@ -375,12 +383,75 @@ public class ChatContentViewer extends ScrolledComposite {
 
   /**
    * Scroll to the bottom.
+   * Made public so child widgets can request scrolling when they show dialogs or
+   * other interactive controls that should be visible to the user.
    */
-  private void scrollToBottom() {
-    ScrollBar verticalBar = this.getVerticalBar();
-    if (verticalBar != null) {
-      this.setOrigin(0, verticalBar.getMaximum());
+  public void scrollToBottom() {
+    // Ensure layout is settled and compute an explicit origin based on content size
+    // rather than relying on scroll bar metrics which can be inconsistent during
+    // rapid layout changes (dialog creation/disposal). Run on UI thread.
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (this.isDisposed()) {
+        return;
+      }
+
+      Rectangle clientArea = this.getClientArea();
+      // compute content height with current client width
+      Point containerSize = cmpContent.computeSize(clientArea.width, SWT.DEFAULT);
+      int contentHeight = containerSize.y;
+      int originY = Math.max(0, contentHeight - clientArea.height);
+      this.setOrigin(0, originY);
+    }, this);
+  }
+
+  /**
+   * Force the view to scroll to the bottom regardless of the user's manual scroll state. This is used for important UI
+   * prompts (like tool confirmations) to ensure they are visible even if the user had scrolled away. The implementation
+   * performs a two-phase scroll to be robust against layout timing issues.
+   */
+  public void forceScrollToBottom() {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (this.isDisposed()) {
+        return;
+      }
+      // Temporarily enable auto-scroll to allow setOrigin to take effect.
+      boolean previousAuto = this.autoScrollEnabled;
+      this.autoScrollEnabled = true;
+      // Run layout on content to ensure sizes are accurate before measuring.
+      cmpContent.layout(true, true);
+
+      // Initial immediate scroll
+      doScrollToBottom();
+
+      // Schedule follow-up scrolls after short delays to handle any remaining
+      // pending layout operations or asynchronous children updates.
+      SwtUtils.getDisplay().timerExec(120, () -> {
+        doScrollToBottom();
+      });
+      SwtUtils.getDisplay().timerExec(350, () -> {
+        try {
+          if (!this.isDisposed()) {
+            doScrollToBottom();
+          }
+        } catch (Exception ignore) {
+          // ignore
+        } finally {
+          // Restore previous state after the delayed scrolls
+          this.autoScrollEnabled = previousAuto;
+        }
+      });
+    }, this);
+  }
+
+  private void doScrollToBottom() {
+    if (this.isDisposed()) {
+      return;
     }
+    Rectangle clientArea = this.getClientArea();
+    Point containerSize = cmpContent.computeSize(clientArea.width, SWT.DEFAULT);
+    int contentHeight = containerSize.y;
+    int originY = Math.max(0, contentHeight - clientArea.height);
+    this.setOrigin(0, originY);
   }
 
   /**
