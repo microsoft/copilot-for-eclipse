@@ -23,6 +23,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -36,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -604,16 +606,16 @@ public abstract class BaseTurnWidget extends Composite {
    * @param code the server error code
    * @param modelProviderName the BYOK model-provider name, or {@code null} for built-in models
    */
-  protected void createWarnDialog(String message, int code, String modelProviderName) {
+  protected Composite createWarnDialog(String message, int code, String modelProviderName) {
     // TODO: Remove this legacy fallback after TBB is officially released.
     // When the language server has not enabled token-based billing yet, restore the original
     // main-branch warning behavior (no plan-driven actions; single upgrade button on the legacy
     // 30-day free trial message).
     if (!this.serviceManager.getAuthStatusManager().getQuotaStatus().tokenBasedBillingEnabled()) {
-      new WarnWidget(this, SWT.BOTTOM, message, code);
+      WarnWidget warnWidget = new WarnWidget(this, SWT.BOTTOM, message, code);
       ensureFooterAtBottom();
       requestLayout();
-      return;
+      return warnWidget;
     }
     boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
     String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
@@ -627,9 +629,10 @@ public abstract class BaseTurnWidget extends Composite {
           && quotaStatus.premiumInteractions().overagePermitted();
       canUpgradePlan = quotaStatus.canUpgradePlan();
     }
-    new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
+    WarnWidget warnWidget = new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
     ensureFooterAtBottom();
     requestLayout();
+  return warnWidget;
   }
 
   /**
@@ -665,6 +668,19 @@ public abstract class BaseTurnWidget extends Composite {
         .getConfirmationFuture();
 
     this.getParent().requestLayout();
+
+    // Ensure the chat content viewer scrolls to show the newly created confirmation
+    // dialog. Walk up the composite hierarchy to find a ChatContentViewer
+    // and request scrolling. Use async exec because layout needs to complete first.
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      ChatContentViewer viewer = SwtUtils.findParentOfType(this.getParent(), ChatContentViewer.class);
+      if (viewer != null) {
+        if (this.confirmDialog != null && !this.confirmDialog.isDisposed()) {
+          viewer.showControl(this.confirmDialog);
+        }
+      }
+
+    }, this.getParent());
 
     return toolConfirmationFuture;
   }

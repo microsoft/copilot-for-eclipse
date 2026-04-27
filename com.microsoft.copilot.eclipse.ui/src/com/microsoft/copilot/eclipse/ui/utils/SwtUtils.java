@@ -48,7 +48,29 @@ public class SwtUtils {
   }
 
   private static final String INLINE_ANNOTATION_COLOR_KEY = "org.eclipse.ui.editors.inlineAnnotationColor";
+
   private static final int DEFAULT_GHOST_TEXT_SCALE = 128;
+
+  /**
+   * Walks up the parent chain of the given control and returns the first ancestor that is an instance of the specified
+   * type, or {@code null} if none is found.
+   *
+   * @param <T> the target type
+   * @param control the starting control (may be {@code null})
+   * @param type the class to search for
+   * @return the first matching ancestor, or {@code null}
+   */
+  @Nullable
+  public static <T> T findParentOfType(Control control, Class<T> type) {
+    Control current = control;
+    while (current != null) {
+      if (type.isInstance(current)) {
+        return type.cast(current);
+      }
+      current = current.getParent();
+    }
+    return null;
+  }
 
   /**
    * Invokes the given runnable on the display thread.

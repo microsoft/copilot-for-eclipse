@@ -468,9 +468,17 @@ public class ChatContentViewer extends Composite {
   }
 
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code, String modelProviderName) {
-    latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
+    Composite warnWidget = latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
     refreshLayoutFull();
     scrollToLatestUserTurn();
+    // Ensure the chat content viewer scrolls to show the newly created warning banner. Walk up the composite hierarchy
+    // to find a ChatContentViewer and request scrolling. Use async exec because layout needs to complete first.
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (warnWidget != null && !warnWidget.isDisposed()) {
+        showControl(warnWidget);
+      }
+
+    }, this.getParent());
   }
 
   /**
@@ -483,6 +491,12 @@ public class ChatContentViewer extends Composite {
     this.errorWidget = new ErrorWidget(cmpContent, SWT.BOTTOM, errorMessage);
     refreshLayoutFull();
     scrollToLatestUserTurn();
+    // Ensure the chat content viewer scrolls to show the newly created error banner.
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (this.errorWidget != null && !this.errorWidget.isDisposed()) {
+        this.showControl(this.errorWidget);
+      }
+    }, this.getParent());
   }
 
   /**
@@ -768,6 +782,51 @@ public class ChatContentViewer extends Composite {
       running += measuredHeight(child, width);
     }
     return running;
+  }
+
+  /**
+   * Scrolls the viewport to make {@code target} visible, equivalent to
+   * {@link org.eclipse.swt.custom.ScrolledComposite#showControl(Control)}.
+   *
+   * <p>Walks up the widget tree to find the direct child of {@code cmpContent} that contains
+   * {@code target}, computes the content-coordinate position of {@code target} by summing
+   * the turn's {@link #topOf} value with the local y offsets down to {@code target}, then
+   * adjusts {@link #scrollOffset} by the minimum amount needed to bring {@code target} fully
+   * into the viewport.</p>
+   */
+  public void showControl(Composite target) {
+    if (target == null || target.isDisposed()) {
+      return;
+    }
+    // Walk up to find the direct child of cmpContent that is the ancestor of target.
+    Control ancestor = target;
+    while (ancestor != null && ancestor.getParent() != cmpContent) {
+      ancestor = ancestor.getParent();
+    }
+    if (ancestor == null || ancestor.getParent() != cmpContent) {
+      return;
+    }
+    // Content-coordinate top of the enclosing turn widget.
+    int ancestorTop = topOf(ancestor);
+    // Accumulate the local y offset by walking from target up to (but not including) ancestor.
+    int localY = 0;
+    for (Control c = target; c != ancestor; c = c.getParent()) {
+      localY += c.getLocation().y;
+    }
+    int targetTop = ancestorTop + localY;
+    int targetHeight = target.computeSize(getClientArea().width, SWT.DEFAULT).y;
+    int targetBottom = targetTop + targetHeight;
+    int viewport = getClientArea().height;
+    // Scroll the minimum amount: down if target is below the visible area, up if above.
+    int newOffset = scrollOffset;
+    if (targetBottom > scrollOffset + viewport) {
+      newOffset = targetBottom - viewport;
+    }
+    if (targetTop < newOffset) {
+      newOffset = targetTop;
+    }
+    scrollOffset = clampOffset(newOffset);
+    relayoutWindow();
   }
 
   @Override
