@@ -10,6 +10,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.CustomModesPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.GeneralPreferencesPage;
+import com.microsoft.copilot.eclipse.ui.preferences.McpFileConfigPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 
 /**
@@ -24,7 +25,7 @@ public class PreferencesUtils {
   public static String[] getAllPreferenceIds() {
     return new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
         CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-        McpPreferencePage.ID, ByokPreferencePage.ID };
+        McpPreferencePage.ID, McpFileConfigPreferencePage.ID, ByokPreferencePage.ID };
   }
 
 }

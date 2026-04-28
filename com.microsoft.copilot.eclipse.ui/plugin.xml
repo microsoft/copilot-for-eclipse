@@ -158,6 +158,12 @@
 			class="com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage">
 		</page>
 		<page
+			id="com.microsoft.copilot.eclipse.ui.preferences.McpFileConfigPreferencePage"
+			name="%page.preferencesPage.mcp.fileConfigs.name"
+			category="com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage"
+			class="com.microsoft.copilot.eclipse.ui.preferences.McpFileConfigPreferencePage">
+		</page>
+		<page
 			id="com.microsoft.copilot.eclipse.ui.preferences.CustomInstructionPreferencePage"
 			name="%page.preferencesPage.customInstructions.name"
 			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
