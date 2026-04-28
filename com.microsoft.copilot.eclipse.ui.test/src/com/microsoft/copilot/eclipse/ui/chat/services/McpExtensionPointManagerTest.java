@@ -60,6 +60,10 @@ class McpExtensionPointManagerTest {
     // Set the mock plugin
     pluginField.set(null, mockCopilotUi);
 
+    // Stub getPreferenceStore so the constructor's loadPersistedMcpContribs() doesn't NPE
+    IPreferenceStore mockPreferenceStore = mock(IPreferenceStore.class);
+    when(mockCopilotUi.getPreferenceStore()).thenReturn(mockPreferenceStore);
+
     manager = new McpExtensionPointManager(mockMcpConfigService);
   }
 
@@ -141,6 +145,7 @@ class McpExtensionPointManagerTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testUpdateApprovedMcpServerStringWithNullMap() throws Exception {
     // Arrange: Use reflection to call the private method
     Method updateMethod = McpExtensionPointManager.class.getDeclaredMethod("updateApprovedMcpServerString", Map.class);
@@ -149,11 +154,17 @@ class McpExtensionPointManagerTest {
     // Act: Call with null map
     updateMethod.invoke(manager, (Map<String, McpRegistrationInfo>) null);
 
-    // Assert: Verify the approved servers string remains null or unchanged
+    // Assert: The method returns early for null input, so the constructor-initialized
+    // empty approved-servers payload should remain unchanged.
     String approvedServers = manager.getApprovedExtMcpServers();
-    // The method should return early when map is null, so approvedServers should be null
-    assertTrue(approvedServers == null || approvedServers.isEmpty(),
-        "Approved servers should be null or empty when input map is null");
+    assertNotNull(approvedServers);
+    Map<String, Object> result = gson.fromJson(approvedServers, Map.class);
+    assertNotNull(result);
+    assertTrue(result.containsKey("servers"));
+
+    Map<String, Object> servers = (Map<String, Object>) result.get("servers");
+    assertNotNull(servers);
+    assertTrue(servers.isEmpty(), "Approved servers should stay empty when input map is null");
   }
 
   @Test

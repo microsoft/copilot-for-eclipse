@@ -30,6 +30,7 @@ import java.util.List;
  *   <li>{@code cssId} — widget whose {@code CssConstants.CSS_ID_KEY} data equals {@link #value}.</li>
  *   <li>{@code cssClass} — widget whose {@code CssConstants.CSS_CLASS_NAME_KEY} data
  *       contains {@link #value} (values are space-separated class lists).</li>
+ *   <li>{@code checkBox} — checkbox (SWT.CHECK Button) matching {@link #text}.</li>
  * </ul>
  */
 public class Locator {

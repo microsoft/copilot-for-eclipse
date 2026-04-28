@@ -49,7 +49,8 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   private volatile Set<String> allCommands = new HashSet<>();
   // Exclude intelliJ sepcific slash commands
   private static final Set<String> EXCLUDED_COMMANDS = Set.of("help", "feedback");
-  public static final String REFRESH_JOB_FAMILY = "com.microsoft.copilot.eclipse.chat.services.SlashCommandService.refreshJob";
+  public static final String REFRESH_JOB_FAMILY =
+      "com.microsoft.copilot.eclipse.chat.services.SlashCommandService.refreshJob";
   private CopilotLanguageServerConnection lsConnection;
   private AuthStatusManager authStatusManager;
   private IResourceChangeListener skillFileListener;

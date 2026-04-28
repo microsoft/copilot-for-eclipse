@@ -6,7 +6,9 @@ package com.microsoft.copilot.eclipse.swtbot.test.probe;
 import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,13 +19,26 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 
 import org.eclipse.core.commands.ParameterizedCommand;
+import org.eclipse.core.resources.IContainer;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.preference.PreferenceDialog;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Widget;
 import org.eclipse.swtbot.eclipse.finder.SWTWorkbenchBot;
-import org.eclipse.swtbot.swt.finder.keyboard.Keystrokes;
 import org.eclipse.swtbot.swt.finder.utils.SWTBotPreferences;
+import org.eclipse.swtbot.swt.finder.widgets.SWTBotCheckBox;
 import org.eclipse.swtbot.swt.finder.widgets.SWTBotStyledText;
 import org.eclipse.swtbot.swt.finder.widgets.SWTBotText;
 import org.eclipse.swtbot.swt.finder.widgets.SWTBotTree;
@@ -32,6 +47,7 @@ import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandService;
+import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.eclipse.ui.handlers.IHandlerService;
 
 /**
@@ -85,6 +101,9 @@ final class StepExecutor {
       case "assertExists":
         assertExists(step);
         break;
+      case "assertContentAssist":
+        assertContentAssist(step);
+        break;
       case "waitFor":
         waitFor(step);
         break;
@@ -97,6 +116,9 @@ final class StepExecutor {
       case "typeIn":
         typeIn(step);
         break;
+      case "typeKeys":
+        typeKeys(step);
+        break;
       case "clearElement":
         clearElement(step);
         break;
@@ -105,6 +127,21 @@ final class StepExecutor {
         break;
       case "newSession":
         invokeCommand("com.microsoft.copilot.eclipse.commands.newChatSession");
+        break;
+      case "openPreferencePage":
+        openPreferencePage(step);
+        break;
+      case "createProject":
+        createProject(step);
+        break;
+      case "createWorkspaceFile":
+        createWorkspaceFile(step);
+        break;
+      case "deleteWorkspaceFile":
+        deleteWorkspaceFile(step);
+        break;
+      case "waitForJobFamily":
+        waitForJobFamily(step);
         break;
       default:
         throw new IllegalArgumentException("Unknown action: " + action);
@@ -205,41 +242,71 @@ final class StepExecutor {
 
   private void pressKey(ProbeStep step) {
     String key = required(step.key, "key");
-    org.eclipse.jface.bindings.keys.KeyStroke stroke = toKeystroke(key);
+    int[] keyInfo = resolveKey(key);
+    int keyCode = keyInfo[0];
+    char character = (char) keyInfo[1];
+    Display display = Display.getDefault();
+
+    // Resolve target widget: either the locator target or the display's focus control.
+    AtomicReference<Widget> targetRef = new AtomicReference<>();
     if (step.locator != null) {
-      Object widget = resolve(step.locator);
-      if (widget instanceof SWTBotStyledText) {
-        ((SWTBotStyledText) widget).pressShortcut(stroke);
-        return;
+      Object botWidget = resolve(step.locator);
+      if (botWidget instanceof SWTBotStyledText) {
+        ((SWTBotStyledText) botWidget).setFocus();
+      } else if (botWidget instanceof SWTBotText) {
+        ((SWTBotText) botWidget).setFocus();
       }
-      if (widget instanceof SWTBotText) {
-        ((SWTBotText) widget).pressShortcut(stroke);
-        return;
-      }
-      // Fall through to shell-level press if the widget wrapper lacks pressShortcut.
+      targetRef.set(extractWidget(botWidget));
     }
-    bot.activeShell().pressShortcut(stroke);
+    if (targetRef.get() == null) {
+      display.syncExec(() -> targetRef.set(display.getFocusControl()));
+    }
+    Widget target = targetRef.get();
+    if (target == null) {
+      throw new RuntimeException("pressKey: no focused widget to receive key event");
+    }
+
+    display.syncExec(() -> {
+      Event down = new Event();
+      down.type = SWT.KeyDown;
+      down.keyCode = keyCode;
+      down.character = character;
+      target.notifyListeners(SWT.KeyDown, down);
+
+      Event up = new Event();
+      up.type = SWT.KeyUp;
+      up.keyCode = keyCode;
+      up.character = character;
+      target.notifyListeners(SWT.KeyUp, up);
+    });
+    try {
+      Thread.sleep(100);
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+    }
   }
 
-  private static org.eclipse.jface.bindings.keys.KeyStroke toKeystroke(String key) {
-    String upper = key.toUpperCase();
-    switch (upper) {
+  /**
+   * Returns {@code [swtKeyCode, swtCharacter]} for a named key.
+   */
+  private static int[] resolveKey(String key) {
+    switch (key.toUpperCase()) {
       case "ENTER":
       case "RETURN":
       case "CR":
-        return Keystrokes.CR;
+        return new int[] { SWT.CR, '\r' };
       case "ESC":
       case "ESCAPE":
-        return Keystrokes.ESC;
+        return new int[] { SWT.ESC, '\033' };
       case "TAB":
-        return Keystrokes.TAB;
+        return new int[] { SWT.TAB, '\t' };
       case "SPACE":
-        return Keystrokes.SPACE;
+        return new int[] { ' ', ' ' };
       case "BACKSPACE":
       case "BS":
-        return Keystrokes.BS;
+        return new int[] { SWT.BS, '\b' };
       case "DELETE":
-        return Keystrokes.DELETE;
+        return new int[] { SWT.DEL, '\177' };
       default:
         throw new IllegalArgumentException("Unsupported key: " + key);
     }
@@ -359,6 +426,73 @@ final class StepExecutor {
     }
   }
 
+  /**
+   * Asserts that the currently visible content-assist popup contains (or does not
+   * contain) a proposal whose text includes {@code step.text}.
+   *
+   * <p>The content-assist popup is a separate {@link Shell} holding a {@link Table}
+   * of proposals. This walks all open shells looking for a visible Table whose items
+   * match the search text.</p>
+   *
+   * @param step requires {@code text}; optional {@code shouldExist} (default true)
+   */
+  private void assertContentAssist(ProbeStep step) {
+    String searchText = required(step.text, "text");
+    boolean shouldExist = step.shouldExist == null ? true : step.shouldExist;
+    AtomicReference<Boolean> found = new AtomicReference<>(false);
+    AtomicReference<String> allProposals = new AtomicReference<>("");
+
+    Display.getDefault().syncExec(() -> {
+      StringBuilder sb = new StringBuilder();
+      for (Shell shell : Display.getDefault().getShells()) {
+        if (shell.isDisposed() || !shell.isVisible()) {
+          continue;
+        }
+        Table table = findTable(shell);
+        if (table == null || table.isDisposed()) {
+          continue;
+        }
+        for (int i = 0; i < table.getItemCount(); i++) {
+          TableItem item = table.getItem(i);
+          String itemText = item.getText();
+          if (sb.length() > 0) {
+            sb.append(", ");
+          }
+          sb.append(itemText);
+          if (itemText.contains(searchText)) {
+            found.set(true);
+          }
+        }
+      }
+      allProposals.set(sb.toString());
+    });
+
+    if (found.get() != shouldExist) {
+      throw new AssertionError(
+          "assertContentAssist failed: text=\"" + searchText + "\" shouldExist="
+              + shouldExist + " proposals=[" + allProposals.get() + "]");
+    }
+  }
+
+  /**
+   * Recursively searches a widget tree for the first visible {@link Table}.
+   */
+  private Table findTable(Widget w) {
+    if (w == null || w.isDisposed()) {
+      return null;
+    }
+    if (w instanceof Table) {
+      return (Table) w;
+    }
+    for (Widget child : childrenOf(w)) {
+      Table hit = findTable(child);
+      if (hit != null) {
+        return hit;
+      }
+    }
+    return null;
+  }
+
   private void click(ProbeStep step) {
     Object widget = resolve(step.locator);
     if (widget instanceof SWTBotStyledText) {
@@ -367,6 +501,10 @@ final class StepExecutor {
     }
     if (widget instanceof SWTBotText) {
       ((SWTBotText) widget).setFocus();
+      return;
+    }
+    if (widget instanceof SWTBotCheckBox) {
+      ((SWTBotCheckBox) widget).click();
       return;
     }
     invokeClick(widget);
@@ -383,6 +521,68 @@ final class StepExecutor {
       throw new IllegalArgumentException(
           "typeIn not supported for widget type: " + widget.getClass().getSimpleName());
     }
+  }
+
+  /**
+   * Types text character-by-character via SWT event notification on the located
+   * widget. Unlike {@code typeIn} (which uses {@code setText}), this fires
+   * {@code KeyDown}/{@code KeyUp} events that trigger key listeners such as
+   * content-assist auto-activation.
+   */
+  private void typeKeys(ProbeStep step) {
+    Object botWidget = resolve(step.locator);
+    String payload = required(step.text, "text");
+    if (botWidget instanceof SWTBotStyledText) {
+      ((SWTBotStyledText) botWidget).setFocus();
+    } else if (botWidget instanceof SWTBotText) {
+      ((SWTBotText) botWidget).setFocus();
+    }
+    Widget target = extractWidget(botWidget);
+    for (char c : payload.toCharArray()) {
+      Display.getDefault().syncExec(() -> {
+        Event down = new Event();
+        down.type = SWT.KeyDown;
+        down.character = c;
+        down.keyCode = c;
+        target.notifyListeners(SWT.KeyDown, down);
+
+        Event up = new Event();
+        up.type = SWT.KeyUp;
+        up.character = c;
+        up.keyCode = c;
+        target.notifyListeners(SWT.KeyUp, up);
+      });
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+    }
+  }
+
+  /**
+   * Extracts the underlying SWT {@link Widget} from an SWTBot wrapper via the
+   * public {@code widget} field. Uses reflection to avoid a compile-time
+   * dependency on {@code AbstractSWTBot} (which transitively pulls SLF4J).
+   */
+  private static Widget extractWidget(Object botWrapper) {
+    ReflectiveOperationException reflectErr = null;
+    try {
+      java.lang.reflect.Field f = botWrapper.getClass().getField("widget");
+      Object raw = f.get(botWrapper);
+      if (raw instanceof Widget) {
+        return (Widget) raw;
+      }
+    } catch (ReflectiveOperationException e) {
+      reflectErr = e;
+    }
+    if (botWrapper instanceof Widget) {
+      return (Widget) botWrapper;
+    }
+    throw new IllegalArgumentException(
+        "Cannot extract SWT Widget from " + botWrapper.getClass().getSimpleName(),
+        reflectErr);
   }
 
   private void clearElement(ProbeStep step) {
@@ -529,6 +729,8 @@ final class StepExecutor {
         return resolveByWidgetClass(required(locator.value, "locator.value"));
       case "widgetId":
         return resolveByCssMarker(SWTBOT_WIDGET_KEY, required(locator.value, "locator.value"), true);
+      case "checkBox":
+        return bot.checkBox(required(locator.text, "locator.text"));
       default:
         throw new IllegalArgumentException("Unknown locator.by: " + locator.by);
     }
@@ -727,6 +929,121 @@ final class StepExecutor {
       widget.getClass().getMethod("click").invoke(widget);
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException("click not supported on " + widget.getClass().getSimpleName(), e);
+    }
+  }
+
+  /**
+   * Opens the Eclipse Preferences dialog directly to the specified page.
+   *
+   * @param step must have {@code pageId} set to a preference page id
+   */
+  private void openPreferencePage(ProbeStep step) {
+    String pageId = required(step.pageId, "pageId");
+    IWorkbenchWindow window = waitForWorkbenchWindow();
+    Display.getDefault().syncExec(() -> {
+      Shell shell = window.getShell();
+      PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(
+          shell, pageId, new String[] { pageId }, null);
+      dialog.setBlockOnOpen(false);
+      dialog.open();
+    });
+  }
+
+  /**
+   * Creates an empty Eclipse project in the workspace. The project name comes from
+   * {@code step.text}; if absent the default name {@code "probe-project"} is used.
+   * If a project with that name already exists and is open, this is a no-op.
+   */
+  private void createProject(ProbeStep step) throws Exception {
+    String name = step.text == null || step.text.isEmpty() ? "probe-project" : step.text;
+    IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(name);
+    if (!project.exists()) {
+      project.create(new NullProgressMonitor());
+    }
+    if (!project.isOpen()) {
+      project.open(new NullProgressMonitor());
+    }
+  }
+
+  /**
+   * Creates a file in the first open workspace project. The file path is relative to
+   * the project root (e.g. {@code .github/skills/my-skill/SKILL.md}). Parent folders
+   * are created automatically.
+   */
+  private void createWorkspaceFile(ProbeStep step) throws Exception {
+    String relativePath = required(step.path, "path");
+    String fileContent = step.content == null ? "" : step.content;
+    IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+    if (projects.length == 0) {
+      throw new IllegalStateException("No projects in workspace; cannot create file.");
+    }
+    IProject project = projects[0];
+    IFile file = project.getFile(relativePath);
+    // Create parent folders
+    createParentFolders(file);
+    try (InputStream is = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8))) {
+      if (file.exists()) {
+        file.setContents(is, IResource.FORCE, new NullProgressMonitor());
+      } else {
+        file.create(is, IResource.FORCE, new NullProgressMonitor());
+      }
+    }
+  }
+
+  /**
+   * Deletes a file from the first open workspace project.
+   */
+  private void deleteWorkspaceFile(ProbeStep step) throws Exception {
+    String relativePath = required(step.path, "path");
+    IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+    if (projects.length == 0) {
+      throw new IllegalStateException("No projects in workspace; cannot delete file.");
+    }
+    IProject project = projects[0];
+    IFile file = project.getFile(relativePath);
+    if (file.exists()) {
+      file.delete(true, new NullProgressMonitor());
+    }
+  }
+
+  private void createParentFolders(IFile file) throws Exception {
+    IContainer parent = file.getParent();
+    if (parent instanceof IFolder) {
+      createFolderRecursively((IFolder) parent);
+    }
+  }
+
+  private void createFolderRecursively(IFolder folder) throws Exception {
+    if (folder.exists()) {
+      return;
+    }
+    IContainer parent = folder.getParent();
+    if (parent instanceof IFolder) {
+      createFolderRecursively((IFolder) parent);
+    }
+    folder.create(true, true, new NullProgressMonitor());
+  }
+
+  /**
+   * Waits for all Eclipse Jobs belonging to the specified family to finish.
+   */
+  private void waitForJobFamily(ProbeStep step) throws InterruptedException {
+    String family = required(step.jobFamily, "jobFamily");
+    long timeoutMs = 1000L * seconds(step, 30);
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    while (System.currentTimeMillis() < deadline) {
+      Job[] jobs = Job.getJobManager().find(family);
+      if (jobs.length == 0) {
+        return;
+      }
+      for (Job job : jobs) {
+        long remaining = deadline - System.currentTimeMillis();
+        if (remaining <= 0) {
+          throw new AssertionError("waitForJobFamily timed out: " + family);
+        }
+        job.join(remaining, new NullProgressMonitor());
+      }
+      // Re-check in case new jobs were scheduled during join.
     }
   }
 

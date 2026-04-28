@@ -50,6 +50,18 @@ public class ProbeStep {
    */
   public String expectedValue;
 
+  /** Eclipse preference page id (for openPreferencePage). */
+  public String pageId;
+
+  /** Workspace-relative file path (for createWorkspaceFile / deleteWorkspaceFile). */
+  public String path;
+
+  /** File content payload (for createWorkspaceFile). */
+  public String content;
+
+  /** Eclipse Job family id (for waitForJobFamily). */
+  public String jobFamily;
+
   public boolean isFailFast() {
     return failFast == null ? true : failFast;
   }
