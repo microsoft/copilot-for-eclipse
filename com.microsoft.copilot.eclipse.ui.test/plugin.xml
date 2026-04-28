@@ -2,6 +2,18 @@
 <?eclipse version="3.4"?>
 <plugin>
    <extension
+         id="foreignTextMarker"
+         name="Foreign Text Marker"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+      <persistent
+            value="false">
+      </persistent>
+   </extension>
+
+   <extension
          point="org.eclipse.ui.editors">
       <editor
             class="com.microsoft.copilot.eclipse.ui.completion.EditorLifecycleListenerIntegrationTests$EditorForRefactorRenameTests"
