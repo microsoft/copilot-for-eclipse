@@ -47,6 +47,10 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
@@ -343,6 +347,22 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   @JsonRequest("workspace/readDirectory")
   public CompletableFuture<ReadDirectoryResult> readDirectory(String uri) {
     return CompletableFuture.supplyAsync(() -> FileUtils.readDirectoryEntries(uri));
+  }
+
+  /**
+   * Searches for files matching a glob pattern under the given base URI.
+   */
+  @JsonRequest("workspace/findFiles")
+  public CompletableFuture<FindFilesResult> findFiles(FindFilesParams params) {
+    return CompletableFuture.supplyAsync(() -> FileUtils.findFiles(params));
+  }
+
+  /**
+   * Searches for text (or a regex) in files under the given base URI.
+   */
+  @JsonRequest("workspace/findTextInFiles")
+  public CompletableFuture<FindTextInFilesResult> findTextInFiles(FindTextInFilesParams params) {
+    return CompletableFuture.supplyAsync(() -> FileUtils.findTextInFiles(params));
   }
 
   /**
