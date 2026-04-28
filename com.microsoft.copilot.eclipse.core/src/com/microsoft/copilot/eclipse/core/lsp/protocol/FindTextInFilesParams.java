@@ -14,5 +14,5 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
  * @param maxResults the maximum number of results to return (optional)
  */
 public record FindTextInFilesParams(String baseUri, String query, Boolean isRegexp, String includePattern,
-    Integer maxResults) {
+    int maxResults) {
 }

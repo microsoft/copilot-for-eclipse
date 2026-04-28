@@ -11,5 +11,5 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
  * @param pattern the glob pattern to match file paths against
  * @param maxResults the maximum number of results to return (optional)
  */
-public record FindFilesParams(String baseUri, String pattern, Integer maxResults) {
+public record FindFilesParams(String baseUri, String pattern, int maxResults) {
 }
