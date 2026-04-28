@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.contexts.EclipseContextFactory;
@@ -20,6 +21,8 @@ import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4e.LanguageClientImpl;
 import org.eclipse.lsp4j.ConfigurationItem;
 import org.eclipse.lsp4j.ConfigurationParams;
+import org.eclipse.lsp4j.MessageParams;
+import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
@@ -381,5 +384,35 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     } else {
       return super.showDocument(params);
     }
+  }
+
+  @Override
+  public void logMessage(MessageParams message) {
+    if (message == null) {
+      return;
+    }
+
+    MessageType type = message.getType();
+    if (type == null) {
+      return;
+    }
+
+    switch (type) {
+      case Error:
+      case Warning:
+        super.logMessage(message);
+        break;
+      case Info:
+      case Log:
+      default:
+        if (isLsp4eLogTraceEnabled()) {
+          super.logMessage(message);
+        }
+        break;
+    }
+  }
+
+  private boolean isLsp4eLogTraceEnabled() {
+    return Platform.getDebugBoolean("org.eclipse.lsp4e/trace");
   }
 }
