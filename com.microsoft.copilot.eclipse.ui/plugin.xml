@@ -1048,12 +1048,10 @@
 	<!-- Annotation types for Next Edit Suggestions -->
 	<extension point="org.eclipse.ui.editors.annotationTypes">
 		<type
-			name="com.microsoft.copilot.eclipse.ui.nes.change"
-			markerType="org.eclipse.core.resources.textmarker">
+			name="com.microsoft.copilot.eclipse.ui.nes.change">
 		</type>
 		<type
-			name="com.microsoft.copilot.eclipse.ui.nes.delete"
-			markerType="org.eclipse.core.resources.textmarker">
+			name="com.microsoft.copilot.eclipse.ui.nes.delete">
 		</type>
 	</extension>
 
