@@ -34,7 +34,7 @@ cd ../..
 
 The `npm i -f` step runs the Copilot agent `postinstall` script, which copies the language server files into
 `com.microsoft.copilot.eclipse.core/copilot-agent/dist/` and the platform-specific agent bundles required by the
-Tycho build.
+Tycho build. The `-f` flag matches CI and lets npm proceed if the agent dependency tree has conflicts.
 
 ### Running Tests
 
