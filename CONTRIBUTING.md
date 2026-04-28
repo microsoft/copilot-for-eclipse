@@ -16,17 +16,25 @@ When you submit a pull request, a CLA bot will automatically determine whether y
 
 ### Prerequisites
 
-- **Java 21** or later
+- **Java 17** or later (CI uses Temurin 17; use a newer JDK if required by your Eclipse IDE)
 - **Maven 3.8+** (or use the provided Maven wrapper `./mvnw`)
+- **Node.js 22.13** or later, with npm
 - **Eclipse IDE for Eclipse Committers 2024-03** or later (for development)
 
 ### Building the Project
 
-Clone the repository and build with the Maven wrapper:
+Clone the repository, install the Copilot agent dependencies, and build with the Maven wrapper:
 
 ```shell
+cd com.microsoft.copilot.eclipse.core/copilot-agent
+npm i -f
+cd ../..
 ./mvnw clean package
 ```
+
+The `npm i -f` step runs the Copilot agent `postinstall` script, which copies the language server files into
+`com.microsoft.copilot.eclipse.core/copilot-agent/dist/` and the platform-specific agent bundles required by the
+Tycho build.
 
 ### Running Tests
 
@@ -61,6 +69,9 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
 2. Make your changes following the code style and architecture guidelines below.
 3. Ensure all checks pass before submitting:
    ```shell
+   cd com.microsoft.copilot.eclipse.core/copilot-agent
+   npm i -f
+   cd ../..
    ./mvnw checkstyle:check   # Code style compliance
    ./mvnw clean verify       # Compilation and packaging
    ./mvnw test               # Unit tests
