@@ -3,10 +3,12 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
@@ -123,17 +125,14 @@ class ChatAssistProcessor implements IContentAssistProcessor {
     String lowerPrefix = prefix.toLowerCase();
 
     // Sort results by match quality, then build proposals.
-    return Arrays.stream(templates)
-        .filter(t -> getMatchPriority(t, lowerPrefix) >= 0)
-        .sorted(Comparator.comparingInt(t -> getMatchPriority(t, lowerPrefix)))
-        .map(t -> {
+    return Arrays.stream(templates).map(t -> new SimpleEntry<>(t, getMatchPriority(t, lowerPrefix)))
+        .filter(e -> e.getValue() >= 0).sorted(Comparator.comparingInt(Entry::getValue)).map(e -> {
+          ConversationTemplate t = e.getKey();
           boolean isSkill = t.source() == TemplateSource.SKILL;
-          String displayName = isSkill && StringUtils.isNotBlank(t.shortDescription())
-              ? t.shortDescription() : t.id();
-          return (ICompletionProposal) new ChatCompletionProposal(
-              ChatCompletionService.TEMPLATE_MARK, t.id(), displayName, t.description());
-        })
-        .toArray(ICompletionProposal[]::new);
+          String displayName = isSkill && StringUtils.isNotBlank(t.shortDescription()) ? t.shortDescription() : t.id();
+          return (ICompletionProposal) new ChatCompletionProposal(ChatCompletionService.TEMPLATE_MARK, t.id(),
+              displayName, t.description());
+        }).toArray(ICompletionProposal[]::new);
   }
 
   /**
@@ -141,10 +140,10 @@ class ChatAssistProcessor implements IContentAssistProcessor {
    * or -1 if it does not match at all.
    *
    * <p>Priority buckets:
-   *  0 – id starts with prefix (or prefix is empty)
-   *  1 – id contains prefix (or skill shortDescription contains prefix)
-   *  2 – description starts with prefix
-   *  3 – description contains prefix
+   * 0 – id starts with prefix (or prefix is empty)
+   * 1 – id contains prefix (or skill shortDescription contains prefix)
+   * 2 – description starts with prefix
+   * 3 – description contains prefix
    */
   private int getMatchPriority(ConversationTemplate template, String lowerPrefix) {
     if (lowerPrefix.isEmpty()) {

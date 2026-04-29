@@ -228,9 +228,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
         fetchAsync();
         break;
       default:
-        allCommands.clear();
-        templates.clear();
-        agents.clear();
+        this.allCommands = new HashSet<>();
+        this.templates = new ArrayList<>();
+        this.agents = new ArrayList<>();
         break;
     }
   }
