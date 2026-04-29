@@ -82,6 +82,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setEnableSkills(preferenceStore.getBoolean(Constants.ENABLE_SKILLS));
 
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
@@ -166,6 +168,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.AGENT_MAX_REQUESTS:
         settings.getGithubSettings().getCopilotSettings().getAgent()
             .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
+      case Constants.ENABLE_SKILLS:
+        settings.getGithubSettings().getCopilotSettings().getAgent()
+            .setEnableSkills(preferenceStore.getBoolean(Constants.ENABLE_SKILLS));
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:

@@ -15,6 +15,7 @@ public class CopilotAgentSettings {
 
   @SerializedName("maxToolCallingLoop")
   private int agentMaxRequests;
+  private boolean enableSkills;
 
   public int getAgentMaxRequests() {
     return agentMaxRequests;
@@ -24,9 +25,17 @@ public class CopilotAgentSettings {
     this.agentMaxRequests = agentMaxRequests;
   }
 
+  public boolean isEnableSkills() {
+    return enableSkills;
+  }
+
+  public void setEnableSkills(boolean enableSkills) {
+    this.enableSkills = enableSkills;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests);
+    return Objects.hash(agentMaxRequests, enableSkills);
   }
 
   @Override
@@ -38,13 +47,14 @@ public class CopilotAgentSettings {
       return false;
     }
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
-    return agentMaxRequests == other.agentMaxRequests;
+    return agentMaxRequests == other.agentMaxRequests && enableSkills == other.enableSkills;
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.append("agentMaxRequests", agentMaxRequests);
+    builder.append("enableSkills", enableSkills);
     return builder.toString();
   }
 }

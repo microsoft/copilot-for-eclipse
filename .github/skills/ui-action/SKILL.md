@@ -214,13 +214,20 @@ Set `"failFast": false` on a step to record a failure without aborting the probe
 | `closeView` | `idRef` | — | Hides the view if present. |
 | `invokeCommand` | `idRef` (command id) | — | Runs via `IHandlerService#executeCommand`. |
 | `click` | `locator` | — | Reflective `click()` on matched widget. |
-| `typeIn` | `locator`, `text` | — | Works on text / styled-text widgets. |
+| `typeIn` | `locator`, `text` | — | Sets text programmatically via `setText`. Does **not** fire key events — use `typeKeys` when key listeners (e.g. content-assist) must trigger. |
+| `typeKeys` | `locator`, `text` | — | Types text character-by-character via keyboard simulation. Fires real key events, triggering listeners like content-assist auto-activation. Use for `/` in the chat input. |
 | `clearElement` | `locator` | — | Sets text to empty. |
 | `waitFor` | `locator` | `timeoutSec` (default 30) | Polls until locator resolves. |
 | `waitForMethod` | `locator`, `method` | `timeoutSec` (default 30), `expectedValue` | Polls until a no-arg getter on the located widget returns non-null (and non-empty for `String`), or — if `expectedValue` is set — until `toString()` equals it. Invoked reflectively via the class hierarchy. Use for UI-exposed state not reachable via finders, e.g. `DropdownButton.getSelectedItemId()`. |
 | `assertExists` | `locator` | `shouldExist` (default true) | Asserts presence / absence. |
+| `assertContentAssist` | `text` | `shouldExist` (default true) | Asserts that the visible content-assist popup contains (or does not contain) a proposal whose text includes `text`. Type `/` and `sleep` before calling to let the popup render. |
 | `dumpUi` | — | `id` | Writes widget hierarchy XML. |
 | `newSession` | — | — | Copilot-specific: triggers `newChatSession` command. |
+| `createProject` | — | `text` (default `"probe-project"`) | Creates and opens an Eclipse project in the workspace. No-op if it already exists. The Tycho test workbench starts empty — call this before any `createWorkspaceFile` / `deleteWorkspaceFile` step. |
+| `createWorkspaceFile` | `path` | `content` | Creates a file (and parent folders) in the first open workspace project. |
+| `deleteWorkspaceFile` | `path` | — | Deletes a file from the first open workspace project. |
+| `openPreferencePage` | `pageId` | — | Opens the Preferences dialog directly to the given page id. |
+| `waitForJobFamily` | `jobFamily` | `timeoutSec` (default 30) | Waits for all Eclipse Jobs in the given family to finish. |
 
 ## Locator reference
 

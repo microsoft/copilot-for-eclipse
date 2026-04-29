@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -137,9 +138,11 @@ public interface CopilotLanguageServer extends LanguageServer {
 
   /**
    * List conversation templates.
+   *
+   * @param params includes workspace folders for discovering workspace-specific prompt files and skills
    */
   @JsonRequest("conversation/templates")
-  CompletableFuture<ConversationTemplate[]> listTemplates(NullParams param);
+  CompletableFuture<ConversationTemplate[]> listTemplates(ConversationTemplatesParams params);
 
   /**
    * List conversation modes.

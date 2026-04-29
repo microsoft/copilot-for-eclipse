@@ -141,19 +141,25 @@ class McpExtensionPointManagerTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void testUpdateApprovedMcpServerStringWithNullMap() throws Exception {
     // Arrange: Use reflection to call the private method
     Method updateMethod = McpExtensionPointManager.class.getDeclaredMethod("updateApprovedMcpServerString", Map.class);
     updateMethod.setAccessible(true);
 
+    // Initialize the approved-servers state with an empty map first
+    updateMethod.invoke(manager, Collections.emptyMap());
+    String initialServers = manager.getApprovedExtMcpServers();
+    assertNotNull(initialServers);
+
     // Act: Call with null map
     updateMethod.invoke(manager, (Map<String, McpRegistrationInfo>) null);
 
-    // Assert: Verify the approved servers string remains null or unchanged
+    // Assert: The method returns early for null input, so the
+    // previously-set approved-servers payload should remain unchanged.
     String approvedServers = manager.getApprovedExtMcpServers();
-    // The method should return early when map is null, so approvedServers should be null
-    assertTrue(approvedServers == null || approvedServers.isEmpty(),
-        "Approved servers should be null or empty when input map is null");
+    assertEquals(initialServers, approvedServers,
+        "Approved servers should stay unchanged when input map is null");
   }
 
   @Test

@@ -20,6 +20,7 @@ import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.Endpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -45,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -369,10 +371,12 @@ public class CopilotLanguageServerConnection {
 
   /**
    * List the conversation templates.
+   *
+   * @param workspaceFolders workspace folders for discovering workspace-specific prompt files and skills
    */
-  public CompletableFuture<ConversationTemplate[]> listConversationTemplates() {
+  public CompletableFuture<ConversationTemplate[]> listConversationTemplates(List<WorkspaceFolder> workspaceFolders) {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
-      return ((CopilotLanguageServer) server).listTemplates(new NullParams());
+      return ((CopilotLanguageServer) server).listTemplates(new ConversationTemplatesParams(workspaceFolders));
     };
     return this.languageServerWrapper.execute(fn);
   }

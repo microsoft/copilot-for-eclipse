@@ -91,6 +91,7 @@ class LanguageServerSettingManagerTests {
     when(mockPreferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL)).thenReturn(false);
     when(mockPreferenceStore.getString(Constants.PROXY_KERBEROS_SP)).thenReturn(null);
     when(mockPreferenceStore.getString(Constants.GITHUB_ENTERPRISE)).thenReturn(null);
+    when(mockPreferenceStore.getBoolean(Constants.ENABLE_SKILLS)).thenReturn(false);
     when(mockPreferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)).thenReturn(enabled);
     if (enabled && instructions != null) {
       when(mockPreferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE)).thenReturn(instructions);

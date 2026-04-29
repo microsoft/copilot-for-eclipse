@@ -3,10 +3,15 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
@@ -27,6 +32,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -43,11 +49,17 @@ class ChatAssistProcessor implements IContentAssistProcessor {
   class ChatCompletionProposal implements ICompletionProposal, ICompletionProposalExtension6 {
     private String triggerCharacter;
     private String name;
+    private String displayName;
     private String description;
 
     public ChatCompletionProposal(String mark, String name, String description) {
+      this(mark, name, name, description);
+    }
+
+    public ChatCompletionProposal(String mark, String name, String displayName, String description) {
       this.triggerCharacter = mark;
       this.name = name;
+      this.displayName = displayName;
       this.description = description;
     }
 
@@ -80,7 +92,7 @@ class ChatAssistProcessor implements IContentAssistProcessor {
 
     @Override
     public String getDisplayString() {
-      return triggerCharacter + name;
+      return triggerCharacter + displayName;
     }
 
     @Override
@@ -96,30 +108,62 @@ class ChatAssistProcessor implements IContentAssistProcessor {
     @Override
     public StyledString getStyledDisplayString() {
       StyledString styledString = new StyledString();
-      styledString.append(triggerCharacter + name);
+      styledString.append(triggerCharacter + displayName);
       styledString.append(" - " + description, StyledString.QUALIFIER_STYLER);
       return styledString;
     }
   }
 
   public ICompletionProposal[] createCopilotCompletionTemplateProposals(String prefix) {
-    List<ICompletionProposal> proposals = new ArrayList<>();
     ChatCompletionService commandService = chatServiceManager.getChatCompletionService();
     if (!commandService.isTempaltesReady()) {
       return new ICompletionProposal[0];
     }
-    // So far no template supports agent mode.
-    if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
-      return new ICompletionProposal[0];
+    // Filter templates by the scope matching the active chat mode (ask → chat-panel, agent → agent-panel).
+    ChatMode chatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
+    ConversationTemplate[] templates = commandService.getFilteredTemplates(chatMode);
+    String lowerPrefix = prefix.toLowerCase();
+
+    // Sort results by match quality, then build proposals.
+    return Arrays.stream(templates).map(t -> new SimpleEntry<>(t, getMatchPriority(t, lowerPrefix)))
+        .filter(e -> e.getValue() >= 0).sorted(Comparator.comparingInt(Entry::getValue)).map(e -> {
+          ConversationTemplate t = e.getKey();
+          boolean isSkill = t.source() == TemplateSource.SKILL;
+          String displayName = isSkill && StringUtils.isNotBlank(t.shortDescription()) ? t.shortDescription() : t.id();
+          return (ICompletionProposal) new ChatCompletionProposal(ChatCompletionService.TEMPLATE_MARK, t.id(),
+              displayName, t.description());
+        }).toArray(ICompletionProposal[]::new);
+  }
+
+  /**
+   * Returns a priority for how well the template matches the prefix (lower is better),
+   * or -1 if it does not match at all.
+   *
+   * <p>Priority buckets:
+   * 0 – id starts with prefix (or prefix is empty)
+   * 1 – id contains prefix (or skill shortDescription contains prefix)
+   * 2 – description starts with prefix
+   * 3 – description contains prefix
+   */
+  private int getMatchPriority(ConversationTemplate template, String lowerPrefix) {
+    if (lowerPrefix.isEmpty()) {
+      return 0;
     }
-    ConversationTemplate[] templates = commandService.getTemplates();
-    for (ConversationTemplate template : templates) {
-      if (prefix.isEmpty() || template.getId().startsWith(prefix)) {
-        proposals.add(new ChatCompletionProposal(ChatCompletionService.TEMPLATE_MARK, template.getId(),
-            template.getDescription()));
-      }
+    boolean isSkill = template.source() == TemplateSource.SKILL;
+    String id = template.id() != null ? template.id().toLowerCase() : "";
+    String desc = template.description() != null ? template.description().toLowerCase() : "";
+    String shortDesc = template.shortDescription() != null ? template.shortDescription().toLowerCase() : "";
+
+    if (id.startsWith(lowerPrefix)) {
+      return 0;
+    } else if (id.contains(lowerPrefix) || (isSkill && shortDesc.contains(lowerPrefix))) {
+      return 1;
+    } else if (desc.startsWith(lowerPrefix)) {
+      return 2;
+    } else if (desc.contains(lowerPrefix)) {
+      return 3;
     }
-    return proposals.toArray(new ICompletionProposal[proposals.size()]);
+    return -1;
   }
 
   public ICompletionProposal[] createCopilotCompletionAgentProposals(String prefix) {
