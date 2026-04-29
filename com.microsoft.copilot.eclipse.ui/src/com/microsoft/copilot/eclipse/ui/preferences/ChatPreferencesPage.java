@@ -51,40 +51,18 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
 
-    Composite workspaceContextComposite = new Composite(parent, SWT.NONE);
-    workspaceContextComposite.setLayout(new GridLayout(1, true));
-    gdf.applyTo(workspaceContextComposite);
+    Composite workspaceContextComposite = createSectionComposite(parent, gdf);
     BooleanFieldEditor workspaceContextField = new BooleanFieldEditor(Constants.WORKSPACE_CONTEXT_ENABLED,
-        Messages.preferences_page_watched_files, SWT.WRAP,
-        workspaceContextComposite);
-    GridData workspaceContextFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    workspaceContextFieldGridData.widthHint = FIELD_WIDTH_HINT;
-    workspaceContextField.getDescriptionControl(workspaceContextComposite).setLayoutData(workspaceContextFieldGridData);
-
+        Messages.preferences_page_watched_files, SWT.WRAP, workspaceContextComposite);
+    applyFieldWidthHint(workspaceContextField, workspaceContextComposite);
     addField(workspaceContextField);
 
-    // add chat note using WrappableNoteLabel
-    WrappableNoteLabel workspaceContextNote = new WrappableNoteLabel(parent,
-        Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_watched_files_note_content);
-    GridData workspaceContextNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    workspaceContextNoteGridData.horizontalSpan = 2;
-    workspaceContextNote.setLayoutData(workspaceContextNoteGridData);
-
-    // add separator
-    Label separator = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
-    GridData separatorGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    separatorGridData.horizontalSpan = 2;
-    separator.setLayoutData(separatorGridData);
+    addNote(parent, Messages.preferences_page_watched_files_note_content);
+    addSeparator(parent);
 
     // Add sub-agent toggle
-    Composite subAgentComposite = new Composite(parent, SWT.NONE);
-    subAgentComposite.setLayout(new GridLayout(1, true));
-    gdf.applyTo(subAgentComposite);
-    // Check if sub-agent is disabled by policy
-    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    boolean policyAllowsSubAgent = flags != null && flags.isClientPreviewFeatureEnabled()
-        && flags.isSubAgentPolicyEnabled();
+    Composite subAgentComposite = createSectionComposite(parent, gdf);
+    boolean policyAllowsSubAgent = isPolicyAllowsSubAgent();
     if (!policyAllowsSubAgent) {
       Composite disabledComposite = new Composite(subAgentComposite, SWT.NONE);
       GridLayout disabledCompositeLayout = new GridLayout(1, false);
@@ -99,29 +77,25 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     BooleanFieldEditor subAgentField = new BooleanFieldEditor(Constants.SUB_AGENT_ENABLED,
         Messages.preferences_page_sub_agent, SWT.WRAP, subAgentComposite);
     subAgentField.setEnabled(policyAllowsSubAgent, subAgentComposite);
-    GridData subAgentFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    subAgentFieldGridData.widthHint = FIELD_WIDTH_HINT;
-    subAgentField.getDescriptionControl(subAgentComposite).setLayoutData(subAgentFieldGridData);
+    applyFieldWidthHint(subAgentField, subAgentComposite);
     addField(subAgentField);
 
-    // add sub-agent note using WrappableNoteLabel
-    WrappableNoteLabel subAgentNote = new WrappableNoteLabel(parent,
-        Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_sub_agent_note_content);
-    GridData subAgentNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    subAgentNoteGridData.horizontalSpan = 2;
-    subAgentNote.setLayoutData(subAgentNoteGridData);
+    addNote(parent, Messages.preferences_page_sub_agent_note_content);
+    addSeparator(parent);
 
-    // add separator
-    Label separator2 = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
-    GridData separator2GridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    separator2GridData.horizontalSpan = 2;
-    separator2.setLayoutData(separator2GridData);
+    // Add Enable Skills toggle
+    Composite skillsComposite = createSectionComposite(parent, gdf);
+
+    BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
+        Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
+    applyFieldWidthHint(skillsField, skillsComposite);
+    addField(skillsField);
+
+    addNote(parent, Messages.preferences_page_skills_enabled_note_content);
+    addSeparator(parent);
 
     // Add Agent Max Requests field
-    Composite agentMaxRequestsComposite = new Composite(parent, SWT.NONE);
-    agentMaxRequestsComposite.setLayout(new GridLayout(1, true));
-    gdf.applyTo(agentMaxRequestsComposite);
+    Composite agentMaxRequestsComposite = createSectionComposite(parent, gdf);
 
     IntegerFieldEditor agentMaxRequestsField = new IntegerFieldEditor(Constants.AGENT_MAX_REQUESTS,
         Messages.preferences_page_agent_max_requests, agentMaxRequestsComposite);
@@ -129,37 +103,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     agentMaxRequestsField.setErrorMessage(Messages.preferences_page_agent_max_requests_validation_error);
     addField(agentMaxRequestsField);
 
-    WrappableNoteLabel agentMaxRequestsNote = new WrappableNoteLabel(parent,
-        Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_agent_max_requests_desc);
-    GridData agentMaxRequestsNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    agentMaxRequestsNoteGridData.horizontalSpan = 2;
-    agentMaxRequestsNote.setLayoutData(agentMaxRequestsNoteGridData);
-
-    // add separator
-    Label separator3 = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
-    GridData separator3GridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    separator3GridData.horizontalSpan = 2;
-    separator3.setLayoutData(separator3GridData);
-
-    // Add Enable Skills toggle
-    Composite skillsComposite = new Composite(parent, SWT.NONE);
-    skillsComposite.setLayout(new GridLayout(1, true));
-    gdf.applyTo(skillsComposite);
-
-    BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
-        Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
-    GridData skillsFieldGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-    skillsFieldGridData.widthHint = FIELD_WIDTH_HINT;
-    skillsField.getDescriptionControl(skillsComposite).setLayoutData(skillsFieldGridData);
-    addField(skillsField);
-
-    WrappableNoteLabel skillsNote = new WrappableNoteLabel(parent,
-        Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_skills_enabled_note_content);
-    GridData skillsNoteGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    skillsNoteGridData.horizontalSpan = 2;
-    skillsNote.setLayoutData(skillsNoteGridData);
+    addNote(parent, Messages.preferences_page_agent_max_requests_desc);
   }
 
   @Override
@@ -168,11 +112,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     // Ensure run_subagent tool configuration is consistent with sub-agent preference
     // Only check if sub-agent is policy-enabled
-    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    boolean policyAllowsSubAgent = flags != null && flags.isClientPreviewFeatureEnabled()
-        && flags.isSubAgentPolicyEnabled();
-
-    if (policyAllowsSubAgent) {
+    if (isPolicyAllowsSubAgent()) {
       boolean subAgentEnabled = getPreferenceStore().getBoolean(Constants.SUB_AGENT_ENABLED);
       updateSubAgentToolConfiguration(subAgentEnabled);
     }
@@ -183,9 +123,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     final boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
 
     // Check if sub-agent is policy-enabled before handling sub-agent preferences
-    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    boolean policyAllowsSubAgent = flags != null && flags.isClientPreviewFeatureEnabled()
-        && flags.isSubAgentPolicyEnabled();
+    boolean policyAllowsSubAgent = isPolicyAllowsSubAgent();
 
     boolean oldSubAgentValue = false;
     if (policyAllowsSubAgent) {
@@ -216,8 +154,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     }
 
     if (isSubAgentChanged || isWorkspaceContextChanged) {
-      boolean restart = MessageDialog.openQuestion(getShell(),
-          Messages.preferences_page_restart_required,
+      boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
           Messages.preferences_page_restart_question);
 
       if (restart) {
@@ -228,6 +165,38 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     }
 
     return result;
+  }
+
+  private Composite createSectionComposite(Composite parent, GridDataFactory gdf) {
+    Composite composite = new Composite(parent, SWT.NONE);
+    composite.setLayout(new GridLayout(1, true));
+    gdf.applyTo(composite);
+    return composite;
+  }
+
+  private void applyFieldWidthHint(BooleanFieldEditor field, Composite parent) {
+    GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+    gridData.widthHint = FIELD_WIDTH_HINT;
+    field.getDescriptionControl(parent).setLayoutData(gridData);
+  }
+
+  private void addNote(Composite parent, String noteContent) {
+    WrappableNoteLabel note = new WrappableNoteLabel(parent, Messages.preferences_page_note_prefix + " ", noteContent);
+    GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    gridData.horizontalSpan = 2;
+    note.setLayoutData(gridData);
+  }
+
+  private void addSeparator(Composite parent) {
+    Label separator = new Label(parent, SWT.SEPARATOR | SWT.HORIZONTAL);
+    GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    gridData.horizontalSpan = 2;
+    separator.setLayoutData(gridData);
+  }
+
+  private boolean isPolicyAllowsSubAgent() {
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    return flags != null && flags.isClientPreviewFeatureEnabled() && flags.isSubAgentPolicyEnabled();
   }
 
   /**
