@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
@@ -127,7 +128,8 @@ class ChatAssistProcessor implements IContentAssistProcessor {
         .sorted(Comparator.comparingInt(t -> getMatchPriority(t, lowerPrefix)))
         .map(t -> {
           boolean isSkill = t.source() == TemplateSource.SKILL;
-          String displayName = isSkill ? t.shortDescription() : t.id();
+          String displayName = isSkill && StringUtils.isNotBlank(t.shortDescription())
+              ? t.shortDescription() : t.id();
           return (ICompletionProposal) new ChatCompletionProposal(
               ChatCompletionService.TEMPLATE_MARK, t.id(), displayName, t.description());
         })

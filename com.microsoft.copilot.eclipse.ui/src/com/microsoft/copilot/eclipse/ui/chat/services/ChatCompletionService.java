@@ -13,7 +13,6 @@ import java.util.concurrent.ExecutionException;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
-import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -78,14 +77,15 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   }
 
   private void fetchAsync() {
-    final Runnable fetchRunnable = () -> {
-      initConversationTemplates();
-    };
+    Job.getJobManager().cancel(REFRESH_JOB_FAMILY);
 
     Job refreshJob = new Job("Refresh slash commands service") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
-        fetchRunnable.run();
+        if (monitor.isCanceled()) {
+          return Status.CANCEL_STATUS;
+        }
+        initConversationTemplates();
         return Status.OK_STATUS;
       }
 

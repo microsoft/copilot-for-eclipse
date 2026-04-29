@@ -70,6 +70,9 @@ class ChatCompletionServiceTest {
 
   @AfterAll
   static void tearDown() {
+    if (chatCompletionService != null) {
+      chatCompletionService.dispose();
+    }
     if (copilotUiMock != null) {
       copilotUiMock.close();
     }
