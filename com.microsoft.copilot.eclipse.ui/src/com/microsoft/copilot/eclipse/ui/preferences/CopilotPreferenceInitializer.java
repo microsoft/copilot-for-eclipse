@@ -27,7 +27,7 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.PROXY_KERBEROS_SP, "");
     pref.setDefault(Constants.GITHUB_ENTERPRISE, "");
     pref.setDefault(Constants.WORKSPACE_CONTEXT_ENABLED, false);
-    pref.setDefault(Constants.SUB_AGENT_ENABLED, false);
+    pref.setDefault(Constants.SUB_AGENT_ENABLED, true);
     pref.setDefault(Constants.AGENT_MAX_REQUESTS, 25);
     pref.setDefault(Constants.ENABLE_SKILLS, false);
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED, false);
