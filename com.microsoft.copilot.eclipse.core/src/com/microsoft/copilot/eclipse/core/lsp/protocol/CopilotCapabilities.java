@@ -31,6 +31,10 @@ public class CopilotCapabilities {
 
   private boolean manageTodoListTool;
 
+  // When true, CLS always sends confirmation requests to the IDE instead of auto-approving
+  // internally. The IDE takes over all confirmation decisions.
+  private boolean editorHandlesAllConfirmation;
+
   private List<String> contentProvider;
 
   /**
@@ -46,6 +50,7 @@ public class CopilotCapabilities {
     this.watchedFiles = watchedFiles;
     this.subAgent = subAgent;
     this.contentProvider = contentProvider;
+    this.editorHandlesAllConfirmation = false;
   }
 
   public boolean isFetch() {
@@ -112,6 +117,14 @@ public class CopilotCapabilities {
     this.manageTodoListTool = manageTodoListTool;
   }
 
+  public boolean isEditorHandlesAllConfirmation() {
+    return editorHandlesAllConfirmation;
+  }
+
+  public void setEditorHandlesAllConfirmation(boolean editorHandlesAllConfirmation) {
+    this.editorHandlesAllConfirmation = editorHandlesAllConfirmation;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -124,13 +137,14 @@ public class CopilotCapabilities {
     builder.append("contentProvider", contentProvider);
     builder.append("debuggerAgent", debuggerAgent);
     builder.append("manageTodoListTool", manageTodoListTool);
+    builder.append("editorHandlesAllConfirmation", editorHandlesAllConfirmation);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, fetch, manageTodoListTool,
-        stateDatabase, subAgent, watchedFiles, contentProvider);
+    return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, editorHandlesAllConfirmation, fetch,
+        manageTodoListTool, stateDatabase, subAgent, watchedFiles, contentProvider);
   }
 
   @Override
@@ -144,7 +158,8 @@ public class CopilotCapabilities {
     CopilotCapabilities other = (CopilotCapabilities) obj;
 
     return cveRemediatorAgent == other.cveRemediatorAgent && debuggerAgent == other.debuggerAgent
-        && didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
+        && didChangeFeatureFlags == other.didChangeFeatureFlags
+        && editorHandlesAllConfirmation == other.editorHandlesAllConfirmation && fetch == other.fetch
         && manageTodoListTool == other.manageTodoListTool && stateDatabase == other.stateDatabase
         && subAgent == other.subAgent && watchedFiles == other.watchedFiles
         && Objects.equals(contentProvider, other.contentProvider);

@@ -18,6 +18,7 @@ import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
@@ -35,6 +36,7 @@ import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.ConfirmationService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
@@ -55,6 +57,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   protected CopilotLanguageServerConnection lsConnection;
   private volatile boolean terminalToolsRegistered = false;
   private List<LanguageModelToolInformation> cachedBuiltInTools;
+  private final ConfirmationService confirmationService;
 
   /**
    * Constructor for AgentToolService.
@@ -62,6 +65,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   public AgentToolService(CopilotLanguageServerConnection lsConnection) {
     this.tools = new ConcurrentHashMap<>();
     this.lsConnection = lsConnection;
+    this.confirmationService = new ConfirmationService();
     TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
     if (terminalManager != null) {
       terminalManager.addListener(this);
@@ -243,6 +247,12 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return CompletableFuture.completedFuture(result);
     }
 
+    // Auto-approve evaluation
+    if (confirmationService.evaluate(params) == ConfirmationResult.AUTO_APPROVED) {
+      return CompletableFuture.completedFuture(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
+    }
+
     BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
     if (turnWidget == null) {
       LanguageModelToolConfirmationResult result = new LanguageModelToolConfirmationResult(
@@ -281,6 +291,15 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return false;
     }
     return true;
+  }
+
+  /**
+   * Get the confirmation service for auto-approve evaluation.
+   *
+   * @return the confirmation service
+   */
+  public ConfirmationService getConfirmationService() {
+    return confirmationService;
   }
 
   /**
