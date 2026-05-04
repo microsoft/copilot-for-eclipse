@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
@@ -21,7 +22,9 @@ import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -44,6 +47,7 @@ import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
+import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
@@ -87,6 +91,7 @@ import com.microsoft.copilot.eclipse.ui.chat.viewers.ChatHistoryViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.LoadingViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.NoSubscriptionViewer;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -1002,7 +1007,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
           processedMessage, references, currentFile, currentSelection, activeModel, chatModeName, customChatModeId,
-          currentTodos, agentSlug, agentJobWorkspaceFolder);
+          currentTodos, agentSlug, agentJobWorkspaceFolder, deriveWorkspaceFolders(currentFile, references));
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.thenAccept(result -> {
@@ -1061,17 +1066,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
+      List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
             currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null,
-            restoredConversationId, restoreToTurnId);
+            restoredConversationId, restoreToTurnId, workspaceFolders);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
             currentSelection, turns, activeModel, chatModeName, customChatModeId, null, agentSlug,
-            agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId);
+            agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
       }
       conversationFutures.add(createConversationFuture);
 
@@ -1109,6 +1115,27 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // after the refactor.
       this.chatContentViewer.startNewTurn(workDoneToken, message);
     }
+  }
+
+  List<WorkspaceFolder> deriveWorkspaceFolders(IFile currentFile, List<IResource> references) {
+    String chatInstrScope = CopilotUi.getPlugin().getPreferenceStore().getString(
+        Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE);
+    CustomInstructionsChatLoadScope scope;
+    try {
+      scope = CustomInstructionsChatLoadScope.fromValue(chatInstrScope);
+    } catch (IllegalArgumentException e) {
+      CopilotCore.LOGGER.error(
+          "Failed parsing custom instructions load scope for chat preference, using default value", e);
+      scope = CustomInstructionsChatLoadScope.DEFAULT_VALUE;
+    }
+    return switch (scope) {
+      // take all projects from Eclipse workspace
+      case ALL_PROJECTS -> LSPEclipseUtils.getWorkspaceFolders();
+
+      // take only projects from selected files/folders
+      case REFERENCED_PROJECTS -> ResourceUtils.deriveWorkspaceFoldersFrom(
+          Stream.concat(references.stream(), Stream.of(currentFile)).toList());
+    };
   }
 
   /**

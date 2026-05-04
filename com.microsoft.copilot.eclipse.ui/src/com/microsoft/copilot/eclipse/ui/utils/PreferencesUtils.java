@@ -3,9 +3,14 @@
 
 package com.microsoft.copilot.eclipse.ui.utils;
 
+import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.preference.IPreferenceStore;
+
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
@@ -42,6 +47,47 @@ public class PreferencesUtils {
     FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
     return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS)
         && flags != null && flags.isClientPreviewFeatureEnabled();
+  }
+
+  /**
+   * Returns the current value for the scope used for loading custom instructions in the chat.
+   *
+   * @param preferenceStore the preference store to read from
+   * @return the current setting from {@link InstanceScope}
+   */
+  public static CustomInstructionsChatLoadScope getCustomInstructionsChatLoadScope(IPreferenceStore preferenceStore) {
+    return getCustomInstructionsChatLoadScopeValue(preferenceStore, false);
+  }
+
+  /**
+   * Returns the default value for the scope used for loading custom instructions in the chat.
+   *
+   * @param preferenceStore the preference store to read from
+   * @return the current setting from {@link DefaultScope}
+   */
+  public static CustomInstructionsChatLoadScope getCustomInstructionsChatLoadScopeDefault(
+      IPreferenceStore preferenceStore) {
+    return getCustomInstructionsChatLoadScopeValue(preferenceStore, true);
+  }
+
+  private static CustomInstructionsChatLoadScope getCustomInstructionsChatLoadScopeValue(
+      IPreferenceStore preferenceStore, boolean readDefault) {
+
+    String value = readDefault ? preferenceStore.getDefaultString(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE)
+        : preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE);
+
+    try {
+      return CustomInstructionsChatLoadScope.fromValue(value);
+    } catch (IllegalArgumentException e) {
+      CopilotCore.LOGGER.error("Failed to load custom instructions scope. Falling back to default value.", e);
+
+      if (!readDefault) {
+        // If the stored value is invalid, use the default value instead
+        preferenceStore.setValue(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE,
+            CustomInstructionsChatLoadScope.DEFAULT_VALUE.getValue());
+      }
+      return CustomInstructionsChatLoadScope.DEFAULT_VALUE;
+    }
   }
 
 }

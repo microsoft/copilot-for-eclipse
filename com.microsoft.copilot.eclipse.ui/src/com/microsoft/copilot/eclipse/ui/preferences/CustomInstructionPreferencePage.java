@@ -3,6 +3,8 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.util.Arrays;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -15,6 +17,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.SWT;
@@ -25,8 +28,10 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -41,7 +46,9 @@ import org.eclipse.ui.part.EditorPart;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -54,11 +61,15 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
   private BooleanFieldEditor enableWorkspaceInstrField;
   private StringFieldEditor workspaceInstrField;
   private StringFieldEditor gitCommitInstrField;
+  private Combo chatInstrLoadScopeCombo;
+
+  private static final CustomInstructionsChatLoadScope[] SCOPES = CustomInstructionsChatLoadScope.values();
 
   // Variables to track initial preference values for change detection
   private boolean initialWorkspaceEnabled;
   private String initialWorkspaceInstructions;
   private String initialGitCommitInstructions;
+  private CustomInstructionsChatLoadScope initialChatCustomInstrLoadScope;
 
   private static final String GITHUB = ".github";
   private static final String COPILOT_INSTRUCTIONS = "copilot-instructions.md";
@@ -106,6 +117,9 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     initialWorkspaceEnabled = getPreferenceStore().getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED);
     initialWorkspaceInstructions = getPreferenceStore().getString(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE);
     initialGitCommitInstructions = getPreferenceStore().getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT);
+
+    initialChatCustomInstrLoadScope = PreferencesUtils.getCustomInstructionsChatLoadScope(getPreferenceStore());
+    updateChatInstrLoadScopeComboSelection(false);
   }
 
   /**
@@ -117,10 +131,12 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     boolean currentWorkspaceEnabled = enableWorkspaceInstrField.getBooleanValue();
     String currentWorkspaceInstructions = workspaceInstrField.getStringValue();
     String currentGitCommitInstructions = gitCommitInstrField.getStringValue();
+    CustomInstructionsChatLoadScope currentCustomInstrLoadScope = getSelectedCustomInstrLoadScope();
 
     return currentWorkspaceEnabled != initialWorkspaceEnabled
         || !StringUtils.equals(currentWorkspaceInstructions, initialWorkspaceInstructions)
-        || !StringUtils.equals(currentGitCommitInstructions, initialGitCommitInstructions);
+        || !StringUtils.equals(currentGitCommitInstructions, initialGitCommitInstructions)
+        || !initialChatCustomInstrLoadScope.equals(currentCustomInstrLoadScope);
   }
 
   @Override
@@ -130,9 +146,52 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     initialWorkspaceInstructions = workspaceInstrField.getStringValue();
     initialGitCommitInstructions = gitCommitInstrField.getStringValue();
 
+    initialChatCustomInstrLoadScope = getSelectedCustomInstrLoadScope();
+    getPreferenceStore().setValue(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE,
+        initialChatCustomInstrLoadScope.getValue());
+
     // Call super to save preferences
     return super.performOk();
   }
+
+  @Override
+  protected void performDefaults() {
+    super.performDefaults();
+
+    updateChatInstrLoadScopeComboSelection(true);
+  }
+
+  private void updateChatInstrLoadScopeComboSelection(boolean useDefaultValue) {
+    IPreferenceStore store = getPreferenceStore();
+    if (chatInstrLoadScopeCombo == null || chatInstrLoadScopeCombo.isDisposed() || store == null) {
+      return;
+    }
+
+    CustomInstructionsChatLoadScope scope = useDefaultValue
+        ? PreferencesUtils.getCustomInstructionsChatLoadScopeDefault(store)
+        : PreferencesUtils.getCustomInstructionsChatLoadScope(store);
+
+    // we rely here on using the enum entry order that we use in our combobox using the SCOPES array
+    chatInstrLoadScopeCombo.select(scope.ordinal());
+  }
+
+  private CustomInstructionsChatLoadScope getSelectedCustomInstrLoadScope() {
+    int selectionIndex = chatInstrLoadScopeCombo.getSelectionIndex();
+
+    if (selectionIndex >= 0 && selectionIndex < SCOPES.length) {
+      return SCOPES[selectionIndex];
+    } else {
+      return CustomInstructionsChatLoadScope.DEFAULT_VALUE;
+    }
+  }
+
+  private static String getCustomInstrLoadScopeLabel(CustomInstructionsChatLoadScope scope) {
+    return switch (scope) {
+      case ALL_PROJECTS -> Messages.preferences_page_custom_instructions_chat_load_scope_all;
+      case REFERENCED_PROJECTS -> Messages.preferences_page_custom_instructions_chat_load_scope_referenced;
+    };
+  }
+
 
   private void createWorkspaceInstructionsField(Composite parent, GridLayout gl) {
     // workspace instructions group
@@ -232,6 +291,26 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     // Add note using WrappableNoteLabel
     new WrappableNoteLabel(projectInstrGroup, Messages.preferences_page_note_prefix + " ",
         Messages.preferences_page_custom_instructions_project_table_note);
+
+    // add label and drop-down list for custom instructions loading scope options
+    Composite chatInstrContainer = new Composite(projectInstrGroup, SWT.NONE);
+    GridLayout containerLayout = new GridLayout(2, false);
+    containerLayout.marginWidth = 0;
+    containerLayout.marginHeight = 0;
+    chatInstrContainer.setLayout(containerLayout);
+    chatInstrContainer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    Label label = new Label(chatInstrContainer, SWT.NONE);
+    label.setText(Messages.preferences_page_custom_instructions_chat_load_scope_label);
+    label.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+
+    chatInstrLoadScopeCombo = new Combo(chatInstrContainer, SWT.DROP_DOWN | SWT.READ_ONLY);
+    String[] items = Arrays.stream(SCOPES)
+        .map(CustomInstructionPreferencePage::getCustomInstrLoadScopeLabel)
+        .toArray(String[]::new);
+    chatInstrLoadScopeCombo.setItems(items);
+    chatInstrLoadScopeCombo.setToolTipText(Messages.preferences_page_custom_instructions_chat_load_scope_combo_tooltip);
+    chatInstrLoadScopeCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
   }
 
   private void createGitCommitInstructionsField(Composite parent, GridLayout gl) {

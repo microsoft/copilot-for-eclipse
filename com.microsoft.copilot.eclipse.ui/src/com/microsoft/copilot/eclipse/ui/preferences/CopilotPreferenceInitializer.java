@@ -9,6 +9,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.preference.IPreferenceStore;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
@@ -32,6 +33,8 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.ENABLE_SKILLS, true);
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED, false);
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE, "");
+    pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE,
+        CustomInstructionsChatLoadScope.DEFAULT_VALUE.getValue());
     pref.setDefault(Constants.AUTO_BREAKPOINT_RESPONSE, false);
     pref.setDefault(Constants.MCP, """
         {

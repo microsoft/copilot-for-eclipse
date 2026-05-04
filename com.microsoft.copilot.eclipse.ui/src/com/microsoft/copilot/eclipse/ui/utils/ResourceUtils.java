@@ -5,13 +5,17 @@ package com.microsoft.copilot.eclipse.ui.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.lsp4j.WorkspaceFolder;
 
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
@@ -71,6 +75,29 @@ public final class ResourceUtils {
     }
 
     return new SelectionStats(fileCount, folderCount, invalidCount);
+  }
+
+  /**
+   * Derive workspace folders from the given list of resources by extracting their parent projects.
+   * Returns an unmodifiable list with distinct, accessible workspace folders.
+   * If the input list is <code>null</code> or empty, returns an empty list.
+   *
+   * @param resources list of resources from which their parent projects are used to derive the workspace folders.
+   * @return a never <code>null</code> list of workspace folders derived from the given resources.
+   */
+  public static List<WorkspaceFolder> deriveWorkspaceFoldersFrom(List<IResource> resources) {
+    if (resources == null || resources.isEmpty()) {
+      return List.of();
+    }
+
+    return resources.stream()
+        .filter(Objects::nonNull)
+        .map(IResource::getProject)
+        .filter(Objects::nonNull)
+        .distinct()
+        .filter(IProject::isAccessible)
+        .map(LSPEclipseUtils::toWorkspaceFolder)
+        .toList();
   }
 
   /**
