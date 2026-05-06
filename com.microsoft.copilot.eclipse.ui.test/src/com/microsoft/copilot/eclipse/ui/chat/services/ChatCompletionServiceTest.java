@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,7 @@ class ChatCompletionServiceTest {
 
   private static ChatCompletionService chatCompletionService;
   private static MockedStatic<CopilotUi> copilotUiMock;
+  private static MockedStatic<PlatformUI> platformUiMock;
 
   @BeforeAll
   static void setUp() {
@@ -52,6 +55,12 @@ class ChatCompletionServiceTest {
     when(mockPlugin.getLanguageServerSettingManager()).thenReturn(mockSettingManager);
     copilotUiMock = Mockito.mockStatic(CopilotUi.class);
     copilotUiMock.when(CopilotUi::getPlugin).thenReturn(mockPlugin);
+
+    // Mock PlatformUI so the constructor can safely obtain an IEventBroker
+    IWorkbench mockWorkbench = mock(IWorkbench.class);
+    when(mockWorkbench.getService(any())).thenReturn(null);
+    platformUiMock = Mockito.mockStatic(PlatformUI.class);
+    platformUiMock.when(PlatformUI::getWorkbench).thenReturn(mockWorkbench);
 
     ConversationTemplate template = new ConversationTemplate("test", null, null,
         List.of(CopilotScope.CHAT_PANEL), null);
@@ -75,6 +84,9 @@ class ChatCompletionServiceTest {
     }
     if (copilotUiMock != null) {
       copilotUiMock.close();
+    }
+    if (platformUiMock != null) {
+      platformUiMock.close();
     }
   }
 

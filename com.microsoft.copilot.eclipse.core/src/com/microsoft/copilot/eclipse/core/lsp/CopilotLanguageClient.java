@@ -255,6 +255,28 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
+   * Notify when custom skills change (global or workspace). Signal-only; clients re-fetch templates.
+   */
+  @JsonNotification("copilot/customSkill/didChange")
+  public void onDidChangeCustomSkill(Object params) {
+    notifyCustomizationFilesChanged();
+  }
+
+  /**
+   * Notify when custom prompts change (global or workspace). Signal-only; clients re-fetch templates.
+   */
+  @JsonNotification("copilot/customPrompt/didChange")
+  public void onDidChangeCustomPrompt(Object params) {
+    notifyCustomizationFilesChanged();
+  }
+
+  private void notifyCustomizationFilesChanged() {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
+    }
+  }
+
+  /**
    * Handles the Dynamic OAuth request for MCP.
    * Shows a dialog with multiple input fields and returns the user's input values.
    * Returns null if the user cancels the request.

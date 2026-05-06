@@ -19,13 +19,17 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -43,9 +47,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   public static final String AGENT_MARK = "@";
   public static final String TEMPLATE_MARK = "/";
 
-  private volatile List<ConversationTemplate> templates = new ArrayList<>();
-  private volatile List<ConversationAgent> agents = new ArrayList<>();
-  private volatile Set<String> allCommands = new HashSet<>();
+  private volatile List<ConversationTemplate> templates = List.of();
+  private volatile List<ConversationAgent> agents = List.of();
+  private volatile Set<String> allCommands = Set.of();
   // Exclude intelliJ sepcific slash commands
   private static final Set<String> EXCLUDED_COMMANDS = Set.of("help", "feedback");
   public static final String REFRESH_JOB_FAMILY =
@@ -54,6 +58,8 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   private AuthStatusManager authStatusManager;
   private IResourceChangeListener skillFileListener;
   private IPropertyChangeListener preferenceListener;
+  private IEventBroker eventBroker;
+  private EventHandler customPromptsChangedHandler;
 
   private static final String SKILL_FILE_NAME = "SKILL.md";
   private static final String PROMPT_FILE_SUFFIX = ".prompt.md";
@@ -73,6 +79,12 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       }
     };
     CopilotUi.getPlugin().getLanguageServerSettingManager().registerPropertyChangeListener(preferenceListener);
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    if (this.eventBroker != null) {
+      this.customPromptsChangedHandler = event -> fetchAsync();
+      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES,
+          customPromptsChangedHandler);
+    }
     syncCommands(this.authStatusManager.getCopilotStatus());
   }
 
@@ -140,9 +152,10 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     }
 
     // Atomically swap the cached data so readers always see a consistent snapshot.
-    this.templates = newTemplates;
-    this.agents = newAgents;
-    this.allCommands = newCommands;
+    // Publish immutable snapshots so readers cannot accidentally mutate a live collection.
+    this.templates = List.copyOf(newTemplates);
+    this.agents = List.copyOf(newAgents);
+    this.allCommands = Set.copyOf(newCommands);
   }
 
   /**
@@ -228,9 +241,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
         fetchAsync();
         break;
       default:
-        this.allCommands = new HashSet<>();
-        this.templates = new ArrayList<>();
-        this.agents = new ArrayList<>();
+        this.allCommands = Set.of();
+        this.templates = List.of();
+        this.agents = List.of();
         break;
     }
   }
