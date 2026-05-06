@@ -26,7 +26,6 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
@@ -39,7 +38,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 /**
  * Service for handling slash commands.
@@ -110,7 +109,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     List<ConversationTemplate> newTemplates = new ArrayList<>();
     List<ConversationAgent> newAgents = new ArrayList<>();
     Set<String> newCommands = new HashSet<>();
-    boolean skillsEnabled = isSkillsEnabled();
+    boolean skillsEnabled = PreferencesUtils.isSkillsEnabled();
 
     // Command: /***
     // Pass workspace folders so the language server returns workspace-specific
@@ -170,13 +169,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     this.templates = List.copyOf(newTemplates);
     this.agents = List.copyOf(newAgents);
     this.allCommands = Set.copyOf(newCommands);
-  }
-
-  private boolean isSkillsEnabled() {
-    CopilotCore plugin = CopilotCore.getPlugin();
-    FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
-    return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS)
-        && flags != null && flags.isClientPreviewFeatureEnabled();
   }
 
   /**

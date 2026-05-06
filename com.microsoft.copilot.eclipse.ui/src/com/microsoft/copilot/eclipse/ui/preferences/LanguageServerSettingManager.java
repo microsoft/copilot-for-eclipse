@@ -41,6 +41,7 @@ import com.microsoft.copilot.eclipse.core.utils.GsonUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 /**
  * A class to manage the proxy service for the Copilot Language Server.
@@ -84,7 +85,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
-    getSettings().getGithubSettings().getCopilotSettings().getAgent().setEnableSkills(isSkillsEnabled());
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setEnableSkills(PreferencesUtils.isSkillsEnabled());
 
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
@@ -172,7 +174,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       case Constants.ENABLE_SKILLS:
-        settings.getGithubSettings().getCopilotSettings().getAgent().setEnableSkills(isSkillsEnabled());
+        settings.getGithubSettings().getCopilotSettings().getAgent()
+            .setEnableSkills(PreferencesUtils.isSkillsEnabled());
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:
@@ -520,13 +523,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public boolean isAutoShowCompletionEnabled() {
     return preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
-  }
-
-  private boolean isSkillsEnabled() {
-    CopilotCore plugin = CopilotCore.getPlugin();
-    FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
-    return preferenceStore.getBoolean(Constants.ENABLE_SKILLS) && flags != null
-        && flags.isClientPreviewFeatureEnabled();
   }
 
   /**
