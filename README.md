@@ -61,6 +61,18 @@ MCP support enables integrating external tools and services into Copilot workflo
 - **Custom Agents** allow users to create personalized agents with specific instructions and behaviors.
 - **Isolated Subagents** can be spawned by the main agent to handle specific tasks or contexts independently.
 - **Plan Agent** can generate multi-step plans to accomplish complex tasks, breaking them down into manageable actions.
+- **Skills** are reusable, specialized AI assistant templates that enrich chat context in Agent Mode. Skills are defined as `SKILL.md` files and can be scoped to a workspace or shared globally.
+
+  - Creating Skills
+
+    Place a `SKILL.md` file in any of these directories:
+
+    - **Project-scoped:** `.github/skills/<skill-name>/`, `.claude/skills/<skill-name>/`, `.agents/skills/<skill-name>/`
+    - **User-scoped (global):** `~/.copilot/skills/<skill-name>/`, `~/.claude/skills/<skill-name>/`, `~/.agents/skills/<skill-name>/`
+
+    Each `SKILL.md` file can include YAML front matter with metadata (name, description) followed by Markdown content that provides domain knowledge, workflows, or instructions for the AI assistant.
+
+    Skills are automatically discovered and available in Agent Mode. You can enable or disable skills in **Window → Preferences → Copilot → Chat → Enable Skills**.
 
 For other available features in Eclipse, see the [Copilot feature matrix](https://docs.github.com/en/copilot/reference/copilot-feature-matrix?tool=eclipse).
 
