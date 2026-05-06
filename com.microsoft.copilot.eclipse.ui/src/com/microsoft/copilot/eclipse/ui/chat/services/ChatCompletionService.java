@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
@@ -20,7 +21,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
@@ -37,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
@@ -57,7 +58,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   private CopilotLanguageServerConnection lsConnection;
   private AuthStatusManager authStatusManager;
   private IResourceChangeListener skillFileListener;
-  private IPropertyChangeListener preferenceListener;
   private IEventBroker eventBroker;
   private EventHandler customPromptsChangedHandler;
 
@@ -71,14 +71,10 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     this.authStatusManager = authStatusManager;
     this.lsConnection = lsConnection;
     this.authStatusManager.addCopilotAuthStatusListener(this);
+    // TODO: Remove this listener once workspace-root is removed from workspaceFolders in CopilotLanguageClient as CLS
+    // can watch the project prompt file change directly.
     this.skillFileListener = new SkillFileChangeListener();
     ResourcesPlugin.getWorkspace().addResourceChangeListener(skillFileListener, IResourceChangeEvent.POST_CHANGE);
-    this.preferenceListener = event -> {
-      if (Constants.ENABLE_SKILLS.equals(event.getProperty())) {
-        fetchAsync();
-      }
-    };
-    CopilotUi.getPlugin().getLanguageServerSettingManager().registerPropertyChangeListener(preferenceListener);
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (this.eventBroker != null) {
       this.customPromptsChangedHandler = event -> fetchAsync();
@@ -94,10 +90,10 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     Job refreshJob = new Job("Refresh slash commands service") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
+        initConversationTemplates(monitor);
         if (monitor.isCanceled()) {
           return Status.CANCEL_STATUS;
         }
-        initConversationTemplates();
         return Status.OK_STATUS;
       }
 
@@ -110,10 +106,11 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     refreshJob.schedule();
   }
 
-  private void initConversationTemplates() {
+  private void initConversationTemplates(IProgressMonitor monitor) {
     List<ConversationTemplate> newTemplates = new ArrayList<>();
     List<ConversationAgent> newAgents = new ArrayList<>();
     Set<String> newCommands = new HashSet<>();
+    boolean skillsEnabled = isSkillsEnabled();
 
     // Command: /***
     // Pass workspace folders so the language server returns workspace-specific
@@ -121,7 +118,13 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     try {
       List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
       ConversationTemplate[] rawTemplates = this.lsConnection.listConversationTemplates(workspaceFolders).get();
+      if (monitor.isCanceled()) {
+        return;
+      }
       for (ConversationTemplate template : rawTemplates) {
+        if (!skillsEnabled && template.source() == TemplateSource.SKILL) {
+          continue;
+        }
         if (!EXCLUDED_COMMANDS.contains(template.id())) {
           newTemplates.add(template);
           newCommands.add(TEMPLATE_MARK + template.id());
@@ -131,9 +134,16 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       CopilotCore.LOGGER.error(e);
     }
 
+    if (monitor.isCanceled()) {
+      return;
+    }
+
     // Command: @***
     try {
       ConversationAgent[] rawAgents = this.lsConnection.listConversationAgents().get();
+      if (monitor.isCanceled()) {
+        return;
+      }
       for (ConversationAgent agent : rawAgents) {
         String agentSlug = agent.getSlug();
         // @see ui.chat.ChatView#replaceWorkspaceCommand(String)
@@ -151,11 +161,22 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       CopilotCore.LOGGER.error(e);
     }
 
+    if (monitor.isCanceled()) {
+      return;
+    }
+
     // Atomically swap the cached data so readers always see a consistent snapshot.
     // Publish immutable snapshots so readers cannot accidentally mutate a live collection.
     this.templates = List.copyOf(newTemplates);
     this.agents = List.copyOf(newAgents);
     this.allCommands = Set.copyOf(newCommands);
+  }
+
+  private boolean isSkillsEnabled() {
+    CopilotCore plugin = CopilotCore.getPlugin();
+    FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
+    return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS)
+        && flags != null && flags.isClientPreviewFeatureEnabled();
   }
 
   /**
@@ -254,7 +275,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   public void dispose() {
     this.authStatusManager.removeCopilotAuthStatusListener(this);
     ResourcesPlugin.getWorkspace().removeResourceChangeListener(skillFileListener);
-    CopilotUi.getPlugin().getLanguageServerSettingManager().unregisterPropertyChangeListener(preferenceListener);
     if (this.eventBroker != null && this.customPromptsChangedHandler != null) {
       this.eventBroker.unsubscribe(this.customPromptsChangedHandler);
     }
@@ -280,8 +300,10 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
           if (needsRefresh[0]) {
             return false;
           }
-          String name = childDelta.getResource().getName();
-          if (SKILL_FILE_NAME.equals(name) || name.endsWith(PROMPT_FILE_SUFFIX)) {
+          if (!shouldVisitDelta(childDelta)) {
+            return false;
+          }
+          if (isPromptOrSkillFileDelta(childDelta)) {
             needsRefresh[0] = true;
             return false;
           }
@@ -293,6 +315,29 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       if (needsRefresh[0]) {
         fetchAsync();
       }
+    }
+
+    private boolean shouldVisitDelta(IResourceDelta delta) {
+      IResource resource = delta.getResource();
+      return resource != null && !resource.isDerived() && !resource.isTeamPrivateMember();
+    }
+
+    private boolean isPromptOrSkillFileDelta(IResourceDelta delta) {
+      IResource resource = delta.getResource();
+      if (resource.getType() != IResource.FILE || !isRelevantFileDelta(delta)) {
+        return false;
+      }
+
+      String name = resource.getName();
+      return SKILL_FILE_NAME.equals(name) || name.endsWith(PROMPT_FILE_SUFFIX);
+    }
+
+    private boolean isRelevantFileDelta(IResourceDelta delta) {
+      int kind = delta.getKind();
+      if (kind == IResourceDelta.ADDED || kind == IResourceDelta.REMOVED) {
+        return true;
+      }
+      return kind == IResourceDelta.CHANGED && (delta.getFlags() & IResourceDelta.CONTENT) != 0;
     }
   }
 }

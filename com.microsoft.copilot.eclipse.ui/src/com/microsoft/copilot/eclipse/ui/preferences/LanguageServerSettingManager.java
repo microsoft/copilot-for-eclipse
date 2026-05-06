@@ -25,6 +25,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -50,6 +51,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   CopilotLanguageServerConnection copilotLanguageServerConnection = null;
   IPreferenceStore preferenceStore;
   IProxyData proxyData = null;
+  private IEventBroker eventBroker;
 
   /**
    * Gets the settings.
@@ -82,8 +84,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
-    getSettings().getGithubSettings().getCopilotSettings().getAgent()
-        .setEnableSkills(preferenceStore.getBoolean(Constants.ENABLE_SKILLS));
+    getSettings().getGithubSettings().getCopilotSettings().getAgent().setEnableSkills(isSkillsEnabled());
 
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
@@ -97,7 +98,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().getGithubSettings()
         .setGitCommitCopilotInstructions(preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT));
 
-    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY, event -> {
       Boolean enabled = (Boolean) event.getProperty(IEventBroker.DATA);
       if (!enabled.booleanValue()) {
@@ -171,8 +172,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       case Constants.ENABLE_SKILLS:
-        settings.getGithubSettings().getCopilotSettings().getAgent()
-            .setEnableSkills(preferenceStore.getBoolean(Constants.ENABLE_SKILLS));
+        settings.getGithubSettings().getCopilotSettings().getAgent().setEnableSkills(isSkillsEnabled());
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:
@@ -180,6 +180,12 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
 
     syncSingleConfiguration(singleSetting);
+
+    if (Constants.ENABLE_SKILLS.equals(event.getProperty())) {
+      if (eventBroker != null) {
+        eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
+      }
+    }
   }
 
   /**
@@ -514,6 +520,13 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public boolean isAutoShowCompletionEnabled() {
     return preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
+  }
+
+  private boolean isSkillsEnabled() {
+    CopilotCore plugin = CopilotCore.getPlugin();
+    FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
+    return preferenceStore.getBoolean(Constants.ENABLE_SKILLS) && flags != null
+        && flags.isClientPreviewFeatureEnabled();
   }
 
   /**

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterAll;
@@ -24,6 +25,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
@@ -51,8 +53,11 @@ class ChatCompletionServiceTest {
 
     // Mock CopilotUi.getPlugin() so the constructor can register its preference listener
     CopilotUi mockPlugin = mock(CopilotUi.class);
+    IPreferenceStore mockPreferenceStore = mock(IPreferenceStore.class);
     LanguageServerSettingManager mockSettingManager = mock(LanguageServerSettingManager.class);
     when(mockPlugin.getLanguageServerSettingManager()).thenReturn(mockSettingManager);
+    when(mockPlugin.getPreferenceStore()).thenReturn(mockPreferenceStore);
+    when(mockPreferenceStore.getBoolean(Constants.ENABLE_SKILLS)).thenReturn(true);
     copilotUiMock = Mockito.mockStatic(CopilotUi.class);
     copilotUiMock.when(CopilotUi::getPlugin).thenReturn(mockPlugin);
 

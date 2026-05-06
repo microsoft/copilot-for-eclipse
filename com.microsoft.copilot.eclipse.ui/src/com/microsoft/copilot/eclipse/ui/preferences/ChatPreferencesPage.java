@@ -83,16 +83,18 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addNote(parent, Messages.preferences_page_sub_agent_note_content);
     addSeparator(parent);
 
-    // Add Enable Skills toggle
-    Composite skillsComposite = createSectionComposite(parent, gdf);
+    if (isClientPreviewFeatureEnabled()) {
+      // Add Enable Skills toggle
+      Composite skillsComposite = createSectionComposite(parent, gdf);
 
-    BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
-        Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
-    applyFieldWidthHint(skillsField, skillsComposite);
-    addField(skillsField);
+      BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
+          Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
+      applyFieldWidthHint(skillsField, skillsComposite);
+      addField(skillsField);
 
-    addNote(parent, Messages.preferences_page_skills_enabled_note_content);
-    addSeparator(parent);
+      addNote(parent, Messages.preferences_page_skills_enabled_note_content);
+      addSeparator(parent);
+    }
 
     // Add Agent Max Requests field
     Composite agentMaxRequestsComposite = createSectionComposite(parent, gdf);
@@ -196,7 +198,12 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
   private boolean isPolicyAllowsSubAgent() {
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    return flags != null && flags.isClientPreviewFeatureEnabled() && flags.isSubAgentPolicyEnabled();
+    return isClientPreviewFeatureEnabled() && flags != null && flags.isSubAgentPolicyEnabled();
+  }
+
+  private boolean isClientPreviewFeatureEnabled() {
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    return flags != null && flags.isClientPreviewFeatureEnabled();
   }
 
   /**
