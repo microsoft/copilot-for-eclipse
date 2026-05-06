@@ -125,7 +125,8 @@ class ChatAssistProcessor implements IContentAssistProcessor {
     String lowerPrefix = prefix.toLowerCase();
 
     // Sort results by match quality, then build proposals.
-    return Arrays.stream(templates).map(t -> new SimpleEntry<>(t, getMatchPriority(t, lowerPrefix)))
+    return Arrays.stream(templates).filter(t -> StringUtils.isNotBlank(t.id()))
+        .map(t -> new SimpleEntry<>(t, getMatchPriority(t, lowerPrefix)))
         .filter(e -> e.getValue() >= 0).sorted(Comparator.comparingInt(Entry::getValue)).map(e -> {
           ConversationTemplate t = e.getKey();
           boolean isSkill = t.source() == TemplateSource.SKILL;

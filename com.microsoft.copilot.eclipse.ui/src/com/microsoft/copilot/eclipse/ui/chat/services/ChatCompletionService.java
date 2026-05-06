@@ -255,6 +255,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     this.authStatusManager.removeCopilotAuthStatusListener(this);
     ResourcesPlugin.getWorkspace().removeResourceChangeListener(skillFileListener);
     CopilotUi.getPlugin().getLanguageServerSettingManager().unregisterPropertyChangeListener(preferenceListener);
+    if (this.eventBroker != null && this.customPromptsChangedHandler != null) {
+      this.eventBroker.unsubscribe(this.customPromptsChangedHandler);
+    }
   }
 
   /**
