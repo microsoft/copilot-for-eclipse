@@ -52,8 +52,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   private volatile Set<String> allCommands = Set.of();
   // Exclude intelliJ sepcific slash commands
   private static final Set<String> EXCLUDED_COMMANDS = Set.of("help", "feedback");
-  public static final String REFRESH_JOB_FAMILY =
-      "com.microsoft.copilot.eclipse.chat.services.SlashCommandService.refreshJob";
+  public static final String REFRESH_JOB_FAMILY = "com.microsoft.copilot.eclipse.chat.services.SlashCommandService.refreshJob";
   private CopilotLanguageServerConnection lsConnection;
   private AuthStatusManager authStatusManager;
   private IResourceChangeListener skillFileListener;
@@ -263,6 +262,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   /**
    * Listens for workspace resource changes involving SKILL.md or .prompt.md files and triggers a template refresh when
    * such files are added, removed, or changed.
+   * 
+   * TODO: Remove this listener once workspace-root is removed from workspaceFolders in CopilotLanguageClient as CLS can
+   * watch the project prompt file change directly.
    */
   private class SkillFileChangeListener implements IResourceChangeListener {
     @Override
