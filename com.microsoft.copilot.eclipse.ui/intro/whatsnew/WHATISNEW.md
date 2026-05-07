@@ -1,3 +1,36 @@
+# GitHub Copilot 0.17.0 Release Notes
+
+### GitHub Copilot for Eclipse Is Now Open Source
+We're thrilled to share that GitHub Copilot for Eclipse is now open source! The full source code is available on GitHub at [microsoft/copilot-for-eclipse](https://github.com/microsoft/copilot-for-eclipse). Browse the code, file issues, and send pull requests — we'd love to build the plugin together with the Eclipse community. Your feedback and contributions help shape what comes next.
+
+---
+
+### Refreshed Chat View with a New Combo Picker
+The chat view has been refreshed with a brand-new combo picker for selecting chat modes and models, with more information surfaced for each model.
+
+![New Combo Picker](0.17.0/new_combo_picker.png)
+
+---
+
+### Session Context Window Usage at a Glance
+Ever wonder how much of the conversation's context window has been consumed? The chat view now shows a context size donut indicator alongside the input area, with a popup that breaks down token usage for the current session. Auto compression is coming next.
+
+![Context Window Usage](0.17.0/context_window_usage.png)
+
+---
+
+### Custom Models (BYOK) for Copilot Business and Enterprise
+Bring Your Own Key (BYOK) is now available to GitHub Copilot Business and Enterprise users — in addition to Individual users — when enabled by their organization. Once your organization turns it on, you can configure your own API keys for supported providers and use the custom models directly in Copilot chat in Eclipse. If you don't see custom models enabled, reach out to your organization's administrator to turn the feature on.
+
+---
+
+### Better ABAP Support
+This release brings improved support for ABAP development in Eclipse. Copilot now provides more accurate and context-aware chat responses for ABAP projects, and it can read directories and search within the locally cached files.
+
+---
+
+### 
+
 # GitHub Copilot 0.16.0 Release Notes
 
 ### Tool Calling in Ask Mode
@@ -71,27 +104,3 @@ Fine-tune your Copilot experience with new preference options:
 
   ![Commit Instructions](0.15.0/commit_instructions.png)
 
----
-
-# GitHub Copilot 0.14.0 Release Notes
-### Native Toolbar Integration
-The buttons that used to sit on the chat view’s top bar have now found a new home in the Eclipse view’s toolbar. This change makes the interface feel more natural and integrated with your workflow.
-
-![Toolbar](0.14.0/toolbar.png)
-
-Note: If you cannot see the new buttons, please delete the **workbench.xmi** file located at: `<your_workspace>/.metadata/.plugins/org.eclipse.e4.workbench/`.
-
----
-
-### New Changed Files Panel
-The new changed files panel is now scrollable, collapsible, and expandable, so you can dive into details when you need them and tuck it away when you don’t.
-
-<video controls="true" src="./0.14.0/changed_file_box.mp4" title="Changed Files Panel" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-This release also squashed bugs, boosted performance, and polished the UI for a smoother, faster experience.
-
-Thank you for being part of this journey — here’s to an even better year ahead!
-
-🎉 Wishing you a Happy New Year! 🎉
