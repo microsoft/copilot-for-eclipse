@@ -10,7 +10,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -18,6 +17,7 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -25,15 +25,11 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A label with icon that displays the running status of the agent.
  */
 public class AgentStatusLabel extends Composite {
-  private static final int TOTAL_FRAMES = 8; // Adjust based on actual number of spinner images
-
-  private Image runningIcon;
   private Image completedIcon;
   private Image cancelledIcon;
   private Label iconLabel;
   private ChatMarkupViewer textLabel;
-  private int currentFrame = 1;
-  private Runnable animationRunnable;
+  private SpinnerAnimator spinner;
   private Status status;
   private EventHandler cancelStatusHandler;
   private IEventBroker eventBroker;
@@ -47,14 +43,12 @@ public class AgentStatusLabel extends Composite {
   public AgentStatusLabel(Composite parent, int style) {
     super(parent, style);
     GridLayout layout = new GridLayout(2, false);
+    layout.marginWidth = 0;
+    layout.marginHeight = 0;
     layout.horizontalSpacing = 0;
     setLayout(layout);
     setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     this.addDisposeListener(e -> {
-      stopAnimation();
-      if (this.runningIcon != null && !this.runningIcon.isDisposed()) {
-        this.runningIcon.dispose();
-      }
       if (this.completedIcon != null && !this.completedIcon.isDisposed()) {
         this.completedIcon.dispose();
       }
@@ -66,6 +60,7 @@ public class AgentStatusLabel extends Composite {
       }
     });
     iconLabel = new Label(this, SWT.LEFT);
+    spinner = new SpinnerAnimator(iconLabel);
 
     this.status = Status.RUNNING;
     this.cancelStatusHandler = new EventHandler() {
@@ -84,7 +79,7 @@ public class AgentStatusLabel extends Composite {
    * @param statusText the text to display when the agent is completed
    */
   public void setCompletedStatus(String statusText) {
-    stopAnimation();
+    spinner.stop();
 
     if (this.completedIcon == null) {
       this.completedIcon = UiUtils.buildImageFromPngPath("/icons/complete_status.png");
@@ -101,11 +96,7 @@ public class AgentStatusLabel extends Composite {
    * @param statusText the text to display when the agent is running
    */
   public void setRunningStatus(String statusText) {
-    // Stop any existing animation
-    stopAnimation();
-
-    // Start new animation
-    startAnimation();
+    spinner.start();
 
     setText(statusText);
     this.status = Status.RUNNING;
@@ -116,7 +107,7 @@ public class AgentStatusLabel extends Composite {
    */
   public void setErrorStatus() {
     if (this.status == Status.RUNNING) {
-      stopAnimation();
+      spinner.stop();
     }
     iconLabel.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK));
     this.status = Status.ERROR;
@@ -127,7 +118,7 @@ public class AgentStatusLabel extends Composite {
    */
   public void setCancelledStatus() {
     if (this.status == Status.RUNNING) {
-      stopAnimation();
+      spinner.stop();
 
       if (this.cancelledIcon == null) {
         this.cancelledIcon = UiUtils.buildImageFromPngPath("/icons/cancel_status.png");
@@ -135,47 +126,6 @@ public class AgentStatusLabel extends Composite {
       iconLabel.setImage(cancelledIcon);
 
       this.status = Status.CANCELLED;
-    }
-  }
-
-  private void startAnimation() {
-    final Display display = getDisplay();
-
-    animationRunnable = new Runnable() {
-      @Override
-      public void run() {
-        if (isDisposed() || iconLabel.isDisposed()) {
-          return;
-        }
-
-        // Dispose previous image
-        if (runningIcon != null && !runningIcon.isDisposed()) {
-          runningIcon.dispose();
-        }
-
-        // Load the next frame
-        String imagePath = String.format("/icons/spinner/%d.png", currentFrame);
-        runningIcon = UiUtils.buildImageFromPngPath(imagePath);
-        iconLabel.setImage(runningIcon);
-        // request layout to update the icon, otherwise the scale of the spinner will be wrong
-        iconLabel.requestLayout();
-
-        // Update frame counter
-        currentFrame = (currentFrame % TOTAL_FRAMES) + 1;
-
-        // Schedule next frame
-        display.timerExec(100, this);
-      }
-    };
-
-    // Start the animation
-    display.timerExec(0, animationRunnable);
-  }
-
-  private void stopAnimation() {
-    if (animationRunnable != null) {
-      getDisplay().timerExec(-1, animationRunnable);
-      animationRunnable = null;
     }
   }
 
