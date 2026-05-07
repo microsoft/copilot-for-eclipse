@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add rate limit warning banner in chat view. [PR#17](https://github.com/microsoft/copilot-for-eclipse/pull/17)
 - Support delegating read directory to IDE. [PR#18](https://github.com/microsoft/copilot-for-eclipse/pull/18)
 - Support delegating file and text search to IDE. [PR#22](https://github.com/microsoft/copilot-for-eclipse/pull/22)
+- Support custom models (BYOK) for Copilot Business and Enterprise users. [PR#140](https://github.com/microsoft/copilot-for-eclipse/pull/140)
 
 ### Changed
 - Update the combos rendering and add context button style in chat view.
-- Support custom models (BYOK) for Copilot Business and Enterprise users.
 
 ### Fixed
 - Fix ConcurrentModificationException in CompletionProvider listener iteration. [PR#13](https://github.com/microsoft/copilot-for-eclipse/pull/13)
