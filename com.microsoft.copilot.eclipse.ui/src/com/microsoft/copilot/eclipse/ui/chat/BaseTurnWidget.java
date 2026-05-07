@@ -226,7 +226,8 @@ public abstract class BaseTurnWidget extends Composite {
    * @param toolCall the tool call of the agent turn
    */
   public void appendToolCallStatus(AgentToolCall toolCall) {
-    if (toolCall == null || StringUtils.isEmpty(toolCall.getProgressMessage())) {
+    if (toolCall == null
+        || (StringUtils.isBlank(toolCall.getProgressMessage()) && StringUtils.isBlank(toolCall.getError()))) {
       return;
     }
 
@@ -268,6 +269,11 @@ public abstract class BaseTurnWidget extends Composite {
         break;
       case "error":
         statusLabel.setErrorStatus();
+        String errorText = StringUtils.isNotBlank(toolCall.getError()) ? toolCall.getError()
+            : toolCall.getProgressMessage();
+        if (StringUtils.isNotBlank(errorText)) {
+          statusLabel.setText(errorText);
+        }
         break;
       default:
         statusLabel.setErrorStatus();
