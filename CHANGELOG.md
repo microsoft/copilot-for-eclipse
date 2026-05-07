@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.17.0
+### Added
+- Add context size donut and popup for visualizing token usage.
+- Add rate limit warning banner in chat view. [PR#17](https://github.com/microsoft/copilot-for-eclipse/pull/17)
+- Support delegating read directory to IDE. [PR#18](https://github.com/microsoft/copilot-for-eclipse/pull/18)
+- Support delegating file and text search to IDE. [PR#22](https://github.com/microsoft/copilot-for-eclipse/pull/22)
+
+### Changed
+- Update the combos rendering and add context button style in chat view.
+
+### Fixed
+- Fix ConcurrentModificationException in CompletionProvider listener iteration. [PR#13](https://github.com/microsoft/copilot-for-eclipse/pull/13)
+- Fix capitalization of "GitHub" in signin description. [PR#10](https://github.com/microsoft/copilot-for-eclipse/pull/10)
+- Fix NES annotation type mapping and foreign text marker registration. [#23](https://github.com/microsoft/copilot-for-eclipse/issues/23)
+
 ## 0.16.0
 ### Added
 - Support tool calling in Ask Mode.
