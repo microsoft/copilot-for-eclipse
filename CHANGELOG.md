@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Update the combos rendering and add context button style in chat view.
+- Support custom models (BYOK) for Copilot Business and Enterprise users.
 
 ### Fixed
 - Fix ConcurrentModificationException in CompletionProvider listener iteration. [PR#13](https://github.com/microsoft/copilot-for-eclipse/pull/13)
