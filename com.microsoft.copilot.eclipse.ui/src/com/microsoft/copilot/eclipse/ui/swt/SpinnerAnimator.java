@@ -50,6 +50,7 @@ public final class SpinnerAnimator {
       return;
     }
     stop();
+    currentFrame = 1;
     final Display display = target.getDisplay();
     animationRunnable = new Runnable() {
       @Override
