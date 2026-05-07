@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
@@ -180,6 +181,22 @@ public class ChatContentViewer extends ScrolledComposite {
       ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
 
       if (value.getKind() == WorkDoneProgressKind.report) {
+        // Process thinking deltas first (they always precede / accompany the reply).
+        Thinking thinking = value.getThinking();
+        boolean hasThinking = thinking != null && StringUtils.isNotBlank(thinking.text());
+        // Empty agent rounds (no reply, no tool calls) are still part of the thinking phase, so
+        // only treat the report as "non-thinking" when there is real content to render.
+        boolean hasNonThinking = StringUtils.isNotEmpty(value.getReply()) || hasNonEmptyAgentRound(value);
+
+        if (hasThinking) {
+          turnWidget.appendThinking(thinking);
+        }
+        if (hasNonThinking) {
+          // Reply content arrived: any active thinking block must be sealed before the reply is
+          // appended so the spinner stops and the title is fetched.
+          turnWidget.sealThinking();
+        }
+
         if (value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
           // Handle agent mode responses
           AgentRound agentRound = value.getAgentRounds().get(0);
@@ -200,6 +217,8 @@ public class ChatContentViewer extends ScrolledComposite {
           turnWidget.appendMessage(value.getReply());
         }
       } else if (value.getKind() == WorkDoneProgressKind.end) {
+        // Seal any in-progress thinking block before the turn ends.
+        turnWidget.sealThinking();
         turnWidget.notifyTurnEnd();
       }
       refreshScrollerLayout();
@@ -257,6 +276,30 @@ public class ChatContentViewer extends ScrolledComposite {
     if (this.latestTurnWidget != null) {
       this.latestTurnWidget.appendMessage(message);
     }
+  }
+
+  /**
+   * Returns whether {@code value} carries an agent round with rendered content.
+   *
+   * <p>Empty agent rounds (round-id only with no reply or tool calls) are still part of the
+   * thinking phase and should not seal the thinking banner.
+   *
+   * @param value the chat progress value to inspect
+   * @return {@code true} if any agent round has a non-empty reply or tool calls
+   */
+  private static boolean hasNonEmptyAgentRound(ChatProgressValue value) {
+    if (value.getAgentRounds() == null || value.getAgentRounds().isEmpty()) {
+      return false;
+    }
+    for (AgentRound round : value.getAgentRounds()) {
+      if (StringUtils.isNotEmpty(round.getReply())) {
+        return true;
+      }
+      if (round.getToolCalls() != null && !round.getToolCalls().isEmpty()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

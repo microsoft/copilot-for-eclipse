@@ -25,7 +25,10 @@ import org.osgi.service.event.EventHandler;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -45,6 +48,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected SourceViewerComposite currentCodeBlock;
   protected Map<String, AgentStatusLabel> statusLabels;
   protected SubagentMessageBlock currentSubagentBlock;
+  protected ThinkingBlock currentThinkingBlock;
 
   // Data
   protected StringBuilder messageBuffer;
@@ -55,6 +59,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected int codeBlockIndex;
   protected boolean inSubagentBlock;
   protected String overrideRoleName;
+  protected StringBuilder thinkingTextBuffer;
 
   // Resource
   protected Image icon = null;
@@ -85,6 +90,7 @@ public abstract class BaseTurnWidget extends Composite {
     this.overrideRoleName = overrideRoleName;
     this.messageBuffer = new StringBuilder();
     this.mdContentBuilder = new StringBuilder();
+    this.thinkingTextBuffer = new StringBuilder();
     this.serviceManager = serviceManager;
     this.isCopilot = isCopilot;
     this.turnId = turnId;
@@ -411,7 +417,10 @@ public abstract class BaseTurnWidget extends Composite {
     this.currentTextBlock = null;
     this.inCodeBlock = false;
 
-    // Don't reset subagent block state here - it's managed by tool call status
+    // Don't reset subagent block state here - it's managed by tool call status.
+    // Don't reset the thinking block / buffer here either: a thinking phase spans across
+    // tool calls within the same turn, and appendThinking()/sealThinking() manage its lifecycle
+    // explicitly (sealing on reply or end-of-turn, starting a fresh block on the next phase).
   }
 
   /**
@@ -494,6 +503,104 @@ public abstract class BaseTurnWidget extends Composite {
   }
 
   /**
+   * Append a thinking delta from the language server. Routes to the active turn (parent or
+   * subagent) and lazily creates the {@link ThinkingBlock} on the first non-empty delta.
+   *
+   * @param thinking the thinking delta from {@code ChatProgressValue.thinking}
+   */
+  public void appendThinking(Thinking thinking) {
+    if (thinking == null || StringUtils.isBlank(thinking.text())) {
+      return;
+    }
+
+    SwtUtils.invokeOnDisplayThread(() -> {
+      if (isDisposed()) {
+        return;
+      }
+      // Route to subagent if we are inside one.
+      if (inSubagentBlock && currentSubagentBlock != null) {
+        BaseTurnWidget subagentWidget = currentSubagentBlock.getSubagentTurnWidget();
+        if (subagentWidget != null) {
+          subagentWidget.appendThinking(thinking);
+          return;
+        }
+      }
+      // If the previous block was already sealed (e.g. between agent rounds), start a fresh one
+      // so each thinking phase gets its own banner.
+      if (currentThinkingBlock != null && !currentThinkingBlock.isDisposed()
+          && currentThinkingBlock.isComplete()) {
+        currentThinkingBlock = null;
+        thinkingTextBuffer.setLength(0);
+      }
+      if (currentThinkingBlock == null || currentThinkingBlock.isDisposed()) {
+        currentThinkingBlock = new ThinkingBlock(this, SWT.NONE);
+      }
+      // The blank-text guard above guarantees a non-empty fragment here.
+      String fragment = thinking.text();
+      thinkingTextBuffer.append(fragment);
+      currentThinkingBlock.appendText(fragment);
+      requestLayout();
+    }, this);
+  }
+
+  /**
+   * Seal the active thinking block: stop the spinner, swap to the completed icon, then
+   * asynchronously fetch a server-generated title and update the banner.
+   */
+  public void sealThinking() {
+    SwtUtils.invokeOnDisplayThread(() -> {
+      // Route to subagent first if applicable, and stop here so the parent's still-streaming
+      // block (if any) is not accidentally sealed by a child seal event.
+      if (inSubagentBlock && currentSubagentBlock != null) {
+        BaseTurnWidget subagentWidget = currentSubagentBlock.getSubagentTurnWidget();
+        if (subagentWidget != null) {
+          subagentWidget.sealThinking();
+          return;
+        }
+      }
+      if (currentThinkingBlock == null || currentThinkingBlock.isDisposed()
+          || currentThinkingBlock.isComplete()) {
+        return;
+      }
+      // Show the fallback title immediately while the LSP request runs.
+      currentThinkingBlock.markComplete(null);
+      requestLayout();
+
+      String accumulated = thinkingTextBuffer.toString();
+      if (StringUtils.isBlank(accumulated)) {
+        return;
+      }
+
+      // Capture the target block so a late title response is only applied if this exact block is
+      // still around (a new thinking phase may have started in between).
+      requestThinkingTitle(accumulated, currentThinkingBlock);
+    }, this);
+  }
+
+  private void requestThinkingTitle(String thinkingContent, ThinkingBlock target) {
+    GenerateThinkingTitleParams params = new GenerateThinkingTitleParams(thinkingContent, null);
+    // The connection layer already logs and swallows exceptions, returning null on failure;
+    // applyThinkingTitle() handles a null response by leaving the fallback title in place.
+    CopilotCore.getPlugin().getCopilotLanguageServer().generateThinkingTitle(params)
+        .thenAccept(response -> applyThinkingTitle(response, target));
+  }
+
+  private void applyThinkingTitle(GenerateThinkingTitleResponse response, ThinkingBlock target) {
+    if (response == null || StringUtils.isBlank(response.title())) {
+      return;
+    }
+    SwtUtils.invokeOnDisplayThread(() -> {
+      // Only apply the title to the exact block that triggered the request; otherwise a stale
+      // response could overwrite a brand-new, still-streaming thinking block.
+      if (target == null || target.isDisposed() || !target.isComplete()) {
+        return;
+      }
+      target.setTitle(response.title());
+      requestLayout();
+    }, this);
+  }
+
+  /**
    * Dispose the widget.
    */
   @Override
@@ -505,6 +612,9 @@ public abstract class BaseTurnWidget extends Composite {
     if (mdContentBuilder != null) {
       mdContentBuilder.setLength(0);
     }
+    if (thinkingTextBuffer != null) {
+      thinkingTextBuffer.setLength(0);
+    }
     if (statusLabels != null) {
       for (AgentStatusLabel label : statusLabels.values()) {
         label.dispose();
@@ -515,6 +625,7 @@ public abstract class BaseTurnWidget extends Composite {
       currentSubagentBlock.dispose();
       currentSubagentBlock = null;
     }
+    currentThinkingBlock = null;
     // TODO: the event broker can be injected once we fully migrated to e4 and use ui injection
     if (this.cancelMsgEventHandler != null) {
       IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
