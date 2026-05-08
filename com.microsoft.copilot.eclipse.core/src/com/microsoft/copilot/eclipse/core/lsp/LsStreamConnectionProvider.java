@@ -79,6 +79,8 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
           Thread.sleep(1000);
           CopilotCore.LOGGER.info("Retrying binary LSP agent start on Linux.");
           startBinaryLspAgent();
+        } else {
+          throw e;
         }
       }
     } catch (Exception e) {
