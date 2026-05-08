@@ -42,9 +42,7 @@ Not exercised in this plan (separate scenarios):
   activated.
 - **A signed-in Copilot account on the host machine** for every TC except
   TC-009 (which deliberately probes the signed-out empty state). The Copilot
-  JS agent reads its token from the OS-standard Copilot store
-  (`%USERPROFILE%\AppData\Local\github-copilot\apps.json` on Windows;
-  `~/.config/github-copilot/apps.json` on macOS/Linux).
+  JS agent reads its token from the OS-standard Copilot store.
 - The signed-in account must have BYOK enabled by GitHub policy. If the org
   disables custom models, only TC-010 (disabled tip) is observable; the rest
   will short-circuit to the disabled view.
