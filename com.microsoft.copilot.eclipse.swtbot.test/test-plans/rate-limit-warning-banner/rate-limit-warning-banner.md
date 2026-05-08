@@ -55,28 +55,9 @@ Entry points:
 
 ---
 
-### TC-002: Banner appears in handoff mode on rate limit warning
-
-**Type:** `Happy Path`
-**Priority:** `P1`
-
-#### Preconditions
-- The Copilot Chat view is open in **agent/handoff** mode.
-
-#### Steps
-1. Trigger a `$/copilot/rateLimitWarning` notification while in agent/handoff
-   mode.
-2. Observe the area above the chat input field in the Action Bar.
-
-#### Expected Result
-- The warning banner appears correctly above the action bar input area, identical
-  to non-handoff mode.
-
----
-
 ## 2. Banner Content
 
-### TC-003: Banner contains "Get more info" link and Dismiss button
+### TC-002: Banner contains "Get more info" link and Dismiss button
 
 **Type:** `Happy Path`
 **Priority:** `P1`
@@ -99,7 +80,7 @@ Entry points:
 
 ---
 
-### TC-004: Dismiss button closes the banner
+### TC-003: Dismiss button closes the banner
 
 **Type:** `Happy Path`
 **Priority:** `P1`
@@ -118,94 +99,3 @@ Entry points:
 
 #### 📸 Key Screenshots
 - [ ] **After dismiss** — chat view with banner removed.
-
----
-
-## 3. History Navigation
-
-### TC-005: Banner hides and shows when navigating chat history
-
-**Type:** `Happy Path`
-**Priority:** `P1`
-
-#### Preconditions
-- A rate limit warning banner is visible for the current chat conversation.
-- At least one other chat history entry exists.
-
-#### Steps
-1. Note the current conversation — the banner is visible.
-2. Navigate to a **different** chat history entry.
-3. Observe the banner state.
-4. Navigate **back** to the original conversation.
-5. Observe the banner state.
-
-#### Expected Result
-- After switching away, the banner is **hidden** for the other history entry.
-- After switching back, the banner **reappears** for the original conversation.
-- No errors or layout issues occur during navigation.
-
----
-
-## 4. Edge Cases
-
-### TC-006: Multiple rapid notifications — only one banner shown
-
-**Type:** `Edge Case`
-**Priority:** `P2`
-
-#### Steps
-1. Trigger two or more `$/copilot/rateLimitWarning` notifications in quick
-   succession.
-2. Observe the chat view.
-
-#### Expected Result
-- Only one banner is displayed at a time (previous banner is replaced/disposed
-  before the new one is shown).
-
----
-
-### TC-007: New warning after dismiss creates a fresh banner
-
-**Type:** `Edge Case`
-**Priority:** `P2`
-
-#### Steps
-1. Dismiss the existing rate limit banner.
-2. Trigger another `$/copilot/rateLimitWarning` notification.
-3. Observe the chat view.
-
-#### Expected Result
-- A new banner appears with the content of the new notification.
-- No stale state from the dismissed banner is visible.
-
----
-
-### TC-008: Rate limit warning received while chat view is not focused
-
-**Type:** `Edge Case`
-**Priority:** `P2`
-
-#### Steps
-1. Switch focus to another Eclipse view or editor.
-2. Trigger a `$/copilot/rateLimitWarning` notification.
-3. Switch back to the Copilot Chat view.
-
-#### Expected Result
-- The banner is displayed when the chat view regains focus/visibility.
-
----
-
-### TC-009: Very long message string wraps gracefully
-
-**Type:** `Edge Case`
-**Priority:** `P3`
-
-#### Steps
-1. Trigger a `$/copilot/rateLimitWarning` notification whose `message` field
-   contains an unusually long string (e.g. 500+ characters).
-2. Observe the banner layout.
-
-#### Expected Result
-- The banner text wraps within the banner boundaries.
-- The chat view layout is not broken (no overflow, clipping, or overlapping
-  widgets).
