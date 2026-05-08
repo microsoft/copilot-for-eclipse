@@ -41,10 +41,10 @@ Not exercised in this plan (separate scenarios):
 - Eclipse IDE with the GitHub Copilot for Eclipse plugin installed and
   activated.
 - **A signed-in Copilot account on the host machine** for every TC except
-  TC-009 (which deliberately probes the signed-out empty state). The Copilot
+  TC-010 (which deliberately probes the signed-out empty state). The Copilot
   JS agent reads its token from the OS-standard Copilot store.
 - The signed-in account must have BYOK enabled by GitHub policy. If the org
-  disables custom models, only TC-010 (disabled tip) is observable; the rest
+  disables custom models, only TC-011 (disabled tip) is observable; the rest
   will short-circuit to the disabled view.
 - Valid API keys for at least one non-Azure provider (e.g. OpenAI) for the
   add-key / add-model / change-key / delete-key TCs. Use a throwaway key
@@ -112,7 +112,7 @@ Not exercised in this plan (separate scenarios):
 - Page never leaves loading → `ByokService.refreshData()` failed; check
   `workspace.log` for the LS bind error.
 - Sign-in label or org-disabled tip is shown instead of the tree → the
-  preconditions don't match; fall through to TC-009 / TC-010.
+  preconditions don't match; fall through to TC-010 / TC-011.
 
 ---
 
@@ -137,21 +137,27 @@ Not exercised in this plan (separate scenarios):
 3. Verify **Add Model…** becomes enabled and **Change API…** /
    **Delete API…** stay disabled (no key registered yet).
 4. Click **Add Model…**.
-5. Verify the **Add OpenAI API Key** dialog opens (title contains the
-   provider name, single password-masked **API Key** field, **Add** and
-   **Cancel** buttons; **Add** is initially disabled until a non-blank key
-   is entered).
-6. Type a valid OpenAI API key into the field and click **Add**.
-7. Wait for the per-provider loading indicator to clear (the "(Loading...)"
+5. Verify the API-key dialog opens with shell title **Add OpenAI Models**
+   (formatted from `preferences_page_byok_addModel_dialog_title`). The
+   dialog body contains a single password-masked **API Key** text field
+   with an eye-icon toggle button to reveal/mask the value, and the
+   button bar shows the platform-default **OK** and **Cancel** buttons.
+   **OK** is enabled on open (the dialog defers validation until the
+   button is pressed).
+6. Verify that pressing **OK** while the field is empty does **not**
+   close the dialog: focus returns to the API Key field and no save is
+   dispatched. (Equivalent of the empty-input guard in `okPressed`.)
+7. Type a valid OpenAI API key into the field and click **OK**.
+8. Wait for the per-provider loading indicator to clear (the "(Loading...)"
    suffix on the OpenAI node disappears).
-8. Expand the OpenAI node.
-9. Verify a list of models is fetched from the provider and rendered as
-   children, each with a **Status** column entry of either **Enable** or
-   **Disable** (matching their default registration state) and a status
-   icon.
-10. Verify the OpenAI node label now includes the registered/total count
+9. Expand the OpenAI node.
+10. Verify a list of models is fetched from the provider and rendered as
+    children, each with a **Status** column entry of either **Enable** or
+    **Disable** (matching their default registration state) and a status
+    icon.
+11. Verify the OpenAI node label now includes the registered/total count
     suffix, e.g. `OpenAI ( 0 of N Enabled )`.
-11. Re-select the OpenAI provider node and verify **Change API…** and
+12. Re-select the OpenAI provider node and verify **Change API…** and
     **Delete API…** are now enabled.
 
 #### Expected Result
@@ -161,7 +167,8 @@ Not exercised in this plan (separate scenarios):
 
 #### 📸 Key Screenshots
 - [ ] **Empty OpenAI node** — selected before clicking Add Model.
-- [ ] **Add API Key dialog** — open with the provider name in the title.
+- [ ] **API key dialog** — shell title **Add OpenAI Models**, masked
+  API Key field with eye toggle, **OK** / **Cancel** buttons.
 - [ ] **OpenAI populated** — node expanded with models + count suffix.
 
 ---
@@ -182,9 +189,12 @@ Not exercised in this plan (separate scenarios):
 3. Verify a confirmation dialog appears with title **Change OpenAI API
    Key?** and warning text about the change potentially breaking models.
    Click **Yes**.
-4. Verify the **Add API Key** dialog reopens, pre-populated with the
-   current (masked) API key value.
-5. Replace the field with the new API key and click **Add**.
+4. Verify the API-key dialog reopens. In the change flow its shell title
+   is just the provider name (**OpenAI**, not the `Add %s Models`
+   formatted title used for the add flow), and the masked API Key field
+   is pre-populated with the current key. **OK** / **Cancel** are the
+   button-bar labels; **OK** is enabled on open.
+5. Replace the field with the new API key and click **OK**.
 6. Wait for the per-provider loading indicator to clear.
 7. Verify the OpenAI node still shows its model list (refreshed against
    the new key) and no error dialog is shown.
@@ -195,7 +205,8 @@ Not exercised in this plan (separate scenarios):
 
 #### 📸 Key Screenshots
 - [ ] **Change API confirmation dialog**.
-- [ ] **Add API Key dialog with pre-filled value**.
+- [ ] **API key dialog (change flow)** — shell title is just **OpenAI**,
+  field pre-populated with the masked existing key.
 
 ---
 
