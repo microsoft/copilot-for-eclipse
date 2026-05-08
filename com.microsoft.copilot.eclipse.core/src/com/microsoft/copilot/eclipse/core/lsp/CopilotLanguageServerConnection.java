@@ -298,9 +298,9 @@ public class CopilotLanguageServerConnection {
         param.setWorkspaceFolder(agentJobWorkspaceFolder);
       }
 
-      // Set historical turns if provided.
+      // Set historical turns if provided, inserting them before the current user message.
       if (turns != null && turns.size() > 0) {
-        param.getTurns().addAll(turns);
+        param.getTurns().addAll(0, turns);
       }
 
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.

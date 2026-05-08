@@ -26,7 +26,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessa
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
-import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
+
 
 /**
  * Factory for creating and transforming conversation data objects. Responsible only for pure data transformation with
@@ -221,9 +221,8 @@ public class ConversationDataFactory {
         // TODO: We don't persist images for now, so hard code the modelSupportVersion to false. In the future, handle
         // images in responses and pass the model support version here if needed.
         String responseText = extractResponseFromCopilotTurnData(copilotTurnData);
-        Either<String, List<ChatCompletionContentPart>> response = ChatMessageUtils
-            .createMessageWithImages(responseText, new ArrayList<>(), false);
-        result.add(new Turn(response, responseText, null));
+        Either<String, List<ChatCompletionContentPart>> request = Either.forLeft("");
+        result.add(new Turn(request, responseText, null));
       }
     }
     return result;
