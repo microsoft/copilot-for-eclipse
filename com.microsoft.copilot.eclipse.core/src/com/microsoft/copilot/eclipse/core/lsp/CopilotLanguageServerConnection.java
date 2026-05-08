@@ -286,21 +286,21 @@ public class CopilotLanguageServerConnection {
       param.setChatMode(chatModeName);
       param.setCustomChatModeId(customChatModeId);
 
+      // Set historical turns if provided, inserting them before the current user message.
+      if (turns != null && turns.size() > 0) {
+        param.getTurns().addAll(0, turns);
+      }
+
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
         param.setTodoList(todos);
       } else {
-        // Set agentSlug if provided - this will modify the first turn's agentSlug
+        // Set agentSlug on the last turn (current user message) after history insertion
         if (param.getTurns() != null && !param.getTurns().isEmpty()) {
-          param.getTurns().get(0).setAgentSlug(agentSlug);
+          param.getTurns().get(param.getTurns().size() - 1).setAgentSlug(agentSlug);
         }
         param.setWorkspaceFolder(agentJobWorkspaceFolder);
-      }
-
-      // Set historical turns if provided, inserting them before the current user message.
-      if (turns != null && turns.size() > 0) {
-        param.getTurns().addAll(0, turns);
       }
 
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.

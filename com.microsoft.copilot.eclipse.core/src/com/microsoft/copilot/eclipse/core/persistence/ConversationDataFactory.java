@@ -218,8 +218,7 @@ public class ConversationDataFactory {
             .forLeft(requestText == null ? "" : requestText);
         result.add(new Turn(request, null, null));
       } else if (turnData instanceof CopilotTurnData copilotTurnData) {
-        // TODO: We don't persist images for now, so hard code the modelSupportVersion to false. In the future, handle
-        // images in responses and pass the model support version here if needed.
+        // Assistant turns only contribute the response text; the request field is intentionally empty.
         String responseText = extractResponseFromCopilotTurnData(copilotTurnData);
         Either<String, List<ChatCompletionContentPart>> request = Either.forLeft("");
         result.add(new Turn(request, responseText, null));
