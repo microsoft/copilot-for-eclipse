@@ -47,7 +47,7 @@ Not exercised:
 2. Open **Copilot Chat** from `Window -> Show View -> Other... -> Copilot -> Copilot Chat` if it is not already open.
 3. Switch the chat mode selector to **Agent**.
 4. Send a prompt that asks Agent mode to search the ABAP project or package for the token, for example: `Search ABAP
-   project <project name> package <package name> for the text ZCOPILOT_SEARCH_ABAP_144. Return the matching object path
+   project <project name> for the text ZCOPILOT_SEARCH_ABAP_144. Return the matching object path
    and line text.`
 5. If Copilot asks for tool confirmation, approve the requested workspace text-search operation.
 6. Wait for the Copilot response to complete.
