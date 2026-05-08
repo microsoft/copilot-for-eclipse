@@ -181,6 +181,30 @@ class BaseTurnWidgetToolCallStatusTest {
     });
   }
 
+  @Test
+  void appendToolCallStatus_nonErrorStatusWithOnlyError_isIgnored() {
+    SwtUtils.invokeOnDisplayThread(() -> {
+      try (MockedStatic<CopilotUi> copilotUiMock = mockStatic(CopilotUi.class)) {
+        CopilotUi mockPlugin = mock(CopilotUi.class);
+        copilotUiMock.when(CopilotUi::getPlugin).thenReturn(mockPlugin);
+        lenient().when(mockPlugin.getChatServiceManager()).thenReturn(mockChatServiceManager);
+
+        CopilotTurnWidget widget = new CopilotTurnWidget(shell, SWT.NONE, mockChatServiceManager, TURN_ID);
+
+        // Non-error events with only `error` populated must be dropped; otherwise
+        // setRunningStatus/setCompletedStatus/setText would call setMarkup(null).
+        widget.appendToolCallStatus(buildToolCall("running", null, ERROR_MESSAGE));
+        widget.appendToolCallStatus(buildToolCall("completed", "   ", ERROR_MESSAGE));
+        widget.appendToolCallStatus(buildToolCall("cancelled", null, ERROR_MESSAGE));
+
+        @SuppressWarnings("unchecked")
+        Map<String, AgentStatusLabel> labels = (Map<String, AgentStatusLabel>) getField(widget, "statusLabels");
+        assertTrue(labels.isEmpty(),
+            "Non-error events without progressMessage should be ignored, got: " + labels.keySet());
+      }
+    });
+  }
+
   private static AgentToolCall buildToolCall(String status, String progressMessage, String error) {
     Gson gson = new Gson();
     java.util.Map<String, Object> fields = new java.util.HashMap<>();

@@ -226,8 +226,16 @@ public abstract class BaseTurnWidget extends Composite {
    * @param toolCall the tool call of the agent turn
    */
   public void appendToolCallStatus(AgentToolCall toolCall) {
-    if (toolCall == null
-        || (StringUtils.isBlank(toolCall.getProgressMessage()) && StringUtils.isBlank(toolCall.getError()))) {
+    if (toolCall == null || toolCall.getStatus() == null) {
+      return;
+    }
+
+    String status = toolCall.getStatus().toLowerCase();
+    // Require a non-blank progressMessage for non-error events. For error events,
+    // also accept a non-blank `error` field as the displayable text.
+    boolean isError = "error".equals(status);
+    if (StringUtils.isBlank(toolCall.getProgressMessage())
+        && (!isError || StringUtils.isBlank(toolCall.getError()))) {
       return;
     }
 
@@ -255,7 +263,6 @@ public abstract class BaseTurnWidget extends Composite {
     AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(),
         id -> new AgentStatusLabel(this, SWT.LEFT));
 
-    String status = toolCall.getStatus().toLowerCase();
     switch (status) {
       case "running":
         statusLabel.setRunningStatus(toolCall.getProgressMessage());
