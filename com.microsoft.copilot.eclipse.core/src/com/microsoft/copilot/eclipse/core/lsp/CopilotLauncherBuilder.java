@@ -8,6 +8,7 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReferenceTypeAdapter;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ProgressParamsAdapter;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ThinkingTypeAdapter;
 
 /**
  * Builder for Copilot Language Server.
@@ -19,7 +20,8 @@ public class CopilotLauncherBuilder<T extends LanguageServer> extends Launcher.B
    */
   public CopilotLauncherBuilder() {
     this.configureGson(gsonBuilder -> gsonBuilder.registerTypeAdapterFactory(new ProgressParamsAdapter.Factory())
-        .registerTypeAdapterFactory(new ChatReferenceTypeAdapter.Factory()));
+        .registerTypeAdapterFactory(new ChatReferenceTypeAdapter.Factory())
+        .registerTypeAdapterFactory(new ThinkingTypeAdapter.Factory()));
   }
 
 }

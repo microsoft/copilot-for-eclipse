@@ -50,6 +50,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
@@ -520,6 +522,19 @@ public class CopilotLanguageServerConnection {
     Function<LanguageServer, CompletableFuture<GenerateCommitMessageResult>> fn =
         server -> ((CopilotLanguageServer) server).generateCommitMessage(params);
     // @formatter:on
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Generate a short title summarizing a thinking block.
+   */
+  public CompletableFuture<GenerateThinkingTitleResponse> generateThinkingTitle(
+      GenerateThinkingTitleParams params) {
+    Function<LanguageServer, CompletableFuture<GenerateThinkingTitleResponse>> fn =
+        server -> ((CopilotLanguageServer) server).generateThinkingTitle(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
       return null;
