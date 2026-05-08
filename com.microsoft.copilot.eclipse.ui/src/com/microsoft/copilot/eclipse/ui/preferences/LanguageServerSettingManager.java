@@ -183,12 +183,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
 
     syncSingleConfiguration(singleSetting);
-
-    if (Constants.ENABLE_SKILLS.equals(event.getProperty())) {
-      if (eventBroker != null) {
-        eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
-      }
-    }
   }
 
   /**
