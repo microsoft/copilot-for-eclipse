@@ -19,6 +19,10 @@ public class CopilotAgentSettings {
 
   private String transcriptDirectory;
 
+  // Control if the editor handles all confirmation requests from CLS.
+  @SerializedName("editorHandlesAllConfirmation")
+  private boolean editorHandlesAllConfirmation;
+
   public int getAgentMaxRequests() {
     return agentMaxRequests;
   }
@@ -50,9 +54,18 @@ public class CopilotAgentSettings {
     this.transcriptDirectory = transcriptDirectory;
   }
 
+  public boolean isEditorHandlesAllConfirmation() {
+    return editorHandlesAllConfirmation;
+  }
+
+  public void setEditorHandlesAllConfirmation(boolean editorHandlesAllConfirmation) {
+    this.editorHandlesAllConfirmation = editorHandlesAllConfirmation;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests, enableSkills, transcriptDirectory);
+    return Objects.hash(agentMaxRequests, enableSkills, transcriptDirectory,
+        editorHandlesAllConfirmation);
   }
 
   @Override
@@ -68,7 +81,8 @@ public class CopilotAgentSettings {
     }
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
     return agentMaxRequests == other.agentMaxRequests && enableSkills == other.enableSkills
-        && Objects.equals(transcriptDirectory, other.transcriptDirectory);
+        && Objects.equals(transcriptDirectory, other.transcriptDirectory)
+        && editorHandlesAllConfirmation == other.editorHandlesAllConfirmation;
   }
 
   @Override
@@ -77,6 +91,7 @@ public class CopilotAgentSettings {
     builder.append("agentMaxRequests", agentMaxRequests);
     builder.append("enableSkills", enableSkills);
     builder.append("transcriptDirectory", transcriptDirectory);
+    builder.append("editorHandlesAllConfirmation", editorHandlesAllConfirmation);
     return builder.toString();
   }
 
