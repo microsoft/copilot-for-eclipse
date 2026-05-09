@@ -89,9 +89,9 @@ Not exercised in this plan (separate scenarios):
    and contains exactly the six providers `Azure`, `OpenAI`, `Gemini`,
    `Groq`, `OpenRouter`, `Anthropic`.
 7. Verify the action buttons are present on the right side:
-   **Add Model…**, **Remove Model**, **Enable** / **Disable**, **Reload**,
-   **Change API…**, **Delete API…**. With no selection, **Add Model…**,
-   **Remove Model**, **Enable**, **Change API…**, and **Delete API…** are
+   **Add Model...**, **Remove Model**, **Enable** / **Disable**, **Reload**,
+   **Change API...**, **Delete API...**. With no selection, **Add Model...**,
+   **Remove Model**, **Enable**, **Change API...**, and **Delete API...** are
    disabled; only **Reload** is enabled.
 
 #### Expected Result
@@ -289,9 +289,13 @@ Not exercised in this plan (separate scenarios):
 1. Open the BYOK page, select the **OpenAI** provider node, and click
    **Add Model…**.
 2. Verify the **Add OpenAI Models** dialog opens with fields **Model
-   ID** (required), **Display Name** (required), **Support Vision**
+   ID** (required), **Display Name** (optional), **Support Vision**
    checkbox, and **Support Tool Calling** checkbox. There is no
    deployment-URL or API-key field for OpenAI (those are Azure-only).
+   The **Add** button stays disabled until **Model ID** is non-blank;
+   leaving **Display Name** empty does **not** block the **Add** button
+   (validation only requires Model ID for non-Azure providers, and
+   additionally Deployment URL + API Key for Azure).
 3. Enter a model id (e.g. `gpt-4o-mini-test`), a display name (e.g.
    `My Custom Model`), leave the capability checkboxes at their defaults,
    and click **Add**.
@@ -304,15 +308,25 @@ Not exercised in this plan (separate scenarios):
    for it (custom models can be removed).
 7. Select any non-custom model in the same provider and verify **Remove
    Model** is **disabled** (default models cannot be removed).
+8. Re-open **Add Model…**, enter only a model id (e.g.
+   `gpt-4o-mini-blank-name`), leave **Display Name** empty, and click
+   **Add**. Verify the model is created and rendered in the tree using
+   the **model id** as its display name (the dialog falls back to the
+   trimmed model id when display name is blank — see
+   `AddByokModelDialog#buildModel`).
 
 #### Expected Result
 - The custom model is persisted, appears in the tree, and is selectable
   from the chat model picker after this point.
 - The OpenAI node count suffix updates to reflect the new model count.
+- When **Display Name** is left blank, the saved model's displayed name
+  equals the trimmed **Model ID**.
 
 #### 📸 Key Screenshots
 - [ ] **Add OpenAI Models dialog** with required fields filled.
 - [ ] **Custom model in tree** showing the new display name.
+- [ ] **Custom model in tree (blank display name)** — node label equals
+  the model id.
 
 ---
 
