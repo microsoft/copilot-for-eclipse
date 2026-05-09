@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.CopilotSettings;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,7 +48,10 @@ class LanguageServerSettingManagerTests {
     // arrange
     when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
     var params = new DidChangeConfigurationParams();
-    params.setSettings(new CopilotLanguageServerSettings());
+    var settings = new CopilotLanguageServerSettings();
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    params.setSettings(settings);
 
     // act
     LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
@@ -74,6 +78,8 @@ class LanguageServerSettingManagerTests {
     var params = new DidChangeConfigurationParams();
     var settings = new CopilotLanguageServerSettings();
     settings.getHttp().setProxy("HTTPS://localhost:8080");
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
     params.setSettings(settings);
 
     // act
@@ -109,6 +115,8 @@ class LanguageServerSettingManagerTests {
     copilotSettings.setWorkspaceCopilotInstructions("Test instructions");
     CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
     settings.getGithubSettings().setCopilotSettings(copilotSettings);
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
     params.setSettings(settings);
 
     // act
@@ -137,6 +145,8 @@ class LanguageServerSettingManagerTests {
     // Expected params should have empty workspace instructions since it's disabled
     DidChangeConfigurationParams expectedParams = new DidChangeConfigurationParams();
     CopilotLanguageServerSettings expectedSettings = new CopilotLanguageServerSettings();
+    expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
+        .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
     expectedParams.setSettings(expectedSettings);
 
     // act
