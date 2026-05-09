@@ -431,11 +431,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     extMcpButton.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        String res = CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager()
-            .approveExtMcpRegistration();
-        if (StringUtils.isNotBlank(res)) {
-          CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
-        }
+        CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager().approveExtMcpRegistration();
       }
     });
   }

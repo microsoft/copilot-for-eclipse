@@ -52,11 +52,12 @@ public class McpExtensionPointManager {
   private static final String ELEMENT_PROVIDER = "provider";
   private static final String ATTRIBUTE_CLASS = "class";
 
-  private String approvedExtMcpServers;
+  private volatile String approvedExtMcpServers;
   private Map<String, McpRegistrationInfo> extMcpInfoMap = new HashMap<>(); // Key: Plugin-Id(Bundle)
 
   private McpConfigService mcpConfigService;
   private Gson gson;
+  private IEventBroker eventBroker;
 
   /**
    * Constructor for McpExtensionPointManager.
@@ -64,28 +65,36 @@ public class McpExtensionPointManager {
   public McpExtensionPointManager(McpConfigService mcpConfigService) {
     gson = new GsonBuilder().disableHtmlEscaping().create();
     this.mcpConfigService = mcpConfigService;
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
 
     if (CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
       initializeExtMcpRegistration();
     }
-    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY, event -> {
       Boolean enabled = (Boolean) event.getProperty(IEventBroker.DATA);
       if (enabled.booleanValue()) {
         initializeExtMcpRegistration();
       } else {
-        extMcpInfoMap.clear();
-        approvedExtMcpServers = null;
-        persistExtMcpInfo(extMcpInfoMap);
-        mcpConfigService.setNewExtMcpRegFound(false);
+        // Disabling the contribution point clears the in-memory state shared with doRegistration().
+        // Hold the manager monitor so the (non-thread-safe) HashMap clear and the approved-servers
+        // reset are not observed mid-update by a concurrent doRegistration() running on the async
+        // worker.
+        synchronized (this) {
+          extMcpInfoMap.clear();
+          approvedExtMcpServers = null;
+          persistExtMcpInfo(extMcpInfoMap);
+          mcpConfigService.setNewExtMcpRegFound(false);
+        }
       }
     });
   }
 
   private synchronized void initializeExtMcpRegistration() {
-    // Previously approved servers will be started during Plugin startup.
+    // Avoid pre-populating the in-memory approved servers from the persisted cache. If we did so,
+    // the initial syncMcpRegistrationConfiguration() at startup would push potentially stale data
+    // (server removed by the contributing plugin, port changed, plugin uninstalled) to the language
+    // server, which would surface a connection failure before doRegistration() can refresh the state.
     Map<String, McpRegistrationInfo> persistedMcpContribs = loadPersistedMcpContribs();
-    updateApprovedMcpServerString(persistedMcpContribs);
 
     // Run the heavy initialization work asynchronously, which has weak relation with Plugin startup.
     CompletableFuture.runAsync(() -> {
@@ -93,16 +102,37 @@ public class McpExtensionPointManager {
     });
   }
 
-  private synchronized void doRegistration(Map<String, McpRegistrationInfo> persistedMcpContribs) {
+  private void doRegistration(Map<String, McpRegistrationInfo> persistedMcpContribs) {
+    String approvedServersToPublish = null;
+    boolean shouldPublish = false;
     try {
-      FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-      if (flags != null && !flags.isMcpEnabled()) {
-        return;
+      synchronized (this) {
+        FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+        if (flags != null && !flags.isMcpEnabled()) {
+          return;
+        }
+        loadMcpRegistrationExtensionPoint();
+        detectChangesInMcpContribs(persistedMcpContribs);
+        approvedServersToPublish = approvedExtMcpServers;
+        shouldPublish = true;
       }
-      loadMcpRegistrationExtensionPoint();
-      detectChangesInMcpContribs(persistedMcpContribs);
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Error during EXT MCP registration initialization", e);
+      return;
+    }
+    // Publish the verified state outside the synchronized section so the manager monitor is not
+    // held while subscribers (notably LanguageServerSettingManager) push to the language server.
+    // The event fires unconditionally on success - including when the persisted JSON is unchanged
+    // and IPreferenceStore.setValue() therefore short-circuits its property-change notification -
+    // so the LSP always receives the verified extension-contributed servers.
+    if (shouldPublish) {
+      publishRegistrationCompleted(approvedServersToPublish);
+    }
+  }
+
+  private void publishRegistrationCompleted(String approvedServersJson) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_MCP_EXTENSION_POINT_REGISTRATION_COMPLETED, approvedServersJson);
     }
   }
 
@@ -167,7 +197,7 @@ public class McpExtensionPointManager {
         CopilotCore.LOGGER.error("Cannot find bundle: " + bundleName, null);
         continue; // Skip inactive plug-ins
       }
-      if (bundle.getState() != Bundle.ACTIVE || bundle.getState() != Bundle.STARTING) {
+      if (bundle.getState() != Bundle.ACTIVE && bundle.getState() != Bundle.STARTING) {
         try {
           bundle.start(Bundle.START_ACTIVATION_POLICY);
         } catch (BundleException e) {
@@ -297,12 +327,8 @@ public class McpExtensionPointManager {
       mcpConfigService.setNewExtMcpRegFound(true);
     }
 
-    // Always persist the latest MCP registration info, in case some plug-ins are un-installed, or unregister MCP
-    // servers.
-    if (!extMcpInfoMap.equals(existingExtMcpInfoMap)) {
-      updateApprovedMcpServerString(extMcpInfoMap);
-      persistExtMcpInfo(extMcpInfoMap);
-    }
+    updateApprovedMcpServerString(extMcpInfoMap);
+    persistExtMcpInfo(extMcpInfoMap);
   }
 
   /**
@@ -310,18 +336,35 @@ public class McpExtensionPointManager {
    */
   public String approveExtMcpRegistration() {
     Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-    if (extMcpInfoMap.isEmpty()) {
-      MessageDialog.openInformation(shell, "", "No MCP server registration found");
-      return null;
+    Map<String, McpRegistrationInfo> dialogInput;
+    synchronized (this) {
+      if (extMcpInfoMap.isEmpty()) {
+        MessageDialog.openInformation(shell, "", "No MCP server registration found");
+        return null;
+      }
+      // Take a shallow snapshot so the dialog can iterate the map safely even if doRegistration()
+      // mutates extMcpInfoMap on the async worker. Approval flips happen on the McpRegistrationInfo
+      // value objects, which are shared between the snapshot and the live map by reference, so the
+      // user's choices are reflected in extMcpInfoMap once the dialog returns.
+      dialogInput = new HashMap<>(extMcpInfoMap);
     }
 
-    McpApprovalDialog dialog = new McpApprovalDialog(shell, extMcpInfoMap);
+    // Open the modal dialog outside the synchronized block so a concurrent doRegistration() worker
+    // is not stalled on this manager's monitor while the user interacts with the dialog.
+    McpApprovalDialog dialog = new McpApprovalDialog(shell, dialogInput);
     dialog.open();
 
-    mcpConfigService.setNewExtMcpRegFound(false); // Reset the flag after user approval
-    updateApprovedMcpServerString(extMcpInfoMap);
-    persistExtMcpInfo(extMcpInfoMap);
-    return approvedExtMcpServers;
+    String approvedJson;
+    synchronized (this) {
+      mcpConfigService.setNewExtMcpRegFound(false); // Reset the flag after user approval
+      updateApprovedMcpServerString(extMcpInfoMap);
+      persistExtMcpInfo(extMcpInfoMap);
+      approvedJson = approvedExtMcpServers;
+    }
+    // Publish outside the lock so subscribers (notably LanguageServerSettingManager) are not
+    // running their LSP push while the manager monitor is held.
+    publishRegistrationCompleted(approvedJson);
+    return approvedJson;
   }
 
   private void persistExtMcpInfo(Map<String, McpRegistrationInfo> extMcpInfoMap) {
@@ -396,7 +439,7 @@ public class McpExtensionPointManager {
   /**
    * Check if there is any MCP registration from extension point.
    */
-  public boolean hasExtMcpRegistration() {
+  public synchronized boolean hasExtMcpRegistration() {
     return !extMcpInfoMap.isEmpty();
   }
 }
