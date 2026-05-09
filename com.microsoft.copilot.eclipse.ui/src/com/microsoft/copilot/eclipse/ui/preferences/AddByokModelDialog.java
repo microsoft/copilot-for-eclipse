@@ -89,7 +89,7 @@ public class AddByokModelDialog extends TrayDialog {
       createAzureSpecificFields(container);
     }
 
-    // Display Name
+    // Display Name (optional for all providers)
     new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_displayName);
     displayNameText = new Text(container, SWT.BORDER);
     displayNameText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
