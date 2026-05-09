@@ -858,14 +858,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
         // Cache conversation progress on report
         if (persistenceManager != null) {
-          persistenceManager.cacheConversationProgress(this.conversationId, value);
-
-          // Set subagentToolCallId on subagent CopilotTurnData for restoration
-          if (StringUtils.isNotBlank(value.getParentTurnId())
-              && StringUtils.isNotBlank(this.lastRunSubagentToolCallId)) {
-            persistenceManager.setSubagentToolCallId(this.conversationId, value.getTurnId(),
-                this.lastRunSubagentToolCallId);
-          }
+          // Chain setSubagentToolCallId after cacheConversationProgress to avoid race condition
+          // where the subagent CopilotTurnData hasn't been created yet
+          final String subagentToolCallId = this.lastRunSubagentToolCallId;
+          persistenceManager.cacheConversationProgress(this.conversationId, value).thenRun(() -> {
+            if (StringUtils.isNotBlank(value.getParentTurnId()) && StringUtils.isNotBlank(subagentToolCallId)) {
+              persistenceManager.setSubagentToolCallId(this.conversationId, value.getTurnId(), subagentToolCallId);
+            }
+          });
         }
         break;
       case end:
