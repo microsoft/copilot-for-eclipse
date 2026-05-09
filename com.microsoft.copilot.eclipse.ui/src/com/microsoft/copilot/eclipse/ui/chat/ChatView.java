@@ -796,6 +796,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Cache conversation progress on begin
         persistenceManager.cacheConversationProgress(this.conversationId, value);
 
+        // Set the CLS-assigned turnId on the last user turn that doesn't have one yet
+        if (StringUtils.isNotBlank(value.getTurnId())) {
+          persistenceManager.setUserTurnId(this.conversationId, value.getTurnId());
+        }
+
         // Hide handoff container when new turn starts
         Display.getDefault().asyncExec(() -> {
           if (handoffContainer != null && !handoffContainer.isDisposed()) {
@@ -943,7 +948,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        persistenceManager.persistUserTurnInfo(conversationId, workDoneToken, processedMessage, activeModel,
+        persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage, activeModel,
             chatModeName, customChatModeId, currentFile, references);
       }
 
@@ -983,12 +988,27 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // Create new conversation (either brand new or based on history)
       List<Turn> turns = null;
       List<TodoItem> todosToRestore = null;
+      String restoredConversationId = null;
+      String restoreToTurnId = null;
 
       if (conversationState == ConversationState.NEW_HISTORY_BASED_CONVERSATION) {
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
-        persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
+        persistenceManager.persistUserTurnInfo(this.conversationId, null, processedMessage, activeModel,
             chatModeName, customChatModeId, currentFile, references);
+
+        // Set conversationId and last completed turnId for CLS server-side session restoration.
+        // Only use turnId from turns that have a response (completed turns), not cancelled ones.
+        restoredConversationId = this.conversationId;
+        if (turns != null && !turns.isEmpty()) {
+          for (int i = turns.size() - 1; i >= 0; i--) {
+            Turn turn = turns.get(i);
+            if (StringUtils.isNotBlank(turn.getTurnId())) {
+              restoreToTurnId = turn.getTurnId();
+              break;
+            }
+          }
+        }
 
         // Get todos to restore for session continuation
         TodoListService todoListService = chatServiceManager.getTodoListService();
@@ -998,20 +1018,21 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       } else if (conversationState == ConversationState.NEW_CONVERSATION) {
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
-        persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
+        persistenceManager.persistUserTurnInfo(this.conversationId, null, processedMessage, activeModel,
             chatModeName, customChatModeId, currentFile, references);
       }
 
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null);
+            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null,
+            restoredConversationId, restoreToTurnId);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
             currentSelection, turns, activeModel, chatModeName, customChatModeId, null, agentSlug,
-            agentJobWorkspaceFolder);
+            agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId);
       }
       conversationFutures.add(createConversationFuture);
 

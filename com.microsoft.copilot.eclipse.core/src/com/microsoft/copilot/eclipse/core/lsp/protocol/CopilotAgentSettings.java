@@ -16,6 +16,8 @@ public class CopilotAgentSettings {
   @SerializedName("maxToolCallingLoop")
   private int agentMaxRequests;
 
+  private String transcriptDirectory;
+
   public int getAgentMaxRequests() {
     return agentMaxRequests;
   }
@@ -24,9 +26,17 @@ public class CopilotAgentSettings {
     this.agentMaxRequests = agentMaxRequests;
   }
 
+  public String getTranscriptDirectory() {
+    return transcriptDirectory;
+  }
+
+  public void setTranscriptDirectory(String transcriptDirectory) {
+    this.transcriptDirectory = transcriptDirectory;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests);
+    return Objects.hash(agentMaxRequests, transcriptDirectory);
   }
 
   @Override
@@ -38,13 +48,15 @@ public class CopilotAgentSettings {
       return false;
     }
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
-    return agentMaxRequests == other.agentMaxRequests;
+    return agentMaxRequests == other.agentMaxRequests
+        && Objects.equals(transcriptDirectory, other.transcriptDirectory);
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.append("agentMaxRequests", agentMaxRequests);
+    builder.append("transcriptDirectory", transcriptDirectory);
     return builder.toString();
   }
 }

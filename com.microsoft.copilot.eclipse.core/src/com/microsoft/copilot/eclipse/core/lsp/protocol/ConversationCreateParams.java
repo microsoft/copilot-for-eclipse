@@ -39,6 +39,8 @@ public class ConversationCreateParams {
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
   private List<TodoItem> todoList;
+  private String conversationId;
+  private String restoreToTurnId;
 
   /**
    * Creates a new ConversationCreateParams.
@@ -196,6 +198,22 @@ public class ConversationCreateParams {
 
   public void setModelProviderName(String modelProviderName) {
     this.modelProviderName = modelProviderName;
+  }
+
+  public String getConversationId() {
+    return conversationId;
+  }
+
+  public void setConversationId(String conversationId) {
+    this.conversationId = conversationId;
+  }
+
+  public String getRestoreToTurnId() {
+    return restoreToTurnId;
+  }
+
+  public void setRestoreToTurnId(String restoreToTurnId) {
+    this.restoreToTurnId = restoreToTurnId;
   }
 
   @Override

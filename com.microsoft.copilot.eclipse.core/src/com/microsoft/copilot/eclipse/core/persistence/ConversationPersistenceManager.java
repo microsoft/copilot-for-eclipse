@@ -294,45 +294,40 @@ public class ConversationPersistenceManager {
     return conversationData;
   }
 
-  private UserTurnData findOrCreateUserTurn(ConversationData conversation, String turnId) {
-    if (turnId != null) {
-      AbstractTurnData existingTurn = findTurn(conversation, turnId);
-      if (existingTurn != null && existingTurn instanceof UserTurnData userTurnData) {
-        return userTurnData;
+  /**
+   * Finds a turn by ID and type in the conversation.
+   */
+  @SuppressWarnings("unchecked")
+  private <T extends AbstractTurnData> T findTurn(ConversationData conversation, String turnId, Class<T> type) {
+    if (turnId == null) {
+      return null;
+    }
+    for (AbstractTurnData t : conversation.getTurns()) {
+      if (turnId.equals(t.getTurnId()) && type.isInstance(t)) {
+        return (T) t;
       }
     }
+    return null;
+  }
 
+  private UserTurnData findOrCreateUserTurn(ConversationData conversation, String turnId) {
+    UserTurnData existing = findTurn(conversation, turnId, UserTurnData.class);
+    if (existing != null) {
+      return existing;
+    }
     UserTurnData turn = dataFactory.createUserTurnData(conversation.getConversationId(), turnId, "", null, null, null);
     conversation.getTurns().add(turn);
     return turn;
   }
 
   private CopilotTurnData findOrCreateCopilotTurn(ConversationData conversation, String turnId) {
-    if (turnId != null) {
-      AbstractTurnData existingTurn = findTurn(conversation, turnId);
-      if (existingTurn != null && existingTurn instanceof CopilotTurnData copilotTurnData) {
-        return copilotTurnData;
-      }
+    CopilotTurnData existing = findTurn(conversation, turnId, CopilotTurnData.class);
+    if (existing != null) {
+      return existing;
     }
-
     CopilotTurnData turn = dataFactory.createCopilotTurnData(turnId);
     conversation.getTurns().add(turn);
     return turn;
-  }
-
-  /**
-   * Finds a turn by ID in the conversation.
-   */
-  private AbstractTurnData findTurn(ConversationData conversation, String turnId) {
-    if (conversation == null || turnId == null) {
-      return null;
-    }
-    for (AbstractTurnData t : conversation.getTurns()) {
-      if (turnId.equals(t.getTurnId())) {
-        return t;
-      }
-    }
-    return null;
   }
 
   private ConversationData getOrCreateNewConversationById(String conversationId) throws IOException {
@@ -542,5 +537,41 @@ public class ConversationPersistenceManager {
    */
   public ConversationDataFactory getDataFactory() {
     return dataFactory;
+  }
+
+  /**
+   * Sets the CLS-assigned turnId on the last user turn that doesn't have a turnId yet. User turns are initially
+   * persisted without a turnId (null), and the server-assigned turnId is set when the CLS progress begin event arrives.
+   *
+   * @param conversationId the conversation ID
+   * @param turnId the server-assigned turnId from CLS
+   */
+  public void setUserTurnId(String conversationId, String turnId) {
+    if (turnId == null) {
+      return;
+    }
+    CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ConversationData conversation = getConversationFromCacheOrLoadFromDisk(conversationId);
+        if (conversation == null) {
+          return;
+        }
+        // Find the last UserTurnData with null turnId and set it
+        List<AbstractTurnData> turns = conversation.getTurns();
+        for (int i = turns.size() - 1; i >= 0; i--) {
+          AbstractTurnData t = turns.get(i);
+          if (t instanceof UserTurnData && t.getTurnId() == null) {
+            t.setTurnId(turnId);
+            persistAndCacheConversation(conversation);
+            break;
+          }
+        }
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to set user turn ID for conversation: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
   }
 }

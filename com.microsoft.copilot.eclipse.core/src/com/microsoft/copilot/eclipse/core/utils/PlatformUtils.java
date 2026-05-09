@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.core.utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URI;
@@ -25,6 +26,7 @@ import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 
 /**
@@ -148,6 +150,15 @@ public class PlatformUtils {
 
   public static boolean isArm64() {
     return Platform.getOSArch().equals(Platform.ARCH_AARCH64);
+  }
+
+  /**
+   * Returns the transcript directory for CLS session persistence, following the same convention as the IntelliJ
+   * Copilot plugin ({@code ~/.copilot/eclipse}).
+   */
+  public static String getTranscriptDirectory() {
+    String userHome = System.getProperty("user.home");
+    return new File(userHome, Constants.TRANSCRIPT_SUBDIR).getAbsolutePath();
   }
 
   /**
