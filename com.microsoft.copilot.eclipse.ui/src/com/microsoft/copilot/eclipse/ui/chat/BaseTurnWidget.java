@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.source.SourceViewer;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
@@ -230,18 +231,19 @@ public abstract class BaseTurnWidget extends Composite {
       return;
     }
 
-    String status = toolCall.getStatus().toLowerCase();
-    // Require a non-blank progressMessage for non-error events. For error events,
-    // also accept a non-blank `error` field as the displayable text.
-    boolean isError = "error".equals(status);
-    if (StringUtils.isBlank(toolCall.getProgressMessage())
-        && (!isError || StringUtils.isBlank(toolCall.getError()))) {
+    // Subagent tool calls drive routing state for `currentSubagentBlock`/`inSubagentBlock`,
+    // so they must always be dispatched, even when the terminal event has no display message.
+    if ("run_subagent".equalsIgnoreCase(toolCall.getName())) {
+      handleSubagentToolCall(toolCall);
       return;
     }
 
-    // Check if this is a run_subagent tool call
-    if ("run_subagent".equalsIgnoreCase(toolCall.getName())) {
-      handleSubagentToolCall(toolCall);
+    String status = toolCall.getStatus().toLowerCase();
+    // Non-error events require a non-blank progressMessage to render (otherwise we'd
+    // call ChatMarkupViewer#setMarkup(null) and NPE). Error events always pass through:
+    // getErrorDisplayText(...) provides a non-blank fallback.
+    boolean isError = "error".equals(status);
+    if (!isError && StringUtils.isBlank(toolCall.getProgressMessage())) {
       return;
     }
 
@@ -276,11 +278,7 @@ public abstract class BaseTurnWidget extends Composite {
         break;
       case "error":
         statusLabel.setErrorStatus();
-        String errorText = StringUtils.isNotBlank(toolCall.getError()) ? toolCall.getError()
-            : toolCall.getProgressMessage();
-        if (StringUtils.isNotBlank(errorText)) {
-          statusLabel.setText(errorText);
-        }
+        statusLabel.setText(getErrorDisplayText(toolCall));
         break;
       default:
         statusLabel.setErrorStatus();
@@ -330,12 +328,12 @@ public abstract class BaseTurnWidget extends Composite {
             id -> new AgentStatusLabel(this, SWT.LEFT));
         if ("cancelled".equals(status)) {
           statusLabel.setCancelledStatus();
-          statusLabel.setText(toolCall.getProgressMessage());
+          if (StringUtils.isNotBlank(toolCall.getProgressMessage())) {
+            statusLabel.setText(toolCall.getProgressMessage());
+          }
         } else {
           statusLabel.setErrorStatus();
-          String errorText = StringUtils.isNotEmpty(toolCall.getError()) ? toolCall.getError()
-              : toolCall.getProgressMessage();
-          statusLabel.setText(errorText);
+          statusLabel.setText(getErrorDisplayText(toolCall));
         }
         requestLayout();
         break;
@@ -346,6 +344,31 @@ public abstract class BaseTurnWidget extends Composite {
         CopilotCore.LOGGER.error(new IllegalStateException("Unknown status: " + status));
         break;
     }
+  }
+
+  /**
+   * Resolve the user-facing error text for a tool call.
+   *
+   * <p>Picks the first non-blank of {@code toolCall.getError()} or {@code toolCall.getProgressMessage()},
+   * falls back to a generic message when both are blank, and prefixes the result with the tool name
+   * so the user knows which tool failed.
+   *
+   * @param toolCall the failing tool call
+   * @return a non-blank, prefixed display string suitable for {@link AgentStatusLabel#setText(String)}
+   */
+  private static String getErrorDisplayText(AgentToolCall toolCall) {
+    String detail = toolCall.getError();
+    if (StringUtils.isBlank(detail)) {
+      detail = toolCall.getProgressMessage();
+    }
+    if (StringUtils.isBlank(detail)) {
+      detail = Messages.chat_toolCall_genericError;
+    }
+    String name = toolCall.getName();
+    if (StringUtils.isBlank(name)) {
+      return detail;
+    }
+    return NLS.bind(Messages.chat_toolCall_errorTemplate, name, detail);
   }
 
   private void processMessageLine(String line) {
