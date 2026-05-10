@@ -131,7 +131,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     }
 
     addSeparator(parent);
-    addKeyValueRow(parent, Messages.model_hover_cost, costSymbols, SECTION_SPACING);
+    addKeyValueRow(parent, Messages.model_hover_cost, costSymbols);
   }
 
   private void addContextWindowSection(Composite parent, CopilotModelCapabilitiesLimits limits) {
@@ -141,12 +141,12 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
     addSeparator(parent);
     addKeyValueRow(parent, Messages.model_hover_contextWindow,
-        ModelUtils.formatTokenCount(limits.maxContextWindowTokens()), SECTION_SPACING);
+        ModelUtils.formatTokenCount(limits.maxContextWindowTokens()));
   }
 
-  private void addKeyValueRow(Composite parent, String keyText, String valueText, int verticalIndent) {
+  private void addKeyValueRow(Composite parent, String keyText, String valueText) {
     Composite row = createKeyValueRow(parent);
-    ((GridData) row.getLayoutData()).verticalIndent = verticalIndent;
+    ((GridData) row.getLayoutData()).verticalIndent = SECTION_SPACING;
 
     Label keyLabel = createSecondaryTextLabel(row, keyText);
     keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
