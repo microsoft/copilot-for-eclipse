@@ -545,7 +545,6 @@ public class ConversationPersistenceManager {
   }
 
   /**
-  /**
    * Sets the CLS-assigned turnId on the last user turn that doesn't have a turnId yet. User turns are initially
    * persisted without a turnId (null), and the server-assigned turnId is set when the CLS progress begin event arrives.
    *
@@ -602,9 +601,9 @@ public class ConversationPersistenceManager {
         if (conversation == null) {
           return;
         }
-        AbstractTurnData turnData = findTurn(conversation, subagentTurnId);
-        if (turnData instanceof CopilotTurnData turn && turn.getSubagentToolCallId() == null) {
-          turn.setSubagentToolCallId(toolCallId);
+        CopilotTurnData turnData = findTurn(conversation, subagentTurnId, CopilotTurnData.class);
+        if (turnData != null && turnData.getSubagentToolCallId() == null) {
+          turnData.setSubagentToolCallId(toolCallId);
         }
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to set subagent tool call ID: " + conversationId, e);
