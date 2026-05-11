@@ -25,6 +25,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
@@ -32,6 +33,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
@@ -160,6 +163,12 @@ public interface CopilotLanguageServer extends LanguageServer {
   CompletableFuture<ChatPersistence> persistence(NullParams param);
 
   /**
+   * Destroy a conversation, stopping any in-progress processing.
+   */
+  @JsonRequest("conversation/destroy")
+  CompletableFuture<String> destroy(ConversationDestroyParams param);
+
+  /**
    * Register agent tools to the language server.
    */
   @JsonRequest("conversation/registerTools")
@@ -194,6 +203,12 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("git/commitGenerate")
   CompletableFuture<GenerateCommitMessageResult> generateCommitMessage(GenerateCommitMessageParams params);
+
+  /**
+   * Generate a short title summarizing a thinking block.
+   */
+  @JsonRequest("thinking/generateTitle")
+  CompletableFuture<GenerateThinkingTitleResponse> generateThinkingTitle(GenerateThinkingTitleParams params);
 
   /**
    * List BYOK models.

@@ -9,26 +9,34 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title
- * header, an optional degradation warning row, a separator, and model-specific details such as family and cost.
+ * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title header,
+ * an optional category badge, an optional degradation warning, and model-specific details such as context size, token
+ * pricing, and context window.
  */
 public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
   private static final int SECTION_SPACING = 3;
   private static final String POPUP_SECONDARY_TEXT_CLASS = "popup-secondary-text";
+
+  private static Image arrowUpIcon;
+  private static Image arrowDownIcon;
 
   private final CopilotModel model;
   private final IStylingEngine stylingEngine;
@@ -56,39 +64,147 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       addWarningRow(parent, model.getDegradationReason());
     }
 
-    addSeparator(parent);
+    CopilotModelCapabilitiesLimits limits = model.getCapabilities() != null ? model.getCapabilities().limits() : null;
 
-    // Details section
-    Composite detailsComp = new Composite(parent, SWT.NONE);
-    GridData detailsGd = new GridData(SWT.FILL, SWT.FILL, true, false);
-    detailsGd.verticalIndent = SECTION_SPACING;
-    detailsComp.setLayoutData(detailsGd);
-    GridLayout detailsLayout = new GridLayout(1, false);
-    detailsLayout.marginWidth = 0;
-    detailsLayout.marginHeight = 0;
-    detailsLayout.marginBottom = SECTION_SPACING;
-    detailsLayout.verticalSpacing = 2;
-    detailsComp.setLayout(detailsLayout);
-
-    // Family
-    if (StringUtils.isNotBlank(model.getModelFamily())) {
-      addDetailRow(detailsComp, Messages.model_hover_family, model.getModelFamily());
-    }
-
-    // Cost
-    String cost = buildCostText();
-    if (StringUtils.isNotBlank(cost)) {
-      addDetailRow(detailsComp, Messages.model_hover_cost, cost);
-    }
+    addContextSizeSection(parent, limits);
+    addContextWindowSection(parent, limits);
+    addPricingSection(parent, model.getModelPickerPriceCategory());
   }
 
   private void renderHeader(Composite parent, DropdownItem item) {
     Label titleLabel = new Label(parent, SWT.WRAP);
     titleLabel.setText(item.getLabel());
     titleLabel.setFont(createBoldFont(titleLabel));
-    GridData headerGd = new GridData(SWT.FILL, SWT.CENTER, true, false);
-    headerGd.verticalIndent = SECTION_SPACING;
+    GridData headerGd = new GridData(SWT.FILL, SWT.NONE, true, false);
     titleLabel.setLayoutData(headerGd);
+  }
+
+  private void addContextSizeSection(Composite parent, CopilotModelCapabilitiesLimits limits) {
+    if (limits == null) {
+      return;
+    }
+    boolean hasInput = isPositive(limits.maxInputTokens());
+    boolean hasOutput = isPositive(limits.maxOutputTokens());
+    if (!hasInput && !hasOutput) {
+      return;
+    }
+
+    addSeparator(parent);
+
+    Composite row = createKeyValueRow(parent);
+    ((GridData) row.getLayoutData()).verticalIndent = SECTION_SPACING;
+
+    // Context Size:
+    Label keyLabel = createSecondaryTextLabel(row, Messages.model_hover_contextSize);
+    keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, false, false));
+
+    Composite valueComp = new Composite(row, SWT.NONE);
+    valueComp.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, true, false));
+    RowLayout valueLayout = new RowLayout(SWT.HORIZONTAL);
+    valueLayout.marginTop = 0;
+    valueLayout.marginBottom = 0;
+    valueLayout.marginLeft = 0;
+    valueLayout.marginRight = 0;
+
+    // Add spacing between input and output token labels if both are present
+    if (hasInput && hasOutput) {
+      valueLayout.spacing = 4;
+    } else {
+      valueLayout.spacing = 0;
+    }
+    valueComp.setLayout(valueLayout);
+
+    // ex. ↑128K
+    if (hasInput) {
+      addArrowTokenLabel(valueComp, true, ModelUtils.formatTokenCount(limits.maxInputTokens()));
+    }
+    // ex. ↓16K
+    if (hasOutput) {
+      addArrowTokenLabel(valueComp, false, ModelUtils.formatTokenCount(limits.maxOutputTokens()));
+    }
+  }
+
+  private void addPricingSection(Composite parent, String priceCategory) {
+    String costSymbols = ModelUtils.formatPriceCategory(priceCategory);
+    if (StringUtils.isBlank(costSymbols)) {
+      return;
+    }
+
+    addSeparator(parent);
+    addKeyValueRow(parent, Messages.model_hover_cost, costSymbols);
+  }
+
+  private void addContextWindowSection(Composite parent, CopilotModelCapabilitiesLimits limits) {
+    if (limits == null || !isPositive(limits.maxContextWindowTokens())) {
+      return;
+    }
+
+    addSeparator(parent);
+    addKeyValueRow(parent, Messages.model_hover_contextWindow,
+        ModelUtils.formatTokenCount(limits.maxContextWindowTokens()));
+  }
+
+  private void addKeyValueRow(Composite parent, String keyText, String valueText) {
+    Composite row = createKeyValueRow(parent);
+    ((GridData) row.getLayoutData()).verticalIndent = SECTION_SPACING;
+
+    Label keyLabel = createSecondaryTextLabel(row, keyText);
+    keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
+
+    Label valueLabel = createSecondaryTextLabel(row, valueText);
+    valueLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, false, false));
+  }
+
+  private Composite createKeyValueRow(Composite parent) {
+    Composite row = new Composite(parent, SWT.NONE);
+    row.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    GridLayout layout = new GridLayout(2, false);
+    layout.marginWidth = 0;
+    layout.marginHeight = 0;
+    row.setLayout(layout);
+    return row;
+  }
+
+  private void addArrowTokenLabel(Composite parent, boolean isInput, String tokenText) {
+    GridLayout pairLayout = new GridLayout(2, false);
+    pairLayout.marginWidth = 0;
+    pairLayout.marginHeight = 0;
+    pairLayout.horizontalSpacing = 0;
+    Composite pairComp = new Composite(parent, SWT.NONE);
+    pairComp.setLayout(pairLayout);
+
+    initArrowIcons(pairComp);
+    Label arrowLabel = new Label(pairComp, SWT.NONE);
+    Image arrowImage = isInput ? arrowUpIcon : arrowDownIcon;
+    arrowLabel.setImage(arrowImage);
+
+    createSecondaryTextLabel(pairComp, tokenText);
+  }
+
+  private static void initArrowIcons(Composite parent) {
+    if (arrowUpIcon == null || arrowUpIcon.isDisposed()) {
+      boolean isDark = UiUtils.isDarkTheme();
+      arrowUpIcon = UiUtils.buildImageFromPngPath(isDark ? "/icons/dropdown/context_size_arrow_up_dark.png"
+          : "/icons/dropdown/context_size_arrow_up_light.png");
+      arrowDownIcon = UiUtils.buildImageFromPngPath(isDark ? "/icons/dropdown/context_size_arrow_down_dark.png"
+          : "/icons/dropdown/context_size_arrow_down_light.png");
+      parent.getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
+    }
+  }
+
+  private static void disposeStaticIcons() {
+    if (arrowUpIcon != null && !arrowUpIcon.isDisposed()) {
+      arrowUpIcon.dispose();
+      arrowUpIcon = null;
+    }
+    if (arrowDownIcon != null && !arrowDownIcon.isDisposed()) {
+      arrowDownIcon.dispose();
+      arrowDownIcon = null;
+    }
+  }
+
+  private static boolean isPositive(Integer value) {
+    return value != null && value > 0;
   }
 
   private Font createBoldFont(Label label) {
@@ -106,14 +222,14 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     Label warningLabel = new Label(parent, SWT.WRAP);
     warningLabel.setText(warningText);
     setCssClass(warningLabel, POPUP_SECONDARY_TEXT_CLASS);
-    warningLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    warningLabel.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
   }
 
-  private void addDetailRow(Composite parent, String label, String value) {
-    Label detailLabel = new Label(parent, SWT.NONE);
-    detailLabel.setText(label + value);
-    setCssClass(detailLabel, POPUP_SECONDARY_TEXT_CLASS);
-    detailLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+  private Label createSecondaryTextLabel(Composite parent, String text) {
+    Label label = new Label(parent, SWT.NONE);
+    label.setText(text);
+    setCssClass(label, POPUP_SECONDARY_TEXT_CLASS);
+    return label;
   }
 
   private void setCssClass(Label control, String className) {
@@ -125,17 +241,9 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     }
   }
 
-  private String buildCostText() {
-    String suffix = ModelUtils.getModelSuffix(model);
-    if (model.getBilling() != null && model.getBilling().isPremium() && StringUtils.isNotBlank(suffix)) {
-      return suffix + " " + Messages.model_hover_cost_premium;
-    }
-    return suffix;
-  }
-
   private void addSeparator(Composite parent) {
     Composite separator = new Composite(parent, SWT.NONE);
-    GridData gd = new GridData(SWT.FILL, SWT.CENTER, true, false);
+    GridData gd = new GridData(SWT.FILL, SWT.NONE, true, false);
     gd.heightHint = 1;
     gd.verticalIndent = SECTION_SPACING;
     separator.setLayoutData(gd);

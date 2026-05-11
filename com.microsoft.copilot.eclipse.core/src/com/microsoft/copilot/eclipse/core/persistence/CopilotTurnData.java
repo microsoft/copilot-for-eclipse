@@ -19,6 +19,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class CopilotTurnData extends AbstractTurnData {
   private ReplyData reply;
   private String suggestedTitle;
+  private String parentTurnId;
+  private String subagentToolCallId;
 
   /**
    * Default constructor initializing default values.
@@ -43,11 +45,27 @@ public class CopilotTurnData extends AbstractTurnData {
     this.suggestedTitle = suggestedTitle;
   }
 
+  public String getParentTurnId() {
+    return parentTurnId;
+  }
+
+  public void setParentTurnId(String parentTurnId) {
+    this.parentTurnId = parentTurnId;
+  }
+
+  public String getSubagentToolCallId() {
+    return subagentToolCallId;
+  }
+
+  public void setSubagentToolCallId(String subagentToolCallId) {
+    this.subagentToolCallId = subagentToolCallId;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + Objects.hash(reply, suggestedTitle);
+    result = prime * result + Objects.hash(reply, suggestedTitle, parentTurnId, subagentToolCallId);
     return result;
   }
 
@@ -63,7 +81,9 @@ public class CopilotTurnData extends AbstractTurnData {
       return false;
     }
     CopilotTurnData other = (CopilotTurnData) obj;
-    return Objects.equals(reply, other.reply) && Objects.equals(suggestedTitle, other.suggestedTitle);
+    return Objects.equals(reply, other.reply) && Objects.equals(suggestedTitle, other.suggestedTitle)
+        && Objects.equals(parentTurnId, other.parentTurnId)
+        && Objects.equals(subagentToolCallId, other.subagentToolCallId);
   }
 
   @Override
@@ -77,6 +97,8 @@ public class CopilotTurnData extends AbstractTurnData {
     // Include CopilotTurnData specific properties
     builder.append("reply", reply);
     builder.append("suggestedTitle", suggestedTitle);
+    builder.append("parentTurnId", parentTurnId);
+    builder.append("subagentToolCallId", subagentToolCallId);
     return builder.toString();
   }
 

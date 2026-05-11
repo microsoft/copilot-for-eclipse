@@ -286,6 +286,11 @@ public class ConversationPersistenceManager {
     CopilotTurnData copilotTurnData = findOrCreateCopilotTurn(conversationData, progress.getTurnId());
     dataFactory.updateReplyFromProgress(copilotTurnData.getReply(), progress);
 
+    // Mark subagent turns with their parent turn ID
+    if (StringUtils.isNotBlank(progress.getParentTurnId())) {
+      copilotTurnData.setParentTurnId(progress.getParentTurnId());
+    }
+
     // Update suggested title in CopilotTurnData if present
     if (StringUtils.isNotBlank(progress.getSuggestedTitle())) {
       copilotTurnData.setSuggestedTitle(progress.getSuggestedTitle());
@@ -540,6 +545,7 @@ public class ConversationPersistenceManager {
   }
 
   /**
+  /**
    * Sets the CLS-assigned turnId on the last user turn that doesn't have a turnId yet. User turns are initially
    * persisted without a turnId (null), and the server-assigned turnId is set when the CLS progress begin event arrives.
    *
@@ -569,6 +575,39 @@ public class ConversationPersistenceManager {
         }
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to set user turn ID for conversation: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
+   * Sets the subagentToolCallId on a subagent's CopilotTurnData to associate it with the parent turn's run_subagent
+   * tool call. This enables precise positioning of subagent content during conversation restoration.
+   *
+   * @param conversationId the conversation ID
+   * @param subagentTurnId the subagent's turn ID
+   * @param toolCallId the run_subagent tool call ID from the parent turn
+   * @return a future that completes when the tool call ID has been set
+   */
+  public CompletableFuture<Void> setSubagentToolCallId(String conversationId, String subagentTurnId,
+      String toolCallId) {
+    if (toolCallId == null || subagentTurnId == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ConversationData conversation = getConversationFromCacheOrLoadFromDisk(conversationId);
+        if (conversation == null) {
+          return;
+        }
+        AbstractTurnData turnData = findTurn(conversation, subagentTurnId);
+        if (turnData instanceof CopilotTurnData turn && turn.getSubagentToolCallId() == null) {
+          turn.setSubagentToolCallId(toolCallId);
+        }
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to set subagent tool call ID: " + conversationId, e);
       } finally {
         lock.writeLock().unlock();
       }

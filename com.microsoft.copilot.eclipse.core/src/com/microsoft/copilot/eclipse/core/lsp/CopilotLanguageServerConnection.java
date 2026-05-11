@@ -42,6 +42,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
@@ -50,6 +51,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
@@ -449,6 +452,21 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
+   * Destroy a conversation, stopping any in-progress processing on the server.
+   */
+  public void destroyConversation(String conversationId) {
+    if (StringUtils.isBlank(conversationId)) {
+      return;
+    }
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .destroy(new ConversationDestroyParams(conversationId));
+    this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error("Failed to destroy conversation: " + conversationId, ex);
+      return null;
+    });
+  }
+
+  /**
    * Used to register the tools for the language server.
    */
   public CompletableFuture<List<LanguageModelToolInformation>> registerTools(RegisterToolsParams params) {
@@ -539,6 +557,19 @@ public class CopilotLanguageServerConnection {
     Function<LanguageServer, CompletableFuture<GenerateCommitMessageResult>> fn =
         server -> ((CopilotLanguageServer) server).generateCommitMessage(params);
     // @formatter:on
+    return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Generate a short title summarizing a thinking block.
+   */
+  public CompletableFuture<GenerateThinkingTitleResponse> generateThinkingTitle(
+      GenerateThinkingTitleParams params) {
+    Function<LanguageServer, CompletableFuture<GenerateThinkingTitleResponse>> fn =
+        server -> ((CopilotLanguageServer) server).generateThinkingTitle(params);
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
       return null;

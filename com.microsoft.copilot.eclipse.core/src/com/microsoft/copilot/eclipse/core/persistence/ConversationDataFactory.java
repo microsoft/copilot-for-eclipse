@@ -213,6 +213,11 @@ public class ConversationDataFactory {
       if (turnData == null) {
         continue;
       }
+      // Skip subagent turns - they are not part of the main conversation history
+      if (turnData instanceof CopilotTurnData copilotCheck
+          && copilotCheck.getParentTurnId() != null) {
+        continue;
+      }
       if (turnData instanceof UserTurnData userTurnData) {
         // Flush any unpaired user turn without a response
         if (unpairedUserTurn != null) {
