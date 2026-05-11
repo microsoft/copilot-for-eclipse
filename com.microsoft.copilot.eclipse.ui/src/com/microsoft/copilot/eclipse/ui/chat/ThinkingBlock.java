@@ -27,7 +27,7 @@ import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * Collapsible "Thinking" banner shown above an assistant turn while the model emits thinking deltas.
+ * Collapsible "Thinking" banner shown above an assistant turn while the model emits thinking stream.
  *
  * <p>Pure view: callers drive the visual state via {@link #showCompleted(String)} and {@link #showCancelled()}.
  * The owning turn widget is responsible for cancellation events and title fetching.
@@ -48,6 +48,14 @@ class ThinkingBlock extends Composite {
   private final StringBuilder textBuffer = new StringBuilder();
   private boolean expanded = true;
 
+  /**
+   * Lifecycle of the block. Transitions are always forward: STREAMING → (SEALED →)? → COMPLETED|CANCELLED.
+   * SEALED means {@code sealThinking()} has fired and a title fetch is in flight; new thinking stream fragments must
+   * start a new block.
+   */
+  private enum State { STREAMING, SEALED, COMPLETED, CANCELLED }
+
+  private State state = State.STREAMING;
   private SpinnerAnimator spinner;
   private Image cancelledIcon;
   private Image downArrowImage;
@@ -76,7 +84,7 @@ class ThinkingBlock extends Composite {
     updateChevron();
   }
 
-  /** Append a thinking delta. Null/empty fragments are ignored. */
+  /** Append a thinking stream fragment. Null/empty fragments are ignored. */
   public void appendText(String fragment) {
     if (fragment == null || fragment.isEmpty()) {
       return;
@@ -100,6 +108,7 @@ class ThinkingBlock extends Composite {
     }
     setTitleText(title);
     setExpanded(false);
+    state = State.COMPLETED;
   }
 
   /** Swap to the cancel icon, set the cancelled title, and collapse. No-op if already finalized. */
@@ -117,11 +126,27 @@ class ThinkingBlock extends Composite {
     }
     setTitleText(Messages.thinking_cancelledTitle);
     setExpanded(false);
+    state = State.CANCELLED;
   }
 
-  /** True once the spinner has stopped (block has been completed or cancelled). */
+  /**
+   * Mark the block as sealed: the owning widget has requested a title and any further thinking stream fragments must
+   * land in a new block. No-op once the block has been finalized or already sealed.
+   */
+  public void markSealed() {
+    if (state == State.STREAMING) {
+      state = State.SEALED;
+    }
+  }
+
+  /** True only while new thinking stream fragments should still be appended to this block. */
+  public boolean isAcceptingThinkStream() {
+    return state == State.STREAMING;
+  }
+
+  /** True once the block has been completed or cancelled (spinner stopped, final title shown). */
   public boolean isFinalized() {
-    return spinner == null;
+    return state == State.COMPLETED || state == State.CANCELLED;
   }
 
   /** The full accumulated thinking text streamed so far. */
@@ -191,8 +216,13 @@ class ThinkingBlock extends Composite {
         toggleExpanded();
       }
     };
+    // Attach to every header child (and the header itself) so the entire area that shows the hand
+    // cursor is actually clickable. iconLabel is intentionally excluded: it hosts the live spinner
+    // animation (and the cancel icon afterwards), and a clickable spinner is an odd affordance.
+    header.addMouseListener(toggleListener);
     titleText.addMouseListener(toggleListener);
     chevronLabel.addMouseListener(toggleListener);
+    filler.addMouseListener(toggleListener);
   }
 
   private void createBody() {
@@ -256,8 +286,10 @@ class ThinkingBlock extends Composite {
     String currentTitle = null;
     int cursor = 0;
     while (matcher.find()) {
-      String body = raw.substring(cursor, matcher.start()).strip();
-      if (currentTitle != null || !body.isEmpty()) {
+      // Preserve the body's original whitespace (e.g. leading indentation for code blocks); only strip the
+      // trailing newline(s) that visually separate the body from the upcoming title delimiter.
+      String body = stripTrailingNewlines(raw.substring(cursor, matcher.start()));
+      if (currentTitle != null || !body.isBlank()) {
         result.add(new ParsedSection(currentTitle, body));
       }
       currentTitle = matcher.group(1).trim();
@@ -267,11 +299,20 @@ class ThinkingBlock extends Composite {
         cursor++;
       }
     }
-    String tail = raw.substring(cursor).strip();
-    if (currentTitle != null || !tail.isEmpty()) {
+    // Tail has no following title delimiter; only trim trailing newlines so leading indentation survives.
+    String tail = stripTrailingNewlines(raw.substring(cursor));
+    if (currentTitle != null || !tail.isBlank()) {
       result.add(new ParsedSection(currentTitle, tail));
     }
     return result;
+  }
+
+  private static String stripTrailingNewlines(String s) {
+    int end = s.length();
+    while (end > 0 && s.charAt(end - 1) == '\n') {
+      end--;
+    }
+    return s.substring(0, end);
   }
 
   private void setTitleText(String text) {

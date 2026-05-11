@@ -8,6 +8,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -19,8 +20,6 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 public abstract class ThinkingTurnWidget extends BaseTurnWidget {
 
   private ThinkingBlock currentBlock;
-  /** True once {@link #sealThinking()} has fired for {@link #currentBlock}; the next delta will start a new block. */
-  private boolean sealed;
 
   /** Construct a turn widget that supports streaming thinking blocks. */
   protected ThinkingTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId,
@@ -34,7 +33,7 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
   }
 
   /**
-   * Append a thinking delta from the language server, routing to the active turn (parent or subagent).
+   * Append a thinking stream fragment from the language server, routing to the active turn (parent or subagent).
    * Must be called on the UI thread.
    */
   public void appendThinking(Thinking thinking) {
@@ -48,9 +47,11 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
     if (active == null || active.isDisposed()) {
       return;
     }
-    if (active.currentBlock == null || active.currentBlock.isDisposed() || active.sealed) {
+    // Single source of truth: ThinkingBlock decides whether it can accept more thinking stream fragments (it can't
+    // once sealed, completed, or cancelled). Any of those transitions must start a fresh block.
+    if (active.currentBlock == null || active.currentBlock.isDisposed()
+        || !active.currentBlock.isAcceptingThinkStream()) {
       active.currentBlock = new ThinkingBlock(active, SWT.NONE);
-      active.sealed = false;
     }
     active.currentBlock.appendText(thinking.text());
   }
@@ -68,23 +69,30 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
       return;
     }
     ThinkingBlock target = active.currentBlock;
-    // Skip when already sealed, or when a prior cancel has already finalized the block (so we don't fire a stale
-    // generateTitle request whose response would be discarded).
-    if (target == null || target.isDisposed() || active.sealed || target.isFinalized()) {
+    // Skip when the block is no longer accepting thinking stream fragments (already sealed, completed, or cancelled)
+    // so we don't fire a stale generateTitle request whose response would be discarded.
+    if (target == null || target.isDisposed() || !target.isAcceptingThinkStream()) {
       return;
     }
     String content = target.getAccumulatedText();
     if (StringUtils.isBlank(content)) {
-      // Nothing to title; leave the block alone (still in-progress) so a later delta can keep streaming.
+      // Nothing to title; leave the block alone (still in-progress) so a later thinking stream fragment can keep
+      // streaming.
       return;
     }
-    active.sealed = true;
+    CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
+    if (ls == null) {
+      target.showCancelled();
+      requestLayout();
+      return;
+    }
+    target.markSealed();
     String[] titles = target.getExtractedTitles();
     // Server schema rejects null entries inside extractedTitles, so we send one of the two fields, never both.
     boolean hasTitles = titles.length > 0;
     GenerateThinkingTitleParams params = new GenerateThinkingTitleParams(hasTitles ? null : content,
         hasTitles ? titles : null);
-    CopilotCore.getPlugin().getCopilotLanguageServer().generateThinkingTitle(params)
+    ls.generateThinkingTitle(params)
         .thenAccept(resp -> SwtUtils.invokeOnDisplayThread(() -> {
           if (target.isDisposed() || target.isFinalized()) {
             return;
