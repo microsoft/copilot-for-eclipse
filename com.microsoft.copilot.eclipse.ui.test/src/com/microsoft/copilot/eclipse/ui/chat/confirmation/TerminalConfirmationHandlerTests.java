@@ -475,4 +475,94 @@ class TerminalConfirmationHandlerTests {
         && action.getMetadata().get(ConfirmationAction.META_ACTION)
         .equals(type.name());
   }
+
+  // --- Unapproved filtering tests ---
+
+  @Test
+  void buildContent_filtersSessionApprovedNamesFromActions() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    // "echo && curl" — approve echo in session first
+    InvokeClientToolConfirmationParams approveParams =
+        buildParams(new String[]{"echo hello"}, new String[]{"echo"},
+            "echo hello");
+    handler.persistDecision(
+        buildSessionAction(
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
+        approveParams);
+
+    // Now evaluate "echo hello && curl example.com"
+    InvokeClientToolConfirmationParams params =
+        buildParams(
+            new String[]{"echo hello", "curl example.com"},
+            new String[]{"echo", "curl"},
+            "echo hello && curl example.com");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertFalse(result.isAutoApproved());
+    List<ConfirmationAction> actions = result.getContent().getActions();
+
+    // Command-name actions should only mention "curl", not "echo"
+    ConfirmationAction namesAction = actions.stream()
+        .filter(a -> hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION))
+        .findFirst().orElse(null);
+    assertNotNull(namesAction);
+    assertTrue(namesAction.getLabel().contains("curl"));
+    assertFalse(namesAction.getLabel().contains("echo"));
+  }
+
+  @Test
+  void buildContent_filtersGlobalApprovedNamesFromActions() {
+    // Global allow rule for "echo"
+    stubRules(List.of(new TerminalAutoApproveRule("echo", true)));
+    stubUnmatched(false);
+
+    // Evaluate "echo hello && hostname"
+    InvokeClientToolConfirmationParams params =
+        buildParams(
+            new String[]{"echo hello", "hostname"},
+            new String[]{"echo", "hostname"},
+            "echo hello && hostname");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertFalse(result.isAutoApproved());
+    List<ConfirmationAction> actions = result.getContent().getActions();
+
+    // "echo" is globally allowed — only "hostname" in actions
+    ConfirmationAction namesAction = actions.stream()
+        .filter(a -> hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION))
+        .findFirst().orElse(null);
+    assertNotNull(namesAction);
+    assertTrue(namesAction.getLabel().contains("hostname"));
+    assertFalse(namesAction.getLabel().contains("echo"));
+  }
+
+  @Test
+  void buildContent_allNamesApproved_autoApproves() {
+    stubRules(List.of(new TerminalAutoApproveRule("echo", true)));
+    stubUnmatched(false);
+
+    // Session-approve "curl"
+    InvokeClientToolConfirmationParams approveParams =
+        buildParams(new String[]{"curl x"}, new String[]{"curl"},
+            "curl x");
+    handler.persistDecision(
+        buildSessionAction(
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
+        approveParams);
+
+    // Evaluate "echo hello && curl example.com"
+    // echo = global allow, curl = session allow → all approved
+    InvokeClientToolConfirmationParams params =
+        buildParams(
+            new String[]{"echo hello", "curl example.com"},
+            new String[]{"echo", "curl"},
+            "echo hello && curl example.com");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertTrue(result.isAutoApproved());
+  }
 }

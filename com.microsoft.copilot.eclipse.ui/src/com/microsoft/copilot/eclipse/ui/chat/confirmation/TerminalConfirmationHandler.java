@@ -46,6 +46,19 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
     ACCEPT_ALL_SESSION
   }
 
+  /** Result of evaluating sub-commands against rules. */
+  enum RuleVerdict { ALL_APPROVED, DENY_BLOCKED, UNMATCHED }
+
+  private static final class RuleResult {
+    final RuleVerdict verdict;
+    final List<String> unapprovedItems;
+
+    RuleResult(RuleVerdict verdict, List<String> unapprovedItems) {
+      this.verdict = verdict;
+      this.unapprovedItems = unapprovedItems;
+    }
+  }
+
   static final String META_COMMAND_NAMES = "commandNames";
   static final String META_COMMAND_LINE = "commandLine";
 
@@ -129,19 +142,16 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 4-6. Global rules from preference store
+    // 4-6. Global rules
     String[] subCommands = getSubCommands(params);
     if (subCommands == null || subCommands.length == 0) {
-      return ConfirmationResult.needsConfirmation(buildContent(params));
+      return ConfirmationResult.needsConfirmation(
+          buildContent(params, null));
     }
 
     List<TerminalAutoApproveRule> rules = loadRules();
-    if (rules.isEmpty()) {
-      return evaluateUnmatched(params);
-    }
 
-    // 4. Global: exact commandLine match (for "Always Allow this
-    //    exact command" — the full commandLine is stored as a rule)
+    // 4. Exact commandLine match
     if (commandLine != null) {
       for (TerminalAutoApproveRule rule : rules) {
         if (commandLine.trim().equals(rule.getCommand().trim())
@@ -151,47 +161,104 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 5. Global: per-subCommand match against regex/prefix rules.
-    //    Any deny match → needs confirmation immediately.
-    //    All subCommands must match an allow rule for auto-approve.
-    boolean allMatched = true;
-    for (String subCommand : subCommands) {
-      boolean matched = false;
+    // 5. Per-subCommand evaluation
+    RuleResult result = evaluateSubCommands(
+        subCommands, cmdNames, rules, namesSet);
+
+    switch (result.verdict) {
+      case ALL_APPROVED:
+        return ConfirmationResult.AUTO_APPROVED;
+      case DENY_BLOCKED:
+        return ConfirmationResult.needsConfirmation(
+            buildContent(params, result.unapprovedItems));
+      case UNMATCHED:
+      default:
+        // 6. Unmatched fallback
+        if (preferenceStore.getBoolean(
+            Constants.AUTO_APPROVE_UNMATCHED_TERMINAL)) {
+          return ConfirmationResult.AUTO_APPROVED;
+        }
+        List<String> items = result.unapprovedItems.isEmpty()
+            ? null : result.unapprovedItems;
+        return ConfirmationResult.needsConfirmation(
+            buildContent(params, items));
+    }
+  }
+
+  /**
+   * Evaluates each sub-command against global rules and session state.
+   * Returns a verdict and the list of unapproved command names.
+   */
+  private RuleResult evaluateSubCommands(String[] subCommands,
+      String[] cmdNames, List<TerminalAutoApproveRule> rules,
+      Set<String> sessionNames) {
+    boolean allApproved = true;
+    boolean hasDeny = false;
+    List<String> unapproved = new ArrayList<>();
+
+    for (int i = 0; i < subCommands.length; i++) {
+      String subCommand = subCommands[i];
+      String cmdName = cmdNames != null && i < cmdNames.length
+          ? cmdNames[i] : null;
+      boolean hasAllow = false;
+      boolean denied = false;
+
+      // Session command-name approval
+      if (cmdName != null && sessionNames != null
+          && sessionNames.contains(cmdName)) {
+        hasAllow = true;
+      }
+
+      // Global rule matching
       for (TerminalAutoApproveRule rule : rules) {
         if (matchesRule(subCommand, rule.getCommand())) {
-          if (!rule.isAutoApprove()) {
-            return ConfirmationResult.needsConfirmation(buildContent(params));
+          if (rule.isAutoApprove()) {
+            hasAllow = true;
+          } else {
+            denied = true;
           }
-          matched = true;
           break;
         }
       }
-      if (!matched) {
-        allMatched = false;
+
+      if (denied && !hasAllow) {
+        hasDeny = true;
+        if (cmdName != null && !unapproved.contains(cmdName)) {
+          unapproved.add(cmdName);
+        }
+      } else if (!hasAllow) {
+        allApproved = false;
+        if (cmdName != null && !unapproved.contains(cmdName)) {
+          unapproved.add(cmdName);
+        }
       }
     }
 
-    if (allMatched) {
-      return ConfirmationResult.AUTO_APPROVED;
+    RuleVerdict verdict;
+    if (hasDeny) {
+      verdict = RuleVerdict.DENY_BLOCKED;
+    } else if (allApproved) {
+      verdict = RuleVerdict.ALL_APPROVED;
+    } else {
+      verdict = RuleVerdict.UNMATCHED;
     }
-    // 6. No rule matched — defer to unmatched preference
-    return evaluateUnmatched(params);
+    return new RuleResult(verdict, unapproved);
   }
 
-  private ConfirmationResult evaluateUnmatched(
-      InvokeClientToolConfirmationParams params) {
-    if (preferenceStore.getBoolean(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL)) {
-      return ConfirmationResult.AUTO_APPROVED;
-    }
-    return ConfirmationResult.needsConfirmation(buildContent(params));
-  }
-
+  /**
+   * Builds the confirmation dialog content. When {@code unapprovedNames}
+   * is non-null, only those names appear in the command-name actions
+   * (already-approved names are filtered out).
+   */
   private ConfirmationContent buildContent(
-      InvokeClientToolConfirmationParams params) {
+      InvokeClientToolConfirmationParams params,
+      List<String> unapprovedNames) {
     final String[] commandNames = getCommandNames(params);
     String commandLine = extractCommandLine(params);
 
-    List<String> uniqueNames = dedup(commandNames);
+    // Use unapproved names if available, otherwise all unique names
+    List<String> uniqueNames = unapprovedNames != null
+        ? unapprovedNames : dedup(commandNames);
     String label = !uniqueNames.isEmpty()
         ? "'" + String.join(", ", uniqueNames) + "'" : "'command'";
     String namesValue = String.join(",", uniqueNames);

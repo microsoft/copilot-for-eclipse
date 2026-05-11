@@ -363,3 +363,59 @@ reverts
 - [ ] Preference page after adding custom rules.
 - [ ] Preference page after reset — only defaults.
 - [ ] `echo hello` shows confirmation dialog post-reset.
+
+---
+
+## 11. Already-approved names filtered from dropdown
+
+### TC-011: Session-approved command name hidden from dropdown
+actions in multi-command scenario
+
+**Type:** `Edge Case`
+**Priority:** `P1`
+
+#### Steps
+1. In Agent Mode, trigger a command that includes `echo`
+   (e.g., "run echo hello").
+2. Confirmation dialog appears.
+3. Select **"Allow 'echo' in this Session"** from the dropdown.
+4. The command executes.
+5. In the same conversation, send a prompt that triggers a
+   multi-command like `echo test && curl https://example.com`.
+6. Confirmation dialog appears (because `curl` is a default deny
+   rule).
+7. Click the dropdown arrow.
+
+#### Expected Result
+- The dropdown shows **"Allow 'curl' in this Session"** and
+  **"Always Allow 'curl'"**.
+- `echo` does **NOT** appear in the command-name actions — it was
+  already session-approved.
+- "Allow all commands in this Session" is still shown.
+- Exact command actions (if shown) refer to the full multi-command
+  string, not individual parts.
+
+#### 📸 Key Screenshots
+- [ ] First dialog: approving `echo` in session.
+- [ ] Second dialog: dropdown showing only `curl`, not `echo`.
+
+---
+
+### TC-012: Global-approved command name hidden from dropdown
+
+**Type:** `Edge Case`
+**Priority:** `P1`
+
+#### Steps
+1. Open **Preferences → Tool Auto Approve**.
+2. Add `echo` as **Allow** rule. Apply and close.
+3. In Agent Mode, trigger `echo hello && hostname`.
+4. Confirmation dialog appears (because `hostname` has no matching
+   rule and unmatched is disabled).
+5. Click the dropdown arrow.
+
+#### Expected Result
+- The dropdown shows **"Allow 'hostname' in this Session"** and
+  **"Always Allow 'hostname'"**.
+- `echo` does **NOT** appear — it is globally allowed.
+- "Allow all commands in this Session" is still shown.
