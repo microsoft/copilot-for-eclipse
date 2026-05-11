@@ -55,10 +55,7 @@ Entry points:
    `# GitHub Copilot <version> Release Notes` heading).
 6. Verify that this top-most section, and the first feature sub-heading beneath
    it, match the top of the bundled `intro/whatsnew/WHATISNEW.md` file shipped
-   with the installed plugin build. At the time of writing, the expected
-   latest entry is:
-   - Release heading: `GitHub Copilot 0.16.0 Release Notes`
-   - First feature: `Tool Calling in Ask Mode`
+   with the installed plugin build.
 
 #### Expected Result
 - Clicking **What's New** from the Copilot status-bar menu opens an editor tab

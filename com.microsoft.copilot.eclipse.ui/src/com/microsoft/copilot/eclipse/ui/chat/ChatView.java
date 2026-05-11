@@ -46,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.chat.ChatProgressListener;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCreateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -110,6 +111,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private boolean hasHistory = false;
   private String conversationId = "";
   private String subagentConversationId = null;
+  private String lastRunSubagentToolCallId = null;
   private ConversationState conversationState = ConversationState.NEW_CONVERSATION;
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
@@ -804,6 +806,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         });
         break;
       case report:
+        // Ignore progress events from a different conversation
+        if (!isProgressForCurrentConversation(value)) {
+          return;
+        }
+
         // Update context size donut if data is available
         ContextSizeInfo contextSize = value.getContextSize();
         if (contextSize != null) {
@@ -830,17 +837,46 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           this.chatContentViewer.processTurnEvent(value);
         }
 
+        // Track run_subagent tool call ID for associating subagent turns
+        if (StringUtils.isBlank(value.getParentTurnId()) && value.getAgentRounds() != null) {
+          for (AgentRound round : value.getAgentRounds()) {
+            if (round.getToolCalls() != null) {
+              for (AgentToolCall tc : round.getToolCalls()) {
+                if ("run_subagent".equals(tc.getName())) {
+                  this.lastRunSubagentToolCallId = tc.getId();
+                }
+              }
+            }
+          }
+        }
+
         // If exiting subagent context (no parentTurnId), clear the subagent conversation ID
         if (StringUtils.isBlank(value.getParentTurnId()) && this.subagentConversationId != null) {
           this.subagentConversationId = null;
+          this.lastRunSubagentToolCallId = null;
         }
 
         // Cache conversation progress on report
         if (persistenceManager != null) {
-          persistenceManager.cacheConversationProgress(this.conversationId, value);
+          final String currentConversationId = this.conversationId;
+          final String subagentToolCallId = this.lastRunSubagentToolCallId;
+          persistenceManager.cacheConversationProgress(currentConversationId, value)
+              .thenCompose(v -> {
+                if (StringUtils.isNotBlank(value.getParentTurnId())
+                    && StringUtils.isNotBlank(subagentToolCallId)) {
+                  return persistenceManager.setSubagentToolCallId(
+                      currentConversationId, value.getTurnId(), subagentToolCallId);
+                }
+                return CompletableFuture.completedFuture(null);
+              });
         }
         break;
       case end:
+        // Ignore progress events from a different conversation
+        if (!isProgressForCurrentConversation(value)) {
+          return;
+        }
+
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
           this.actionBar.resetSendButton();
@@ -1052,6 +1088,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
+   * Checks if a progress event belongs to the currently displayed conversation. Subagent events (with parentTurnId)
+   * must match the tracked subagent conversation ID. Non-subagent events must match the main conversation ID.
+   */
+  private boolean isProgressForCurrentConversation(ChatProgressValue value) {
+    String progressConversationId = value.getConversationId();
+    if (StringUtils.isNotBlank(value.getParentTurnId())) {
+      return StringUtils.equals(progressConversationId, this.subagentConversationId);
+    }
+    return StringUtils.equals(progressConversationId, this.conversationId);
+  }
+
+  /**
    * Align with @Workspace of vscode, because we are actually indexing the whole workspace, not a single project.
    * (@Project is only for IntelliJ.)
    *
@@ -1128,8 +1176,23 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onCancel() {
+    // Send conversation/destroy to cancel in-progress turns
+    if (StringUtils.isNotBlank(this.conversationId)) {
+      CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
+      if (ls != null) {
+        ls.destroyConversation(this.conversationId);
+      }
+    }
+    if (StringUtils.isNotBlank(this.subagentConversationId)) {
+      CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
+      if (ls != null) {
+        ls.destroyConversation(this.subagentConversationId);
+      }
+    }
+
     // Clear subagent conversation ID on cancel
     this.subagentConversationId = null;
+    this.lastRunSubagentToolCallId = null;
 
     if (persistenceManager != null && StringUtils.isNotBlank(this.conversationId)) {
       persistenceManager.persistCachedConversation(this.conversationId);
@@ -1138,6 +1201,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       future.cancel(false);
     });
     conversationFutures.clear();
+
+    // Reset send button in case the conversation was cancelled while in-progress
+    if (this.actionBar != null && !this.actionBar.isDisposed()) {
+      this.actionBar.resetSendButton();
+    }
   }
 
   @Override
@@ -1541,6 +1609,23 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
+    // Subagent turns: render their content inside the parent turn's subagent block
+    if (turn instanceof CopilotTurnData copilotTurn
+        && StringUtils.isNotBlank(copilotTurn.getParentTurnId())) {
+      BaseTurnWidget parentWidget = chatContentViewer.getTurnWidget(copilotTurn.getParentTurnId());
+      if (parentWidget != null) {
+        String toolCallId = copilotTurn.getSubagentToolCallId();
+        if (StringUtils.isNotBlank(toolCallId)) {
+          // Restore subagent content into the SubagentMessageBlock identified by the tool call ID
+          parentWidget.restoreSubagentContent(toolCallId, copilotTurn, persistenceManager.getDataFactory());
+        } else {
+          // Fallback: append to parent widget directly (legacy data without subagentToolCallId)
+          restoreCopilotTurnContent(copilotTurn, parentWidget);
+        }
+      }
+      return;
+    }
+
     // Create user turn widget and populate with user message
     if (turn instanceof UserTurnData userTurn) {
       if (userTurn.getMessage() == null || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
@@ -1551,74 +1636,72 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
     } else if (turn instanceof CopilotTurnData copilotTurn) {
       BaseTurnWidget copilotTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), true, true);
-      ReplyData replyData = copilotTurn.getReply();
-
-      if (replyData == null) {
-        return;
-      }
-
-      if (StringUtils.isNotBlank(replyData.getText())) {
-        copilotTurnWidget.appendMessage(replyData.getText());
-      }
-
-      if (replyData.getEditAgentRounds() != null && !replyData.getEditAgentRounds().isEmpty()) {
-        for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
-          // Append each round's reply text.
-          if (round.getReply() != null && !round.getReply().isEmpty()) {
-            copilotTurnWidget.appendMessage(round.getReply());
-          }
-
-          // Concatenate tool call statuses from all rounds.
-          if (round.getToolCalls() != null && !round.getToolCalls().isEmpty()) {
-            for (ToolCallData toolCallData : round.getToolCalls()) {
-              // Convert TurnData.ToolCallData to AgentToolCall
-              AgentToolCall agentToolCall = persistenceManager.getDataFactory()
-                  .convertToolCallDataToAgentToolCall(toolCallData);
-              copilotTurnWidget.appendToolCallStatus(agentToolCall);
-            }
-          }
-        }
-      }
-
-      // Restore any error messages widgets from the reply data
-      if (replyData.getErrorMessages() != null && !replyData.getErrorMessages().isEmpty()) {
-        for (ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
-          ErrorData errorData = errorMessageData.getError();
-          SwtUtils.invokeOnDisplayThread(() -> {
-            String errorMessage = errorData != null ? errorData.getMessage() : Messages.chat_warnWidget_defaultErrorMsg;
-            int errorCode = errorData != null ? errorData.getCode() : 0;
-
-            copilotTurnWidget.createWarnDialog(errorMessage, errorCode);
-          }, parent);
-        }
-      }
-
-      // Restore any agent messages from the reply data
-      if (replyData.getAgentMessages() != null && !replyData.getAgentMessages().isEmpty()) {
-        for (AgentMessageData agentMessageData : replyData.getAgentMessages()) {
-          // TODO: We currently only have GitHub Copilot Coding Agent, need to extend for other agents in the future
-          if (StringUtils.equals(agentMessageData.getAgentSlug(), UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG)) {
-            SwtUtils.invokeOnDisplayThread(() -> {
-              // Create CodingAgentMessageRequestParams from the persisted data
-              CodingAgentMessageRequestParams params = new CodingAgentMessageRequestParams();
-              params.setTitle(agentMessageData.getTitle());
-              params.setDescription(agentMessageData.getDescription());
-              params.setPrLink(agentMessageData.getPrLink());
-              params.setConversationId(this.conversationId);
-              params.setTurnId(turn.getTurnId());
-
-              copilotTurnWidget.createAgentMessageWidget(params);
-            }, parent);
-          }
-        }
-      }
+      restoreCopilotTurnContent(copilotTurn, copilotTurnWidget);
 
       copilotTurnWidget.notifyTurnEnd();
 
       // Restore model info footer if model name is present
       // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
-      if (StringUtils.isNotBlank(replyData.getModelName())) {
+      ReplyData replyData = copilotTurn.getReply();
+      if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
         renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier());
+      }
+    }
+  }
+
+  /**
+   * Restores the content of a CopilotTurnData (reply text, agent rounds, tool calls, errors, agent messages) into the
+   * given turn widget. Used for both main copilot turns and subagent turns.
+   */
+  private void restoreCopilotTurnContent(CopilotTurnData copilotTurn, BaseTurnWidget turnWidget) {
+    ReplyData replyData = copilotTurn.getReply();
+    if (replyData == null) {
+      return;
+    }
+
+    if (StringUtils.isNotBlank(replyData.getText())) {
+      turnWidget.appendMessage(replyData.getText());
+    }
+
+    if (replyData.getEditAgentRounds() != null && !replyData.getEditAgentRounds().isEmpty()) {
+      for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
+        if (round.getReply() != null && !round.getReply().isEmpty()) {
+          turnWidget.appendMessage(round.getReply());
+        }
+        if (round.getToolCalls() != null && !round.getToolCalls().isEmpty()) {
+          for (ToolCallData toolCallData : round.getToolCalls()) {
+            AgentToolCall agentToolCall = persistenceManager.getDataFactory()
+                .convertToolCallDataToAgentToolCall(toolCallData);
+            turnWidget.appendToolCallStatus(agentToolCall);
+          }
+        }
+      }
+    }
+
+    if (replyData.getErrorMessages() != null && !replyData.getErrorMessages().isEmpty()) {
+      for (ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
+        ErrorData errorData = errorMessageData.getError();
+        SwtUtils.invokeOnDisplayThread(() -> {
+          String errorMessage = errorData != null ? errorData.getMessage() : Messages.chat_warnWidget_defaultErrorMsg;
+          int errorCode = errorData != null ? errorData.getCode() : 0;
+          turnWidget.createWarnDialog(errorMessage, errorCode);
+        }, parent);
+      }
+    }
+
+    if (replyData.getAgentMessages() != null && !replyData.getAgentMessages().isEmpty()) {
+      for (AgentMessageData agentMessageData : replyData.getAgentMessages()) {
+        if (StringUtils.equals(agentMessageData.getAgentSlug(), UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG)) {
+          SwtUtils.invokeOnDisplayThread(() -> {
+            CodingAgentMessageRequestParams params = new CodingAgentMessageRequestParams();
+            params.setTitle(agentMessageData.getTitle());
+            params.setDescription(agentMessageData.getDescription());
+            params.setPrLink(agentMessageData.getPrLink());
+            params.setConversationId(this.conversationId);
+            params.setTurnId(copilotTurn.getTurnId());
+            turnWidget.createAgentMessageWidget(params);
+          }, parent);
+        }
       }
     }
   }

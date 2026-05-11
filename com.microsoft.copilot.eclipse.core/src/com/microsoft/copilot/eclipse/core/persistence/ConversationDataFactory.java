@@ -26,7 +26,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessa
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
-import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
+
 
 /**
  * Factory for creating and transforming conversation data objects. Responsible only for pure data transformation with
@@ -212,18 +212,21 @@ public class ConversationDataFactory {
       if (turnData == null) {
         continue;
       }
+      // Skip subagent turns - they are not part of the main conversation history
+      if (turnData instanceof CopilotTurnData copilotCheck
+          && copilotCheck.getParentTurnId() != null) {
+        continue;
+      }
       if (turnData instanceof UserTurnData userTurnData) {
         String requestText = userTurnData.getMessage() != null ? userTurnData.getMessage().getText() : "";
         Either<String, List<ChatCompletionContentPart>> request = Either
             .forLeft(requestText == null ? "" : requestText);
         result.add(new Turn(request, null, null));
       } else if (turnData instanceof CopilotTurnData copilotTurnData) {
-        // TODO: We don't persist images for now, so hard code the modelSupportVersion to false. In the future, handle
-        // images in responses and pass the model support version here if needed.
+        // Assistant turns only contribute the response text; the request field is intentionally empty.
         String responseText = extractResponseFromCopilotTurnData(copilotTurnData);
-        Either<String, List<ChatCompletionContentPart>> response = ChatMessageUtils
-            .createMessageWithImages(responseText, new ArrayList<>(), false);
-        result.add(new Turn(response, responseText, null));
+        Either<String, List<ChatCompletionContentPart>> request = Either.forLeft("");
+        result.add(new Turn(request, responseText, null));
       }
     }
     return result;

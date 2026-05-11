@@ -66,43 +66,74 @@ Your workflow is ONLY:
    YOU (the subagent) must research this task AND create the verification file.
    
    ### Step 1: Research the Task
-   - If there's a linked PR/issue, fetch it using `gh pr view` or `gh issue view`
+   - If there is a linked PR/issue, fetch it using `gh pr view` or `gh issue view`
    - Understand what feature/fix needs to be verified
-   - Identify the affected areas of the codebase
+   - **If anything is ambiguous or unclear after reading the PR/issue, ask the user
+     for clarification before proceeding. Keep asking until you have enough
+     information to write concrete, accurate test steps.**
    
    ### Step 2: Create Verification File (YOU must create this file)
    Create the file: `.github/endgame/<issue_number>/<N>_<task_slug>.md`
    
-   Use this format:
+   Use **exactly** this format (modelled on the project test-plan style under
+   `com.microsoft.copilot.eclipse.swtbot.test/test-plans/`):
    
-   ### Task: <Task Title>
-   **Assignee:** <Name>
-   **Issue/PR:** <Link>
+   ```markdown
+   # <Feature / Task Title>
    
-   #### Context
-   [Brief description of what this task involves]
+   ## Overview
+   <1-3 sentences: what is being verified and why it matters.>
    
-   #### Prerequisites
-   - [ ] [Any setup needed before testing]
+   Entry points:
+   - <Primary UI/menu path to reach the feature>
    
-   #### Steps to Verify
-   1. [ ] [Detailed step 1]
-   2. [ ] [Detailed step 2]
-   3. [ ] [Detailed step 3]
+   Not exercised:
+   - <Known out-of-scope items, or omit this block if none>
    
-   #### Expected Results
-   - [Expected outcome 1]
-   - [Expected outcome 2]
+   ---
    
-   #### Edge Cases to Test
-   - [Edge case 1]
-   - [Edge case 2]
+   ## Prerequisites
    
-   #### Status
-   - [ ] Not Started
-   - [ ] In Progress
-   - [ ] Completed
-   - [ ] Blocked (reason: ___)
+   - Eclipse IDE with the GitHub Copilot for Eclipse plugin installed and activated.
+   - <Additional prerequisite specific to this feature>
+   
+   ---
+   
+   ## 1. <Scenario group name, e.g. "Happy-path verification">
+   
+   ### TC-001: <Specific test case title>
+   
+   **Type:** `Happy Path`
+   **Priority:** `P0`
+   
+   #### Preconditions
+   - <Specific state required before starting these steps>
+   
+   #### Steps
+   1. <Detailed, concrete step>
+   2. <Next step>
+   3. <Continue as needed>
+   
+   #### Expected Result
+   - <Observable outcome that proves the feature works>
+   - <Second outcome if needed>
+   
+   #### Key Screenshots
+   - [ ] **<Label>** -- <What to capture in this screenshot>
+   
+   #### Notes on failure modes
+   - <Common failure symptom> -- <Likely cause and where to look>
+   ```
+   
+   Guidelines for filling in the template:
+   - **Overview**: 1-3 sentences max. Do not repeat what is already covered by
+     Prerequisites or the Steps.
+   - **Type** values: `Happy Path`, `Negative`, `Edge Case`, `Regression`.
+   - **Priority** values: `P0` (must-pass), `P1` (high), `P2` (medium).
+   - Add additional `### TC-NNN` blocks (3-digit zero-padded: TC-002, TC-003, …) if multiple distinct scenarios are needed.
+   - Omit `#### Notes on failure modes` if there are no obvious failure modes to call out.
+   - If you are still unsure about any step after researching, **ask the user**
+     before writing that step -- do not guess.
    
    ### Step 3: Return Summary
    Return ONLY:
@@ -113,7 +144,7 @@ Your workflow is ONLY:
 7. **After all subagents complete**, provide:
    - Summary table of all generated verification files
    - Total tasks processed
-   - Any tasks that couldn't be processed (with reasons)
+   - Any tasks that could not be processed (with reasons)
 
 ---
 
@@ -123,5 +154,5 @@ Your workflow is ONLY:
 - **NEVER analyze or research tasks yourself** - immediately delegate to subagents
 - Each subagent runs independently
 - Subagents should be concise - create the file and return a brief summary
-- If a task is unclear, the subagent should note this in the verification file
+- If a task is unclear after asking the user, note the outstanding question in the verification file
 - Use slugified task titles for filenames (lowercase, hyphens, no special chars)

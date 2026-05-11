@@ -3,23 +3,30 @@
 
 package com.microsoft.copilot.eclipse.core.utils;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -28,6 +35,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 
@@ -37,6 +45,11 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DirectoryChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileChatReference;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FileStat;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesResult.TextSearchMatch;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult.DirectoryEntry;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
@@ -46,6 +59,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
  */
 public class FileUtils {
   private static final Pattern URI_SCHEME_PATTERN = Pattern.compile("^\\w[\\w\\d+.-]*:/");
+
+  /**
+   * Upper bound on the number of results returned by {@link #findFiles} and {@link #findTextInFiles} when the caller
+   * does not specify {@code maxResults} or specifies a value exceeding this limit. This value aligns with the CLS.
+   */
+  private static final int MAX_SEARCH_RESULTS = 20;
 
   private FileUtils() {
   }
@@ -204,39 +223,6 @@ public class FileUtils {
   }
 
   /**
-   * Resolves a file path to a URI. Handles Windows absolute paths, POSIX absolute paths, and existing URI strings.
-   *
-   * @param filepath the file path to resolve
-   * @return the resolved URI, or null if the path is invalid
-   */
-  private static URI resolvePathToUri(String filepath) {
-    // Check for POSIX-like absolute paths or Windows-like absolute paths
-    if (filepath.startsWith("/")
-        || hasDriveLetter(filepath)
-        || (PlatformUtils.isWindows() && filepath.startsWith("\\"))) {
-      try {
-        return Paths.get(filepath).toUri();
-      } catch (Exception e) {
-        CopilotCore.LOGGER.error("Failed to convert path to URI: " + filepath, e);
-        return null;
-      }
-    }
-
-    // Check if the filepath starts with a URI scheme (e.g., file:, http:)
-    // Verify the character after colon is "/" to distinguish from Windows drive letters
-    if (URI_SCHEME_PATTERN.matcher(filepath).find()) {
-      try {
-        return new URI(filepath);
-      } catch (URISyntaxException e) {
-        CopilotCore.LOGGER.error("Failed to parse URI: " + filepath, e);
-        return null;
-      }
-    }
-
-    return null;
-  }
-
-  /**
    * Get an IFile from a file path string. This method tries multiple approaches to locate the file in the workspace: 1.
    * First tries getFileForLocation for absolute filesystem paths 2. Falls back to getFile for workspace-relative paths
    * (e.g., ADT files)
@@ -250,6 +236,30 @@ public class FileUtils {
   @Nullable
   public static IFile getFileFromPath(String filePath, boolean checkExistence) {
     if (filePath == null || filePath.isEmpty()) {
+      return null;
+    }
+
+    // Try URI-based resolution first for non-filesystem URI schemes (e.g., semanticfs://).
+    // Exclude drive-letter paths (e.g., C:/project/file.txt) — they match the URI_SCHEME_PATTERN
+    // but must be handled as filesystem paths below.
+    if (URI_SCHEME_PATTERN.matcher(filePath).find() && !filePath.startsWith("file:") && !hasDriveLetter(filePath)) {
+      IResource resource = getResourceFromUri(filePath);
+      if (resource instanceof IFile file) {
+        return file;
+      }
+      // getResourceFromUri only returns existing resources. When checkExistence=false, try to
+      // obtain an IFile handle without requiring the resource to already exist on disk.
+      if (!checkExistence) {
+        try {
+          URI uri = new URI(filePath);
+          IFile[] files = ResourcesPlugin.getWorkspace().getRoot().findFilesForLocationURI(uri);
+          if (files != null && files.length > 0 && files[0] != null) {
+            return files[0];
+          }
+        } catch (URISyntaxException e) {
+          CopilotCore.LOGGER.error("Invalid URI in getFileFromPath: " + filePath, e);
+        }
+      }
       return null;
     }
 
@@ -272,16 +282,6 @@ public class FileUtils {
     }
 
     return null;
-  }
-
-  /**
-   * Checks if the filepath starts with a Windows drive letter (e.g., C:).
-   *
-   * @param filepath the file path to check
-   * @return true if the path starts with a drive letter, false otherwise
-   */
-  private static boolean hasDriveLetter(String filepath) {
-    return filepath.length() > 1 && Character.isLetter(filepath.charAt(0)) && filepath.charAt(1) == ':';
   }
 
   /**
@@ -322,34 +322,7 @@ public class FileUtils {
     }
 
     try {
-      URI parsedUri = new URI(uri);
-      IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-
-      IContainer container = null;
-      if ("platform".equals(parsedUri.getScheme())) {
-        // Handle platform:/resource/... URIs by resolving via workspace path
-        String path = parsedUri.getPath();
-        String prefix = "/resource";
-        if (path != null && path.startsWith(prefix)) {
-          String workspacePath = path.substring(prefix.length());
-          IResource resource = root.findMember(workspacePath);
-          if (resource instanceof IContainer c && c.isAccessible()) {
-            container = c;
-          }
-        }
-      } else {
-        // For file://, semanticfs://, and other URIs, use location URI lookup
-        IContainer[] containers = root.findContainersForLocationURI(parsedUri);
-        if (containers != null) {
-          for (IContainer c : containers) {
-            if (c.isAccessible()) {
-              container = c;
-              break;
-            }
-          }
-        }
-      }
-
+      IContainer container = findContainerForUri(uri);
       if (container == null) {
         return new ReadDirectoryResult(Collections.emptyList());
       }
@@ -373,17 +346,182 @@ public class FileUtils {
         entries.add(new DirectoryEntry(member.getName(), type));
       }
       return new ReadDirectoryResult(entries);
-    } catch (URISyntaxException e) {
-      CopilotCore.LOGGER.error("Invalid directory URI: " + uri, e);
-      return new ReadDirectoryResult(Collections.emptyList());
     } catch (CoreException e) {
       CopilotCore.LOGGER.error("Failed to read directory: " + uri, e);
       return new ReadDirectoryResult(Collections.emptyList());
     }
   }
 
+  /**
+   * Finds files under the given base URI whose path (relative to the base container) matches the provided glob pattern.
+   * Used by the {@code workspace/findFiles} request so the language server can perform file search over custom URI
+   * schemes such as {@code semanticfs}.
+   *
+   * @param params the search parameters
+   * @return a {@link FindFilesResult} containing the matching file URIs
+   */
+  public static FindFilesResult findFiles(FindFilesParams params) {
+    if (params == null || StringUtils.isBlank(params.baseUri()) || StringUtils.isBlank(params.pattern())) {
+      return new FindFilesResult(List.of());
+    }
+
+    int maxResults = resolveMaxResults(params.maxResults());
+
+    try {
+      IContainer container = findContainerForUri(params.baseUri());
+      if (container == null) {
+        CopilotCore.LOGGER.info("findFiles: base URI not found in workspace: " + params.baseUri());
+        return new FindFilesResult(List.of());
+      }
+
+      PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + params.pattern());
+      List<String> uris = new ArrayList<>();
+      IPath basePath = container.getFullPath();
+
+      // Narrow the starting container to the literal prefix of the glob to skip unrelated
+      // subtrees (e.g. node_modules/, .git/, target/).
+      IContainer startContainer = narrowToLiteralPrefix(container, params.pattern());
+      if (startContainer == null) {
+        return new FindFilesResult(List.of());
+      }
+
+      walkFiles(startContainer, basePath, matcher, file -> {
+        String uri = getResourceUri(file);
+        if (uri != null) {
+          uris.add(uri);
+        }
+      }, uris, maxResults);
+      return new FindFilesResult(uris);
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Failed to find files under: " + params.baseUri(), e);
+      return new FindFilesResult(List.of());
+    } catch (IllegalArgumentException e) {
+      CopilotCore.LOGGER.error("Invalid glob pattern for findFiles: " + params.pattern(), e);
+      return new FindFilesResult(List.of());
+    }
+  }
+
+  /**
+   * Searches for text (or a regex) in files under the given base URI. Used by the {@code workspace/findTextInFiles}
+   * request.
+   *
+   * @param params the search parameters
+   * @return a {@link FindTextInFilesResult} containing the matches
+   */
+  public static FindTextInFilesResult findTextInFiles(FindTextInFilesParams params) {
+    if (params == null || StringUtils.isBlank(params.baseUri()) || StringUtils.isBlank(params.query())) {
+      return new FindTextInFilesResult(List.of());
+    }
+
+    int maxResults = resolveMaxResults(params.maxResults());
+    boolean isRegexp = Boolean.TRUE.equals(params.isRegexp());
+
+    Pattern pattern;
+    try {
+      pattern = isRegexp ? Pattern.compile(params.query(), Pattern.CASE_INSENSITIVE)
+          : Pattern.compile(Pattern.quote(params.query()), Pattern.CASE_INSENSITIVE);
+    } catch (PatternSyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid regex for findTextInFiles: " + params.query(), e);
+      return new FindTextInFilesResult(List.of());
+    }
+
+    // Compile the optional include glob pattern to filter which files are searched
+    PathMatcher includeMatcher = null;
+    if (params.includePattern() != null && !params.includePattern().isEmpty()) {
+      try {
+        includeMatcher = FileSystems.getDefault().getPathMatcher("glob:" + params.includePattern());
+      } catch (IllegalArgumentException e) {
+        CopilotCore.LOGGER.error("Invalid glob for findTextInFiles includePattern: " + params.includePattern(), e);
+        return new FindTextInFilesResult(List.of());
+      }
+    }
+
+    // Resolve the base URI to a workspace container and recursively search for text matches
+    try {
+      IContainer container = findContainerForUri(params.baseUri());
+      if (container == null) {
+        CopilotCore.LOGGER.info("findTextInFiles: base URI not found in workspace: " + params.baseUri());
+        return new FindTextInFilesResult(List.of());
+      }
+
+      // Narrow the starting container using the include glob's literal prefix when available.
+      IContainer startContainer = container;
+      if (includeMatcher != null) {
+        IContainer narrowed = narrowToLiteralPrefix(container, params.includePattern());
+        if (narrowed == null) {
+          return new FindTextInFilesResult(List.of());
+        }
+        startContainer = narrowed;
+      }
+
+      List<TextSearchMatch> matches = new ArrayList<>();
+      walkFiles(startContainer, container.getFullPath(), includeMatcher, file -> {
+        searchTextInFile(file, pattern, matches, maxResults);
+      }, matches, maxResults);
+      return new FindTextInFilesResult(matches);
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Failed to search text under: " + params.baseUri(), e);
+      return new FindTextInFilesResult(List.of());
+    }
+  }
+
+  /**
+   * Resolves a file path to a URI. Handles Windows absolute paths, POSIX absolute paths, and existing URI strings.
+   *
+   * @param filepath the file path to resolve
+   * @return the resolved URI, or null if the path is invalid
+   */
+  private static URI resolvePathToUri(String filepath) {
+    // Check for POSIX-like absolute paths or Windows-like absolute paths
+    if (filepath.startsWith("/")
+        || hasDriveLetter(filepath)
+        || (PlatformUtils.isWindows() && filepath.startsWith("\\"))) {
+      try {
+        return Paths.get(filepath).toUri();
+      } catch (Exception e) {
+        CopilotCore.LOGGER.error("Failed to convert path to URI: " + filepath, e);
+        return null;
+      }
+    }
+
+    // Check if the filepath starts with a URI scheme (e.g., file:, http:)
+    // Verify the character after colon is "/" to distinguish from Windows drive letters
+    if (URI_SCHEME_PATTERN.matcher(filepath).find()) {
+      try {
+        return new URI(filepath);
+      } catch (URISyntaxException e) {
+        CopilotCore.LOGGER.error("Failed to parse URI: " + filepath, e);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Checks if the filepath starts with a Windows drive letter (e.g., C:).
+   *
+   * @param filepath the file path to check
+   * @return true if the path starts with a drive letter, false otherwise
+   */
+  private static boolean hasDriveLetter(String filepath) {
+    return filepath.length() > 1 && Character.isLetter(filepath.charAt(0)) && filepath.charAt(1) == ':';
+  }
+
   private static String readFileContent(IFile file) throws CoreException, IOException {
-    try (InputStream is = file.getContents()) {
+    URI locationUri = file.getLocationURI();
+    if (locationUri == null) {
+      // IResource#getLocationURI() can be null for resources without a defined location.
+      // Fall back to IFile.getContents() which works for any local resource.
+      try (InputStream is = file.getContents()) {
+        return new String(is.readAllBytes(), file.getCharset());
+      }
+    }
+    // Use EFS.getStore().openInputStream() instead of IFile.getContents() to avoid holding the
+    // Eclipse workspace resource-tree lock during the I/O. For virtual URI schemes (e.g.
+    // semanticfs://) IFile.getContents() would hold the lock across a synchronous network request,
+    // potentially stalling the UI thread.
+    try (InputStream is = EFS.getStore(locationUri).openInputStream(EFS.NONE, new NullProgressMonitor())) {
       return new String(is.readAllBytes(), file.getCharset());
     }
   }
@@ -413,12 +551,233 @@ public class FileUtils {
     FileStat stat = new FileStat();
 
     if (file.getLocationURI() != null) {
-      try (InputStream is = file.getContents(true)) {
-        stat.setSize(is.readAllBytes().length);
-      } catch (IOException | CoreException e) {
+      // Use EFS to query the file size without acquiring the workspace resource-tree lock.
+      try {
+        stat.setSize(EFS.getStore(file.getLocationURI()).fetchInfo().getLength());
+      } catch (CoreException e) {
         // Ignore; size stays 0.
       }
     }
     return stat;
+  }
+
+  private static void searchTextInFile(IFile file, Pattern pattern, List<TextSearchMatch> results, int maxResults) {
+    String uri = getResourceUri(file);
+    if (uri == null) {
+      return;
+    }
+    URI locationUri = file.getLocationURI();
+    if (locationUri == null) {
+      // IResource#getLocationURI() can be null for resources without a defined location; skip them.
+      CopilotCore.LOGGER.info("findTextInFiles: skipping file without location URI: " + uri);
+      return;
+    }
+    // Use EFS.getStore().openInputStream() instead of IFile.getContents() to avoid holding the
+    // Eclipse workspace resource-tree lock during the I/O. IFile.getContents() acquires that lock
+    // for the lifetime of the call; for virtual URI schemes (e.g. semanticfs://) the underlying
+    // EFS provider may issue a synchronous network request, which would stall the UI thread and
+    // any background Jobs waiting to acquire the same lock.
+    try (InputStream is = EFS.getStore(locationUri).openInputStream(EFS.NONE, new NullProgressMonitor());
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, file.getCharset()))) {
+      String line;
+      int lineNumber = 0;
+      while ((line = reader.readLine()) != null) {
+        if (results.size() >= maxResults) {
+          return;
+        }
+        lineNumber++;
+        Matcher m = pattern.matcher(line);
+        if (m.find()) {
+          results.add(new TextSearchMatch(uri, lineNumber, line));
+        }
+      }
+    } catch (CoreException | IOException e) {
+      CopilotCore.LOGGER.info("findTextInFiles: skipping unreadable file " + uri + ": " + e.getMessage());
+    }
+  }
+
+  /**
+   * Narrows a base container to the subcontainer matching the literal directory prefix of a glob pattern. Returns the
+   * narrowed container, or the original container if no literal prefix exists, or {@code null} if the prefix path does
+   * not exist in the workspace (meaning no files can match).
+   */
+  @Nullable
+  private static IContainer narrowToLiteralPrefix(IContainer base, String glob) {
+    String prefix = extractGlobLiteralPrefix(glob);
+    if (prefix.isEmpty()) {
+      return base;
+    }
+    IResource member = base.findMember(prefix);
+    if (member instanceof IContainer c && c.isAccessible()) {
+      return c;
+    }
+    // If member exists but is not a container (e.g. a file) — fall back to the base.
+    // Else if member is null — the prefix path does not exist so no files can match.
+    return member != null ? base : null;
+  }
+
+  /**
+   * Extracts the literal directory prefix from a glob pattern — the longest sequence of complete path segments that
+   * contain no wildcard characters ({@code *}, {@code ?}, <code>{</code>, {@code [}). For example,
+   * {@code src/main/java/**\/*.java} yields {@code src/main/java}.
+   */
+  private static String extractGlobLiteralPrefix(String glob) {
+    StringBuilder prefix = new StringBuilder();
+    for (String segment : glob.split("/")) {
+      if (segment.contains("*") || segment.contains("?") || segment.contains("{") || segment.contains("[")) {
+        break;
+      }
+      if (prefix.length() > 0) {
+        prefix.append('/');
+      }
+      prefix.append(segment);
+    }
+    return prefix.toString();
+  }
+
+  /**
+   * Resolves the effective maximum number of search results, capping at {@link #MAX_SEARCH_RESULTS}.
+   */
+  private static int resolveMaxResults(int requested) {
+    return requested > 0 ? Math.min(requested, MAX_SEARCH_RESULTS) : MAX_SEARCH_RESULTS;
+  }
+
+  /**
+   * Callback interface for {@link #walkFiles}. Invoked for each file whose path matches the glob filter.
+   */
+  @FunctionalInterface
+  private interface FileVisitor {
+    void visit(IFile file) throws CoreException;
+  }
+
+  /**
+   * Recursively walks files under {@code container}, skipping derived/hidden/team-private resources. For each file
+   * whose relative path matches {@code fileMatcher} (when non-null), the {@code visitor} is invoked. The walk stops
+   * once {@code results.size() >= maxResults}.
+   */
+  private static void walkFiles(IContainer container, IPath basePath, @Nullable PathMatcher fileMatcher,
+      FileVisitor visitor, List<?> results, int maxResults) throws CoreException {
+    if (results.size() >= maxResults) {
+      return;
+    }
+    for (IResource member : container.members()) {
+      if (results.size() >= maxResults) {
+        return;
+      }
+      if (shouldSkipResource(member)) {
+        continue;
+      }
+      if (member.getType() == IResource.FILE) {
+        IPath relative = member.getFullPath().makeRelativeTo(basePath);
+        // Glob patterns use '/'; match against the portable (forward-slash) form.
+        // Paths.get normalizes separators appropriately for the default FileSystem.
+        if (fileMatcher != null && !fileMatcher.matches(Paths.get(relative.toPortableString()))) {
+          continue;
+        }
+        visitor.visit((IFile) member);
+      } else if (member instanceof IContainer c) {
+        walkFiles(c, basePath, fileMatcher, visitor, results, maxResults);
+      }
+    }
+  }
+
+  /**
+   * Returns {@code true} if the resource should be excluded from search traversal. Skips build output (derived),
+   * version-control internals (team-private), and hidden resources.
+   */
+  private static boolean shouldSkipResource(IResource resource) {
+    return resource.isDerived(IResource.CHECK_ANCESTORS) || resource.isTeamPrivateMember(IResource.CHECK_ANCESTORS)
+        || resource.isHidden(IResource.CHECK_ANCESTORS);
+  }
+
+  /**
+   * Resolves a workspace container (folder/project/root) for the given URI, or {@code null} if none exists. Used by
+   * findFiles / findTextInFiles.
+   */
+  @Nullable
+  private static IContainer findContainerForUri(String uri) {
+    if (StringUtils.isBlank(uri)) {
+      return null;
+    }
+    try {
+      URI parsedUri = new URI(uri);
+      IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+
+      if ("platform".equals(parsedUri.getScheme())) {
+        String path = parsedUri.getPath();
+        String prefix = "/resource";
+        if (path != null && path.startsWith(prefix)) {
+          IResource resource = root.findMember(path.substring(prefix.length()));
+          if (resource instanceof IContainer c && c.isAccessible()) {
+            return c;
+          }
+        }
+      }
+
+      IContainer[] containers = root.findContainersForLocationURI(parsedUri);
+      if (containers != null) {
+        for (IContainer c : containers) {
+          if (c != null && c.isAccessible()) {
+            return c;
+          }
+        }
+      }
+    } catch (URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid container URI: " + uri, e);
+    }
+    return null;
+  }
+
+  /**
+   * Resolves a workspace resource from a URI. Supports file URIs, platform resource URIs, and Eclipse-managed virtual
+   * URIs such as semanticfs.
+   *
+   * @param resourceUri the resource URI
+   * @return the matching workspace resource, or null if not found
+   */
+  @Nullable
+  private static IResource getResourceFromUri(String resourceUri) {
+    if (StringUtils.isBlank(resourceUri)) {
+      return null;
+    }
+
+    try {
+      URI uri = new URI(resourceUri);
+      IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+
+      IFile[] files = root.findFilesForLocationURI(uri);
+      if (files != null) {
+        for (IFile file : files) {
+          if (file != null && file.exists()) {
+            return file;
+          }
+        }
+      }
+
+      // Handle platform:/resource/... URIs by resolving via workspace path
+      if ("platform".equals(uri.getScheme())) {
+        String path = uri.getPath();
+        String prefix = "/resource";
+        if (path != null && path.startsWith(prefix)) {
+          IResource resource = root.findMember(path.substring(prefix.length()));
+          if (resource != null && resource.exists()) {
+            return resource;
+          }
+        }
+      }
+
+      // For file://, semanticfs://, and other URIs, use location URI lookup
+      IContainer[] containers = root.findContainersForLocationURI(uri);
+      if (containers != null) {
+        for (IContainer container : containers) {
+          if (container != null && container.exists()) {
+            return container;
+          }
+        }
+      }
+    } catch (URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid resource URI: " + resourceUri, e);
+    }
+    return null;
   }
 }
