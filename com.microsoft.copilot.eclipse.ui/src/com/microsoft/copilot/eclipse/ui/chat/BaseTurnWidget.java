@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.source.SourceViewer;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
@@ -27,6 +28,11 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.persistence.ConversationDataFactory;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -45,6 +51,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected SourceViewerComposite currentCodeBlock;
   protected Map<String, AgentStatusLabel> statusLabels;
   protected SubagentMessageBlock currentSubagentBlock;
+  protected Map<String, SubagentMessageBlock> subagentBlocks;
 
   // Data
   protected StringBuilder messageBuffer;
@@ -90,6 +97,7 @@ public abstract class BaseTurnWidget extends Composite {
     this.turnId = turnId;
     this.codeBlockIndex = 1;
     this.statusLabels = new HashMap<>();
+    this.subagentBlocks = new HashMap<>();
     // editor group
     // align all children vertically
     GridLayout gl = new GridLayout(1, true);
@@ -232,13 +240,23 @@ public abstract class BaseTurnWidget extends Composite {
    * @param toolCall the tool call of the agent turn
    */
   public void appendToolCallStatus(AgentToolCall toolCall) {
-    if (toolCall == null || StringUtils.isEmpty(toolCall.getProgressMessage())) {
+    if (toolCall == null || toolCall.getStatus() == null) {
       return;
     }
 
-    // Check if this is a run_subagent tool call
+    // Subagent tool calls drive routing state for `currentSubagentBlock`/`inSubagentBlock`,
+    // so they must always be dispatched, even when the terminal event has no display message.
     if ("run_subagent".equalsIgnoreCase(toolCall.getName())) {
       handleSubagentToolCall(toolCall);
+      return;
+    }
+
+    String status = toolCall.getStatus().toLowerCase();
+    // Non-error events require a non-blank progressMessage to render (otherwise we'd
+    // call ChatMarkupViewer#setMarkup(null) and NPE). Error events always pass through:
+    // getErrorDisplayText(...) provides a non-blank fallback.
+    boolean isError = "error".equals(status);
+    if (!isError && StringUtils.isBlank(toolCall.getProgressMessage())) {
       return;
     }
 
@@ -260,7 +278,6 @@ public abstract class BaseTurnWidget extends Composite {
     AgentStatusLabel statusLabel = statusLabels.computeIfAbsent(toolCall.getId(),
         id -> new AgentStatusLabel(this, SWT.LEFT));
 
-    String status = toolCall.getStatus().toLowerCase();
     switch (status) {
       case "running":
         statusLabel.setRunningStatus(toolCall.getProgressMessage());
@@ -274,6 +291,7 @@ public abstract class BaseTurnWidget extends Composite {
         break;
       case "error":
         statusLabel.setErrorStatus();
+        statusLabel.setText(getErrorDisplayText(toolCall));
         break;
       default:
         statusLabel.setErrorStatus();
@@ -298,6 +316,7 @@ public abstract class BaseTurnWidget extends Composite {
           inSubagentBlock = true;
           currentSubagentBlock = new SubagentMessageBlock(this, SWT.NONE, serviceManager, toolCall.getId(), toolCall);
           currentSubagentBlock.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+          subagentBlocks.put(toolCall.getId(), currentSubagentBlock);
           requestLayout();
         }
         break;
@@ -307,6 +326,14 @@ public abstract class BaseTurnWidget extends Composite {
           currentSubagentBlock.notifyTurnEnd();
           inSubagentBlock = false;
           currentSubagentBlock = null;
+          requestLayout();
+        } else if (!subagentBlocks.containsKey(toolCall.getId())) {
+          // Restoration path: create a completed subagent block for later content injection
+          reset();
+          SubagentMessageBlock block = new SubagentMessageBlock(this, SWT.NONE, serviceManager, toolCall.getId(),
+              toolCall);
+          block.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+          subagentBlocks.put(toolCall.getId(), block);
           requestLayout();
         }
         break;
@@ -323,12 +350,12 @@ public abstract class BaseTurnWidget extends Composite {
             id -> new AgentStatusLabel(this, SWT.LEFT));
         if ("cancelled".equals(status)) {
           statusLabel.setCancelledStatus();
-          statusLabel.setText(toolCall.getProgressMessage());
+          if (StringUtils.isNotBlank(toolCall.getProgressMessage())) {
+            statusLabel.setText(toolCall.getProgressMessage());
+          }
         } else {
           statusLabel.setErrorStatus();
-          String errorText = StringUtils.isNotEmpty(toolCall.getError()) ? toolCall.getError()
-              : toolCall.getProgressMessage();
-          statusLabel.setText(errorText);
+          statusLabel.setText(getErrorDisplayText(toolCall));
         }
         requestLayout();
         break;
@@ -339,6 +366,91 @@ public abstract class BaseTurnWidget extends Composite {
         CopilotCore.LOGGER.error(new IllegalStateException("Unknown status: " + status));
         break;
     }
+  }
+
+  /**
+  /**
+   * Restores subagent content into the SubagentMessageBlock identified by the tool call ID. Creates the block if it
+   * doesn't exist (for restoration from persisted data). Used during conversation history restoration.
+   *
+   * @param toolCallId the run_subagent tool call ID
+   * @param copilotTurn the subagent's CopilotTurnData
+   * @param dataFactory the factory for converting tool call data
+   */
+  public void restoreSubagentContent(String toolCallId, CopilotTurnData copilotTurn,
+      ConversationDataFactory dataFactory) {
+    // Find existing SubagentMessageBlock or create one for restoration
+    SubagentMessageBlock block = subagentBlocks.get(toolCallId);
+    if (block == null) {
+      block = new SubagentMessageBlock(this, SWT.NONE, serviceManager, toolCallId, null);
+      block.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+      subagentBlocks.put(toolCallId, block);
+      requestLayout();
+    }
+
+    // Append subagent's content into the block
+    ReplyData replyData = copilotTurn.getReply();
+    if (replyData == null) {
+      return;
+    }
+
+    if (StringUtils.isNotBlank(replyData.getText())) {
+      block.appendMessage(replyData.getText());
+    }
+
+    if (replyData.getEditAgentRounds() != null) {
+      for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
+        if (round.getReply() != null && !round.getReply().isEmpty()) {
+          block.appendMessage(round.getReply());
+        }
+        if (round.getToolCalls() != null) {
+          for (ToolCallData toolCallData : round.getToolCalls()) {
+            AgentToolCall agentToolCall = dataFactory.convertToolCallDataToAgentToolCall(toolCallData);
+            block.appendToolCallStatus(agentToolCall);
+          }
+        }
+      }
+    }
+
+    // Restore error messages into the subagent block
+    if (replyData.getErrorMessages() != null) {
+      BaseTurnWidget subagentWidget = block.getSubagentTurnWidget();
+      if (subagentWidget != null) {
+        for (CopilotTurnData.ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
+          CopilotTurnData.ErrorData errorData = errorMessageData.getError();
+          String errorMessage = errorData != null ? errorData.getMessage() : "";
+          int errorCode = errorData != null ? errorData.getCode() : 0;
+          subagentWidget.createWarnDialog(errorMessage, errorCode);
+        }
+      }
+    }
+
+    block.notifyTurnEnd();
+  }
+
+  /**
+   * Resolve the user-facing error text for a tool call.
+   *
+   * <p>Picks the first non-blank of {@code toolCall.getError()} or {@code toolCall.getProgressMessage()},
+   * falls back to a generic message when both are blank, and prefixes the result with the tool name
+   * so the user knows which tool failed.
+   *
+   * @param toolCall the failing tool call
+   * @return a non-blank, prefixed display string suitable for {@link AgentStatusLabel#setText(String)}
+   */
+  private static String getErrorDisplayText(AgentToolCall toolCall) {
+    String detail = toolCall.getError();
+    if (StringUtils.isBlank(detail)) {
+      detail = toolCall.getProgressMessage();
+    }
+    if (StringUtils.isBlank(detail)) {
+      detail = Messages.chat_toolCall_genericError;
+    }
+    String name = toolCall.getName();
+    if (StringUtils.isBlank(name)) {
+      return detail;
+    }
+    return NLS.bind(Messages.chat_toolCall_errorTemplate, name, detail);
   }
 
   private void processMessageLine(String line) {

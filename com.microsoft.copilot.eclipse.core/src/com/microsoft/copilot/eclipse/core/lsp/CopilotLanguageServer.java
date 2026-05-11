@@ -25,6 +25,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
@@ -160,6 +161,12 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("conversation/persistence")
   CompletableFuture<ChatPersistence> persistence(NullParams param);
+
+  /**
+   * Destroy a conversation, stopping any in-progress processing.
+   */
+  @JsonRequest("conversation/destroy")
+  CompletableFuture<String> destroy(ConversationDestroyParams param);
 
   /**
    * Register agent tools to the language server.

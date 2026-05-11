@@ -42,6 +42,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
@@ -427,6 +428,21 @@ public class CopilotLanguageServerConnection {
         .persistence(new NullParams());
     return this.languageServerWrapper.execute(fn).exceptionally(ex -> {
       CopilotCore.LOGGER.error(ex);
+      return null;
+    });
+  }
+
+  /**
+   * Destroy a conversation, stopping any in-progress processing on the server.
+   */
+  public void destroyConversation(String conversationId) {
+    if (StringUtils.isBlank(conversationId)) {
+      return;
+    }
+    Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
+        .destroy(new ConversationDestroyParams(conversationId));
+    this.languageServerWrapper.execute(fn).exceptionally(ex -> {
+      CopilotCore.LOGGER.error("Failed to destroy conversation: " + conversationId, ex);
       return null;
     });
   }

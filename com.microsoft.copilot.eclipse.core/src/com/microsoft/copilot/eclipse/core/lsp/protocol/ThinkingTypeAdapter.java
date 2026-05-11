@@ -70,8 +70,11 @@ public class ThinkingTypeAdapter extends TypeAdapter<Thinking> {
   private static JsonElement flattenTextArray(JsonArray arr) {
     StringBuilder sb = new StringBuilder();
     for (JsonElement e : arr) {
-      if (!e.isJsonNull()) {
-        sb.append(e.getAsString());
+      if (!e.isJsonNull() && e.isJsonPrimitive()) {
+        JsonPrimitive prim = e.getAsJsonPrimitive();
+        if (prim.isString()) {
+          sb.append(prim.getAsString());
+        }
       }
     }
     return sb.length() == 0 ? JsonNull.INSTANCE : new JsonPrimitive(sb.toString());
