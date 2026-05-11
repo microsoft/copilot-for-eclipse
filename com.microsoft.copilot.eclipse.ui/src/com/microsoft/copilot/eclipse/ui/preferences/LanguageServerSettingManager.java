@@ -5,10 +5,12 @@ package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +28,7 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
+import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsStatusCollection;
@@ -82,6 +85,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setAutoApproveUnmatchedTerminal(
+            preferenceStore.getBoolean(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL));
+    syncTerminalRulesToCls();
 
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
@@ -168,6 +175,16 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
             .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
+      case Constants.AUTO_APPROVE_UNMATCHED_TERMINAL:
+        settings.getGithubSettings().getCopilotSettings().getAgent()
+            .setAutoApproveUnmatchedTerminal(
+                preferenceStore.getBoolean(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL));
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
+      case Constants.AUTO_APPROVE_TERMINAL_RULES:
+        syncTerminalRulesToCls();
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
       default:
         return;
     }
@@ -216,6 +233,30 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
 
     syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));
+  }
+
+  /**
+   * Converts terminal auto-approve rules from preference store JSON to the Map format
+   * expected by CLS and syncs them.
+   */
+  private void syncTerminalRulesToCls() {
+    String json = preferenceStore.getString(Constants.AUTO_APPROVE_TERMINAL_RULES);
+    Map<String, Boolean> rulesMap = new LinkedHashMap<>();
+    if (StringUtils.isNotBlank(json)) {
+      try {
+        List<TerminalAutoApproveRule> rules =
+            new Gson().fromJson(json,
+                new TypeToken<List<TerminalAutoApproveRule>>() {
+                }.getType());
+        if (rules != null) {
+          rules.forEach(r -> rulesMap.put(r.getCommand(), r.isAutoApprove()));
+        }
+      } catch (Exception e) {
+        CopilotCore.LOGGER.error("Failed to parse terminal rules for CLS sync", e);
+      }
+    }
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getTerminal().setAutoApprove(rulesMap);
   }
 
   /**

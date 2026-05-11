@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.Map;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
@@ -16,9 +17,40 @@ public class CopilotAgentSettings {
   @SerializedName("maxToolCallingLoop")
   private int agentMaxRequests;
 
-  // Control if the editor handles all confirmation requests from CLS.
+  @SerializedName("autoApproveUnmatchedTerminal")
+  private boolean autoApproveUnmatchedTerminal;
+
+  // Tells CLS to always send confirmation requests to the editor
   @SerializedName("editorHandlesAllConfirmation")
-  private boolean editorHandlesAllConfirmation;
+  private boolean editorHandlesAllConfirmation = true;
+
+  private ToolsSettings tools;
+
+  /** Nested tools settings matching CLS agent.tools structure. */
+  public static class ToolsSettings {
+    private TerminalSettings terminal;
+
+    /** Gets terminal settings, creating if needed. */
+    public TerminalSettings getTerminal() {
+      if (terminal == null) {
+        terminal = new TerminalSettings();
+      }
+      return terminal;
+    }
+  }
+
+  /** Terminal auto-approve rules: command/pattern → allow(true)/deny(false). */
+  public static class TerminalSettings {
+    private Map<String, Boolean> autoApprove;
+
+    public Map<String, Boolean> getAutoApprove() {
+      return autoApprove;
+    }
+
+    public void setAutoApprove(Map<String, Boolean> autoApprove) {
+      this.autoApprove = autoApprove;
+    }
+  }
 
   public int getAgentMaxRequests() {
     return agentMaxRequests;
@@ -28,17 +60,26 @@ public class CopilotAgentSettings {
     this.agentMaxRequests = agentMaxRequests;
   }
 
-  public boolean isEditorHandlesAllConfirmation() {
-    return editorHandlesAllConfirmation;
+  public boolean isAutoApproveUnmatchedTerminal() {
+    return autoApproveUnmatchedTerminal;
   }
 
-  public void setEditorHandlesAllConfirmation(boolean editorHandlesAllConfirmation) {
-    this.editorHandlesAllConfirmation = editorHandlesAllConfirmation;
+  public void setAutoApproveUnmatchedTerminal(boolean autoApproveUnmatchedTerminal) {
+    this.autoApproveUnmatchedTerminal = autoApproveUnmatchedTerminal;
+  }
+
+  /** Gets tools settings, creating if needed. */
+  public ToolsSettings getTools() {
+    if (tools == null) {
+      tools = new ToolsSettings();
+    }
+    return tools;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests, editorHandlesAllConfirmation);
+    return Objects.hash(agentMaxRequests,
+        autoApproveUnmatchedTerminal, tools);
   }
 
   @Override
@@ -51,14 +92,16 @@ public class CopilotAgentSettings {
     }
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
     return agentMaxRequests == other.agentMaxRequests
-        && editorHandlesAllConfirmation == other.editorHandlesAllConfirmation;
+        && autoApproveUnmatchedTerminal == other.autoApproveUnmatchedTerminal
+        && Objects.equals(tools, other.tools);
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.append("agentMaxRequests", agentMaxRequests);
-    builder.append("editorHandlesAllConfirmation", editorHandlesAllConfirmation);
+    builder.append("autoApproveUnmatchedTerminal", autoApproveUnmatchedTerminal);
+    builder.append("tools", tools);
     return builder.toString();
   }
 }

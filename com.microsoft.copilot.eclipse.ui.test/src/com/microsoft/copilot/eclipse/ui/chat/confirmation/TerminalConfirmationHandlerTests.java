@@ -1,0 +1,478 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+package com.microsoft.copilot.eclipse.ui.chat.confirmation;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.Gson;
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
+import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolMetadata;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolMetadata.TerminalCommandData;
+
+@ExtendWith(MockitoExtension.class)
+class TerminalConfirmationHandlerTests {
+
+  private static final String CONV_ID = "conv-1";
+  private static final Gson GSON = new Gson();
+
+  @Mock
+  private IPreferenceStore preferenceStore;
+
+  private TerminalConfirmationHandler handler;
+
+  @BeforeEach
+  void setUp() {
+    handler = new TerminalConfirmationHandler(preferenceStore);
+  }
+
+  // --- matchesRule ---
+
+  @Test
+  void matchesRule_simpleRuleMatchesCommandAtStart() {
+    assertTrue(TerminalConfirmationHandler.matchesRule(
+        "rm -rf /tmp", "rm"));
+  }
+
+  @Test
+  void matchesRule_simpleRuleDoesNotMatchMiddleOfWord() {
+    assertFalse(TerminalConfirmationHandler.matchesRule(
+        "remove something", "rm"));
+  }
+
+  @Test
+  void matchesRule_regexCaseInsensitive() {
+    assertTrue(TerminalConfirmationHandler.matchesRule(
+        "Git status", "/^git\\b/i"));
+  }
+
+  @Test
+  void matchesRule_regexDotallMatchesSubshell() {
+    assertTrue(TerminalConfirmationHandler.matchesRule(
+        "(echo hello)", "/(\\(.+\\))/s"));
+  }
+
+  @Test
+  void matchesRule_nullSubCommandReturnsFalse() {
+    assertFalse(TerminalConfirmationHandler.matchesRule(null, "rm"));
+  }
+
+  @Test
+  void matchesRule_emptySubCommandReturnsFalse() {
+    assertFalse(TerminalConfirmationHandler.matchesRule("", "rm"));
+  }
+
+  @Test
+  void matchesRule_nullRuleReturnsFalse() {
+    assertFalse(TerminalConfirmationHandler.matchesRule("rm -rf", null));
+  }
+
+  @Test
+  void matchesRule_emptyRuleReturnsFalse() {
+    assertFalse(TerminalConfirmationHandler.matchesRule("rm -rf", ""));
+  }
+
+  @Test
+  void matchesRule_blankInputsReturnFalse() {
+    assertFalse(TerminalConfirmationHandler.matchesRule("  ", "rm"));
+    assertFalse(TerminalConfirmationHandler.matchesRule("rm", "  "));
+  }
+
+  // --- evaluate ---
+
+  @Test
+  void evaluate_autoApprovedWhenAllSubCommandsMatchAllowRules() {
+    stubRules(List.of(new TerminalAutoApproveRule("echo", true)));
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo hello"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_needsConfirmationWhenDenyRuleMatches() {
+    stubRules(List.of(new TerminalAutoApproveRule("rm", false)));
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"rm -rf /"}, new String[]{"rm"},
+            "rm -rf /");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertFalse(result.isAutoApproved());
+    assertNotNull(result.getContent());
+  }
+
+  @Test
+  void evaluate_needsConfirmationWhenNoRulesMatchAndUnmatchedFalse() {
+    stubRules(List.of(new TerminalAutoApproveRule("echo", true)));
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"ls -la"}, new String[]{"ls"},
+            "ls -la");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertFalse(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_autoApprovedWhenNoRulesMatchAndUnmatchedTrue() {
+    stubRules(List.of(new TerminalAutoApproveRule("echo", true)));
+    stubUnmatched(true);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"ls -la"}, new String[]{"ls"},
+            "ls -la");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_needsConfirmationWhenSubCommandsNull() {
+    stubRules(List.of());
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(null, null, "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertFalse(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_needsConfirmationWhenSubCommandsEmpty() {
+    stubRules(List.of());
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{}, null, "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertFalse(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_emptyRulesUsesUnmatchedSetting() {
+    stubRules(List.of());
+    stubUnmatched(true);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"ls"}, new String[]{"ls"}, "ls");
+    ConfirmationResult result = handler.evaluate(params);
+
+    assertTrue(result.isAutoApproved());
+  }
+
+  // --- Session memory via persistDecision ---
+
+  @Test
+  void persistDecision_acceptAllSession_autoApprovesSubsequent() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+
+    ConfirmationAction allSession = buildSessionAction(
+        TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
+    handler.persistDecision(allSession, params);
+
+    ConfirmationResult result = handler.evaluate(params);
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void persistDecision_acceptNamesSession_autoApprovesMatchingNames() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+
+    ConfirmationAction namesSession = buildSessionAction(
+        TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION);
+    handler.persistDecision(namesSession, params);
+
+    ConfirmationResult result = handler.evaluate(params);
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void persistDecision_acceptExactSession_autoApprovesMatchingCommand() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+
+    ConfirmationAction exactSession = buildSessionAction(
+        TerminalConfirmationHandler.Action.ACCEPT_EXACT_SESSION);
+    handler.persistDecision(exactSession, params);
+
+    ConfirmationResult result = handler.evaluate(params);
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void clearSession_removesApprovalsForConversation() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+
+    ConfirmationAction allSession = buildSessionAction(
+        TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
+    handler.persistDecision(allSession, params);
+
+    handler.clearSession(CONV_ID);
+
+    ConfirmationResult result = handler.evaluate(params);
+    assertFalse(result.isAutoApproved());
+  }
+
+  @Test
+  void clearSession_doesNotAffectOtherConversation() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+
+    ConfirmationAction allSession = buildSessionAction(
+        TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
+    handler.persistDecision(allSession, params);
+
+    handler.clearSession("other-conv");
+
+    ConfirmationResult result = handler.evaluate(params);
+    assertTrue(result.isAutoApproved());
+  }
+
+  // --- buildContent actions ---
+
+  @Test
+  void buildContent_alwaysHasAllowOnceAsPrimary() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    ConfirmationContent content = result.getContent();
+    assertNotNull(content);
+    List<ConfirmationAction> actions = content.getActions();
+    ConfirmationAction first = actions.get(0);
+    assertTrue(first.isPrimary());
+    assertTrue(first.isAccept());
+  }
+
+  @Test
+  void buildContent_alwaysHasSkipAsDismiss() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    List<ConfirmationAction> actions = result.getContent().getActions();
+    ConfirmationAction last = actions.get(actions.size() - 1);
+    assertFalse(last.isAccept());
+  }
+
+  @Test
+  void buildContent_hasAllowAllSessionAction() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    List<ConfirmationAction> actions = result.getContent().getActions();
+    boolean hasAllSession = actions.stream().anyMatch(a ->
+        a.getMetadata().containsKey(ConfirmationAction.META_ACTION)
+            && a.getMetadata().get(ConfirmationAction.META_ACTION)
+            .equals(
+                TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION
+                    .name()));
+    assertTrue(hasAllSession);
+  }
+
+  @Test
+  void buildContent_hasCommandNameActionsWhenNamesPresent() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    List<ConfirmationAction> actions = result.getContent().getActions();
+    boolean hasNamesSession = actions.stream().anyMatch(a ->
+        hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION));
+    boolean hasNamesGlobal = actions.stream().anyMatch(a ->
+        hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_GLOBAL));
+    assertTrue(hasNamesSession);
+    assertTrue(hasNamesGlobal);
+  }
+
+  @Test
+  void buildContent_hasExactCommandActionsWhenDifferentFromName() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    // commandLine "echo hello" differs from single commandName "echo"
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    List<ConfirmationAction> actions = result.getContent().getActions();
+    boolean hasExactSession = actions.stream().anyMatch(a ->
+        hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_EXACT_SESSION));
+    boolean hasExactGlobal = actions.stream().anyMatch(a ->
+        hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_EXACT_GLOBAL));
+    assertTrue(hasExactSession);
+    assertTrue(hasExactGlobal);
+  }
+
+  @Test
+  void buildContent_noExactActionsWhenSingleSubCommandEqualsName() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    // commandLine equals the single commandName
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"}, "echo");
+    ConfirmationResult result = handler.evaluate(params);
+
+    List<ConfirmationAction> actions = result.getContent().getActions();
+    boolean hasExact = actions.stream().anyMatch(a ->
+        hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_EXACT_SESSION)
+            || hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_EXACT_GLOBAL));
+    assertFalse(hasExact);
+  }
+
+  @Test
+  void buildContent_actionScopesAreCorrect() {
+    stubRules(List.of());
+    stubUnmatched(false);
+
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo"}, new String[]{"echo"},
+            "echo hello");
+    ConfirmationResult result = handler.evaluate(params);
+
+    List<ConfirmationAction> actions = result.getContent().getActions();
+
+    // Allow Once → ONCE scope
+    assertEquals(ConfirmationActionScope.ONCE, actions.get(0).getScope());
+
+    // Session actions have SESSION scope
+    actions.stream()
+        .filter(a -> hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION)
+            || hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_EXACT_SESSION)
+            || hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION))
+        .forEach(a -> assertEquals(ConfirmationActionScope.SESSION,
+            a.getScope()));
+
+    // Global actions have GLOBAL scope
+    actions.stream()
+        .filter(a -> hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_GLOBAL)
+            || hasActionType(a,
+            TerminalConfirmationHandler.Action.ACCEPT_EXACT_GLOBAL))
+        .forEach(a -> assertEquals(ConfirmationActionScope.GLOBAL,
+            a.getScope()));
+  }
+
+  // --- Helpers ---
+
+  private void stubRules(List<TerminalAutoApproveRule> rules) {
+    when(preferenceStore.getString(Constants.AUTO_APPROVE_TERMINAL_RULES))
+        .thenReturn(GSON.toJson(rules));
+  }
+
+  private void stubUnmatched(boolean value) {
+    when(preferenceStore.getBoolean(
+        Constants.AUTO_APPROVE_UNMATCHED_TERMINAL)).thenReturn(value);
+  }
+
+  private static InvokeClientToolConfirmationParams buildParams(
+      String[] subCommands, String[] commandNames, String commandLine) {
+    TerminalCommandData tcd = new TerminalCommandData();
+    tcd.setSubCommands(subCommands);
+    tcd.setCommandNames(commandNames);
+
+    ToolMetadata meta = new ToolMetadata();
+    meta.setTerminalCommandData(tcd);
+
+    InvokeClientToolConfirmationParams params =
+        new InvokeClientToolConfirmationParams();
+    params.setConversationId(CONV_ID);
+    params.setToolMetadata(meta);
+    params.setInput(Map.of("toolType", "terminal", "command",
+        commandLine != null ? commandLine : ""));
+    return params;
+  }
+
+  private static ConfirmationAction buildSessionAction(
+      TerminalConfirmationHandler.Action actionType) {
+    Map<String, String> meta = Map.of(
+        ConfirmationAction.META_ACTION, actionType.name());
+    return new ConfirmationAction(
+        "test", true, ConfirmationActionScope.SESSION, meta, false);
+  }
+
+  private static boolean hasActionType(ConfirmationAction action,
+      TerminalConfirmationHandler.Action type) {
+    return action.getMetadata().containsKey(ConfirmationAction.META_ACTION)
+        && action.getMetadata().get(ConfirmationAction.META_ACTION)
+        .equals(type.name());
+  }
+}
