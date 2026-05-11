@@ -46,56 +46,74 @@ class TerminalConfirmationHandlerTests {
     handler = new TerminalConfirmationHandler(preferenceStore);
   }
 
-  // --- matchesRule ---
+  // --- rule matching (tested through evaluate) ---
 
   @Test
-  void matchesRule_simpleRuleMatchesCommandAtStart() {
-    assertTrue(TerminalConfirmationHandler.matchesRule(
-        "rm -rf /tmp", "rm"));
+  void ruleMatching_simpleRuleMatchesCommandAtStart() {
+    stubRules(List.of(new TerminalAutoApproveRule("rm", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"rm -rf /tmp"}, new String[]{"rm"},
+            "rm -rf /tmp");
+    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
-  void matchesRule_simpleRuleDoesNotMatchMiddleOfWord() {
-    assertFalse(TerminalConfirmationHandler.matchesRule(
-        "remove something", "rm"));
+  void ruleMatching_simpleRuleDoesNotMatchMiddleOfWord() {
+    stubRules(List.of(new TerminalAutoApproveRule("rm", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"remove something"},
+            new String[]{"remove"}, "remove something");
+    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
-  void matchesRule_regexCaseInsensitive() {
-    assertTrue(TerminalConfirmationHandler.matchesRule(
-        "Git status", "/^git\\b/i"));
+  void ruleMatching_regexCaseInsensitive() {
+    stubRules(List.of(new TerminalAutoApproveRule("/^git\\b/i", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"Git status"}, new String[]{"Git"},
+            "Git status");
+    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
-  void matchesRule_regexDotallMatchesSubshell() {
-    assertTrue(TerminalConfirmationHandler.matchesRule(
-        "(echo hello)", "/(\\(.+\\))/s"));
+  void ruleMatching_regexDotallMatchesSubshell() {
+    stubRules(List.of(
+        new TerminalAutoApproveRule("/(\\(.+\\))/s", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"(echo hello)"},
+            new String[]{"(echo"}, "(echo hello)");
+    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
-  void matchesRule_nullSubCommandReturnsFalse() {
-    assertFalse(TerminalConfirmationHandler.matchesRule(null, "rm"));
+  void ruleMatching_noMatchWhenSubCommandsNull() {
+    stubRules(List.of(new TerminalAutoApproveRule("rm", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(null, null, "rm -rf");
+    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
-  void matchesRule_emptySubCommandReturnsFalse() {
-    assertFalse(TerminalConfirmationHandler.matchesRule("", "rm"));
+  void ruleMatching_noMatchWhenSubCommandsEmpty() {
+    stubRules(List.of(new TerminalAutoApproveRule("rm", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{}, new String[]{}, "rm -rf");
+    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
-  void matchesRule_nullRuleReturnsFalse() {
-    assertFalse(TerminalConfirmationHandler.matchesRule("rm -rf", null));
-  }
-
-  @Test
-  void matchesRule_emptyRuleReturnsFalse() {
-    assertFalse(TerminalConfirmationHandler.matchesRule("rm -rf", ""));
-  }
-
-  @Test
-  void matchesRule_blankInputsReturnFalse() {
-    assertFalse(TerminalConfirmationHandler.matchesRule("  ", "rm"));
-    assertFalse(TerminalConfirmationHandler.matchesRule("rm", "  "));
+  void ruleMatching_noMatchWhenSubCommandBlank() {
+    stubRules(List.of(new TerminalAutoApproveRule("rm", true)));
+    stubUnmatched(false);
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"  "}, new String[]{"  "}, "  ");
+    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- evaluate ---
