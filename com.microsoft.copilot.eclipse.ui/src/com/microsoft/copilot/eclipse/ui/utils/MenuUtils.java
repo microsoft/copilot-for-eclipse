@@ -176,8 +176,9 @@ public final class MenuUtils {
   /**
    * Formats the allowance-reset row label. Returns {@link Messages#menu_quota_noUsageYet} when the
    * user has not consumed any of the tracked quotas yet (see {@link #noUsageYet}); otherwise
-   * returns {@code "Resets today on {date}"} / {@code "Reset in 1 day on {date}"} / {@code "Reset
-   * in {n} days on {date}"} depending on {@code n}.
+   * returns {@code "Resets today"} / {@code "Reset in 1 day on {date}"} / {@code "Reset in {n}
+   * days on {date}"} depending on {@code n}. The 0-day case intentionally omits the date since it
+   * is implied by "today".
    *
    * <p>Callers <strong>must</strong> gate with {@link #shouldShowAllowanceResetRow}; this method
    * assumes a parseable reset date is present.

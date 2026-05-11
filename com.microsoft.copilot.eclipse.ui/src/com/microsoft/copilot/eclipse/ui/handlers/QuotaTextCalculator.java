@@ -44,7 +44,7 @@ public class QuotaTextCalculator {
           gc.stringExtent(Messages.menu_quota_codeCompletions + getPercentUsed(quotaResult.completions())).x);
       max = Math.max(max,
           gc.stringExtent(Messages.menu_quota_chatMessages + getPercentUsed(quotaResult.chat())).x);
-      if (quotaResult.copilotPlan() != CopilotPlan.free) {
+      if (quotaResult.copilotPlan() != CopilotPlan.free && quotaResult.premiumInteractions() != null) {
         max = Math.max(max, gc.stringExtent(
             getPremiumRequestsLabel() + getPremiumRequestsSuffix()).x);
       }
@@ -131,6 +131,9 @@ public class QuotaTextCalculator {
   }
 
   private String getPercentUsed(Quota quota) {
+    if (quota == null) {
+      return "";
+    }
     if (quota.unlimited()) {
       return Messages.menu_quota_included;
     }
