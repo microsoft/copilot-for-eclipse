@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,12 @@ import org.eclipse.core.net.proxy.IProxyChangeEvent;
 import org.eclipse.core.net.proxy.IProxyChangeListener;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IResourceChangeListener;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.util.IPropertyChangeListener;
@@ -37,6 +44,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSett
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.utils.GsonUtils;
+import com.microsoft.copilot.eclipse.core.utils.McpFileConfigService;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
@@ -50,6 +58,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   CopilotLanguageServerConnection copilotLanguageServerConnection = null;
   IPreferenceStore preferenceStore;
   IProxyData proxyData = null;
+  private IResourceChangeListener mcpFileChangeListener;
 
   /**
    * Gets the settings.
@@ -103,6 +112,9 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         syncMcpRegistrationConfiguration();
       }
     });
+
+    // Watch for mcp.json file changes in workspace projects
+    registerMcpFileChangeListener();
   }
 
   /**
@@ -203,19 +215,29 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   }
 
   /**
-   * Sync MCP registration from both extension points and preference store.
+   * Sync MCP registration from file-based configs, preference store and extension points.
+   * Merge order: Global mcp.json < Project mcp.json < Preference store < Extension points. 
    */
   public void syncMcpRegistrationConfiguration() {
-    // From manual configuration
-    settings.setMcpServers(preferenceStore.getString(Constants.MCP));
+    String fileBasedServers = McpFileConfigService.loadAndMerge(getProjectRootPaths());
+    if (StringUtils.isNotBlank(fileBasedServers)) {
+      settings.setMcpServers(fileBasedServers);
+    }
+    settings.addMcpServers(preferenceStore.getString(Constants.MCP));
 
-    // From McpRegistration extension point
     if (CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
       McpExtensionPointManager mgr = CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager();
       settings.addMcpServers(mgr.getApprovedExtMcpServers());
     }
 
     syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));
+  }
+  
+  private List<Path> getProjectRootPaths() {
+    return WorkspaceUtils.listTopLevelProjects().stream()
+        .map(IProject::getLocation)
+        .map(loc -> loc.toFile().toPath())
+        .toList();
   }
 
   /**
@@ -521,5 +543,39 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public void dispose() {
     proxyService.removeProxyChangeListener(this);
+    if (mcpFileChangeListener != null) {
+      ResourcesPlugin.getWorkspace().removeResourceChangeListener(mcpFileChangeListener);
+    }
+  }
+
+  private void registerMcpFileChangeListener() {
+    mcpFileChangeListener = event -> {
+      if (event.getDelta() != null && containsMcpJsonChange(event.getDelta())) {
+        syncMcpRegistrationConfiguration();
+      }
+    };
+    ResourcesPlugin.getWorkspace().addResourceChangeListener(mcpFileChangeListener,
+        IResourceChangeEvent.POST_CHANGE);
+  }
+
+  /**
+   * Checks whether a resource delta contains a change to an mcp.json file
+   * at one of the supported project-level locations.
+   */
+  private boolean containsMcpJsonChange(IResourceDelta delta) {
+    boolean[] found = { false };
+    try {
+      delta.accept(d -> {
+        String path = d.getResource().getProjectRelativePath().toString();
+        if (Constants.MCP_FILE_VSCODE.equals(path) || Constants.MCP_FILE_COPILOT.equals(path)) {
+          found[0] = true;
+          return false;
+        }
+        return true;
+      });
+    } catch (CoreException e) {
+      CopilotCore.LOGGER.error("Error checking for MCP file changes", e);
+    }
+    return found[0];
   }
 }

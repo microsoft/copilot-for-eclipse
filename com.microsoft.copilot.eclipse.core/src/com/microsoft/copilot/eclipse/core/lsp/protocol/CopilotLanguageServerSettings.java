@@ -17,6 +17,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.utils.McpFileConfigService;
 
 /**
  * Settings for the DidChangeConfigurationParams.
@@ -505,21 +506,11 @@ public class CopilotLanguageServerSettings {
       return mcpServersPreference;
     }
 
-    try {
-      Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-      Map<String, Object> jsonMap = gson.fromJson(mcpServersPreference, new TypeToken<Map<String, Object>>() {
-      }.getType());
-
-      if (jsonMap != null && jsonMap.containsKey("servers")) {
-        Object serversObj = jsonMap.get("servers");
-        return gson.toJson(serversObj);
-      }
-
-      return mcpServersPreference;
-    } catch (JsonParseException e) {
-      CopilotCore.LOGGER.error("Failed to parse MCP servers JSON", e);
+    Map<String, Object> servers = McpFileConfigService.parseServers(mcpServersPreference, "preference");
+    if (servers == null) {
       return null;
     }
+    return new GsonBuilder().disableHtmlEscaping().create().toJson(servers);
   }
 
   @Override

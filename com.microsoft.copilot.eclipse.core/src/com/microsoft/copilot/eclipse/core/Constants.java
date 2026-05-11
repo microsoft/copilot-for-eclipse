@@ -30,6 +30,10 @@ public class Constants {
   public static final String AGENT_MAX_REQUESTS = "agentMaxRequests";
   public static final String MCP = "mcp";
   public static final String MCP_REGISTRY_URL = "mcpRegistryUrl";
+  public static final String MCP_FILE_VSCODE = ".vscode/mcp.json";
+  public static final String MCP_FILE_COPILOT = ".github/copilot/mcp.json";
+  public static final String MCP_FILE_GLOBAL_SUBDIR = "eclipse";
+  public static final String MCP_FILE_NAME = "mcp.json";
   public static final String MCP_REGISTRY_VERSION = "v0.1";
   public static final String MCP_TOOLS_STATUS = "mcpToolsStatus";
   public static final String MCP_TOOLS_MODE_STATUS = "mcpToolsModeStatus";

@@ -73,6 +73,18 @@ public class Messages extends NLS {
   public static String preferences_page_github_enterprise_tooltip;
   public static String preferences_page_mcp_tooltip;
   public static String preferences_page_mcp_note_content;
+  public static String preferences_page_mcp_file_configs_none;
+  public static String preferences_page_mcp_file_configs_description;
+  public static String preferences_page_mcp_file_configs_discovered;
+  public static String preferences_page_mcp_file_configs_col_source;
+  public static String preferences_page_mcp_file_configs_col_path;
+  public static String preferences_page_mcp_file_configs_col_servers;
+  public static String preferences_page_mcp_file_configs_merge_note;
+  public static String preferences_page_mcp_file_configs_locations;
+  public static String preferences_page_mcp_file_configs_loc_global;
+  public static String preferences_page_mcp_file_configs_loc_project_vscode;
+  public static String preferences_page_mcp_file_configs_loc_project_copilot;
+  public static String preferences_page_mcp_file_configs_unknown;
   public static String preferences_page_mcp_disabled_tip;
   public static String preferences_page_mcp_tools_settings;
   public static String preferences_page_mcp_tools_mode_selector;
