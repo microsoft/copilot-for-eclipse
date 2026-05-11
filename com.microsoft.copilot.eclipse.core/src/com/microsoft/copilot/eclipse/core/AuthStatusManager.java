@@ -182,7 +182,7 @@ public class AuthStatusManager {
    */
   public CheckQuotaResult getQuotaStatus() {
     if (this.checkQuotaResult == null) {
-      this.checkQuotaResult = new CheckQuotaResult();
+      this.checkQuotaResult = CheckQuotaResult.empty();
     }
     return this.checkQuotaResult;
   }

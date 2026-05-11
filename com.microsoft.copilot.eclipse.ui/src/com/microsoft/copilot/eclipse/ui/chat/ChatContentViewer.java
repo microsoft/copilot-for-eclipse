@@ -38,6 +38,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -218,13 +219,13 @@ public class ChatContentViewer extends ScrolledComposite {
       if (StringUtils.isNotEmpty(errMsg)) {
         // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.
         if (value.getCode() == 402) {
-          CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan();
+          CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan();
           CopilotModel fallbackModel = this.serviceManager.getModelService().getFallbackModel();
           String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
               : Messages.chat_noQuotaView_fallbackModel;
 
-          if (userPlan == CopilotPlan.individual || userPlan == CopilotPlan.individual_pro) {
-            // Pro and Pro+ message
+          if (MenuUtils.isCfiPlan(userPlan)) {
+            // Pro, Pro+ and Max message
             errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
           } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
             // CE and CB message
@@ -235,7 +236,7 @@ public class ChatContentViewer extends ScrolledComposite {
         renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode());
 
         if (value.getCode() == 402
-            && this.serviceManager.getAuthStatusManager().getQuotaStatus().getCopilotPlan() != CopilotPlan.free) {
+            && this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan() != CopilotPlan.free) {
           this.serviceManager.getModelService().setFallBackModelAsActiveModel();
           this.serviceManager.getAuthStatusManager().checkQuota();
 

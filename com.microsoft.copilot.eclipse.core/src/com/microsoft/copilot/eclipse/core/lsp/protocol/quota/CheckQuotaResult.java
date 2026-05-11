@@ -3,90 +3,34 @@
 
 package com.microsoft.copilot.eclipse.core.lsp.protocol.quota;
 
-import java.util.Objects;
-
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
 /**
- * Result of the checkQuota request.
+ * Result of the {@code checkQuota} request.
+ *
+ * @param chat chat quota snapshot
+ * @param completions completions quota snapshot
+ * @param premiumInteractions premium interactions quota snapshot
+ * @param resetDate ISO-8601 local date when the monthly allowance resets, or {@code null}
+ * @param resetDateUtc ISO-8601 instant when the monthly allowance resets in UTC, or {@code null}
+ * @param copilotPlan the user's Copilot plan
+ * @param tokenBasedBillingEnabled whether the user's billing is token-based
  */
-public class CheckQuotaResult {
-  private Quota chat;
-  private Quota completions;
-  private Quota premiumInteractions;
-  private String resetDate;
-  private CopilotPlan copilotPlan;
+public record CheckQuotaResult(
+    Quota chat,
+    Quota completions,
+    Quota premiumInteractions,
+    String resetDate,
+    String resetDateUtc,
+    CopilotPlan copilotPlan,
+    boolean tokenBasedBillingEnabled) {
 
-  public Quota getChatQuota() {
-    return chat;
-  }
+  private static final CheckQuotaResult EMPTY =
+      new CheckQuotaResult(null, null, null, null, null, null, false);
 
-  public void setChatQuota(Quota chat) {
-    this.chat = chat;
-  }
-
-  public Quota getCompletionsQuota() {
-    return completions;
-  }
-
-  public void setCompletionsQuota(Quota completions) {
-    this.completions = completions;
-  }
-
-  public Quota getPremiumInteractionsQuota() {
-    return premiumInteractions;
-  }
-
-  public void setPremiumInteractionsQuota(Quota premiumInteractions) {
-    this.premiumInteractions = premiumInteractions;
-  }
-
-  public String getResetDate() {
-    return resetDate;
-  }
-
-  public void setResetDate(String resetDate) {
-    this.resetDate = resetDate;
-  }
-
-  public CopilotPlan getCopilotPlan() {
-    return copilotPlan;
-  }
-
-  public void setCopilotPlan(CopilotPlan copilotPlan) {
-    this.copilotPlan = copilotPlan;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(chat, completions, copilotPlan, premiumInteractions, resetDate);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CheckQuotaResult other = (CheckQuotaResult) obj;
-    return Objects.equals(chat, other.chat) && Objects.equals(completions, other.completions)
-        && copilotPlan == other.copilotPlan && Objects.equals(premiumInteractions, other.premiumInteractions)
-        && Objects.equals(resetDate, other.resetDate);
-  }
-
-  @Override
-  public String toString() {
-    ToStringBuilder builder = new ToStringBuilder(this);
-    builder.append("chat", chat);
-    builder.append("completions", completions);
-    builder.append("premiumInteractions", premiumInteractions);
-    builder.append("resetDate", resetDate);
-    builder.append("copilotPlan", copilotPlan);
-    return builder.toString();
+  /**
+   * Returns an empty {@link CheckQuotaResult} used as a placeholder before the language server
+   * supplies real quota data.
+   */
+  public static CheckQuotaResult empty() {
+    return EMPTY;
   }
 }
