@@ -858,14 +858,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
         // Cache conversation progress on report
         if (persistenceManager != null) {
-          // Chain setSubagentToolCallId after cacheConversationProgress to avoid race condition
-          // where the subagent CopilotTurnData hasn't been created yet
+          final String currentConversationId = this.conversationId;
           final String subagentToolCallId = this.lastRunSubagentToolCallId;
-          persistenceManager.cacheConversationProgress(this.conversationId, value).thenRun(() -> {
-            if (StringUtils.isNotBlank(value.getParentTurnId()) && StringUtils.isNotBlank(subagentToolCallId)) {
-              persistenceManager.setSubagentToolCallId(this.conversationId, value.getTurnId(), subagentToolCallId);
-            }
-          });
+          persistenceManager.cacheConversationProgress(currentConversationId, value)
+              .thenCompose(v -> {
+                if (StringUtils.isNotBlank(value.getParentTurnId())
+                    && StringUtils.isNotBlank(subagentToolCallId)) {
+                  return persistenceManager.setSubagentToolCallId(
+                      currentConversationId, value.getTurnId(), subagentToolCallId);
+                }
+                return CompletableFuture.completedFuture(null);
+              });
         }
         break;
       case end:
@@ -1173,7 +1176,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onCancel() {
-    // Destroy the conversation on the server to stop any in-progress processing
+    // Send conversation/destroy to cancel in-progress turns
     if (StringUtils.isNotBlank(this.conversationId)) {
       CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
       if (ls != null) {

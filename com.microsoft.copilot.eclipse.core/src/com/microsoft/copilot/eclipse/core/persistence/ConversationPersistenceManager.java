@@ -556,12 +556,14 @@ public class ConversationPersistenceManager {
    * @param conversationId the conversation ID
    * @param subagentTurnId the subagent's turn ID
    * @param toolCallId the run_subagent tool call ID from the parent turn
+   * @return a future that completes when the tool call ID has been set
    */
-  public void setSubagentToolCallId(String conversationId, String subagentTurnId, String toolCallId) {
+  public CompletableFuture<Void> setSubagentToolCallId(String conversationId, String subagentTurnId,
+      String toolCallId) {
     if (toolCallId == null || subagentTurnId == null) {
-      return;
+      return CompletableFuture.completedFuture(null);
     }
-    CompletableFuture.runAsync(() -> {
+    return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
         ConversationData conversation = getConversationFromCacheOrLoadFromDisk(conversationId);
