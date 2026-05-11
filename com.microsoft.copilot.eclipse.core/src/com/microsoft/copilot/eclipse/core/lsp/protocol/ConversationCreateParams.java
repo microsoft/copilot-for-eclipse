@@ -225,7 +225,7 @@ public class ConversationCreateParams {
     result = prime * result
         + Objects.hash(capabilities, chatMode, computeSuggestions, customChatModeId, model, needToolCallConfirmation,
             references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders,
-            modelProviderName, todoList);
+            modelProviderName, todoList, conversationId, restoreToTurnId);
     return result;
   }
 
@@ -251,7 +251,9 @@ public class ConversationCreateParams {
         && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders)
         && Objects.equals(modelProviderName, other.modelProviderName)
-        && Objects.equals(todoList, other.todoList);
+        && Objects.equals(todoList, other.todoList)
+        && Objects.equals(conversationId, other.conversationId)
+        && Objects.equals(restoreToTurnId, other.restoreToTurnId);
   }
 
   @Override
@@ -274,6 +276,8 @@ public class ConversationCreateParams {
     builder.append("customChatModeId", customChatModeId);
     builder.append("needToolCallConfirmation", needToolCallConfirmation);
     builder.append("todoList", todoList);
+    builder.append("conversationId", conversationId);
+    builder.append("restoreToTurnId", restoreToTurnId);
     return builder.toString();
   }
 }

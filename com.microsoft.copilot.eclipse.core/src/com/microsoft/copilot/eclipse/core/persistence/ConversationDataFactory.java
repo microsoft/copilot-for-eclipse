@@ -207,37 +207,37 @@ public class ConversationDataFactory {
     // Defensive copy to avoid ConcurrentModificationException if another thread mutates the list while iterating.
     List<AbstractTurnData> snapshot = new ArrayList<>(turnDataList);
     List<Turn> result = new ArrayList<>(snapshot.size());
-    Turn pendingTurn = null;
+    Turn unpairedUserTurn = null;
 
     for (AbstractTurnData turnData : snapshot) {
       if (turnData == null) {
         continue;
       }
       if (turnData instanceof UserTurnData userTurnData) {
-        // Flush any pending turn without a response
-        if (pendingTurn != null) {
-          result.add(pendingTurn);
+        // Flush any unpaired user turn without a response
+        if (unpairedUserTurn != null) {
+          result.add(unpairedUserTurn);
         }
         String requestText = userTurnData.getMessage() != null ? userTurnData.getMessage().getText() : "";
         Either<String, List<ChatCompletionContentPart>> request = Either
             .forLeft(requestText == null ? "" : requestText);
-        pendingTurn = new Turn(request, null, null, turnData.getTurnId());
+        unpairedUserTurn = new Turn(request, null, null, turnData.getTurnId());
       } else if (turnData instanceof CopilotTurnData copilotTurnData) {
         String responseText = extractResponseFromCopilotTurnData(copilotTurnData);
-        if (pendingTurn != null) {
-          // Pair the response with the pending user turn
-          pendingTurn.setResponse(responseText);
-          result.add(pendingTurn);
-          pendingTurn = null;
+        if (unpairedUserTurn != null) {
+          // Pair the response with the unpaired user turn
+          unpairedUserTurn.setResponse(responseText);
+          result.add(unpairedUserTurn);
+          unpairedUserTurn = null;
         } else {
           // Orphaned copilot turn (no preceding user turn), create a standalone turn
           result.add(new Turn(Either.forLeft(""), responseText, null, turnData.getTurnId()));
         }
       }
     }
-    // Flush any remaining pending turn (user message without a response)
-    if (pendingTurn != null) {
-      result.add(pendingTurn);
+    // Flush any remaining unpaired user turn (user message without a response)
+    if (unpairedUserTurn != null) {
+      result.add(unpairedUserTurn);
     }
     return result;
   }

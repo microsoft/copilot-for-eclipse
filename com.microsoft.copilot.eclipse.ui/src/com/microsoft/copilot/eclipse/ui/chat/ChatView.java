@@ -111,6 +111,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private String conversationId = "";
   private String subagentConversationId = null;
   private ConversationState conversationState = ConversationState.NEW_CONVERSATION;
+  private CompletableFuture<?> persistUserTurnFuture = CompletableFuture.completedFuture(null);
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
   private DragReferenceManager dragReferenceManager;
@@ -796,9 +797,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Cache conversation progress on begin
         persistenceManager.cacheConversationProgress(this.conversationId, value);
 
-        // Set the CLS-assigned turnId on the last user turn that doesn't have one yet
+        // Set the CLS-assigned turnId on the last user turn that doesn't have one yet.
+        // Chain off persistUserTurnFuture to ensure the UserTurnData has been created first.
         if (StringUtils.isNotBlank(value.getTurnId())) {
-          persistenceManager.setUserTurnId(this.conversationId, value.getTurnId());
+          final String convId = this.conversationId;
+          final String turnId = value.getTurnId();
+          persistUserTurnFuture.thenRun(() -> persistenceManager.setUserTurnId(convId, turnId));
         }
 
         // Hide handoff container when new turn starts
@@ -948,8 +952,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage, activeModel,
-            chatModeName, customChatModeId, currentFile, references);
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
+            activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       // Get current todo list to sync with the server
@@ -994,11 +998,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (conversationState == ConversationState.NEW_HISTORY_BASED_CONVERSATION) {
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
-        persistenceManager.persistUserTurnInfo(this.conversationId, null, processedMessage, activeModel,
-            chatModeName, customChatModeId, currentFile, references);
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
+            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
 
         // Set conversationId and last completed turnId for CLS server-side session restoration.
-        // Only use turnId from turns that have a response (completed turns), not cancelled ones.
         restoredConversationId = this.conversationId;
         if (turns != null && !turns.isEmpty()) {
           for (int i = turns.size() - 1; i >= 0; i--) {
@@ -1018,8 +1021,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       } else if (conversationState == ConversationState.NEW_CONVERSATION) {
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
-        persistenceManager.persistUserTurnInfo(this.conversationId, null, processedMessage, activeModel,
-            chatModeName, customChatModeId, currentFile, references);
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
+            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
