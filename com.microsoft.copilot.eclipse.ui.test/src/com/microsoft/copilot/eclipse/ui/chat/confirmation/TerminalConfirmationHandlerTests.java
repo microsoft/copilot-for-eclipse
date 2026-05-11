@@ -108,7 +108,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo hello"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }
@@ -121,7 +121,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"rm -rf /"}, new String[]{"rm"},
             "rm -rf /");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
     assertNotNull(result.getContent());
@@ -135,7 +135,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"ls -la"}, new String[]{"ls"},
             "ls -la");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -148,7 +148,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"ls -la"}, new String[]{"ls"},
             "ls -la");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }
@@ -159,7 +159,7 @@ class TerminalConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams(null, null, "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -170,7 +170,7 @@ class TerminalConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{}, null, "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -182,7 +182,7 @@ class TerminalConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"ls"}, new String[]{"ls"}, "ls");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }
@@ -200,9 +200,9 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction allSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
-    handler.persistDecision(allSession, params);
+    handler.persistDecision(allSession, params, CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
@@ -217,9 +217,9 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction namesSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION);
-    handler.persistDecision(namesSession, params);
+    handler.persistDecision(namesSession, params, CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
@@ -234,9 +234,9 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction exactSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_EXACT_SESSION);
-    handler.persistDecision(exactSession, params);
+    handler.persistDecision(exactSession, params, CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
@@ -251,11 +251,11 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction allSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
-    handler.persistDecision(allSession, params);
+    handler.persistDecision(allSession, params, CONV_ID);
 
     handler.clearSession(CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertFalse(result.isAutoApproved());
   }
 
@@ -270,11 +270,11 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction allSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
-    handler.persistDecision(allSession, params);
+    handler.persistDecision(allSession, params, CONV_ID);
 
     handler.clearSession("other-conv");
 
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
@@ -288,7 +288,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     ConfirmationContent content = result.getContent();
     assertNotNull(content);
@@ -306,7 +306,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     ConfirmationAction last = actions.get(actions.size() - 1);
@@ -321,7 +321,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasAllSession = actions.stream().anyMatch(a ->
@@ -341,7 +341,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasNamesSession = actions.stream().anyMatch(a ->
@@ -363,7 +363,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasExactSession = actions.stream().anyMatch(a ->
@@ -384,7 +384,7 @@ class TerminalConfirmationHandlerTests {
     // commandLine equals the single commandName
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"}, "echo");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasExact = actions.stream().anyMatch(a ->
@@ -403,7 +403,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(new String[]{"echo"}, new String[]{"echo"},
             "echo hello");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
 
@@ -490,7 +490,7 @@ class TerminalConfirmationHandlerTests {
     handler.persistDecision(
         buildSessionAction(
             TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
-        approveParams);
+        approveParams, CONV_ID);
 
     // Now evaluate "echo hello && curl example.com"
     InvokeClientToolConfirmationParams params =
@@ -498,7 +498,7 @@ class TerminalConfirmationHandlerTests {
             new String[]{"echo hello", "curl example.com"},
             new String[]{"echo", "curl"},
             "echo hello && curl example.com");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -525,7 +525,7 @@ class TerminalConfirmationHandlerTests {
             new String[]{"echo hello", "hostname"},
             new String[]{"echo", "hostname"},
             "echo hello && hostname");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -552,7 +552,7 @@ class TerminalConfirmationHandlerTests {
     handler.persistDecision(
         buildSessionAction(
             TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
-        approveParams);
+        approveParams, CONV_ID);
 
     // Evaluate "echo hello && curl example.com"
     // echo = global allow, curl = session allow → all approved
@@ -561,7 +561,7 @@ class TerminalConfirmationHandlerTests {
             new String[]{"echo hello", "curl example.com"},
             new String[]{"echo", "curl"},
             "echo hello && curl example.com");
-    ConfirmationResult result = handler.evaluate(params);
+    ConfirmationResult result = handler.evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }

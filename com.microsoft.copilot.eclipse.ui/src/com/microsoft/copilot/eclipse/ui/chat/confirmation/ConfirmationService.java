@@ -74,9 +74,13 @@ public class ConfirmationService {
 
   /**
    * Evaluates whether a tool confirmation request should be auto-approved.
+   *
+   * @param params the confirmation request parameters
+   * @param sessionConversationId the conversation ID for session-scoped lookups
    */
   public ConfirmationResult evaluate(
-      InvokeClientToolConfirmationParams params) {
+      InvokeClientToolConfirmationParams params,
+      String sessionConversationId) {
     ToolCategory category = classify(params);
     if (category == ToolCategory.SAFE_TOOL
         || category == ToolCategory.UNKNOWN) {
@@ -85,16 +89,21 @@ public class ConfirmationService {
 
     ConfirmationHandler handler = handlers.get(category);
     if (handler != null) {
-      return handler.evaluate(params);
+      return handler.evaluate(params, sessionConversationId);
     }
     return ConfirmationResult.AUTO_APPROVED;
   }
 
   /**
    * Dispatches a persist call to the handler that owns this tool category.
+   *
+   * @param action the user's selected action
+   * @param params the original confirmation params
+   * @param sessionConversationId the conversation ID for session storage
    */
   public void persistDecision(ConfirmationAction action,
-      InvokeClientToolConfirmationParams params) {
+      InvokeClientToolConfirmationParams params,
+      String sessionConversationId) {
     if (action == null || action.getScope() == null
         || action.getScope() == ConfirmationActionScope.ONCE) {
       return;
@@ -102,7 +111,7 @@ public class ConfirmationService {
     ToolCategory category = classify(params);
     ConfirmationHandler handler = handlers.get(category);
     if (handler != null) {
-      handler.persistDecision(action, params);
+      handler.persistDecision(action, params, sessionConversationId);
     }
   }
 

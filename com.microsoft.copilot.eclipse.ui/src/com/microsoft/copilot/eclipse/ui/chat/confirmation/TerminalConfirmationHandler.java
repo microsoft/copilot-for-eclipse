@@ -110,8 +110,9 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
    */
   @Override
   public ConfirmationResult evaluate(
-      InvokeClientToolConfirmationParams params) {
-    String convId = params.getConversationId();
+      InvokeClientToolConfirmationParams params,
+      String sessionConversationId) {
+    String convId = sessionConversationId;
     String commandLine = extractCommandLine(params);
 
     // 1. Session: all commands allowed for this conversation
@@ -411,7 +412,8 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
 
   @Override
   public void persistDecision(ConfirmationAction confirmAction,
-      InvokeClientToolConfirmationParams params) {
+      InvokeClientToolConfirmationParams params,
+      String sessionConversationId) {
     String actionName = confirmAction.getMetadata()
         .get(ConfirmationAction.META_ACTION);
     if (actionName == null) {
@@ -424,7 +426,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
       return;
     }
 
-    String convId = params.getConversationId();
+    String convId = sessionConversationId;
     String[] cmdNames = getCommandNames(params);
     String commandLine = extractCommandLine(params);
 

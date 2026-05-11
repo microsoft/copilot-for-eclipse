@@ -252,8 +252,20 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return CompletableFuture.completedFuture(result);
     }
 
+    // Resolve the session conversation ID: map subagent conversations to the
+    // parent so that session-scoped approvals apply to the whole chat.
+    String sessionConversationId = params.getConversationId();
+    if (boundChatView != null
+        && !Objects.equals(sessionConversationId,
+            boundChatView.getConversationId())
+        && Objects.equals(sessionConversationId,
+            boundChatView.getSubagentConversationId())) {
+      sessionConversationId = boundChatView.getConversationId();
+    }
+
     // Auto-approve evaluation
-    ConfirmationResult autoApproveResult = confirmationService.evaluate(params);
+    ConfirmationResult autoApproveResult =
+        confirmationService.evaluate(params, sessionConversationId);
     if (autoApproveResult.isAutoApproved()) {
       return CompletableFuture.completedFuture(
           new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
@@ -282,11 +294,13 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       // Capture dialog reference before it can be reset by a new request
       final InvokeToolConfirmationDialog dialog =
           activeTurnWidget.getConfirmDialog();
+      final String sessConvId = sessionConversationId;
       future = future.thenApply(result -> {
         ConfirmationAction selected = dialog != null
             ? dialog.getSelectedAction() : null;
         if (selected != null && selected.isAccept()) {
-          confirmationService.persistDecision(selected, params);
+          confirmationService.persistDecision(selected, params,
+              sessConvId);
         }
         return result;
       });

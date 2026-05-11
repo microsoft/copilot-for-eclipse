@@ -419,3 +419,98 @@ actions in multi-command scenario
   **"Always Allow 'hostname'"**.
 - `echo` does **NOT** appear — it is globally allowed.
 - "Allow all commands in this Session" is still shown.
+
+---
+
+## 13. Subagent inherits parent session approvals
+
+### TC-013: Session approval in main agent applies to subagent calls
+
+**Type:** `Edge Case`
+**Priority:** `P1`
+
+#### Preconditions
+- No custom allow rules for `echo` or `cat` (only defaults).
+- "Auto approve commands not covered by rules" is **unchecked**.
+
+#### Steps
+1. In Agent Mode, send a prompt that triggers `echo hello`.
+2. Confirmation dialog appears.
+3. Click dropdown and select **"Allow 'echo' in this Session"**.
+4. The command executes.
+5. In the **same conversation**, send a complex prompt that causes the
+   agent to spawn a **subagent** (e.g., `use a subagent to run echo
+   from subagent`).
+6. The subagent invokes `run_in_terminal` with an `echo` command.
+7. Observe that **no confirmation dialog appears** — the session
+   approval from the main agent carries over to the subagent.
+8. Still in the subagent context, the subagent invokes a different
+   command (e.g., `cat somefile.txt`).
+9. Observe that a **confirmation dialog appears** — `cat` was not
+   session-approved.
+
+#### Expected Result
+- Subagent tool calls use the parent conversation's session rules.
+- Commands approved in the main agent conversation auto-approve in
+  subagent context.
+- Commands NOT approved still require confirmation in subagent context.
+
+#### 📸 Key Screenshots
+- [ ] Main agent: approving `echo` in session.
+- [ ] Subagent: `echo` auto-approved — no dialog.
+- [ ] Subagent: `cat` shows confirmation dialog.
+
+---
+
+### TC-014: Session approval in subagent carries back to main agent
+
+**Type:** `Edge Case`
+**Priority:** `P1`
+
+#### Preconditions
+- No custom allow rules for `hostname`.
+- "Auto approve commands not covered by rules" is **unchecked**.
+
+#### Steps
+1. In Agent Mode, send a complex prompt that triggers a **subagent**.
+2. The subagent invokes `run_in_terminal` with `hostname`.
+3. Confirmation dialog appears.
+4. Click dropdown and select **"Allow 'hostname' in this Session"**.
+5. The command executes in the subagent context.
+6. After the subagent completes, continue in the **same conversation**
+   with the main agent.
+7. Send a prompt that triggers `hostname` again (e.g., `what is my
+   hostname?`).
+8. Observe that **no confirmation dialog appears** — the session
+   approval made during the subagent call is shared with the main
+   conversation.
+
+#### Expected Result
+- Session approvals made during subagent execution are stored under
+  the parent conversation's session scope.
+- The main agent benefits from approvals granted in subagent context.
+
+#### 📸 Key Screenshots
+- [ ] Subagent: approving `hostname` in session.
+- [ ] Main agent: `hostname` auto-approved — no dialog.
+
+---
+
+### TC-015: "Allow all commands in this Session" in main agent covers subagent
+
+**Type:** `Edge Case`
+**Priority:** `P2`
+
+#### Steps
+1. In Agent Mode, trigger any terminal command.
+2. Confirmation dialog appears.
+3. Select **"Allow all commands in this Session"** from the dropdown.
+4. In the **same conversation**, send a prompt that spawns a subagent
+   which runs multiple different terminal commands.
+5. Observe that **none of them** show a confirmation dialog — the
+   blanket session approval covers subagent calls too.
+
+#### Expected Result
+- "Allow all commands in this Session" is a blanket approval that
+  applies to both main agent and subagent tool calls within the
+  same conversation.
