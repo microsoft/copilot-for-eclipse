@@ -565,4 +565,60 @@ class TerminalConfirmationHandlerTests {
 
     assertTrue(result.isAutoApproved());
   }
+
+  @Test
+  void sessionRules_surviveConversationSwitch() {
+    // Approve "echo" in conversation A
+    InvokeClientToolConfirmationParams approveParams =
+        buildParams(new String[]{"echo hello"}, new String[]{"echo"},
+            "echo hello");
+    handler.persistDecision(
+        buildSessionAction(
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
+        approveParams, "conv-A");
+
+    // Switch to conversation B, then back to A — rule should survive
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo world"}, new String[]{"echo"},
+            "echo world");
+    ConfirmationResult result = handler.evaluate(params, "conv-A");
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void sessionRules_evictOldestWhenCapExceeded() {
+    // Fill up to MAX_SESSION_CONVERSATIONS with unique conversation IDs
+    for (int i = 0; i < TerminalConfirmationHandler.MAX_SESSION_CONVERSATIONS;
+         i++) {
+      InvokeClientToolConfirmationParams p =
+          buildParams(new String[]{"echo"}, new String[]{"echo"}, "echo");
+      handler.persistDecision(
+          buildSessionAction(
+              TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
+          p, "conv-" + i);
+    }
+
+    // Add one more — should evict the oldest (conv-0)
+    InvokeClientToolConfirmationParams p =
+        buildParams(new String[]{"echo"}, new String[]{"echo"}, "echo");
+    handler.persistDecision(
+        buildSessionAction(
+            TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
+        p, "conv-new");
+
+    // conv-0 should have been evicted
+    InvokeClientToolConfirmationParams params =
+        buildParams(new String[]{"echo test"}, new String[]{"echo"},
+            "echo test");
+    ConfirmationResult evicted = handler.evaluate(params, "conv-0");
+    assertFalse(evicted.isAutoApproved());
+
+    // conv-new should still work
+    ConfirmationResult kept = handler.evaluate(params, "conv-new");
+    assertTrue(kept.isAutoApproved());
+
+    // conv-1 (second oldest, not evicted) should still work
+    ConfirmationResult second = handler.evaluate(params, "conv-1");
+    assertTrue(second.isAutoApproved());
+  }
 }

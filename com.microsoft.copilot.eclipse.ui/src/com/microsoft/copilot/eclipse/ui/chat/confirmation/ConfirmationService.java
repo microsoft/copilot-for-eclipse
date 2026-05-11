@@ -8,7 +8,6 @@ import java.util.Map;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
@@ -82,8 +81,7 @@ public class ConfirmationService {
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     ToolCategory category = classify(params);
-    if (category == ToolCategory.SAFE_TOOL
-        || category == ToolCategory.UNKNOWN) {
+    if (category == ToolCategory.SAFE_TOOL) {
       return ConfirmationResult.AUTO_APPROVED;
     }
 
@@ -91,7 +89,9 @@ public class ConfirmationService {
     if (handler != null) {
       return handler.evaluate(params, sessionConversationId);
     }
-    return ConfirmationResult.AUTO_APPROVED;
+    // No handler registered for this category — fall through to
+    // the default confirmation dialog rather than silently approving.
+    return ConfirmationResult.needsConfirmation(null);
   }
 
   /**

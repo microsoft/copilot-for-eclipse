@@ -172,6 +172,7 @@ public class Messages extends NLS {
   public static String preferences_page_terminal_auto_approve_add_dialog_message;
   public static String preferences_page_terminal_auto_approve_add_dialog_command;
   public static String preferences_page_terminal_auto_approve_add_dialog_approve;
+  public static String preferences_page_terminal_auto_approve_add_dialog_placeholder;
 
   static {
     // initialize resource bundle

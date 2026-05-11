@@ -514,3 +514,38 @@ actions in multi-command scenario
 - "Allow all commands in this Session" is a blanket approval that
   applies to both main agent and subagent tool calls within the
   same conversation.
+
+---
+
+## 14. Edge Cases
+
+### TC-016: "Always Allow" overrides existing deny rule in preferences
+
+**Type:** `Edge Case`
+**Priority:** `P1`
+
+#### Steps
+1. Open **Preferences → Tool Auto Approve**.
+2. Click **"Add..."**, enter `curl`, select **"Deny"**, click OK.
+3. Click **"Apply and Close"**.
+4. In Agent Mode, type a prompt that triggers `curl` (e.g., `fetch
+   https://example.com using curl`).
+5. Confirmation dialog appears (deny rule blocks it).
+6. Click dropdown and select **"Always Allow curl"**.
+7. The command executes.
+8. Open **Preferences → Tool Auto Approve** again.
+9. Verify the `curl` rule has been changed from **Deny → Allow**.
+10. Start a **new conversation**, trigger `curl` again.
+11. Observe **auto-approved** — the global allow rule now applies.
+
+#### Expected Result
+- Clicking "Always Allow" in the dialog overrides an existing deny
+  rule in preferences, changing it from deny to allow.
+- The updated rule persists across conversations.
+- The preferences table reflects the updated rule.
+
+#### 📸 Key Screenshots
+- [ ] Preferences: `curl → Deny` rule before override.
+- [ ] Confirmation dialog: showing "Always Allow curl" action.
+- [ ] Preferences: `curl → Allow` rule after override.
+- [ ] New conversation: `curl` auto-approved without dialog.

@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.ui.chat.confirmation;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -81,13 +83,21 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
   private static final Type RULES_TYPE = new TypeToken<List<TerminalAutoApproveRule>>() {
   }.getType();
 
+  /**
+   * Maximum number of conversations whose session-scoped approvals are kept
+   * in memory. When exceeded, the oldest conversation's data is evicted.
+   */
+  static final int MAX_SESSION_CONVERSATIONS = 50;
+
   private final IPreferenceStore preferenceStore;
 
-  // Session-scoped in-memory storage keyed by conversationId
-  private final ConcurrentHashMap<String, Set<String>> allowedCommandNames =
-      new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, Set<String>> allowedExactCommands =
-      new ConcurrentHashMap<>();
+  // Session-scoped in-memory storage keyed by conversationId.
+  // Uses insertion-ordered maps so we can evict the oldest entry when the
+  // map grows beyond MAX_SESSION_CONVERSATIONS.
+  private final Map<String, Set<String>> allowedCommandNames =
+      Collections.synchronizedMap(new LinkedHashMap<>());
+  private final Map<String, Set<String>> allowedExactCommands =
+      Collections.synchronizedMap(new LinkedHashMap<>());
   private final Set<String> allowAllConversations = ConcurrentHashMap.newKeySet();
 
   /**
@@ -427,12 +437,22 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
     }
 
     String convId = sessionConversationId;
-    String[] cmdNames = getCommandNames(params);
-    String commandLine = extractCommandLine(params);
+
+    // Prefer command data from action metadata (set by buildContent)
+    // so we persist exactly what the user chose, not the full params.
+    Map<String, String> meta = confirmAction.getMetadata();
+    String metaNames = meta.get(META_COMMAND_NAMES);
+    String metaLine = meta.get(META_COMMAND_LINE);
+
+    String[] cmdNames = metaNames != null && !metaNames.isBlank()
+        ? metaNames.split(",") : getCommandNames(params);
+    String commandLine = metaLine != null && !metaLine.isBlank()
+        ? metaLine : extractCommandLine(params);
 
     switch (type) {
       case ACCEPT_NAMES_SESSION:
         if (cmdNames != null) {
+          evictOldestIfNeeded(allowedCommandNames);
           Set<String> nameSet = allowedCommandNames.computeIfAbsent(
               convId, k -> ConcurrentHashMap.newKeySet());
           Collections.addAll(nameSet, cmdNames);
@@ -440,6 +460,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
         break;
       case ACCEPT_EXACT_SESSION:
         if (commandLine != null && !commandLine.isBlank()) {
+          evictOldestIfNeeded(allowedExactCommands);
           allowedExactCommands.computeIfAbsent(
               convId, k -> ConcurrentHashMap.newKeySet())
               .add(commandLine.trim());
@@ -447,6 +468,10 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
         break;
       case ACCEPT_ALL_SESSION:
         allowAllConversations.add(convId);
+        // Cap allowAllConversations the same way
+        while (allowAllConversations.size() > MAX_SESSION_CONVERSATIONS) {
+          allowAllConversations.iterator().remove();
+        }
         break;
       case ACCEPT_NAMES_GLOBAL:
         if (cmdNames != null) {
@@ -463,6 +488,22 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
     }
   }
 
+  /**
+   * Evicts the oldest entry from a LinkedHashMap when it reaches the
+   * maximum number of tracked conversations.
+   */
+  private static <V> void evictOldestIfNeeded(Map<String, V> map) {
+    synchronized (map) {
+      while (map.size() >= MAX_SESSION_CONVERSATIONS) {
+        var it = map.entrySet().iterator();
+        if (it.hasNext()) {
+          it.next();
+          it.remove();
+        }
+      }
+    }
+  }
+
   @Override
   public void clearSession(String conversationId) {
     allowedCommandNames.remove(conversationId);
@@ -471,17 +512,26 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
   }
 
   private void addGlobalRules(List<String> commands) {
-    List<TerminalAutoApproveRule> rules = new ArrayList<>(loadRules());
-    boolean changed = false;
-    for (String cmd : commands) {
-      if (rules.stream().noneMatch(r -> r.getCommand().equals(cmd))) {
-        rules.add(new TerminalAutoApproveRule(cmd, true));
-        changed = true;
-      }
-    }
-    if (changed) {
+    List<TerminalAutoApproveRule> original = loadRules();
+    Set<String> existing = original.stream()
+        .map(TerminalAutoApproveRule::getCommand)
+        .collect(Collectors.toSet());
+
+    // Override existing deny rules → allow
+    List<TerminalAutoApproveRule> updated = original.stream()
+        .map(r -> commands.contains(r.getCommand()) && !r.isAutoApprove()
+            ? new TerminalAutoApproveRule(r.getCommand(), true) : r)
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    // Append new rules for commands not yet present
+    commands.stream()
+        .filter(cmd -> !existing.contains(cmd))
+        .map(cmd -> new TerminalAutoApproveRule(cmd, true))
+        .forEach(updated::add);
+
+    if (!updated.equals(original)) {
       preferenceStore.setValue(Constants.AUTO_APPROVE_TERMINAL_RULES,
-          new Gson().toJson(rules));
+          new Gson().toJson(updated));
     }
   }
 }

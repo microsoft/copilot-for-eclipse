@@ -265,6 +265,9 @@ public class InvokeToolConfirmationDialog extends Composite {
             item.addListener(SWT.Selection,
                 ev -> acceptAndDispose(action));
           }
+          menu.addListener(SWT.Hide, ev -> {
+            ev.display.asyncExec(menu::dispose);
+          });
           Rectangle bounds = primaryBtn.getBounds();
           Point loc = primaryBtn.getParent()
               .toDisplay(bounds.x, bounds.y + bounds.height);
@@ -281,7 +284,8 @@ public class InvokeToolConfirmationDialog extends Composite {
     dismissBtn.setLayoutData(
         new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
     dismissBtn.setText(
-        dismissAction != null ? dismissAction.getLabel() : "Cancel");
+        dismissAction != null ? dismissAction.getLabel()
+            : Messages.confirmation_action_skip);
     registerControlForFontUpdates(dismissBtn);
 
     final ConfirmationAction dismissRef = dismissAction;

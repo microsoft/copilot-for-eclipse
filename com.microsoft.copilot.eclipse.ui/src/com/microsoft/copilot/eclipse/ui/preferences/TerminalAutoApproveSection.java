@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.TerminalConfirmationHandler;
 
@@ -253,7 +254,8 @@ public class TerminalAutoApproveSection extends Composite {
           rules.addAll(loaded);
         }
       } catch (Exception e) {
-        // Invalid JSON, start with empty list
+        CopilotCore.LOGGER.error(
+            "Failed to parse terminal auto-approve rules from preferences", e);
       }
     }
     tableViewer.setInput(rules);

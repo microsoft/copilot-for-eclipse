@@ -55,7 +55,7 @@ public class AddTerminalRuleDialog extends Dialog {
     GridData commandData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     commandData.widthHint = 300;
     commandText.setLayoutData(commandData);
-    commandText.setMessage("e.g., npm, git, /^apt-get\\b/");
+    commandText.setMessage(Messages.preferences_page_terminal_auto_approve_add_dialog_placeholder);
     commandText.addModifyListener(e -> updateOkButton());
 
     // Allow / Deny
