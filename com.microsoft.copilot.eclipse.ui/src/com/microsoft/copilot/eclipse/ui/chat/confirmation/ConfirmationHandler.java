@@ -27,7 +27,7 @@ public interface ConfirmationHandler {
       String sessionConversationId);
 
   /**
-   * Persists a user's decision based on the action scope.
+   * Caches a user's decision based on the action scope.
    * SESSION actions are stored in-memory per conversation;
    * GLOBAL actions are written to preferences.
    *
@@ -35,7 +35,7 @@ public interface ConfirmationHandler {
    * @param params the original confirmation params (for command data etc.)
    * @param sessionConversationId the conversation ID to use for session storage
    */
-  default void persistDecision(ConfirmationAction action,
+  default void cacheDecision(ConfirmationAction action,
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     // no-op by default

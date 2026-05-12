@@ -299,7 +299,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
         ConfirmationAction selected = dialog != null
             ? dialog.getSelectedAction() : null;
         if (selected != null && selected.isAccept()) {
-          confirmationService.persistDecision(selected, params,
+          confirmationService.cacheDecision(selected, params,
               sessConvId);
         }
         return result;

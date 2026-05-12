@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.ui.chat.confirmation;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,10 +42,15 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
 
   /** Action types matching IntelliJ's TerminalAutoApproveAction enum. */
   public enum Action {
+    /** Allow specific command names for the current session/conversation. */
     ACCEPT_NAMES_SESSION,
+    /** Always allow specific command names (persisted as a global rule). */
     ACCEPT_NAMES_GLOBAL,
+    /** Allow this exact command line for the current session/conversation. */
     ACCEPT_EXACT_SESSION,
+    /** Always allow this exact command line (persisted as a global rule). */
     ACCEPT_EXACT_GLOBAL,
+    /** Allow all terminal commands for the current session/conversation. */
     ACCEPT_ALL_SESSION
   }
 
@@ -98,7 +104,9 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
       Collections.synchronizedMap(new LinkedHashMap<>());
   private final Map<String, Set<String>> allowedExactCommands =
       Collections.synchronizedMap(new LinkedHashMap<>());
-  private final Set<String> allowAllConversations = ConcurrentHashMap.newKeySet();
+  private final Set<String> allowAllConversations =
+      Collections.newSetFromMap(
+          Collections.synchronizedMap(new LinkedHashMap<>()));
 
   /**
    * Creates a new TerminalConfirmationHandler.
@@ -202,7 +210,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
    */
   private RuleResult evaluateSubCommands(String[] subCommands,
       String[] cmdNames, List<TerminalAutoApproveRule> rules,
-      Set<String> sessionNames) {
+      Set<String> sessionApprovedNames) {
     boolean allApproved = true;
     boolean hasDeny = false;
     List<String> unapproved = new ArrayList<>();
@@ -215,8 +223,8 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
       boolean denied = false;
 
       // Session command-name approval
-      if (cmdName != null && sessionNames != null
-          && sessionNames.contains(cmdName)) {
+      if (cmdName != null && sessionApprovedNames != null
+          && sessionApprovedNames.contains(cmdName)) {
         hasAllow = true;
       }
 
@@ -314,7 +322,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
 
   private static ConfirmationAction action(Action type, String label,
       ConfirmationActionScope scope, Map<String, String> extra) {
-    Map<String, String> meta = new java.util.HashMap<>(extra);
+    Map<String, String> meta = new HashMap<>(extra);
     meta.put(ConfirmationAction.META_ACTION, type.name());
     return new ConfirmationAction(label, true, scope, meta, false);
   }
@@ -421,7 +429,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
   }
 
   @Override
-  public void persistDecision(ConfirmationAction confirmAction,
+  public void cacheDecision(ConfirmationAction confirmAction,
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     String actionName = confirmAction.getMetadata()

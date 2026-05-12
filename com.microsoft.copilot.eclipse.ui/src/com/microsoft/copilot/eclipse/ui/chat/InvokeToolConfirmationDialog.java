@@ -114,7 +114,7 @@ public class InvokeToolConfirmationDialog extends Composite {
           new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
 
       Composite parent = this.getParent();
-      SwtUtils.invokeOnDisplayThread(() -> {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
         if (StringUtils.isNotEmpty(this.cancelMessage)) {
           new AgentToolCancelLabel(this.getParent(), SWT.NONE, this.cancelMessage);
         }

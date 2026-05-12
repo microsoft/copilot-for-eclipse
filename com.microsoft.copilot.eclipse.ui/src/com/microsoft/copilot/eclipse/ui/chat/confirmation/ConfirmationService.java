@@ -95,13 +95,13 @@ public class ConfirmationService {
   }
 
   /**
-   * Dispatches a persist call to the handler that owns this tool category.
+   * Caches the user's decision for future auto-approve lookups.
    *
    * @param action the user's selected action
    * @param params the original confirmation params
    * @param sessionConversationId the conversation ID for session storage
    */
-  public void persistDecision(ConfirmationAction action,
+  public void cacheDecision(ConfirmationAction action,
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     if (action == null || action.getScope() == null
@@ -111,7 +111,7 @@ public class ConfirmationService {
     ToolCategory category = classify(params);
     ConfirmationHandler handler = handlers.get(category);
     if (handler != null) {
-      handler.persistDecision(action, params, sessionConversationId);
+      handler.cacheDecision(action, params, sessionConversationId);
     }
   }
 

@@ -205,10 +205,10 @@ class TerminalConfirmationHandlerTests {
     assertTrue(result.isAutoApproved());
   }
 
-  // --- Session memory via persistDecision ---
+  // --- Session memory via cacheDecision ---
 
   @Test
-  void persistDecision_acceptAllSession_autoApprovesSubsequent() {
+  void cacheDecision_acceptAllSession_autoApprovesSubsequent() {
     stubRules(List.of());
     stubUnmatched(false);
 
@@ -218,14 +218,14 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction allSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
-    handler.persistDecision(allSession, params, CONV_ID);
+    handler.cacheDecision(allSession, params, CONV_ID);
 
     ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
   @Test
-  void persistDecision_acceptNamesSession_autoApprovesMatchingNames() {
+  void cacheDecision_acceptNamesSession_autoApprovesMatchingNames() {
     stubRules(List.of());
     stubUnmatched(false);
 
@@ -235,14 +235,14 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction namesSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION);
-    handler.persistDecision(namesSession, params, CONV_ID);
+    handler.cacheDecision(namesSession, params, CONV_ID);
 
     ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
   @Test
-  void persistDecision_acceptExactSession_autoApprovesMatchingCommand() {
+  void cacheDecision_acceptExactSession_autoApprovesMatchingCommand() {
     stubRules(List.of());
     stubUnmatched(false);
 
@@ -252,7 +252,7 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction exactSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_EXACT_SESSION);
-    handler.persistDecision(exactSession, params, CONV_ID);
+    handler.cacheDecision(exactSession, params, CONV_ID);
 
     ConfirmationResult result = handler.evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
@@ -269,7 +269,7 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction allSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
-    handler.persistDecision(allSession, params, CONV_ID);
+    handler.cacheDecision(allSession, params, CONV_ID);
 
     handler.clearSession(CONV_ID);
 
@@ -288,7 +288,7 @@ class TerminalConfirmationHandlerTests {
 
     ConfirmationAction allSession = buildSessionAction(
         TerminalConfirmationHandler.Action.ACCEPT_ALL_SESSION);
-    handler.persistDecision(allSession, params, CONV_ID);
+    handler.cacheDecision(allSession, params, CONV_ID);
 
     handler.clearSession("other-conv");
 
@@ -505,7 +505,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams approveParams =
         buildParams(new String[]{"echo hello"}, new String[]{"echo"},
             "echo hello");
-    handler.persistDecision(
+    handler.cacheDecision(
         buildSessionAction(
             TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
         approveParams, CONV_ID);
@@ -567,7 +567,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams approveParams =
         buildParams(new String[]{"curl x"}, new String[]{"curl"},
             "curl x");
-    handler.persistDecision(
+    handler.cacheDecision(
         buildSessionAction(
             TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
         approveParams, CONV_ID);
@@ -590,7 +590,7 @@ class TerminalConfirmationHandlerTests {
     InvokeClientToolConfirmationParams approveParams =
         buildParams(new String[]{"echo hello"}, new String[]{"echo"},
             "echo hello");
-    handler.persistDecision(
+    handler.cacheDecision(
         buildSessionAction(
             TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
         approveParams, "conv-A");
@@ -610,7 +610,7 @@ class TerminalConfirmationHandlerTests {
          i++) {
       InvokeClientToolConfirmationParams p =
           buildParams(new String[]{"echo"}, new String[]{"echo"}, "echo");
-      handler.persistDecision(
+      handler.cacheDecision(
           buildSessionAction(
               TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
           p, "conv-" + i);
@@ -619,7 +619,7 @@ class TerminalConfirmationHandlerTests {
     // Add one more — should evict the oldest (conv-0)
     InvokeClientToolConfirmationParams p =
         buildParams(new String[]{"echo"}, new String[]{"echo"}, "echo");
-    handler.persistDecision(
+    handler.cacheDecision(
         buildSessionAction(
             TerminalConfirmationHandler.Action.ACCEPT_NAMES_SESSION),
         p, "conv-new");
