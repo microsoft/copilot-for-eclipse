@@ -45,8 +45,14 @@ public class QuotaTextCalculator {
       max = Math.max(max,
           gc.stringExtent(Messages.menu_quota_chatMessages + getPercentUsed(quotaResult.chat())).x);
       if (quotaResult.copilotPlan() != CopilotPlan.free && quotaResult.premiumInteractions() != null) {
-        max = Math.max(max, gc.stringExtent(
-            getPremiumRequestsLabel() + getPremiumRequestsSuffix()).x);
+        if (quotaResult.tokenBasedBillingEnabled()) {
+          max = Math.max(max, gc.stringExtent(
+              getPremiumRequestsLabel() + getPremiumRequestsSuffix()).x);
+        } else {
+          // TODO: Remove this legacy fallback after TBB is officially released.
+          max = Math.max(max, gc.stringExtent(
+              Messages.menu_quota_premiumRequests + getPercentUsed(quotaResult.premiumInteractions())).x);
+        }
       }
       max += PADDING_WIDTH;
     }
@@ -98,6 +104,17 @@ public class QuotaTextCalculator {
     return getAlignedQuotaText(getPremiumRequestsLabel(), getPremiumRequestsSuffix());
   }
 
+  // TODO: Remove this legacy fallback after TBB is officially released.
+  /**
+   * Returns the aligned text for the legacy "Premium Requests" row used when token-based billing is
+   * not enabled on the language server. Preserves the original main-branch label and "{percent}%"
+   * suffix.
+   */
+  public String getPremiumText() {
+    return getAlignedQuotaText(Messages.menu_quota_premiumRequests,
+        getPercentUsed(quotaResult.premiumInteractions()));
+  }
+
   /**
    * Returns the suffix used for the premium requests row. CFI (Copilot for Individuals) plans get
    * the absolute "{used}/{entitlement} AI credits used" form; other paid plans get the standard
@@ -140,6 +157,10 @@ public class QuotaTextCalculator {
     double percent = Math.max(0, 100 - quota.percentRemaining());
     String formattedPercent = percent < 0.1 ? "0"
         : String.format("%.1f", Math.round(percent * 10) / 10.0);
+    if (!quotaResult.tokenBasedBillingEnabled()) {
+      // TODO: Remove this legacy fallback after TBB is officially released.
+      return formattedPercent + "%";
+    }
     return NLS.bind(Messages.menu_quota_percentUsedFormat, formattedPercent);
   }
 }

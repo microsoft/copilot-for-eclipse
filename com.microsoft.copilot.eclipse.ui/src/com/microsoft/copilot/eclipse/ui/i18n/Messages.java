@@ -54,6 +54,18 @@ public final class Messages extends NLS {
   public static String menu_quota_plan_individualMax;
   public static String menu_quota_plan_business;
   public static String menu_quota_plan_enterprise;
+  // TODO: Remove these legacy keys after TBB is officially released.
+  // Legacy quota keys retained for installations where token-based billing is not yet enabled by the
+  // language server. When tokenBasedBillingEnabled is false on the CheckQuotaResult the menu
+  // handlers fall back to these strings to preserve the original main-branch UI.
+  public static String menu_quota_premiumRequests;
+  public static String menu_quota_additionalPremiumRequests;
+  public static String menu_quota_enabled;
+  public static String menu_quota_disabled;
+  public static String menu_quota_allowanceReset;
+  public static String menu_quota_updateCopilotToPro;
+  public static String menu_quota_updateCopilotToProPlus;
+  public static String menu_quota_managePaidPremiumRequests;
   public static String signInDialog_title;
   public static String signInDialog_button_cancel;
   public static String signInDialog_button_copyOpen;

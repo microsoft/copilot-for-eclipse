@@ -101,6 +101,13 @@ public class ModelUtils {
     if ("Auto".equals(model.getModelName())) {
       return Messages.model_billing_multiplier_variable;
     }
+    // TODO: Remove this legacy fallback after TBB is officially released.
+    // When token-based billing is not enabled on the language server side, fall back to the
+    // original multiplier suffix (e.g. "1x", "1.5x") instead of the context-window | price tier
+    // form that depends on the TBB-only capability metadata.
+    if (model.getBilling() != null && !model.getBilling().tokenBasedBillingEnabled()) {
+      return formatBillingMultiplier(model.getBilling().multiplier());
+    }
     return String.join(SUFFIX_PART_SEPARATOR, buildSuffixParts(model));
   }
 
