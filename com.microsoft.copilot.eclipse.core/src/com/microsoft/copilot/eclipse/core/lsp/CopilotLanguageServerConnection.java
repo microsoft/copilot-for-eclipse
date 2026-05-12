@@ -280,6 +280,18 @@ public class CopilotLanguageServerConnection {
       List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
       String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
       String agentJobWorkspaceFolder) {
+    return createConversation(workDoneToken, message, files, currentFile, currentSelection, turns, activeModel,
+        chatModeName, customChatModeId, todos, agentSlug, agentJobWorkspaceFolder, null, null);
+  }
+
+  /**
+   * Create a conversation with the given parameters, including optional conversationId and restoreToTurnId for session
+   * restoration.
+   */
+  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
+      List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
+      String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
+      String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId) {
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -310,6 +322,13 @@ public class CopilotLanguageServerConnection {
 
       // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
       param.setNeedToolCallConfirmation(true);
+
+      // Set conversationId and restoreToTurnId for session restoration from history
+      if (conversationId != null) {
+        param.setConversationId(conversationId);
+        param.setRestoreToTurnId(restoreToTurnId);
+      }
+
       if (currentFile != null) {
         param.setTextDocument(new TextDocumentIdentifier(FileUtils.getResourceUri(currentFile)));
         if (currentSelection != null) {

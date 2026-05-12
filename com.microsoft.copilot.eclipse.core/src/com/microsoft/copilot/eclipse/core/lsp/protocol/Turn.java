@@ -18,6 +18,7 @@ public class Turn {
   Either<String, List<ChatCompletionContentPart>> request;
   String response;
   String agentSlug;
+  String turnId;
 
   /**
    * Creates a new Turn.
@@ -26,6 +27,17 @@ public class Turn {
     this.request = request;
     this.response = response;
     this.agentSlug = agentSlug;
+  }
+
+  /**
+   * Creates a new Turn with turnId.
+   */
+  public Turn(@NonNull Either<String, List<ChatCompletionContentPart>> request, String response, String agentSlug,
+      String turnId) {
+    this.request = request;
+    this.response = response;
+    this.agentSlug = agentSlug;
+    this.turnId = turnId;
   }
 
   public Either<String, List<ChatCompletionContentPart>> getRequest() {
@@ -52,9 +64,17 @@ public class Turn {
     this.agentSlug = agentSlug;
   }
 
+  public String getTurnId() {
+    return turnId;
+  }
+
+  public void setTurnId(String turnId) {
+    this.turnId = turnId;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(request, response, agentSlug);
+    return Objects.hash(request, response, agentSlug, turnId);
   }
 
   @Override
@@ -67,7 +87,7 @@ public class Turn {
     }
     Turn turn = (Turn) o;
     return Objects.equals(request, turn.request) && Objects.equals(response, turn.response)
-        && Objects.equals(agentSlug, turn.agentSlug);
+        && Objects.equals(agentSlug, turn.agentSlug) && Objects.equals(turnId, turn.turnId);
   }
 
   @Override
@@ -76,6 +96,7 @@ public class Turn {
     builder.append("request", request);
     builder.append("response", response);
     builder.append("agentSlug", agentSlug);
+    builder.append("turnId", turnId);
     return builder.toString();
   }
 }

@@ -113,6 +113,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private String subagentConversationId = null;
   private String lastRunSubagentToolCallId = null;
   private ConversationState conversationState = ConversationState.NEW_CONVERSATION;
+  private CompletableFuture<?> persistUserTurnFuture = CompletableFuture.completedFuture(null);
   private Set<CompletableFuture<?>> conversationFutures = new HashSet<>();
   private IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
   private DragReferenceManager dragReferenceManager;
@@ -798,6 +799,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Cache conversation progress on begin
         persistenceManager.cacheConversationProgress(this.conversationId, value);
 
+        // Set the CLS-assigned turnId on the last user turn that doesn't have one yet.
+        // Chain off persistUserTurnFuture to ensure the UserTurnData has been created first.
+        if (StringUtils.isNotBlank(value.getTurnId())) {
+          final String convId = this.conversationId;
+          final String turnId = value.getTurnId();
+          persistUserTurnFuture.thenRun(() -> persistenceManager.setUserTurnId(convId, turnId));
+        }
+
         // Hide handoff container when new turn starts
         Display.getDefault().asyncExec(() -> {
           if (handoffContainer != null && !handoffContainer.isDisposed()) {
@@ -979,8 +988,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        persistenceManager.persistUserTurnInfo(conversationId, workDoneToken, processedMessage, activeModel,
-            chatModeName, customChatModeId, currentFile, references);
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
+            activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       // Get current todo list to sync with the server
@@ -1019,12 +1028,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // Create new conversation (either brand new or based on history)
       List<Turn> turns = null;
       List<TodoItem> todosToRestore = null;
+      String restoredConversationId = null;
+      String restoreToTurnId = null;
 
       if (conversationState == ConversationState.NEW_HISTORY_BASED_CONVERSATION) {
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
-        persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
-            chatModeName, customChatModeId, currentFile, references);
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
+            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+
+        // Set conversationId and last completed turnId for CLS server-side session restoration.
+        restoredConversationId = this.conversationId;
+        if (turns != null && !turns.isEmpty()) {
+          for (int i = turns.size() - 1; i >= 0; i--) {
+            Turn turn = turns.get(i);
+            if (StringUtils.isNotBlank(turn.getTurnId())) {
+              restoreToTurnId = turn.getTurnId();
+              break;
+            }
+          }
+        }
 
         // Get todos to restore for session continuation
         TodoListService todoListService = chatServiceManager.getTodoListService();
@@ -1034,20 +1057,21 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       } else if (conversationState == ConversationState.NEW_CONVERSATION) {
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
-        persistenceManager.persistUserTurnInfo(this.conversationId, workDoneToken, processedMessage, activeModel,
-            chatModeName, customChatModeId, currentFile, references);
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
+            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null);
+            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null,
+            restoredConversationId, restoreToTurnId);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
             currentSelection, turns, activeModel, chatModeName, customChatModeId, null, agentSlug,
-            agentJobWorkspaceFolder);
+            agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId);
       }
       conversationFutures.add(createConversationFuture);
 

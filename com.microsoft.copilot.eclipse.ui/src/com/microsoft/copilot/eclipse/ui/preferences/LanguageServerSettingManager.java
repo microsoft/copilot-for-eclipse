@@ -38,6 +38,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSett
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.utils.GsonUtils;
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
@@ -87,6 +88,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled());
+
+    // Set transcript directory for CLS session persistence and restoration
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
 
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
