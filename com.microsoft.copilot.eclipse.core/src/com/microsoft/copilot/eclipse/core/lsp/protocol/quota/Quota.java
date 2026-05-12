@@ -14,6 +14,9 @@ public class Quota {
   private double percentRemaining;
   private boolean unlimited;
   private boolean overagePermitted;
+  private Integer entitlement;
+  private Integer quotaRemaining;
+  private String timeStamp;
 
   /**
    * Creates a new CompletionsQuota quota information with default values.
@@ -56,9 +59,42 @@ public class Quota {
     this.overagePermitted = overagePermitted;
   }
 
+  /**
+   * Gets the total entitlement (quota limit).
+   */
+  public Integer getEntitlement() {
+    return entitlement;
+  }
+
+  public void setEntitlement(Integer entitlement) {
+    this.entitlement = entitlement;
+  }
+
+  /**
+   * Gets the remaining quota count.
+   */
+  public Integer getQuotaRemaining() {
+    return quotaRemaining;
+  }
+
+  public void setQuotaRemaining(Integer quotaRemaining) {
+    this.quotaRemaining = quotaRemaining;
+  }
+
+  /**
+   * Gets the timestamp of the quota snapshot.
+   */
+  public String getTimeStamp() {
+    return timeStamp;
+  }
+
+  public void setTimeStamp(String timeStamp) {
+    this.timeStamp = timeStamp;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(overagePermitted, percentRemaining, unlimited);
+    return Objects.hash(entitlement, overagePermitted, percentRemaining, quotaRemaining, timeStamp, unlimited);
   }
 
   @Override
@@ -73,8 +109,9 @@ public class Quota {
       return false;
     }
     Quota other = (Quota) obj;
-    return overagePermitted == other.overagePermitted
+    return Objects.equals(entitlement, other.entitlement) && overagePermitted == other.overagePermitted
         && Double.doubleToLongBits(percentRemaining) == Double.doubleToLongBits(other.percentRemaining)
+        && Objects.equals(quotaRemaining, other.quotaRemaining) && Objects.equals(timeStamp, other.timeStamp)
         && unlimited == other.unlimited;
   }
 
@@ -84,6 +121,9 @@ public class Quota {
     builder.append("percentRemaining", percentRemaining);
     builder.append("unlimited", unlimited);
     builder.append("overagePermitted", overagePermitted);
+    builder.append("entitlement", entitlement);
+    builder.append("quotaRemaining", quotaRemaining);
+    builder.append("timeStamp", timeStamp);
     return builder.toString();
   }
 }

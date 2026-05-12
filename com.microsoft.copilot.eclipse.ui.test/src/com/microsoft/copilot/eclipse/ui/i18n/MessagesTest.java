@@ -14,5 +14,8 @@ class MessagesTest {
     // Ensure that the static fields are initialized
     assertNotNull(Messages.menu_signToGitHub);
     assertNotNull(Messages.menu_signOutOfGitHub);
+    assertNotNull(Messages.quotaWarning_title);
+    assertNotNull(Messages.quotaWarning_closeButton);
+    assertNotNull(Messages.quotaWarning_increaseBudgetButton);
   }
 }
