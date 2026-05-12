@@ -140,11 +140,11 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public CompletableFuture<Object> invokeClientTool(InvokeClientToolParams params) {
     return CompletableFuture.supplyAsync(() -> {
       try {
-        CompletableFuture<LanguageModelToolResult[]> toolFuture =
-            CopilotCore.getPlugin().getChatEventsManager().invokeAgentTool(params);
+        CompletableFuture<LanguageModelToolResult[]> toolFuture = CopilotCore.getPlugin().getChatEventsManager()
+            .invokeAgentTool(params);
         if (toolFuture == null) {
-          CopilotCore.LOGGER.error(
-              new IllegalStateException("invokeAgentTool returned null for tool: " + params.getName()));
+          CopilotCore.LOGGER
+              .error(new IllegalStateException("invokeAgentTool returned null for tool: " + params.getName()));
           LanguageModelToolResult errorResult = new LanguageModelToolResult();
           errorResult.addContent("Failed to invoke the tool: tool invocation returned null");
           errorResult.setStatus(ToolInvocationStatus.error);
@@ -182,6 +182,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     });
   }
 
+  // TODO: Should remove workspace-root folder as the projects are not directly under it in Eclipse, and can cause
+  // confusion in CLS.
   @Override
   public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
     // Ideally, we should return each IProject as a workspace folder, but given that when
@@ -259,9 +261,30 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Handles the Dynamic OAuth request for MCP.
-   * Shows a dialog with multiple input fields and returns the user's input values.
-   * Returns null if the user cancels the request.
+   * Notify when custom skills change (global or workspace). Signal-only; clients re-fetch templates.
+   */
+  @JsonNotification("copilot/customSkill/didChange")
+  public void onDidChangeCustomSkill(Object params) {
+    notifyCustomizationFilesChanged();
+  }
+
+  /**
+   * Notify when custom prompts change (global or workspace). Signal-only; clients re-fetch templates.
+   */
+  @JsonNotification("copilot/customPrompt/didChange")
+  public void onDidChangeCustomPrompt(Object params) {
+    notifyCustomizationFilesChanged();
+  }
+
+  private void notifyCustomizationFilesChanged() {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
+    }
+  }
+
+  /**
+   * Handles the Dynamic OAuth request for MCP. Shows a dialog with multiple input fields and returns the user's input
+   * values. Returns null if the user cancels the request.
    */
   @JsonRequest("copilot/dynamicOAuth")
   public CompletableFuture<Map<String, String>> mcpOauth(McpOauthRequest request) {
@@ -307,13 +330,11 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       }
       if (flags.isSubAgentPolicyEnabled() != params.isSubAgentEnabled()) {
         flags.setSubAgentPolicyEnabled(params.isSubAgentEnabled());
-        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_SUB_AGENT_POLICY,
-            params.isSubAgentEnabled());
+        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_SUB_AGENT_POLICY, params.isSubAgentEnabled());
       }
       if (flags.isCustomAgentPolicyEnabled() != params.isCustomAgentEnabled()) {
         flags.setCustomAgentPolicyEnabled(params.isCustomAgentEnabled());
-        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY,
-            params.isCustomAgentEnabled());
+        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY, params.isCustomAgentEnabled());
       }
     }
   }

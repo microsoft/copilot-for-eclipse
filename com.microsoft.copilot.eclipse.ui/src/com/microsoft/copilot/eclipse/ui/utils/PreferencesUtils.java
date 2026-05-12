@@ -3,6 +3,10 @@
 
 package com.microsoft.copilot.eclipse.ui.utils;
 
+import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
@@ -25,6 +29,19 @@ public class PreferencesUtils {
     return new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
         CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
         McpPreferencePage.ID, ByokPreferencePage.ID };
+  }
+
+  /**
+   * Returns whether the skills feature is enabled. Skills require both the user preference
+   * {@link Constants#ENABLE_SKILLS} to be set and the client preview feature flag to be enabled.
+   *
+   * @return {@code true} if skills are enabled, {@code false} otherwise
+   */
+  public static boolean isSkillsEnabled() {
+    CopilotCore plugin = CopilotCore.getPlugin();
+    FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
+    return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS)
+        && flags != null && flags.isClientPreviewFeatureEnabled();
   }
 
 }

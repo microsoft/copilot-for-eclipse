@@ -160,4 +160,10 @@ public class CopilotEventConstants {
    * Event when a rate limit warning is received from the language server.
    */
   public static final String TOPIC_RATE_LIMIT_WARNING = TOPIC_CHAT + "RATE_LIMIT_WARNING";
+
+  /**
+   * Event when custom prompts, skills, agents, or instructions change on the language server. Clients should re-fetch
+   * conversation templates on receipt.
+   */
+  public static final String TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES = TOPIC_CHAT + "DID_CHANGE_CUSTOMIZATION_FILES";
 }
