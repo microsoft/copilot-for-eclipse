@@ -58,9 +58,7 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
    * Select *File > Import... > General > Existing projects into Workspace*,
      select the root directory of the copilot-for-eclipse git repo,
      activate the check box *Search for nested projects*, and finish the wizard.
-   * Do import additional projects using the import wizard for Maven project (without a `.project` file):
-     Select *File > Import... > Maven > Existing Maven Projects*,
-   * Do also import the agent bundle for your OS (e.g., `com.microsoft.copilot.eclipse.core.agent.win-x64`)
+   * Do also import the agent bundle for your OS (e.g., `com.microsoft.copilot.eclipse.core.agent.win32`)
      after building the project with npm and maven or import all OS-specific agent bundles.
 2. Activate one of the target platforms, i.e. open one of the target definition files and select `Set As Active Target Platform`.
    * target-terminal.target (Eclipse 4.37+)
@@ -71,7 +69,7 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
    * Select Type="Project Relative Configuration", **name="copilot4eclipse"**, and choose the location using the *Browse...* button.
      The `checkstyle.xml` file is in the git repository root folder in the project "github-copilot-for-eclipse".
 4. Use the launch configurations in the `launch/` directory, e.g. for launching a new Eclipse IDE with Copilot plug-ins.
-   * Check the selected plug-ins in your launch configuration (in *Plug-ins* tab)and remove any OS-specific agent bundle that does not fit
+   * Check the selected plug-ins in your launch configuration (in *Plug-ins* tab) and remove any OS-specific agent bundle that does not fit
      to your OS and remove all test bundles from the selected plug-ins from your Eclipse workspace.
    * Validate your config and ensure that all dependencies are resolved.
      Try *Select Required* button if something is missing.
