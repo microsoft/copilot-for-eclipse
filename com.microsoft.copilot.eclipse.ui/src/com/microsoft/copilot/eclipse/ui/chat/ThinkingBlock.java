@@ -32,9 +32,9 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * <p>Pure view: callers drive the visual state via {@link #showCompleted(String)} and {@link #showCancelled()}.
  * The owning turn widget is responsible for cancellation events and title fetching.
  */
-class ThinkingBlock extends Composite {
+public class ThinkingBlock extends Composite {
   private static final String SECONDARY_TEXT_CSS_CLASS = "text-secondary";
-  private static final Pattern TITLE_PATTERN = Pattern.compile("\\*\\*([^*\\n]+?)\\*\\*(?=\\n|$)");
+  private static final Pattern TITLE_PATTERN = Pattern.compile("\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
 
   private Composite header;
   private GridLayout headerLayout;
@@ -122,7 +122,6 @@ class ThinkingBlock extends Composite {
     }
     if (!iconLabel.isDisposed()) {
       iconLabel.setImage(cancelledIcon);
-      iconLabel.requestLayout();
     }
     setTitleText(Messages.thinking_cancelledTitle);
     setExpanded(false);
@@ -295,7 +294,7 @@ class ThinkingBlock extends Composite {
       currentTitle = matcher.group(1).trim();
       cursor = matcher.end();
       // Swallow the trailing newline(s) after the title so they don't show up at the top of the body.
-      while (cursor < raw.length() && raw.charAt(cursor) == '\n') {
+      while (cursor < raw.length() && (raw.charAt(cursor) == '\n' || raw.charAt(cursor) == '\r')) {
         cursor++;
       }
     }
@@ -309,7 +308,11 @@ class ThinkingBlock extends Composite {
 
   private static String stripTrailingNewlines(String s) {
     int end = s.length();
-    while (end > 0 && s.charAt(end - 1) == '\n') {
+    while (end > 0) {
+      char c = s.charAt(end - 1);
+      if (c != '\n' && c != '\r') {
+        break;
+      }
       end--;
     }
     return s.substring(0, end);
@@ -397,7 +400,6 @@ class ThinkingBlock extends Composite {
     if (titleViewer != null && !titleViewer.getTextWidget().isDisposed()) {
       titleViewer.getTextWidget().setToolTipText(tooltip);
     }
-    chevronLabel.requestLayout();
   }
 
   private void refreshEnclosingScroller() {

@@ -94,7 +94,7 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
         hasTitles ? titles : null);
     ls.generateThinkingTitle(params)
         .thenAccept(resp -> SwtUtils.invokeOnDisplayThread(() -> {
-          if (target.isDisposed() || target.isFinalized()) {
+          if (isDisposed() || target.isDisposed() || target.isFinalized()) {
             return;
           }
           if (resp != null && StringUtils.isNotBlank(resp.title())) {
@@ -109,7 +109,10 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
 
   @Override
   protected void onChatMessageCancelled() {
-    SwtUtils.invokeOnDisplayThread(() -> {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (isDisposed()) {
+        return;
+      }
       if (currentBlock != null && !currentBlock.isDisposed() && !currentBlock.isFinalized()) {
         currentBlock.showCancelled();
         requestLayout();
