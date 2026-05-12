@@ -355,9 +355,8 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
   }
 
   private void setDefaultBlankIcon(CommandContributionItemParameter parameter) {
-    ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
     if (PlatformUtils.isMac()) {
-      parameter.icon = icon;
+      parameter.icon = MenuUtils.getBlankIcon();
     }
   }
 }

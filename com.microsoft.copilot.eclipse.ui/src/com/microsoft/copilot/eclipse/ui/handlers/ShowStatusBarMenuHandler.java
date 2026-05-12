@@ -461,9 +461,8 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     }
 
     private static void setDefaultBlankIcon(Action action) {
-      ImageDescriptor blankIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
       if (PlatformUtils.isMac()) {
-        action.setImageDescriptor(blankIcon);
+        action.setImageDescriptor(MenuUtils.getBlankIcon());
       }
     }
   }
