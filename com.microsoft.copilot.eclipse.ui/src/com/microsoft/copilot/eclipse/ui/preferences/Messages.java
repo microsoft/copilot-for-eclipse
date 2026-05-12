@@ -154,24 +154,26 @@ public class Messages extends NLS {
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 
+  // Shared Auto-Approve strings
+  public static String preferences_page_auto_approve_column_status;
+  public static String preferences_page_auto_approve_add;
+  public static String preferences_page_auto_approve_remove;
+  public static String preferences_page_auto_approve_reset;
+  public static String preferences_page_auto_approve_reset_message;
+  public static String preferences_page_auto_approve_allow;
+  public static String preferences_page_auto_approve_deny;
+  public static String preferences_page_auto_approve_add_dialog_approve;
+
   // Terminal Auto-Approve
   public static String preferences_page_terminal_auto_approve_title;
   public static String preferences_page_terminal_auto_approve_description;
   public static String preferences_page_terminal_auto_approve_column_command;
-  public static String preferences_page_terminal_auto_approve_column_status;
-  public static String preferences_page_terminal_auto_approve_add;
-  public static String preferences_page_terminal_auto_approve_remove;
-  public static String preferences_page_terminal_auto_approve_reset;
   public static String preferences_page_terminal_auto_approve_reset_title;
-  public static String preferences_page_terminal_auto_approve_reset_message;
-  public static String preferences_page_terminal_auto_approve_allow;
-  public static String preferences_page_terminal_auto_approve_deny;
   public static String preferences_page_terminal_auto_approve_unmatched;
   public static String preferences_page_terminal_auto_approve_unmatched_note;
   public static String preferences_page_terminal_auto_approve_add_dialog_title;
   public static String preferences_page_terminal_auto_approve_add_dialog_message;
   public static String preferences_page_terminal_auto_approve_add_dialog_command;
-  public static String preferences_page_terminal_auto_approve_add_dialog_approve;
   public static String preferences_page_terminal_auto_approve_add_dialog_placeholder;
 
   static {

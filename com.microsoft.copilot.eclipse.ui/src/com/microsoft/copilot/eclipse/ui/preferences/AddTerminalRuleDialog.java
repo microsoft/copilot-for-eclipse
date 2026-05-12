@@ -61,14 +61,14 @@ public class AddTerminalRuleDialog extends Dialog {
     // Allow / Deny
     Label approveLabel = new Label(container, SWT.NONE);
     approveLabel.setText(
-        Messages.preferences_page_terminal_auto_approve_add_dialog_approve);
+        Messages.preferences_page_auto_approve_add_dialog_approve);
     Composite radioGroup = new Composite(container, SWT.NONE);
     radioGroup.setLayout(new GridLayout(2, false));
     allowRadio = new Button(radioGroup, SWT.RADIO);
-    allowRadio.setText(Messages.preferences_page_terminal_auto_approve_allow);
+    allowRadio.setText(Messages.preferences_page_auto_approve_allow);
     allowRadio.setSelection(true);
     Button denyRadio = new Button(radioGroup, SWT.RADIO);
-    denyRadio.setText(Messages.preferences_page_terminal_auto_approve_deny);
+    denyRadio.setText(Messages.preferences_page_auto_approve_deny);
 
     return area;
   }

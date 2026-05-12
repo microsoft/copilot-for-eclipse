@@ -113,14 +113,14 @@ public class TerminalAutoApproveSection extends Composite {
     TableViewerColumn statusCol =
         new TableViewerColumn(tableViewer, SWT.NONE);
     statusCol.getColumn().setText(
-        Messages.preferences_page_terminal_auto_approve_column_status);
+        Messages.preferences_page_auto_approve_column_status);
     statusCol.getColumn().setWidth(100);
     statusCol.setLabelProvider(new ColumnLabelProvider() {
       @Override
       public String getText(Object element) {
         return ((TerminalAutoApproveRule) element).isAutoApprove()
-            ? Messages.preferences_page_terminal_auto_approve_allow
-            : Messages.preferences_page_terminal_auto_approve_deny;
+            ? Messages.preferences_page_auto_approve_allow
+            : Messages.preferences_page_auto_approve_deny;
       }
     });
 
@@ -135,13 +135,13 @@ public class TerminalAutoApproveSection extends Composite {
         new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false));
 
     Button addButton = new Button(btnGroup, SWT.PUSH);
-    addButton.setText(Messages.preferences_page_terminal_auto_approve_add);
+    addButton.setText(Messages.preferences_page_auto_approve_add);
     addButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
     addButton.addListener(SWT.Selection, e -> onAdd());
 
     removeButton = new Button(btnGroup, SWT.PUSH);
     removeButton.setText(
-        Messages.preferences_page_terminal_auto_approve_remove);
+        Messages.preferences_page_auto_approve_remove);
     removeButton.setLayoutData(
         new GridData(SWT.FILL, SWT.TOP, true, false));
     removeButton.setEnabled(false);
@@ -149,7 +149,7 @@ public class TerminalAutoApproveSection extends Composite {
 
     toggleButton = new Button(btnGroup, SWT.PUSH);
     toggleButton.setText(
-        Messages.preferences_page_terminal_auto_approve_allow);
+        Messages.preferences_page_auto_approve_allow);
     toggleButton.setLayoutData(
         new GridData(SWT.FILL, SWT.TOP, true, false));
     toggleButton.setEnabled(false);
@@ -157,7 +157,7 @@ public class TerminalAutoApproveSection extends Composite {
 
     resetButton = new Button(btnGroup, SWT.PUSH);
     resetButton.setText(
-        Messages.preferences_page_terminal_auto_approve_reset);
+        Messages.preferences_page_auto_approve_reset);
     resetButton.setLayoutData(
         new GridData(SWT.FILL, SWT.TOP, true, false));
     resetButton.addListener(SWT.Selection, e -> onResetToDefaults());
@@ -198,7 +198,7 @@ public class TerminalAutoApproveSection extends Composite {
   private void onResetToDefaults() {
     boolean confirmed = MessageDialog.openQuestion(getShell(),
         Messages.preferences_page_terminal_auto_approve_reset_title,
-        Messages.preferences_page_terminal_auto_approve_reset_message);
+        Messages.preferences_page_auto_approve_reset_message);
     if (confirmed) {
       rules.clear();
       rules.addAll(TerminalConfirmationHandler.DEFAULT_RULES.stream()
@@ -219,11 +219,11 @@ public class TerminalAutoApproveSection extends Composite {
       TerminalAutoApproveRule rule = (TerminalAutoApproveRule)
           tableViewer.getStructuredSelection().getFirstElement();
       toggleButton.setText(rule.isAutoApprove()
-          ? Messages.preferences_page_terminal_auto_approve_deny
-          : Messages.preferences_page_terminal_auto_approve_allow);
+          ? Messages.preferences_page_auto_approve_deny
+          : Messages.preferences_page_auto_approve_allow);
     } else {
       toggleButton.setText(
-          Messages.preferences_page_terminal_auto_approve_allow);
+          Messages.preferences_page_auto_approve_allow);
     }
     resetButton.setEnabled(!isMatchingDefaults());
   }
