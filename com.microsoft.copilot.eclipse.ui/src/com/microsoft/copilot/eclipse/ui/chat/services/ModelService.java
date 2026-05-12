@@ -424,7 +424,7 @@ public class ModelService extends ChatBaseService {
       }, (Map<String, CopilotModel> modelMap) -> {
         if (!picker.isDisposed()) {
           boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
-              .getCopilotPlan() == CopilotPlan.free;
+              .copilotPlan() == CopilotPlan.free;
           // TODO: need to remove this logic after group policy is available
           FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
           boolean showByokManageOption = flags == null || flags.isByokEnabled();

@@ -55,7 +55,7 @@ class AuthStatusManagerTests {
     when(mockResult.getUser()).thenReturn(mockedUser);
     when(mockResult.getStatus()).thenReturn(CopilotStatusResult.OK);
     when(mockConnection.signInConfirm(userCode)).thenReturn(CompletableFuture.completedFuture(mockResult));
-    when(mockConnection.checkQuota()).thenReturn(CompletableFuture.completedFuture(new CheckQuotaResult()));
+    when(mockConnection.checkQuota()).thenReturn(CompletableFuture.completedFuture(CheckQuotaResult.empty()));
 
     CopilotStatusResult result = authStatusManager.signInConfirm(userCode);
 
