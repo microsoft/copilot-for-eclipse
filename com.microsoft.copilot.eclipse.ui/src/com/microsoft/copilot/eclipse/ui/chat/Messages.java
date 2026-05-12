@@ -50,6 +50,7 @@ public final class Messages extends NLS {
 
   // Confirmation dialog titles
   public static String confirmation_title_terminal;
+  public static String confirmation_title_fallback;
 
   // Misc
   public static String confirmation_autoApprovedDescription;

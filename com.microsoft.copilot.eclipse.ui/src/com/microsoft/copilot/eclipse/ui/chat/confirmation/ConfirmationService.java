@@ -58,6 +58,8 @@ public class ConfirmationService {
 
   private final Map<ToolCategory, ConfirmationHandler> handlers =
       new EnumMap<>(ToolCategory.class);
+  private final ConfirmationHandler fallbackHandler =
+      new FallbackConfirmationHandler();
   private final IPreferenceStore preferenceStore;
 
   /**
@@ -86,12 +88,10 @@ public class ConfirmationService {
     }
 
     ConfirmationHandler handler = handlers.get(category);
-    if (handler != null) {
-      return handler.evaluate(params, sessionConversationId);
+    if (handler == null) {
+      handler = fallbackHandler;
     }
-    // No handler registered for this category — fall through to
-    // the default confirmation dialog rather than silently approving.
-    return ConfirmationResult.needsConfirmation(null);
+    return handler.evaluate(params, sessionConversationId);
   }
 
   /**
