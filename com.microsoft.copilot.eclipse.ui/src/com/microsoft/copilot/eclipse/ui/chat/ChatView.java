@@ -1176,13 +1176,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   @Override
   public void onCancel() {
-    // Send conversation/destroy to cancel in-progress turns
-    if (StringUtils.isNotBlank(this.conversationId)) {
-      CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
-      if (ls != null) {
-        ls.destroyConversation(this.conversationId);
-      }
-    }
+    // Destroy the temporary subagent conversation on CLS side
     if (StringUtils.isNotBlank(this.subagentConversationId)) {
       CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
       if (ls != null) {
@@ -1190,7 +1184,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
     }
 
-    // Clear subagent conversation ID on cancel
     this.subagentConversationId = null;
     this.lastRunSubagentToolCallId = null;
 
