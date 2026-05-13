@@ -7,6 +7,7 @@ Bundle-Vendor: GitHub Copilot
 Bundle-Localization: plugin
 Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.chat,
+ com.microsoft.copilot.eclipse.ui.chat.confirmation;x-friends:="com.microsoft.copilot.eclipse.ui.test",
  com.microsoft.copilot.eclipse.ui.chat.services,
  com.microsoft.copilot.eclipse.ui.chat.tools,
  com.microsoft.copilot.eclipse.ui.completion,

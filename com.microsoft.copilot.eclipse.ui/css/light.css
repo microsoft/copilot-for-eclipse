@@ -91,7 +91,7 @@
 	background-color: #3584F1;
 }
 
-#chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
+#chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > ScrolledComposite > .bg-command-panel {
 	background-color: #FFFFFF;
 }
 
