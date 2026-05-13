@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
@@ -13,6 +16,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    # `Update dependency graph` step uses maven-dependency-submission-action,
+    # which posts to the Dependency submission API and requires `contents: write`.
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
