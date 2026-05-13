@@ -94,12 +94,11 @@ public class ThinkingBlock extends Composite {
     requestLayout();
   }
 
-  /** Stop the spinner, hide the icon, set the title, and collapse. No-op if already finalized. */
+  /** Hide the icon, set the title, and collapse. No-op if already finalized. Spinner was already stopped at SEALED. */
   public void showCompleted(String title) {
     if (isFinalized()) {
       return;
     }
-    stopSpinner();
     if (!iconLabel.isDisposed()) {
       iconLabel.setImage(null);
       ((GridData) iconLabel.getLayoutData()).exclude = true;
@@ -130,12 +129,16 @@ public class ThinkingBlock extends Composite {
 
   /**
    * Mark the block as sealed: the owning widget has requested a title and any further thinking stream fragments must
-   * land in a new block. No-op once the block has been finalized or already sealed.
+   * land in a new block. Stops the spinner and shows the intermediate "Thinking completed" title while the title
+   * fetch is in flight. No-op once the block has been finalized or already sealed.
    */
   public void markSealed() {
-    if (state == State.STREAMING) {
-      state = State.SEALED;
+    if (state != State.STREAMING) {
+      return;
     }
+    state = State.SEALED;
+    stopSpinner();
+    setTitleText(Messages.thinking_completedTitle);
   }
 
   /** True only while new thinking stream fragments should still be appended to this block. */
