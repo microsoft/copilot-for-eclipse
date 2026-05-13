@@ -185,7 +185,7 @@ public class SplitDropdownButton {
   private void updatePadding() {
     String text = getText();
     String currentPadding = padding;
-    String newPadding = showArrow ? calculatePadding(25) : null;
+    String newPadding = showArrow ? calculatePadding(22) : null;
     if ((newPadding == null && currentPadding != null) || (newPadding != null && !newPadding.equals(currentPadding))) {
       this.padding = newPadding;
       setText(text);
