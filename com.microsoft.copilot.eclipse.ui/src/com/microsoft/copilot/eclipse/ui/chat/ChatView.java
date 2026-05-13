@@ -62,7 +62,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningNotification;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
@@ -375,11 +375,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     this.quotaWarningHandler = event -> {
       Object data = event.getProperty(IEventBroker.DATA);
-      if (data instanceof QuotaWarningNotification notification) {
+      if (data instanceof QuotaWarningParams params) {
         SwtUtils.invokeOnDisplayThreadAsync(() -> {
           if (actionBar != null && !actionBar.isDisposed()) {
-            boolean warning = "warning".equalsIgnoreCase(notification.severity());
-            actionBar.createQuotaWarningBanner(notification.message(), notification.copilotPlan(), warning);
+            boolean warning = "warning".equalsIgnoreCase(params.severity());
+            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), warning);
           }
         }, parent);
       }

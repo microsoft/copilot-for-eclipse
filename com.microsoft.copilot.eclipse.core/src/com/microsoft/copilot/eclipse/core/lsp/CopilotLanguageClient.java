@@ -64,7 +64,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningNotification;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
@@ -358,10 +358,10 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    * Notify when a quota warning is received from the language server.
    */
   @JsonNotification("copilot/quotaWarning")
-  public void onQuotaWarning(QuotaWarningNotification notification) {
-    CopilotCore.LOGGER.info("Quota warning received: " + notification);
+  public void onQuotaWarning(QuotaWarningParams params) {
+    CopilotCore.LOGGER.info("Quota warning received: " + params);
     if (eventBroker != null) {
-      eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_WARNING, notification);
+      eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_WARNING, params);
     }
   }
 
