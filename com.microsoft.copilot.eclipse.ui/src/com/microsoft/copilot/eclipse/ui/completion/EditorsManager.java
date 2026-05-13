@@ -162,8 +162,21 @@ public class EditorsManager {
       return null;
     }
 
-    return nesRenderManagers.computeIfAbsent(editor,
-        ed -> new RenderManager(this.languageServer, this.nesProvider, ed));
+    // Avoid computeIfAbsent() here: the RenderManager constructor calls
+    // Display.syncExec() via registerListeners(), and computeIfAbsent() holds
+    // an internal bucket lock during the mapping function. If the UI thread
+    // concurrently calls remove() on the same bucket, both threads deadlock.
+    // See https://github.com/microsoft/copilot-for-eclipse/issues/175
+    RenderManager mgr = nesRenderManagers.get(editor);
+    if (mgr == null) {
+      mgr = new RenderManager(this.languageServer, this.nesProvider, editor);
+      RenderManager existing = nesRenderManagers.putIfAbsent(editor, mgr);
+      if (existing != null) {
+        mgr.dispose();
+        mgr = existing;
+      }
+    }
+    return mgr;
   }
 
   /**
