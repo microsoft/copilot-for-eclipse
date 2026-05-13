@@ -19,5 +19,5 @@ import com.google.gson.annotations.SerializedName;
  */
 public record QuotaWarningParams(String title, String message, String severity, QuotaSnapshotParams chat,
     QuotaSnapshotParams completions,
-    @SerializedName("premium_interactions") QuotaSnapshotParams premiumInteractions, String copilotPlan) {
+    @SerializedName("premium_interactions") QuotaSnapshotParams premiumInteractions, CopilotPlan copilotPlan) {
 }

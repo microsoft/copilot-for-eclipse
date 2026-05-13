@@ -359,7 +359,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    */
   @JsonNotification("copilot/quotaWarning")
   public void onQuotaWarning(QuotaWarningParams params) {
-    CopilotCore.LOGGER.info("Quota warning received: " + params);
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_WARNING, params);
     }

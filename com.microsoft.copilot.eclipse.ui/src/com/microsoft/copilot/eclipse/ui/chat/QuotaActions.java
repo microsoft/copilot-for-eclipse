@@ -31,6 +31,9 @@ public final class QuotaActions {
   public record QuotaAction(String label, String tooltip, String url, boolean primary) {
   }
 
+  private QuotaActions() {
+  }
+
   /**
    * Returns the ordered list of {@link QuotaAction}s appropriate for the supplied plan.
    *
