@@ -170,4 +170,10 @@ public class CopilotEventConstants {
    * Event when a quota warning notification is received from the language server.
    */
   public static final String TOPIC_QUOTA_WARNING = TOPIC_QUOTA + "WARNING";
+
+  /**
+   * Event when custom prompts, skills, agents, or instructions change on the language server. Clients should re-fetch
+   * conversation templates on receipt.
+   */
+  public static final String TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES = TOPIC_CHAT + "DID_CHANGE_CUSTOMIZATION_FILES";
 }

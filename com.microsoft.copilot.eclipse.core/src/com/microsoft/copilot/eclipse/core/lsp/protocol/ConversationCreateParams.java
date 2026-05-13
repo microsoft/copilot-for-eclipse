@@ -39,6 +39,8 @@ public class ConversationCreateParams {
   // TODO: remove needToolCallConfirmation when CLS fully supports it across all IDEs.
   private boolean needToolCallConfirmation;
   private List<TodoItem> todoList;
+  private String conversationId;
+  private String restoreToTurnId;
 
   /**
    * Creates a new ConversationCreateParams.
@@ -198,6 +200,22 @@ public class ConversationCreateParams {
     this.modelProviderName = modelProviderName;
   }
 
+  public String getConversationId() {
+    return conversationId;
+  }
+
+  public void setConversationId(String conversationId) {
+    this.conversationId = conversationId;
+  }
+
+  public String getRestoreToTurnId() {
+    return restoreToTurnId;
+  }
+
+  public void setRestoreToTurnId(String restoreToTurnId) {
+    this.restoreToTurnId = restoreToTurnId;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -207,7 +225,7 @@ public class ConversationCreateParams {
     result = prime * result
         + Objects.hash(capabilities, chatMode, computeSuggestions, customChatModeId, model, needToolCallConfirmation,
             references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders,
-            modelProviderName, todoList);
+            modelProviderName, todoList, conversationId, restoreToTurnId);
     return result;
   }
 
@@ -233,7 +251,9 @@ public class ConversationCreateParams {
         && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders)
         && Objects.equals(modelProviderName, other.modelProviderName)
-        && Objects.equals(todoList, other.todoList);
+        && Objects.equals(todoList, other.todoList)
+        && Objects.equals(conversationId, other.conversationId)
+        && Objects.equals(restoreToTurnId, other.restoreToTurnId);
   }
 
   @Override
@@ -256,6 +276,8 @@ public class ConversationCreateParams {
     builder.append("customChatModeId", customChatModeId);
     builder.append("needToolCallConfirmation", needToolCallConfirmation);
     builder.append("todoList", todoList);
+    builder.append("conversationId", conversationId);
+    builder.append("restoreToTurnId", restoreToTurnId);
     return builder.toString();
   }
 }

@@ -27,7 +27,6 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
-
 /**
  * Factory for creating and transforming conversation data objects. Responsible only for pure data transformation with
  * no business logic.
@@ -208,6 +207,8 @@ public class ConversationDataFactory {
     // Defensive copy to avoid ConcurrentModificationException if another thread mutates the list while iterating.
     List<AbstractTurnData> snapshot = new ArrayList<>(turnDataList);
     List<Turn> result = new ArrayList<>(snapshot.size());
+    Turn unpairedUserTurn = null;
+
     for (AbstractTurnData turnData : snapshot) {
       if (turnData == null) {
         continue;
@@ -218,16 +219,30 @@ public class ConversationDataFactory {
         continue;
       }
       if (turnData instanceof UserTurnData userTurnData) {
+        // Flush any unpaired user turn without a response
+        if (unpairedUserTurn != null) {
+          result.add(unpairedUserTurn);
+        }
         String requestText = userTurnData.getMessage() != null ? userTurnData.getMessage().getText() : "";
         Either<String, List<ChatCompletionContentPart>> request = Either
             .forLeft(requestText == null ? "" : requestText);
-        result.add(new Turn(request, null, null));
+        unpairedUserTurn = new Turn(request, null, null, turnData.getTurnId());
       } else if (turnData instanceof CopilotTurnData copilotTurnData) {
-        // Assistant turns only contribute the response text; the request field is intentionally empty.
         String responseText = extractResponseFromCopilotTurnData(copilotTurnData);
-        Either<String, List<ChatCompletionContentPart>> request = Either.forLeft("");
-        result.add(new Turn(request, responseText, null));
+        if (unpairedUserTurn != null) {
+          // Pair the response with the unpaired user turn
+          unpairedUserTurn.setResponse(responseText);
+          result.add(unpairedUserTurn);
+          unpairedUserTurn = null;
+        } else {
+          // Orphaned copilot turn (no preceding user turn), create a standalone turn
+          result.add(new Turn(Either.forLeft(""), responseText, null, turnData.getTurnId()));
+        }
       }
+    }
+    // Flush any remaining unpaired user turn (user message without a response)
+    if (unpairedUserTurn != null) {
+      result.add(unpairedUserTurn);
     }
     return result;
   }

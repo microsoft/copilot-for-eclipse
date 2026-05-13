@@ -151,6 +151,10 @@ public class Messages extends NLS {
   public static String preferences_page_agent_max_requests_desc;
   public static String preferences_page_agent_max_requests_validation_error;
 
+  // Skills
+  public static String preferences_page_skills_enabled;
+  public static String preferences_page_skills_enabled_note_content;
+
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 

@@ -12,6 +12,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -72,8 +73,19 @@ public class CopilotTurnWidget extends BaseTurnWidget {
         }
         if (StringUtils.isNotBlank(modelName)) {
           Label modelInfoLabel = new Label(footer, SWT.NONE);
-          String formattedMultiplier = ModelUtils.formatBillingMultiplier(billingMultiplier);
-          String displayText = String.format("%s - %s", modelName, formattedMultiplier);
+          // When token-based billing is enabled on the language server, the per-turn billing
+          // multiplier is no longer a meaningful price signal, so render the model name on its
+          // own. Fall back to the legacy "{model} - {multiplier}" format otherwise.
+          boolean tbbEnabled = CopilotCore.getPlugin().getAuthStatusManager()
+              .getQuotaStatus().tokenBasedBillingEnabled();
+          String displayText;
+          if (tbbEnabled) {
+            displayText = modelName;
+          } else {
+            // TODO: Remove this legacy fallback after TBB is officially released.
+            String formattedMultiplier = ModelUtils.formatBillingMultiplier(billingMultiplier);
+            displayText = String.format("%s - %s", modelName, formattedMultiplier);
+          }
           modelInfoLabel.setText(displayText);
           GridData labelGridData = new GridData(SWT.RIGHT, SWT.CENTER, true, false);
           modelInfoLabel.setLayoutData(labelGridData);
