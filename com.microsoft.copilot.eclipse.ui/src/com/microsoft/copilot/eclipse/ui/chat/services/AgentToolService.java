@@ -18,6 +18,8 @@ import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -33,9 +35,11 @@ import com.microsoft.copilot.eclipse.core.utils.JdtUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.InvokeToolConfirmationDialog;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.ConfirmationService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
@@ -65,7 +69,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   public AgentToolService(CopilotLanguageServerConnection lsConnection) {
     this.tools = new ConcurrentHashMap<>();
     this.lsConnection = lsConnection;
-    this.confirmationService = new ConfirmationService();
+    this.confirmationService = new ConfirmationService(
+        CopilotUi.getPlugin().getPreferenceStore());
     TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
     if (terminalManager != null) {
       terminalManager.addListener(this);
@@ -247,8 +252,21 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return CompletableFuture.completedFuture(result);
     }
 
+    // Resolve the session conversation ID: map subagent conversations to the
+    // parent so that session-scoped approvals apply to the whole chat.
+    String sessionConversationId = params.getConversationId();
+    if (boundChatView != null
+        && !Objects.equals(sessionConversationId,
+            boundChatView.getConversationId())
+        && Objects.equals(sessionConversationId,
+            boundChatView.getSubagentConversationId())) {
+      sessionConversationId = boundChatView.getConversationId();
+    }
+
     // Auto-approve evaluation
-    if (confirmationService.evaluate(params) == ConfirmationResult.AUTO_APPROVED) {
+    ConfirmationResult autoApproveResult =
+        confirmationService.evaluate(params, sessionConversationId);
+    if (autoApproveResult.isAutoApproved()) {
       return CompletableFuture.completedFuture(
           new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
     }
@@ -264,13 +282,30 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     BaseTurnWidget activeTurnWidget = turnWidget.getActiveTurnWidget();
 
     AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref = new AtomicReference<>();
+    ConfirmationContent content = autoApproveResult.getContent();
     SwtUtils.invokeOnDisplayThread(() -> {
-      ref.set(
-          activeTurnWidget.requestToolExecutionConfirmation(params.getTitle(), params.getMessage(), params.getInput()));
+      ref.set(activeTurnWidget.requestToolExecutionConfirmation(
+          content, params.getInput()));
       boundChatView.getChatContentViewer().refreshScrollerLayout();
     });
 
-    return ref.get();
+    CompletableFuture<LanguageModelToolConfirmationResult> future = ref.get();
+    if (future != null && content != null) {
+      // Capture dialog reference before it can be reset by a new request
+      final InvokeToolConfirmationDialog dialog =
+          activeTurnWidget.getConfirmDialog();
+      final String sessConvId = sessionConversationId;
+      future = future.thenApply(result -> {
+        ConfirmationAction selected = dialog != null
+            ? dialog.getSelectedAction() : null;
+        if (selected != null && selected.isAccept()) {
+          confirmationService.cacheDecision(selected, params,
+              sessConvId);
+        }
+        return result;
+      });
+    }
+    return future;
   }
 
   private boolean validToolConfirmInvokeParams(String conversationId, String turnId) {

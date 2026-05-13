@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import com.google.gson.Gson;
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -10,6 +11,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.TerminalConfirmationHandler;
 
 /**
  * A class to initialize the default preferences for the plugin.
@@ -56,6 +58,11 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
         }
          """);
     pref.setDefault(Constants.MCP_TOOLS_STATUS, "{}");
+
+    // Auto-approve defaults
+    pref.setDefault(Constants.AUTO_APPROVE_TERMINAL_RULES,
+        new Gson().toJson(TerminalConfirmationHandler.DEFAULT_RULES));
+    pref.setDefault(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL, false);
 
     IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());

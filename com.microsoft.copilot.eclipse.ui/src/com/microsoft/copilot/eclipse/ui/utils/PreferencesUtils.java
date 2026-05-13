@@ -7,6 +7,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.preferences.AutoApprovePreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
@@ -28,7 +29,7 @@ public class PreferencesUtils {
   public static String[] getAllPreferenceIds() {
     return new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
         CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-        McpPreferencePage.ID, ByokPreferencePage.ID };
+        McpPreferencePage.ID, ByokPreferencePage.ID, AutoApprovePreferencePage.ID };
   }
 
   /**

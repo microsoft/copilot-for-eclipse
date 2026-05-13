@@ -45,6 +45,7 @@ import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.Acti
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ActionType;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ButtonState;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.swt.SplitDropdownButton;
 import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -301,15 +302,17 @@ public class McpServerItem extends Composite implements EventHandler {
         disabledInstallButton.setToolTipText(Messages.mcpServerItem_noInstallOptions);
         actionButton = disabledInstallButton;
       } else {
-        DropDownButton dropDownInstallButton = createDropDownInstallButton(actionComposite, initialState,
+        SplitDropdownButton dropDownInstallButton = createDropDownInstallButton(actionComposite, initialState,
             installOptions);
         actionButton = dropDownInstallButton.getButton();
       }
     }
   }
 
-  private DropDownButton createDropDownInstallButton(Composite parent, ButtonState state, List<InstallOption> options) {
-    DropDownButton dropDownInstallButton = new DropDownButton(parent, SWT.NONE);
+  private SplitDropdownButton createDropDownInstallButton(
+      Composite parent, ButtonState state,
+      List<InstallOption> options) {
+    SplitDropdownButton dropDownInstallButton = new SplitDropdownButton(parent, SWT.NONE);
     dropDownInstallButton.setShowArrow(options.size() > 1);
     dropDownInstallButton.setText(state.getText());
 

@@ -51,6 +51,10 @@ public class Constants {
   public static final String GITHUB_JOBS_VIEW_ID = "com.microsoft.copilot.eclipse.ui.jobs.JobsView";
   public static final String SUPPRESS_TERMINAL_DEPENDENCY_DIALOG = "suppressTerminalDependencyDialog";
 
+  // Auto-Approve settings
+  public static final String AUTO_APPROVE_TERMINAL_RULES = "autoApproveTerminalRules";
+  public static final String AUTO_APPROVE_UNMATCHED_TERMINAL = "autoApproveUnmatchedTerminal";
+
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list
   // https://github.com/microsoft/copilot-intellij/blob/main/core/src/main/kotlin/com/github/copilot/chat/references/FileSearchService.kt
