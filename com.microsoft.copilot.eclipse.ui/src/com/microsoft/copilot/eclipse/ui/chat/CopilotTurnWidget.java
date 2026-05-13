@@ -25,9 +25,6 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  * A custom widget that displays a turn for the copilot.
  */
 public class CopilotTurnWidget extends BaseTurnWidget {
-
-  private Label modelInfoLabel;
-
   /**
    * Create the widget.
    */
@@ -74,11 +71,8 @@ public class CopilotTurnWidget extends BaseTurnWidget {
         if (footer == null || footer.isDisposed()) {
           createFooter();
         }
-        if (modelInfoLabel != null && !modelInfoLabel.isDisposed()) {
-          modelInfoLabel.dispose();
-        }
         if (StringUtils.isNotBlank(modelName)) {
-          modelInfoLabel = new Label(footer, SWT.NONE);
+          Label modelInfoLabel = new Label(footer, SWT.NONE);
           // When token-based billing is enabled on the language server, the per-turn billing
           // multiplier is no longer a meaningful price signal, so render the model name on its
           // own. Fall back to the legacy "{model} - {multiplier}" format otherwise.
@@ -97,9 +91,6 @@ public class CopilotTurnWidget extends BaseTurnWidget {
           modelInfoLabel.setLayoutData(labelGridData);
           modelInfoLabel.setData(CssConstants.CSS_CLASS_NAME_KEY, "model-info-label");
 
-          // Ensure footer stays at the bottom of the turn widget, even when
-          // warn widgets are appended after it (e.g. quota fallback retry).
-          footer.moveBelow(null);
           footer.requestLayout();
         }
       }, this);
