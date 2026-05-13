@@ -155,10 +155,9 @@ public final class Messages extends NLS {
   public static String chat_noQuotaView_fallbackModel;
   public static String chat_noQuotaView_updatePlanButton;
   public static String chat_noQuotaView_updatePlanButton_Tooltip;
-  public static String chat_noQuotaView_updatePlanLink;
-  public static String chat_noQuotaView_enablePremiumRequestsButton;
-  public static String chat_noQuotaView_enablePremiumRequestsButton_tooltip;
-  public static String chat_noQuotaView_enablePremiumRequestsLink;
+  public static String chat_noQuotaView_enableAdditionalUsageButton;
+  public static String chat_noQuotaView_enableAdditionalUsageButton_tooltip;
+  public static String chat_noQuotaView_viewYourPlanButton_Tooltip;
   public static String chat_noQuotaView_proProplusWarnMsg;
   public static String chat_noQuotaView_cbCeWarnMsg;
   public static String chat_currentReferencedFile_description;
@@ -214,9 +213,6 @@ public final class Messages extends NLS {
   public static String model_hover_cost;
   public static String chat_actionBar_modePicker_Tooltip;
   public static String chat_actionBar_modelPicker_Tooltip;
-  public static String quotaWarning_title;
-  public static String quotaWarning_closeButton;
-  public static String quotaWarning_increaseBudgetButton;
   public static String context_window_title;
   public static String context_window_tokens;
   public static String context_window_system;
@@ -226,9 +222,9 @@ public final class Messages extends NLS {
   public static String context_window_messages;
   public static String context_window_files;
   public static String context_window_tool_results;
-  public static String chat_staticBanner_messageWithLink;
   public static String chat_rateLimitBanner_getMoreInfo;
   public static String chat_rateLimitBanner_closeTooltip;
+  public static String chat_quotaBanner_viewYourPlan;
 
   static {
     // initialize resource bundle

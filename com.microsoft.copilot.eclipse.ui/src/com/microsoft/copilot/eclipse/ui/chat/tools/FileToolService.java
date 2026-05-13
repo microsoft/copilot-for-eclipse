@@ -83,9 +83,11 @@ public class FileToolService extends ChatBaseService {
               disposeWorkingSetBar();
             } else {
               if (this.workingSetBar == null || this.workingSetBar.isDisposed()) {
-                this.workingSetBar = new WorkingSetBar(chatView.getActionBar(), SWT.NONE);
+                this.workingSetBar = new WorkingSetBar(chatView.getActionBar().getInputArea(), SWT.NONE);
               }
-              // Position WorkingSetBar below TodoListBar (if present), otherwise at top
+              // Position WorkingSetBar below TodoListBar (if present), otherwise at the top of
+              // inputArea. The StaticBanner sits on the outer ActionBar as a sibling of inputArea,
+              // so it remains above this bar regardless of this call.
               positionWorkingSetBar(chatView);
               this.workingSetBar.buildSummaryBarFor(filesMap);
             }

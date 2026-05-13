@@ -141,7 +141,8 @@ class CopilotLanguageClientTests {
 
   @Test
   void testOnQuotaWarning_PostsNotificationToEventBroker() {
-    QuotaWarningNotification notification = new QuotaWarningNotification("Approaching quota", 90.0);
+    QuotaWarningNotification notification = new QuotaWarningNotification(
+        "Copilot Quota Usage Alert", "Approaching quota", "warning", null, null);
     setEventBroker(eventBroker);
 
     client.onQuotaWarning(notification);

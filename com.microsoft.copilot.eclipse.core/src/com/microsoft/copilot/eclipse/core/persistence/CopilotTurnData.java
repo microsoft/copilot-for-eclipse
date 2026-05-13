@@ -440,6 +440,7 @@ public class CopilotTurnData extends AbstractTurnData {
   public static class ErrorData {
     private String message;
     private int code;
+    private String modelProviderName;
     private Map<String, Object> data;
 
     public String getMessage() {
@@ -458,6 +459,18 @@ public class CopilotTurnData extends AbstractTurnData {
       this.code = code;
     }
 
+    /**
+     * The BYOK model provider responsible for the error, or {@code null} when the failing model was a
+     * built-in Copilot model.
+     */
+    public String getModelProviderName() {
+      return modelProviderName;
+    }
+
+    public void setModelProviderName(String modelProviderName) {
+      this.modelProviderName = modelProviderName;
+    }
+
     public Map<String, Object> getData() {
       return data;
     }
@@ -468,7 +481,7 @@ public class CopilotTurnData extends AbstractTurnData {
 
     @Override
     public int hashCode() {
-      return Objects.hash(code, data, message);
+      return Objects.hash(code, data, message, modelProviderName);
     }
 
     @Override
@@ -483,7 +496,8 @@ public class CopilotTurnData extends AbstractTurnData {
         return false;
       }
       ErrorData other = (ErrorData) obj;
-      return code == other.code && Objects.equals(data, other.data) && Objects.equals(message, other.message);
+      return code == other.code && Objects.equals(data, other.data) && Objects.equals(message, other.message)
+          && Objects.equals(modelProviderName, other.modelProviderName);
     }
 
     @Override
@@ -491,6 +505,7 @@ public class CopilotTurnData extends AbstractTurnData {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.append("message", message);
       builder.append("code", code);
+      builder.append("modelProviderName", modelProviderName);
       builder.append("data", data);
       return builder.toString();
     }

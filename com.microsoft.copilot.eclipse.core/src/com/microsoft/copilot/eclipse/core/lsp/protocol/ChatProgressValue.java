@@ -101,6 +101,15 @@ public class ChatProgressValue implements WorkDoneProgressNotification {
     return error != null ? error.getReason() : null;
   }
 
+  /**
+   * Returns the BYOK model-provider name from the error payload, when present.
+   *
+   * @return the name of the BYOK model provider that produced the error, or {@code null} for built-in models.
+   */
+  public String getErrorModelProviderName() {
+    return error != null ? error.getModelProviderName() : null;
+  }
+
   public List<AgentRound> getAgentRounds() {
     return editAgentRounds;
   }
