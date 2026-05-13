@@ -217,11 +217,17 @@ public class ChatContentViewer extends ScrolledComposite {
         errMsg = Messages.chat_model_unsupported_message;
       }
       if (StringUtils.isNotEmpty(errMsg)) {
-        // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.
-        if (value.getCode() == 402) {
+        // Check once whether we're already on the fallback model
+        CopilotModel fallback = this.serviceManager.getModelService().getFallbackModel();
+        CopilotModel current = this.serviceManager.getModelService().getActiveModel();
+        boolean alreadyOnFallback = fallback != null && current != null
+            && fallback.getModelName().equals(current.getModelName());
+
+        // Only replace the error message with "switched to fallback" when we're NOT already
+        // on the fallback model. When already on fallback, show the original CLS message.
+        if (value.getCode() == 402 && !alreadyOnFallback) {
           CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan();
-          CopilotModel fallbackModel = this.serviceManager.getModelService().getFallbackModel();
-          String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
+          String fallbackModelName = fallback != null ? fallback.getModelName()
               : Messages.chat_noQuotaView_fallbackModel;
 
           if (MenuUtils.isCfiPlan(userPlan)) {
@@ -235,15 +241,19 @@ public class ChatContentViewer extends ScrolledComposite {
 
         renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode());
 
-        if (value.getCode() == 402
+        // Switch to fallback model and auto-retry, but only if not already on the fallback model
+        // to avoid an infinite loop of 402 → switch → resend → 402 → ...
+        if (value.getCode() == 402 && !alreadyOnFallback
             && this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan() != CopilotPlan.free) {
           this.serviceManager.getModelService().setFallBackModelAsActiveModel();
           this.serviceManager.getAuthStatusManager().checkQuota();
 
-          String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
+          String previousInput =
+              this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
           if (StringUtils.isNotEmpty(previousInput)) {
             IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-            Map<String, Object> properties = Map.of("previousInput", previousInput, "needCreateUserTurn", false);
+            Map<String, Object> properties =
+                Map.of("previousInput", previousInput, "needCreateUserTurn", false);
             eventBroker.post(CopilotEventConstants.TOPIC_CHAT_ON_SEND, properties);
           }
         }
