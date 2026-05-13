@@ -152,14 +152,10 @@ public final class Messages extends NLS {
   public static String chat_addContext_tooltip;
   public static String chat_filePicker_title;
   public static String chat_filePicker_message;
-  public static String chat_noQuotaView_fallbackModel;
-  public static String chat_noQuotaView_updatePlanButton;
   public static String chat_noQuotaView_updatePlanButton_Tooltip;
   public static String chat_noQuotaView_enableAdditionalUsageButton;
   public static String chat_noQuotaView_enableAdditionalUsageButton_tooltip;
   public static String chat_noQuotaView_viewYourPlanButton_Tooltip;
-  public static String chat_noQuotaView_proProplusWarnMsg;
-  public static String chat_noQuotaView_cbCeWarnMsg;
   public static String chat_currentReferencedFile_description;
   public static String chat_turnWidget_copilot;
   public static String chat_turnWidget_user;

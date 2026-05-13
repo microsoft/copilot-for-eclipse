@@ -573,7 +573,7 @@ public abstract class BaseTurnWidget extends Composite {
     if (code == 402 && !byokQuotaExceeded) {
       planForActions = this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan();
     }
-    new WarnWidget(this, SWT.BOTTOM, displayMessage, planForActions);
+    new WarnWidget(this, SWT.NONE, displayMessage, planForActions);
     requestLayout();
   }
 

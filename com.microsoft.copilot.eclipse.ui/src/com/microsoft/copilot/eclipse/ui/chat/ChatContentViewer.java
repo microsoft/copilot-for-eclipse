@@ -27,16 +27,13 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
-import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
