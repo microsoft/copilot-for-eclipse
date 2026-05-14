@@ -19,14 +19,14 @@ import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
  * A turn widget for displaying subagent messages within a SubagentMessageBlock.
  * This widget doesn't show an avatar or role name, only the message content.
  */
-public class SubagentTurnWidget extends BaseTurnWidget {
+public class SubagentTurnWidget extends ThinkingTurnWidget {
 
   /**
    * Create the widget.
    */
   public SubagentTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId,
       AgentToolCall toolCall) {
-    super(parent, style, serviceManager, turnId + "_subagent", true,
+    super(parent, style, serviceManager, turnId + "_subagent",
         getToolCallRoleName(toolCall));
   }
 

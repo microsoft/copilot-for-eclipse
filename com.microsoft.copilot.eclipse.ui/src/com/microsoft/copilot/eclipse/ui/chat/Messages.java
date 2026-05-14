@@ -39,6 +39,11 @@ public final class Messages extends NLS {
   public static String todoList_clearButtonDisabled;
   public static String todoList_expandTooltip;
   public static String todoList_collapseTooltip;
+  public static String thinking_inProgressTitle;
+  public static String thinking_completedTitle;
+  public static String thinking_cancelledTitle;
+  public static String thinking_expandTooltip;
+  public static String thinking_collapseTooltip;
 
   static {
     // initialize resource bundle

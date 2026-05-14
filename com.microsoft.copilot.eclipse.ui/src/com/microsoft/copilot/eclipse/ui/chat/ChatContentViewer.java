@@ -181,6 +181,14 @@ public class ChatContentViewer extends ScrolledComposite {
       ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
 
       if (value.getKind() == WorkDoneProgressKind.report) {
+        if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+          thinkingTurn.appendThinking(value.getThinking());
+          if (hasRenderableOutput(value)) {
+            // Seal before appending the reply so the spinner stops and the title is fetched.
+            thinkingTurn.sealThinking();
+          }
+        }
+
         if (value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
           // Handle agent mode responses
           AgentRound agentRound = value.getAgentRounds().get(0);
@@ -201,6 +209,10 @@ public class ChatContentViewer extends ScrolledComposite {
           turnWidget.appendMessage(value.getReply());
         }
       } else if (value.getKind() == WorkDoneProgressKind.end) {
+        // Seal any in-progress thinking block before the turn ends.
+        if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+          thinkingTurn.sealThinking();
+        }
         turnWidget.notifyTurnEnd();
       }
       refreshScrollerLayout();
@@ -258,6 +270,29 @@ public class ChatContentViewer extends ScrolledComposite {
     if (this.latestTurnWidget != null) {
       this.latestTurnWidget.appendMessage(message);
     }
+  }
+
+  /**
+   * Whether {@code value} carries reply text or an agent round with rendered content; thinking-only reports return
+   * {@code false} so the banner keeps streaming.
+   */
+  private static boolean hasRenderableOutput(ChatProgressValue value) {
+    return StringUtils.isNotBlank(value.getReply()) || hasRenderableAgentRound(value);
+  }
+
+  private static boolean hasRenderableAgentRound(ChatProgressValue value) {
+    if (value.getAgentRounds() == null || value.getAgentRounds().isEmpty()) {
+      return false;
+    }
+    for (AgentRound round : value.getAgentRounds()) {
+      if (StringUtils.isNotBlank(round.getReply())) {
+        return true;
+      }
+      if (round.getToolCalls() != null && !round.getToolCalls().isEmpty()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

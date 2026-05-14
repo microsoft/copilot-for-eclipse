@@ -113,8 +113,14 @@ public abstract class BaseTurnWidget extends Composite {
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.cancelMsgEventHandler = event -> {
       cancelToolConfirmation();
+      onChatMessageCancelled();
     };
     eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MESSAGE_CANCELLED, cancelMsgEventHandler);
+  }
+
+  /** Hook invoked when the chat message cancel event is broadcast. Default no-op; subclasses may override. */
+  protected void onChatMessageCancelled() {
+    // no-op
   }
 
   public String getTurnId() {
@@ -523,7 +529,8 @@ public abstract class BaseTurnWidget extends Composite {
     this.currentTextBlock = null;
     this.inCodeBlock = false;
 
-    // Don't reset subagent block state here - it's managed by tool call status
+    // Subagent and thinking blocks have their own lifecycle (tool call status / ThinkingTurnWidget)
+    // and are intentionally not reset here.
   }
 
   /**

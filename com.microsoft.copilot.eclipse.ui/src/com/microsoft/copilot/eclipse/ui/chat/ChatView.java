@@ -844,7 +844,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
         }
         if ((value.getAgentRounds() == null || value.getAgentRounds().isEmpty())
-            && (value.getReply() == null || value.getReply().isEmpty())) {
+            && (value.getReply() == null || value.getReply().isEmpty())
+            && (value.getThinking() == null || StringUtils.isBlank(value.getThinking().text()))) {
           return;
         }
         if (this.chatContentViewer != null) {
