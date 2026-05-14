@@ -82,6 +82,7 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
     }
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     if (ls == null) {
+      target.markSealed();
       target.showCompleted(Messages.thinking_completedTitle);
       requestLayout();
       return;
