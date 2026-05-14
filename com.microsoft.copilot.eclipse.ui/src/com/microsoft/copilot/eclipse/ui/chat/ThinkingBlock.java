@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Cursor;
@@ -37,16 +38,22 @@ public class ThinkingBlock extends Composite {
   private static final Pattern TITLE_PATTERN =
       Pattern.compile("(?:^|\\n)\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
 
+  private static final int STREAMING_MAX_HEIGHT = 180;
+
   private Composite header;
   private Label iconLabel;
   private Label titleLabel;
   private Label chevronLabel;
 
-  /** Body container holding one {@link ThinkingSection} per parsed section. Hidden when collapsed. */
+  /** Scrollable wrapper around {@link #body}; used only during streaming. Disposed on finalized expand. */
+  private ScrolledComposite bodyScroller;
+  /** Body container holding one {@link ThinkingSection} per parsed section. */
   private Composite body;
   private final List<ThinkingSection> sections = new ArrayList<>();
   private final StringBuilder textBuffer = new StringBuilder();
   private boolean expanded = true;
+  /** Auto-scroll to bottom during streaming. Turned off on any user scroll interaction. */
+  private boolean autoScroll = true;
 
   /**
    * Lifecycle of the block. Transitions are always forward: STREAMING → (SEALED →)? → COMPLETED|CANCELLED.
@@ -123,6 +130,7 @@ public class ThinkingBlock extends Composite {
     }
     setTitleText(Messages.thinking_cancelledTitle);
     setExpanded(false);
+    unwrapBodyFromScroller();
     state = State.CANCELLED;
   }
 
@@ -139,6 +147,7 @@ public class ThinkingBlock extends Composite {
     stopSpinner();
     setTitleText(Messages.thinking_completedTitle);
     setExpanded(false);
+    unwrapBodyFromScroller();
   }
 
   /** True only while new thinking stream fragments should still be appended to this block. */
@@ -226,14 +235,26 @@ public class ThinkingBlock extends Composite {
   }
 
   private void createBody() {
-    body = new Composite(this, SWT.NONE);
+    bodyScroller = new ScrolledComposite(this, SWT.V_SCROLL);
+    bodyScroller.setExpandHorizontal(true);
+    bodyScroller.setExpandVertical(true);
+    bodyScroller.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    bodyScroller.setAlwaysShowScrollBars(false);
+
+    body = new Composite(bodyScroller, SWT.NONE);
     GridLayout bodyLayout = new GridLayout(1, false);
     bodyLayout.marginHeight = 4;
     bodyLayout.marginLeft = 4;
     bodyLayout.marginWidth = 0;
     bodyLayout.verticalSpacing = 6;
     body.setLayout(bodyLayout);
-    body.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    bodyScroller.setContent(body);
+
+    // Any user scroll interaction disables auto-scroll unconditionally.
+    Runnable disableAutoScroll = () -> autoScroll = false;
+    bodyScroller.getVerticalBar().addListener(SWT.Selection, e -> disableAutoScroll.run());
+    body.addListener(SWT.MouseVerticalWheel, e -> disableAutoScroll.run());
   }
 
   /** Parsed (title?, body) tuple. */
@@ -270,7 +291,39 @@ public class ThinkingBlock extends Composite {
     }
 
     body.requestLayout();
+    updateScrollerDuringStreaming();
     refreshEnclosingScroller();
+  }
+
+  /** Resize the scroller to fit content (up to max height) and auto-scroll to bottom if enabled. */
+  private void updateScrollerDuringStreaming() {
+    if (bodyScroller == null || bodyScroller.isDisposed()) {
+      return;
+    }
+    int contentWidth = bodyScroller.getClientArea().width;
+    if (contentWidth <= 0) {
+      contentWidth = SWT.DEFAULT;
+    }
+    int contentHeight = body.computeSize(contentWidth, SWT.DEFAULT).y;
+    bodyScroller.setMinSize(body.computeSize(contentWidth, SWT.DEFAULT));
+
+    // Grow with content up to max; avoids blank space when content is small.
+    GridData scrollerData = (GridData) bodyScroller.getLayoutData();
+    int newHint = Math.min(contentHeight, STREAMING_MAX_HEIGHT);
+    if (scrollerData.heightHint != newHint) {
+      scrollerData.heightHint = newHint;
+    }
+
+    if (state == State.STREAMING && autoScroll) {
+      bodyScroller.setOrigin(0, contentHeight);
+    } else if (state == State.STREAMING && !autoScroll) {
+      // Re-enable auto-scroll if user scrolled back to the bottom.
+      int scrollPos = bodyScroller.getOrigin().y;
+      int viewportHeight = bodyScroller.getClientArea().height;
+      if (scrollPos + viewportHeight >= contentHeight - 10) {
+        autoScroll = true;
+      }
+    }
   }
 
   /**
@@ -361,15 +414,33 @@ public class ThinkingBlock extends Composite {
 
   private void setExpanded(boolean newExpanded) {
     this.expanded = newExpanded;
-    if (body != null && !body.isDisposed()) {
-      GridData data = (GridData) body.getLayoutData();
+
+    Composite bodyContainer = bodyScroller != null ? bodyScroller : body;
+    if (bodyContainer != null && !bodyContainer.isDisposed()) {
+      GridData data = (GridData) bodyContainer.getLayoutData();
       data.exclude = !expanded;
-      body.setVisible(expanded);
+      bodyContainer.setVisible(expanded);
     }
     updateChevron();
     requestLayout();
     // Refresh the enclosing scroller so the revealed/hidden body height is reachable.
     refreshEnclosingScroller();
+  }
+
+  /** Move body from ScrolledComposite to be a direct child of this block. */
+  private void unwrapBodyFromScroller() {
+    if (bodyScroller == null || bodyScroller.isDisposed() || body == null || body.isDisposed()) {
+      return;
+    }
+    bodyScroller.setContent(null);
+    body.setParent(this);
+    GridData bodyData = new GridData(SWT.FILL, SWT.FILL, true, false);
+    bodyData.exclude = !expanded;
+    body.setLayoutData(bodyData);
+    body.setVisible(expanded);
+    body.moveBelow(bodyScroller);
+    bodyScroller.dispose();
+    bodyScroller = null;
   }
 
   private void updateChevron() {
