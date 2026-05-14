@@ -970,8 +970,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       for (CustomChatMode mode : customModes) {
         String workspaceName = getWorkspaceNameForMode(mode);
         if (workspaceName.isEmpty()) {
-          CopilotCore.LOGGER.info("Workspace name is empty for custom agent: " + mode.getDisplayName()
-              + " (ID: " + mode.getId() + ")");
+          CopilotCore.LOGGER.info("Workspace name is empty for custom agent: "
+              + mode.getDisplayName() + " (ID: " + mode.getId() + ")");
           continue;
         }
         options.add(workspaceName + ": " + mode.getDisplayName());
@@ -1086,14 +1086,18 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
       if (workspaceFolders != null) {
         for (WorkspaceFolder folder : workspaceFolders) {
-          Path folderPath = Paths.get(java.net.URI.create(folder.getUri()));
-          if (modePath.startsWith(folderPath)) {
-            return folder.getName();
+          try {
+            Path folderPath = Paths.get(java.net.URI.create(folder.getUri()));
+            if (modePath.startsWith(folderPath)) {
+              return folder.getName();
+            }
+          } catch (Exception folderEx) {
+            CopilotCore.LOGGER.error("Failed to process folder uri=" + folder.getUri(), folderEx);
           }
         }
       }
     } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to get workspace name for mode", e);
+      CopilotCore.LOGGER.error("Failed to get workspace name for mode id=" + mode.getId(), e);
     }
     return "";
   }
