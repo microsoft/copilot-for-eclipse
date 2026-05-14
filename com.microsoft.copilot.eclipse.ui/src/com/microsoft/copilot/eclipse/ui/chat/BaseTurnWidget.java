@@ -570,10 +570,14 @@ public abstract class BaseTurnWidget extends Composite {
     boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
     String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
     CopilotPlan planForActions = null;
+    boolean overageEnabled = false;
     if (code == 402 && !byokQuotaExceeded) {
-      planForActions = this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan();
+      var quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+      planForActions = quotaStatus.copilotPlan();
+      overageEnabled = quotaStatus.premiumInteractions() != null
+          && quotaStatus.premiumInteractions().overagePermitted();
     }
-    new WarnWidget(this, SWT.NONE, displayMessage, planForActions);
+    new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled);
     requestLayout();
   }
 

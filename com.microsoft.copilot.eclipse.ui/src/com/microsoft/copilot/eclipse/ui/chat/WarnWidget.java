@@ -25,8 +25,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Widget that displays a warning message under a chat turn, optionally followed by plan-driven action buttons sourced
- * from {@link QuotaActions#forPlan(CopilotPlan)}. Presentation-only: the caller decides the message and whether to
- * pass a plan.
+ * from {@link QuotaActions#forPlan(CopilotPlan, boolean)}. Presentation-only: the caller decides the message and
+ * whether to pass a plan.
  */
 public class WarnWidget extends Composite {
   private int buttonLeftMargin;
@@ -38,8 +38,10 @@ public class WarnWidget extends Composite {
    * @param style the SWT style bits
    * @param message the message to display ({@code null} treated as empty)
    * @param userPlan the user's Copilot plan to render plan-driven action buttons, or {@code null} for no buttons
+   * @param overageEnabled whether additional paid usage is already enabled for the user; switches the
+   *     "Enable Additional Usage" label to "Increase Budget"
    */
-  public WarnWidget(Composite parent, int style, String message, CopilotPlan userPlan) {
+  public WarnWidget(Composite parent, int style, String message, CopilotPlan userPlan, boolean overageEnabled) {
     super(parent, style | SWT.BORDER);
     GridLayout outerLayout = new GridLayout(1, true);
     outerLayout.verticalSpacing = 0;
@@ -49,7 +51,7 @@ public class WarnWidget extends Composite {
     buildWarnLabelWithIcon(message);
 
     if (userPlan != null) {
-      buildActionButtons(userPlan);
+      buildActionButtons(userPlan, overageEnabled);
     }
     parent.layout();
   }
@@ -81,8 +83,8 @@ public class WarnWidget extends Composite {
   /**
    * Render plan-driven action buttons for a quota-exceeded warning, kept in sync with the quota {@link StaticBanner}.
    */
-  private void buildActionButtons(CopilotPlan userPlan) {
-    List<QuotaAction> actions = QuotaActions.forPlan(userPlan);
+  private void buildActionButtons(CopilotPlan userPlan, boolean overageEnabled) {
+    List<QuotaAction> actions = QuotaActions.forPlan(userPlan, overageEnabled);
     if (actions.isEmpty()) {
       return;
     }

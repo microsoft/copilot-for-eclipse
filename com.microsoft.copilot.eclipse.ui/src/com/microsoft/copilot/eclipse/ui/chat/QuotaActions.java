@@ -40,17 +40,21 @@ public final class QuotaActions {
    * <p>Mapping:
    * <ul>
    *   <li>{@code free} &rarr; "Upgrade Plan" (primary)</li>
-   *   <li>{@code individual}, {@code individual_pro} &rarr; "Enable Additional Usage" (primary) +
-   *       "Upgrade Plan" (secondary)</li>
-   *   <li>{@code individual_max} &rarr; "Enable Additional Usage" (primary)</li>
-   *   <li>{@code business}, {@code enterprise} &rarr; "View your plan" (primary)</li>
+   *   <li>{@code individual}, {@code individual_pro} &rarr; "Enable Additional Usage" /
+   *       "Increase Budget" (primary) + "Upgrade Plan" (secondary)</li>
+   *   <li>{@code individual_max} &rarr; "Enable Additional Usage" / "Increase Budget" (primary)</li>
+   *   <li>{@code business}, {@code enterprise} &rarr; empty list</li>
    *   <li>{@code null} &rarr; empty list</li>
    * </ul>
    *
+   * <p>The "Enable Additional Usage" label is replaced with "Increase Budget" when {@code overageEnabled}
+   * is {@code true}, matching the IntelliJ quota dialog wording.
+   *
    * @param plan the user's Copilot plan, or {@code null} when unknown
+   * @param overageEnabled {@code true} when additional paid usage is already enabled for the user
    * @return an immutable, possibly empty list; never {@code null}
    */
-  public static List<QuotaAction> forPlan(CopilotPlan plan) {
+  public static List<QuotaAction> forPlan(CopilotPlan plan, boolean overageEnabled) {
     if (plan == null) {
       return List.of();
     }
@@ -60,17 +64,16 @@ public final class QuotaActions {
     QuotaAction upgradeSecondary = new QuotaAction(Messages.menu_quota_upgradePlan,
         Messages.chat_noQuotaView_updatePlanButton_Tooltip,
         UiConstants.COPILOT_UPGRADE_PLAN_URL, false);
-    QuotaAction enableOverage = new QuotaAction(Messages.menu_quota_enableAdditionalUsage,
+    String overageLabel = overageEnabled ? Messages.menu_quota_increaseBudget
+        : Messages.menu_quota_enableAdditionalUsage;
+    QuotaAction manageOverage = new QuotaAction(overageLabel,
         Messages.chat_noQuotaView_enableAdditionalUsageButton_tooltip,
         UiConstants.MANAGE_COPILOT_OVERAGE_URL, true);
-    QuotaAction viewYourPlan = new QuotaAction(Messages.chat_quotaBanner_viewYourPlan,
-        Messages.chat_noQuotaView_viewYourPlanButton_Tooltip,
-        UiConstants.MANAGE_COPILOT_URL, true);
     return switch (plan) {
       case free -> List.of(upgradePrimary);
-      case individual, individual_pro -> List.of(enableOverage, upgradeSecondary);
-      case individual_max -> List.of(enableOverage);
-      case business, enterprise -> List.of(viewYourPlan);
+      case individual, individual_pro -> List.of(manageOverage, upgradeSecondary);
+      case individual_max -> List.of(manageOverage);
+      case business, enterprise -> List.of();
     };
   }
 

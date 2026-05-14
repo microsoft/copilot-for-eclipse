@@ -379,7 +379,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         SwtUtils.invokeOnDisplayThreadAsync(() -> {
           if (actionBar != null && !actionBar.isDisposed()) {
             boolean warning = "warning".equalsIgnoreCase(params.severity());
-            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), warning);
+            boolean overageEnabled = params.premiumInteractions() != null
+                && params.premiumInteractions().overageEnabled();
+            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), overageEnabled, warning);
           }
         }, parent);
       }
