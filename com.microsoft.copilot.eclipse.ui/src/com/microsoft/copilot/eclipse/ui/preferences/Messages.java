@@ -110,6 +110,10 @@ public class Messages extends NLS {
   public static String preferences_page_custom_instructions_git_commit;
   public static String preferences_page_custom_instructions_git_commit_desc;
   public static String preferences_page_custom_instructions_git_commit_note;
+  public static String preferences_page_custom_instructions_chat_load_scope_label;
+  public static String preferences_page_custom_instructions_chat_load_scope_all;
+  public static String preferences_page_custom_instructions_chat_load_scope_referenced;
+  public static String preferences_page_custom_instructions_chat_load_scope_combo_tooltip;
   public static String preferences_page_note_prefix;
   public static String preferences_page_note_content;
   public static String preferences_page_mcpOAuth_confirmTitle;

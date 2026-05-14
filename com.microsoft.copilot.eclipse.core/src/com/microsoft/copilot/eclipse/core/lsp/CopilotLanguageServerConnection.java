@@ -281,17 +281,20 @@ public class CopilotLanguageServerConnection {
       String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
       String agentJobWorkspaceFolder) {
     return createConversation(workDoneToken, message, files, currentFile, currentSelection, turns, activeModel,
-        chatModeName, customChatModeId, todos, agentSlug, agentJobWorkspaceFolder, null, null);
+        chatModeName, customChatModeId, todos, agentSlug, agentJobWorkspaceFolder, null, null,
+        LSPEclipseUtils.getWorkspaceFolders());
   }
 
   /**
-   * Create a conversation with the given parameters, including optional conversationId and restoreToTurnId for session
-   * restoration.
+   * Create a conversation with the given parameters, including optional conversationId, restoreToTurnId for session
+   * restoration, and optional workspace folders argument.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
       String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
-      String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId) {
+      String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId,
+      List<WorkspaceFolder> workspaceFolders) {
+
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -310,7 +313,7 @@ public class CopilotLanguageServerConnection {
 
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
-        param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+        param.setWorkspaceFolders(workspaceFolders == null ? List.of() : workspaceFolders);
         param.setTodoList(todos);
       } else {
         // Set agentSlug on the last turn (current user message) after history insertion
@@ -357,6 +360,19 @@ public class CopilotLanguageServerConnection {
       String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
       String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
       String agentJobWorkspaceFolder) {
+    return addConversationTurn(workDoneToken, conversationId, message, files, currentFile, currentSelection,
+        activeModel, chatModeName, customChatModeId, todoList, agentSlug, agentJobWorkspaceFolder,
+        LSPEclipseUtils.getWorkspaceFolders());
+  }
+
+  /**
+   * Create a conversation turn with the given parameters, including optional workspace folders argument.
+   */
+  public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
+      String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
+      String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
+      String agentJobWorkspaceFolder, List<WorkspaceFolder> workspaceFolders) {
+
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
         .createMessageWithImages(message, FileUtils.filterFilesFrom(files), supportVision);
@@ -370,7 +386,7 @@ public class CopilotLanguageServerConnection {
 
       if (StringUtils.isBlank(agentSlug)) {
         param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
-        param.setWorkspaceFolders(LSPEclipseUtils.getWorkspaceFolders());
+        param.setWorkspaceFolders(workspaceFolders == null ? List.of() : workspaceFolders);
         param.setTodoList(todoList);
       } else {
         param.setAgentSlug(agentSlug);

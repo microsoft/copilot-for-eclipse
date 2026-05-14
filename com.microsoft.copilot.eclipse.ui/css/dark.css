@@ -115,14 +115,10 @@
 	background-color: #2F3030;
 }
 
-#chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary {
-	color: #A4A4A4;
-}
-
-#chat-content-viewer > Composite > CopilotTurnWidget > AgentToolCancelLabel > Label.text-secondary {
-	color: #A4A4A4;
-}
-
+#chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary,
+#chat-content-viewer > Composite > CopilotTurnWidget > ThinkingBlock .text-secondary,
+#chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block ThinkingBlock .text-secondary,
+#chat-content-viewer > Composite > CopilotTurnWidget > AgentToolCancelLabel > Label.text-secondary,
 #chat-content-viewer > Composite > CopilotTurnWidget > Composite > Label.model-info-label {
 	color: #A4A4A4;
 }

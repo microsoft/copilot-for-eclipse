@@ -20,6 +20,8 @@ When you submit a pull request, a CLA bot will automatically determine whether y
 - **Maven 3.8+** (or use the provided Maven wrapper `./mvnw`)
 - **Node.js 22.13** or later, with npm
 - **Eclipse IDE for Eclipse Committers 2024-03** or later (for development)
+- Recommended: **Eclipse Checkstyle plugin** for code style compliance
+  (e.g. install from update site: https://checkstyle.org/eclipse-cs-update-site/)
 
 ### Building the Project
 
@@ -53,7 +55,24 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
 ### Running in Eclipse
 
 1. Import all modules into your Eclipse workspace.
-2. Use the launch configurations in the `launch/` directory.
+   * Select *File > Import... > General > Existing projects into Workspace*,
+     select the root directory of the copilot-for-eclipse git repo,
+     activate the check box *Search for nested projects*, and finish the wizard.
+   * Do also import the agent bundle for your OS (e.g., `com.microsoft.copilot.eclipse.core.agent.win32`)
+     after building the project with npm and maven or import all OS-specific agent bundles.
+2. Activate one of the target platforms, i.e. open one of the target definition files and select `Set As Active Target Platform`.
+   * target-terminal.target (Eclipse 4.37+)
+   * target-tm-terminal.target (Eclipse 4.36 and earlier)
+3. For using the Checkstyle configuration (assuming you have installed the Eclipse Checkstyle plugin, see prerequisites),
+   add a new named Checkstyle configuration.
+   * Select *Window > Preferences > Checkstyle* and press the *New...* button.
+   * Select Type="Project Relative Configuration", **name="copilot4eclipse"**, and choose the location using the *Browse...* button.
+     The `checkstyle.xml` file is in the git repository root folder in the project "github-copilot-for-eclipse".
+4. Use the launch configurations in the `launch/` directory, e.g. for launching a new Eclipse IDE with Copilot plug-ins.
+   * Check the selected plug-ins in your launch configuration (in *Plug-ins* tab) and remove any OS-specific agent bundle that does not fit
+     to your OS and remove all test bundles from the selected plug-ins from your Eclipse workspace.
+   * Validate your config and ensure that all dependencies are resolved.
+     Try *Select Required* button if something is missing.
 
 ## How to Contribute
 

@@ -24,7 +24,7 @@ public class SubagentMessageBlock extends Composite {
   private AgentToolCall toolCall;
 
   // Track the current content widget for message processing
-  private BaseTurnWidget currentSubagentTurnWidget;
+  private ThinkingTurnWidget currentSubagentTurnWidget;
 
   /**
    * Create the subagent message block.
@@ -102,7 +102,7 @@ public class SubagentMessageBlock extends Composite {
    *
    * @return the subagent turn widget
    */
-  public BaseTurnWidget getSubagentTurnWidget() {
+  public ThinkingTurnWidget getSubagentTurnWidget() {
     return currentSubagentTurnWidget;
   }
 }

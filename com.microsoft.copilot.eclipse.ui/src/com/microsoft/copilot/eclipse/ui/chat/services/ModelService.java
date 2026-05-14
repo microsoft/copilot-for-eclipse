@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -348,7 +349,11 @@ public class ModelService extends ChatBaseService {
       // Persist using the composite key for proper identification
       UserPreference preference = getUserPreference();
       preference.setChatModel(compositeKey);
-      persistUserPreference();
+      // Persist asynchronously to avoid deadlock: persistUserPreference() calls
+      // persistence().get() which blocks waiting for the LSP listener thread.
+      // If called on the UI thread while the listener is in syncExec, both threads
+      // deadlock.
+      CompletableFuture.runAsync(this::persistUserPreference);
 
       // Update observable
       ensureRealm(() -> activeModelObservable.setValue(model));

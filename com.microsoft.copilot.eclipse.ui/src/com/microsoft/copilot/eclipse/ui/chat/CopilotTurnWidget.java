@@ -24,12 +24,12 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 /**
  * A custom widget that displays a turn for the copilot.
  */
-public class CopilotTurnWidget extends BaseTurnWidget {
+public class CopilotTurnWidget extends ThinkingTurnWidget {
   /**
    * Create the widget.
    */
   public CopilotTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
-    super(parent, style, serviceManager, turnId, true, null);
+    super(parent, style, serviceManager, turnId, null);
     setData("org.eclipse.swtbot.widget.key", "copilot-turn");
   }
 
