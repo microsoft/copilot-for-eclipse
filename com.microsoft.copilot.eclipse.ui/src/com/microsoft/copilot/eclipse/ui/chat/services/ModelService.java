@@ -275,12 +275,12 @@ public class ModelService extends ChatBaseService {
    * user preference or falling back to default.
    */
   private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode, String scope) {
-    CopilotModel currentActive = getActiveModel();
+    CopilotModel activeModel = getActiveModel();
     boolean isCurrentModelAvailable = false;
-    if (currentActive != null) {
-      isCurrentModelAvailable = modelsForCurrentMode.containsKey(ModelUtils.getModelKey(currentActive));
+    if (activeModel != null) {
+      isCurrentModelAvailable = modelsForCurrentMode.containsKey(activeModel.getModelKey());
     }
-    if (currentActive == null || !isCurrentModelAvailable) {
+    if (activeModel == null || !isCurrentModelAvailable) {
       // Try to restore user's preferred model if it's available in current mode
       String restoredModelId = restoreActiveModel();
       if (restoredModelId != null && modelsForCurrentMode.containsKey(restoredModelId)) {
@@ -410,10 +410,10 @@ public class ModelService extends ChatBaseService {
    * @return the selected reasoning effort, or {@code null}
    */
   public String getSelectedReasoningEffort(CopilotModel model) {
-    String key = ModelUtils.getModelKey(model);
-    if (key == null) {
+    if (model == null) {
       return null;
     }
+    String key = model.getModelKey();
     UserPreference preference = getUserPreference();
     return preference != null ? preference.getReasoningEffort(key) : null;
   }
@@ -442,10 +442,10 @@ public class ModelService extends ChatBaseService {
    * @param reasoningEffort the reasoning effort to store (may be {@code null} to clear)
    */
   public void setSelectedReasoningEffort(CopilotModel model, String reasoningEffort) {
-    String key = ModelUtils.getModelKey(model);
-    if (key == null) {
+    if (model == null) {
       return;
     }
+    String key = model.getModelKey();
     UserPreference preference = getUserPreference();
     if (preference == null) {
       return;
@@ -457,7 +457,8 @@ public class ModelService extends ChatBaseService {
     // currently open popup (if any) is closed explicitly by the caller after this method returns.
     ensureRealm(this::refreshBoundModelPickers);
     // Re-publish the active model so observers (e.g. model picker) refresh derived UI such as the picker tooltip.
-    if (Objects.equals(ModelUtils.getModelKey(getActiveModel()), key)) {
+    CopilotModel activeModel = getActiveModel();
+    if (Objects.equals(activeModel != null ? activeModel.getModelKey() : null, key)) {
       ensureRealm(() -> activeModelObservable.setValue(model));
     }
   }

@@ -54,12 +54,6 @@ public class CopilotModel {
    */
   public record CopilotModelCapabilitiesSupports(boolean vision, List<String> reasoningEfforts,
       boolean supportsReasoningEffortLevel) {
-    /**
-     * Backwards-compatible constructor used by call sites that do not provide reasoning-effort metadata.
-     */
-    public CopilotModelCapabilitiesSupports(boolean vision) {
-      this(vision, null, false);
-    }
 
     @Override
     public String toString() {
@@ -252,6 +246,15 @@ public class CopilotModel {
 
   public void setModelPickerPriceCategory(String modelPickerPriceCategory) {
     this.modelPickerPriceCategory = modelPickerPriceCategory;
+  }
+
+  /**
+   * Builds the composite key used to identify this model in maps and user preferences.
+   *
+   * @return the composite key
+   */
+  public String getModelKey() {
+    return providerName != null ? providerName + "_" + id : id;
   }
 
   @Override

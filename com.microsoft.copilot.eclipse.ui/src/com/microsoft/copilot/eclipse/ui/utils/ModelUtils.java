@@ -11,6 +11,9 @@ import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
@@ -47,12 +50,12 @@ public class ModelUtils {
 
     ByokModelCapabilities byokCapabilities = byokModel.getModelCapabilities();
     if (byokCapabilities != null) {
-      CopilotModel.CopilotModelCapabilitiesSupports supports = new CopilotModel.CopilotModelCapabilitiesSupports(
+      CopilotModelCapabilitiesSupports supports = new CopilotModelCapabilitiesSupports(
           byokCapabilities.isVision(), null, false);
       // BYOK only exposes input/output token limits; context window and non-streaming output are unknown.
-      CopilotModel.CopilotModelCapabilitiesLimits limits = new CopilotModel.CopilotModelCapabilitiesLimits(null,
+      CopilotModelCapabilitiesLimits limits = new CopilotModelCapabilitiesLimits(null,
           byokCapabilities.getMaxOutputTokens(), byokCapabilities.getMaxInputTokens(), null);
-      copilotModel.setCapabilities(new CopilotModel.CopilotModelCapabilities(supports, limits));
+      copilotModel.setCapabilities(new CopilotModelCapabilities(supports, limits));
     }
     copilotModel.setBilling(null);
     copilotModel.setPreview(false);
@@ -190,20 +193,6 @@ public class ModelUtils {
       return formatted + "K";
     }
     return String.valueOf(tokens);
-  }
-
-  /**
-   * Builds the composite key used to identify a model in maps and user preferences. Mirrors the keying scheme used by
-   * the chat services so the same key works for both copilot and BYOK models.
-   *
-   * @param model the model
-   * @return the composite key, or {@code null} if {@code model} is {@code null}
-   */
-  public static String getModelKey(CopilotModel model) {
-    if (model == null) {
-      return null;
-    }
-    return model.getProviderName() != null ? model.getProviderName() + "_" + model.getId() : model.getId();
   }
 
   /**

@@ -200,12 +200,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   }
 
   private void populateThinkingEffortOptions(Composite options, List<String> efforts, Runnable closeRequest) {
-    for (Control child : options.getChildren()) {
-      if (!child.isDisposed()) {
-        child.dispose();
-      }
-    }
-
     ModelService modelService = resolveModelService();
     String selected = modelService != null ? modelService.getSelectedReasoningEffort(model) : null;
     String defaultEffort = ModelUtils.resolveDefaultReasoningEffort(model);
@@ -278,10 +272,8 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     row.setCursor(handCursor);
     iconLabel.setCursor(handCursor);
     optionLabel.setCursor(handCursor);
-    optionLabel.setToolTipText(displayText);
     if (descriptionLabel != null) {
       descriptionLabel.setCursor(handCursor);
-      descriptionLabel.setToolTipText(description);
     }
 
     // Attach the shared row controller: seeds CSS state on the row + its descendants and installs the
