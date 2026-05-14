@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Cursor;
@@ -23,6 +23,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -34,19 +36,25 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ThinkingBlock extends Composite {
   private static final String SECONDARY_TEXT_CSS_CLASS = "text-secondary";
-  private static final Pattern TITLE_PATTERN = Pattern.compile("\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
+  private static final Pattern TITLE_PATTERN =
+      Pattern.compile("(?:^|\\n)\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
+
+  private static final int STREAMING_MAX_HEIGHT = 180;
 
   private Composite header;
-  private GridLayout headerLayout;
   private Label iconLabel;
-  private ChatMarkupViewer titleViewer;
+  private Label titleLabel;
   private Label chevronLabel;
 
-  /** Body container holding one {@link ThinkingSection} per parsed section. Hidden when collapsed. */
+  /** Scrollable wrapper around {@link #body}; used only during streaming. Disposed on finalized expand. */
+  private ScrolledComposite bodyScroller;
+  /** Body container holding one {@link ThinkingSection} per parsed section. */
   private Composite body;
   private final List<ThinkingSection> sections = new ArrayList<>();
   private final StringBuilder textBuffer = new StringBuilder();
   private boolean expanded = true;
+  /** Auto-scroll to bottom during streaming. Turned off on any user scroll interaction. */
+  private boolean autoScroll = true;
 
   /**
    * Lifecycle of the block. Transitions are always forward: STREAMING → (SEALED →)? → COMPLETED|CANCELLED.
@@ -94,7 +102,7 @@ public class ThinkingBlock extends Composite {
     requestLayout();
   }
 
-  /** Hide the icon, set the title, and collapse. No-op if already finalized. Spinner was already stopped at SEALED. */
+  /** Update the title and finalize as completed. Block was already collapsed at seal time. */
   public void showCompleted(String title) {
     if (isFinalized()) {
       return;
@@ -106,7 +114,6 @@ public class ThinkingBlock extends Composite {
       iconLabel.requestLayout();
     }
     setTitleText(title);
-    setExpanded(false);
     state = State.COMPLETED;
   }
 
@@ -124,6 +131,7 @@ public class ThinkingBlock extends Composite {
     }
     setTitleText(Messages.thinking_cancelledTitle);
     setExpanded(false);
+    unwrapBodyFromScroller();
     state = State.CANCELLED;
   }
 
@@ -139,6 +147,8 @@ public class ThinkingBlock extends Composite {
     state = State.SEALED;
     stopSpinner();
     setTitleText(Messages.thinking_completedTitle);
+    setExpanded(false);
+    unwrapBodyFromScroller();
   }
 
   /** True only while new thinking stream fragments should still be appended to this block. */
@@ -174,7 +184,7 @@ public class ThinkingBlock extends Composite {
 
   private void createHeader() {
     header = new Composite(this, SWT.NONE);
-    headerLayout = new GridLayout(4, false);
+    GridLayout headerLayout = new GridLayout(4, false);
     headerLayout.marginHeight = 0;
     headerLayout.marginWidth = 0;
     // Match AgentStatusLabel's icon-to-text spacing for visual consistency.
@@ -185,16 +195,14 @@ public class ThinkingBlock extends Composite {
     iconLabel = new Label(header, SWT.NONE);
     iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
 
-    // Title: no grab so the chevron can sit immediately after it; widthHint is recomputed on
-    // resize so SWT.WRAP kicks in when the title would otherwise overflow.
-    titleViewer = new ChatMarkupViewer(header, SWT.LEFT | SWT.WRAP);
-    StyledText titleText = titleViewer.getTextWidget();
-    GridData titleData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-    titleText.setLayoutData(titleData);
-    titleText.setEditable(false);
-    // Strip StyledText's intrinsic margins so the text sits flush with the adjacent labels.
-    titleText.setMargins(0, 0, 0, 0);
-    UiUtils.applyCssClass(titleText, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
+    titleLabel = new Label(header, SWT.LEFT | SWT.WRAP);
+    titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+    UiUtils.applyCssClass(titleLabel, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
+
+    ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(titleLabel);
+    }
 
     chevronLabel = new Label(header, SWT.NONE);
     chevronLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
@@ -205,11 +213,11 @@ public class ThinkingBlock extends Composite {
 
     Cursor handCursor = getDisplay().getSystemCursor(SWT.CURSOR_HAND);
     header.setCursor(handCursor);
-    titleText.setCursor(handCursor);
+    titleLabel.setCursor(handCursor);
     chevronLabel.setCursor(handCursor);
 
-    // Constrain the title's width so SWT.WRAP can take effect once the parent is narrower than
-    // the natural single-line width of the markup.
+    // Constrain the title's width so SWT.WRAP can take effect when the header is narrower than
+    // the natural single-line width of the title.
     header.addListener(SWT.Resize, e -> updateTitleWidthHint());
 
     MouseAdapter toggleListener = new MouseAdapter() {
@@ -222,20 +230,32 @@ public class ThinkingBlock extends Composite {
     // cursor is actually clickable. iconLabel is intentionally excluded: it hosts the live spinner
     // animation (and the cancel icon afterwards), and a clickable spinner is an odd affordance.
     header.addMouseListener(toggleListener);
-    titleText.addMouseListener(toggleListener);
+    titleLabel.addMouseListener(toggleListener);
     chevronLabel.addMouseListener(toggleListener);
     filler.addMouseListener(toggleListener);
   }
 
   private void createBody() {
-    body = new Composite(this, SWT.NONE);
+    bodyScroller = new ScrolledComposite(this, SWT.V_SCROLL);
+    bodyScroller.setExpandHorizontal(true);
+    bodyScroller.setExpandVertical(true);
+    bodyScroller.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    bodyScroller.setAlwaysShowScrollBars(false);
+
+    body = new Composite(bodyScroller, SWT.NONE);
     GridLayout bodyLayout = new GridLayout(1, false);
     bodyLayout.marginHeight = 4;
     bodyLayout.marginLeft = 4;
     bodyLayout.marginWidth = 0;
     bodyLayout.verticalSpacing = 6;
     body.setLayout(bodyLayout);
-    body.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    bodyScroller.setContent(body);
+
+    // Any user scroll interaction disables auto-scroll unconditionally.
+    Runnable disableAutoScroll = () -> autoScroll = false;
+    bodyScroller.getVerticalBar().addListener(SWT.Selection, e -> disableAutoScroll.run());
+    body.addListener(SWT.MouseVerticalWheel, e -> disableAutoScroll.run());
   }
 
   /** Parsed (title?, body) tuple. */
@@ -272,7 +292,39 @@ public class ThinkingBlock extends Composite {
     }
 
     body.requestLayout();
+    updateScrollerDuringStreaming();
     refreshEnclosingScroller();
+  }
+
+  /** Resize the scroller to fit content (up to max height) and auto-scroll to bottom if enabled. */
+  private void updateScrollerDuringStreaming() {
+    if (bodyScroller == null || bodyScroller.isDisposed()) {
+      return;
+    }
+    int contentWidth = bodyScroller.getClientArea().width;
+    if (contentWidth <= 0) {
+      contentWidth = SWT.DEFAULT;
+    }
+    int contentHeight = body.computeSize(contentWidth, SWT.DEFAULT).y;
+    bodyScroller.setMinSize(contentWidth, contentHeight);
+
+    // Grow with content up to max; avoids blank space when content is small.
+    GridData scrollerData = (GridData) bodyScroller.getLayoutData();
+    int newHint = Math.min(contentHeight, STREAMING_MAX_HEIGHT);
+    if (scrollerData.heightHint != newHint) {
+      scrollerData.heightHint = newHint;
+    }
+
+    if (state == State.STREAMING && autoScroll) {
+      bodyScroller.setOrigin(0, contentHeight);
+    } else if (state == State.STREAMING && !autoScroll) {
+      // Re-enable auto-scroll if user scrolled back to the bottom.
+      int scrollPos = bodyScroller.getOrigin().y;
+      int viewportHeight = bodyScroller.getClientArea().height;
+      if (scrollPos + viewportHeight >= contentHeight - 10) {
+        autoScroll = true;
+      }
+    }
   }
 
   /**
@@ -322,38 +374,34 @@ public class ThinkingBlock extends Composite {
   }
 
   private void setTitleText(String text) {
-    if (titleViewer == null || titleViewer.getTextWidget().isDisposed()) {
+    if (titleLabel == null || titleLabel.isDisposed()) {
       return;
     }
-    titleViewer.setMarkup(text == null ? "" : text);
+    titleLabel.setText(text == null ? "" : text);
     updateTitleWidthHint();
-    titleViewer.getTextWidget().requestLayout();
+    titleLabel.requestLayout();
   }
 
   private void updateTitleWidthHint() {
-    if (titleViewer == null || header == null || header.isDisposed()) {
-      return;
-    }
-    StyledText titleText = titleViewer.getTextWidget();
-    if (titleText.isDisposed()) {
+    if (titleLabel == null || titleLabel.isDisposed() || header == null || header.isDisposed()) {
       return;
     }
     int headerWidth = header.getClientArea().width;
     if (headerWidth <= 0) {
       return;
     }
-    int iconWidth = iconLabel != null && !iconLabel.isDisposed() ? iconLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x
-        : 0;
+    GridLayout layout = (GridLayout) header.getLayout();
+    int iconWidth = iconLabel != null && !iconLabel.isDisposed() && iconLabel.isVisible()
+        ? iconLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x : 0;
     int chevronWidth = chevronLabel != null && !chevronLabel.isDisposed()
-        ? chevronLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x
-        : 0;
-    int spacing = headerLayout.horizontalSpacing * (headerLayout.numColumns - 1);
-    int available = headerWidth - iconWidth - chevronWidth - spacing - headerLayout.marginWidth * 2;
+        ? chevronLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x : 0;
+    int spacing = layout.horizontalSpacing * (layout.numColumns - 1);
+    int available = headerWidth - iconWidth - chevronWidth - spacing - layout.marginWidth * 2;
     if (available <= 0) {
       return;
     }
-    GridData titleData = (GridData) titleText.getLayoutData();
-    int natural = titleText.computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
+    GridData titleData = (GridData) titleLabel.getLayoutData();
+    int natural = titleLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
     int newHint = Math.min(natural, available);
     if (newHint != titleData.widthHint) {
       titleData.widthHint = newHint;
@@ -367,15 +415,32 @@ public class ThinkingBlock extends Composite {
 
   private void setExpanded(boolean newExpanded) {
     this.expanded = newExpanded;
-    if (body != null && !body.isDisposed()) {
-      GridData data = (GridData) body.getLayoutData();
+
+    Composite bodyContainer = bodyScroller != null ? bodyScroller : body;
+    if (bodyContainer != null && !bodyContainer.isDisposed()) {
+      GridData data = (GridData) bodyContainer.getLayoutData();
       data.exclude = !expanded;
-      body.setVisible(expanded);
+      bodyContainer.setVisible(expanded);
     }
     updateChevron();
     requestLayout();
     // Refresh the enclosing scroller so the revealed/hidden body height is reachable.
     refreshEnclosingScroller();
+  }
+
+  /** Move body from ScrolledComposite to be a direct child of this block. */
+  private void unwrapBodyFromScroller() {
+    if (bodyScroller == null || bodyScroller.isDisposed() || body == null || body.isDisposed()) {
+      return;
+    }
+    bodyScroller.setContent(null);
+    body.setParent(this);
+    GridData bodyData = new GridData(SWT.FILL, SWT.FILL, true, false);
+    bodyData.exclude = !expanded;
+    body.setLayoutData(bodyData);
+    body.setVisible(expanded);
+    bodyScroller.dispose();
+    bodyScroller = null;
   }
 
   private void updateChevron() {
@@ -400,8 +465,8 @@ public class ThinkingBlock extends Composite {
     header.setToolTipText(tooltip);
     chevronLabel.setImage(image);
     chevronLabel.setToolTipText(tooltip);
-    if (titleViewer != null && !titleViewer.getTextWidget().isDisposed()) {
-      titleViewer.getTextWidget().setToolTipText(tooltip);
+    if (titleLabel != null && !titleLabel.isDisposed()) {
+      titleLabel.setToolTipText(tooltip);
     }
   }
 
