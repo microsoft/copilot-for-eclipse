@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Cursor;
@@ -23,6 +22,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -37,9 +37,8 @@ public class ThinkingBlock extends Composite {
   private static final Pattern TITLE_PATTERN = Pattern.compile("\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
 
   private Composite header;
-  private GridLayout headerLayout;
   private Label iconLabel;
-  private ChatMarkupViewer titleViewer;
+  private Label titleLabel;
   private Label chevronLabel;
 
   /** Body container holding one {@link ThinkingSection} per parsed section. Hidden when collapsed. */
@@ -174,7 +173,7 @@ public class ThinkingBlock extends Composite {
 
   private void createHeader() {
     header = new Composite(this, SWT.NONE);
-    headerLayout = new GridLayout(4, false);
+    GridLayout headerLayout = new GridLayout(4, false);
     headerLayout.marginHeight = 0;
     headerLayout.marginWidth = 0;
     // Match AgentStatusLabel's icon-to-text spacing for visual consistency.
@@ -185,16 +184,14 @@ public class ThinkingBlock extends Composite {
     iconLabel = new Label(header, SWT.NONE);
     iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
 
-    // Title: no grab so the chevron can sit immediately after it; widthHint is recomputed on
-    // resize so SWT.WRAP kicks in when the title would otherwise overflow.
-    titleViewer = new ChatMarkupViewer(header, SWT.LEFT | SWT.WRAP);
-    StyledText titleText = titleViewer.getTextWidget();
-    GridData titleData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-    titleText.setLayoutData(titleData);
-    titleText.setEditable(false);
-    // Strip StyledText's intrinsic margins so the text sits flush with the adjacent labels.
-    titleText.setMargins(0, 0, 0, 0);
-    UiUtils.applyCssClass(titleText, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
+    titleLabel = new Label(header, SWT.LEFT | SWT.WRAP);
+    titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+    UiUtils.applyCssClass(titleLabel, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
+
+    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      chatServiceManager.getChatFontService().registerControl(titleLabel);
+    }
 
     chevronLabel = new Label(header, SWT.NONE);
     chevronLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
@@ -205,11 +202,11 @@ public class ThinkingBlock extends Composite {
 
     Cursor handCursor = getDisplay().getSystemCursor(SWT.CURSOR_HAND);
     header.setCursor(handCursor);
-    titleText.setCursor(handCursor);
+    titleLabel.setCursor(handCursor);
     chevronLabel.setCursor(handCursor);
 
-    // Constrain the title's width so SWT.WRAP can take effect once the parent is narrower than
-    // the natural single-line width of the markup.
+    // Constrain the title's width so SWT.WRAP can take effect when the header is narrower than
+    // the natural single-line width of the title.
     header.addListener(SWT.Resize, e -> updateTitleWidthHint());
 
     MouseAdapter toggleListener = new MouseAdapter() {
@@ -222,7 +219,7 @@ public class ThinkingBlock extends Composite {
     // cursor is actually clickable. iconLabel is intentionally excluded: it hosts the live spinner
     // animation (and the cancel icon afterwards), and a clickable spinner is an odd affordance.
     header.addMouseListener(toggleListener);
-    titleText.addMouseListener(toggleListener);
+    titleLabel.addMouseListener(toggleListener);
     chevronLabel.addMouseListener(toggleListener);
     filler.addMouseListener(toggleListener);
   }
@@ -322,38 +319,34 @@ public class ThinkingBlock extends Composite {
   }
 
   private void setTitleText(String text) {
-    if (titleViewer == null || titleViewer.getTextWidget().isDisposed()) {
+    if (titleLabel == null || titleLabel.isDisposed()) {
       return;
     }
-    titleViewer.setMarkup(text == null ? "" : text);
+    titleLabel.setText(text == null ? "" : text);
     updateTitleWidthHint();
-    titleViewer.getTextWidget().requestLayout();
+    titleLabel.requestLayout();
   }
 
   private void updateTitleWidthHint() {
-    if (titleViewer == null || header == null || header.isDisposed()) {
-      return;
-    }
-    StyledText titleText = titleViewer.getTextWidget();
-    if (titleText.isDisposed()) {
+    if (titleLabel == null || titleLabel.isDisposed() || header == null || header.isDisposed()) {
       return;
     }
     int headerWidth = header.getClientArea().width;
     if (headerWidth <= 0) {
       return;
     }
-    int iconWidth = iconLabel != null && !iconLabel.isDisposed() ? iconLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x
-        : 0;
+    GridLayout layout = (GridLayout) header.getLayout();
+    int iconWidth = iconLabel != null && !iconLabel.isDisposed() && iconLabel.isVisible()
+        ? iconLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x : 0;
     int chevronWidth = chevronLabel != null && !chevronLabel.isDisposed()
-        ? chevronLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x
-        : 0;
-    int spacing = headerLayout.horizontalSpacing * (headerLayout.numColumns - 1);
-    int available = headerWidth - iconWidth - chevronWidth - spacing - headerLayout.marginWidth * 2;
+        ? chevronLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x : 0;
+    int spacing = layout.horizontalSpacing * (layout.numColumns - 1);
+    int available = headerWidth - iconWidth - chevronWidth - spacing - layout.marginWidth * 2;
     if (available <= 0) {
       return;
     }
-    GridData titleData = (GridData) titleText.getLayoutData();
-    int natural = titleText.computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
+    GridData titleData = (GridData) titleLabel.getLayoutData();
+    int natural = titleLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
     int newHint = Math.min(natural, available);
     if (newHint != titleData.widthHint) {
       titleData.widthHint = newHint;
@@ -400,8 +393,8 @@ public class ThinkingBlock extends Composite {
     header.setToolTipText(tooltip);
     chevronLabel.setImage(image);
     chevronLabel.setToolTipText(tooltip);
-    if (titleViewer != null && !titleViewer.getTextWidget().isDisposed()) {
-      titleViewer.getTextWidget().setToolTipText(tooltip);
+    if (titleLabel != null && !titleLabel.isDisposed()) {
+      titleLabel.setToolTipText(tooltip);
     }
   }
 
