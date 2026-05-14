@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -198,7 +199,7 @@ public class ThinkingBlock extends Composite {
     titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
     UiUtils.applyCssClass(titleLabel, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
 
-    var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+    ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
     if (chatServiceManager != null) {
       chatServiceManager.getChatFontService().registerControl(titleLabel);
     }
@@ -305,7 +306,7 @@ public class ThinkingBlock extends Composite {
       contentWidth = SWT.DEFAULT;
     }
     int contentHeight = body.computeSize(contentWidth, SWT.DEFAULT).y;
-    bodyScroller.setMinSize(body.computeSize(contentWidth, SWT.DEFAULT));
+    bodyScroller.setMinSize(contentWidth, contentHeight);
 
     // Grow with content up to max; avoids blank space when content is small.
     GridData scrollerData = (GridData) bodyScroller.getLayoutData();
@@ -438,7 +439,6 @@ public class ThinkingBlock extends Composite {
     bodyData.exclude = !expanded;
     body.setLayoutData(bodyData);
     body.setVisible(expanded);
-    body.moveBelow(bodyScroller);
     bodyScroller.dispose();
     bodyScroller = null;
   }
