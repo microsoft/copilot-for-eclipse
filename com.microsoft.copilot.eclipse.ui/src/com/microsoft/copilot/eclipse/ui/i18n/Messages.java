@@ -62,6 +62,8 @@ public final class Messages extends NLS {
   public static String menu_quota_additionalPremiumRequests;
   public static String menu_quota_enabled;
   public static String menu_quota_disabled;
+  public static String menu_quota_additionalUsageOrgEnabledTooltip;
+  public static String menu_quota_additionalUsageOrgNotConfiguredTooltip;
   public static String menu_quota_allowanceReset;
   public static String menu_quota_updateCopilotToPro;
   public static String menu_quota_updateCopilotToProPlus;

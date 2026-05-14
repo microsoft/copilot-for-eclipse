@@ -317,6 +317,14 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           handlerService, "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
     }
 
+    // "Additional usage enabled" / "Additional usage not enabled" status row, shown for paid
+    // users with a bounded premium-interactions quota
+    if (hasNonOrgPremiumQuota) {
+      MenuActionFactory.createMenuAction(menuManager, MenuUtils.getAdditionalUsageRowLabel(premiumQuota),
+          MenuUtils.getAdditionalUsageRowTooltip(quotaStatus), null, handlerService,
+          "com.microsoft.copilot.eclipse.commands.disabledDoNothing", false);
+    }
+
     // Upsell actions based on the user's plan
     ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
 
