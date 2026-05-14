@@ -14,7 +14,6 @@ import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -48,7 +47,6 @@ class DropdownPopup {
   private static final int ICON_TEXT_GAP = 6;
   private static final int LABEL_SUFFIX_GAP = 12;
   private static final int BORDER_ARC = 8;
-  private static final int ITEM_FOCUS_ARC = 6;
   private static final int MAX_VISIBLE_ITEMS = 15;
   private static final int SHORT_POPUP_WIDTH = 230;
   private static final int LONG_POPUP_WIDTH = 300;
@@ -60,7 +58,7 @@ class DropdownPopup {
   private Consumer<String> selectionListener;
   private String selectedItemId;
 
-  private record ItemEntry(DropdownItem item, Composite composite) {}
+  private record ItemEntry(DropdownItem item, Composite composite, ItemController row) {}
 
   private final List<ItemEntry> items = new ArrayList<>();
   private int focusedIndex = -1;
@@ -71,13 +69,8 @@ class DropdownPopup {
   private final IStylingEngine stylingEngine;
   private final Control anchorControl;
 
-  private static final String POPUP_ITEM_DEFAULT_ID = "popup-item-default";
-  private static final String POPUP_ITEM_FOCUSED_ID = "popup-item-focused";
-  private static final String POPUP_ITEM_SELECTED_ID = "popup-item-selected";
   private static final String POPUP_SECONDARY_TEXT_CLASS = "popup-secondary-text";
   private static final String POPUP_ACTION_TEXT_CLASS = "popup-action-text";
-  private static final String POPUP_ITEM_BASE_ID_KEY = "dropdownPopupItemBaseId";
-  private static final String POPUP_ITEM_FOCUSED_KEY = "dropdownPopupItemFocused";
 
   DropdownPopup(Shell parentShell, Control anchorControl) {
     this.parentShell = parentShell;
@@ -305,10 +298,10 @@ class DropdownPopup {
     headerComp.setLayout(layout);
     Label headerLabel = new Label(headerComp, SWT.NONE);
     headerLabel.setText(text);
-    headerLabel.setData(CssConstants.CSS_ID_KEY, POPUP_ITEM_DEFAULT_ID);
+    headerLabel.setData(CssConstants.CSS_ID_KEY, ItemController.CSS_DEFAULT_ID);
     setCssClassOnly(headerLabel, POPUP_SECONDARY_TEXT_CLASS);
     headerLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    applyCssIdRecursively(headerComp, POPUP_ITEM_DEFAULT_ID);
+    applyCssIdRecursively(headerComp, ItemController.CSS_DEFAULT_ID);
   }
 
   private void addSeparator(Composite parent) {
@@ -328,7 +321,7 @@ class DropdownPopup {
   private void addItem(Composite parent, DropdownItem item) {
     final Display display = parent.getDisplay();
     final boolean isSelected = item.getId() != null && item.getId().equals(selectedItemId);
-    final String itemBaseCssId = isSelected ? POPUP_ITEM_SELECTED_ID : POPUP_ITEM_DEFAULT_ID;
+    final String itemBaseCssId = isSelected ? ItemController.CSS_SELECTED_ID : ItemController.CSS_DEFAULT_ID;
 
     Composite itemComp = new Composite(parent, SWT.NONE);
     itemComp.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -337,10 +330,8 @@ class DropdownPopup {
     itemLayout.marginHeight = ITEM_V_PADDING;
     itemLayout.horizontalSpacing = ICON_TEXT_GAP;
     itemComp.setLayout(itemLayout);
-    itemComp.addPaintListener(e -> paintFocusedItemBackground(itemComp, e.gc));
 
-    items.add(new ItemEntry(item, itemComp));
-    final int itemIndex = items.size() - 1;
+    final int itemIndex = items.size();
 
     List<Control> controls = new ArrayList<>();
     controls.add(itemComp);
@@ -381,7 +372,8 @@ class DropdownPopup {
     setCssClassOnly(suffixLabel, POPUP_SECONDARY_TEXT_CLASS);
     controls.add(suffixLabel);
 
-    setPopupItemState(itemComp, itemBaseCssId, false);
+    ItemController rowController = ItemController.attach(itemComp, stylingEngine, itemBaseCssId);
+    items.add(new ItemEntry(item, itemComp, rowController));
 
     String tooltip = item.getTooltip();
     MouseTrackAdapter hoverTracker = buildHoverTracker(item, itemComp, itemIndex);
@@ -575,18 +567,15 @@ class DropdownPopup {
     if (index < 0 || index >= items.size()) {
       return;
     }
-    Composite itemComp = items.get(index).composite();
-    if (!itemComp.isDisposed()) {
-      if (focused) {
-        String baseId = (String) itemComp.getData(POPUP_ITEM_BASE_ID_KEY);
-        setPopupItemState(itemComp, baseId != null ? baseId : POPUP_ITEM_DEFAULT_ID, true);
-      } else {
-        DropdownItem item = items.get(index).item();
-        String baseId = item.getId() != null && item.getId().equals(selectedItemId) ? POPUP_ITEM_SELECTED_ID
-            : POPUP_ITEM_DEFAULT_ID;
-        setPopupItemState(itemComp, baseId, false);
-      }
+    ItemEntry entry = items.get(index);
+    if (entry.composite().isDisposed()) {
+      return;
     }
+    String baseId = entry.item().getId() != null && entry.item().getId().equals(selectedItemId)
+        ? ItemController.CSS_SELECTED_ID
+        : ItemController.CSS_DEFAULT_ID;
+    entry.row().setBaseCssId(baseId);
+    entry.row().setFocused(focused);
   }
 
   private void activateFocusedItem() {
@@ -623,35 +612,6 @@ class DropdownPopup {
 
   boolean isOpen() {
     return shell != null && !shell.isDisposed() && shell.isVisible();
-  }
-
-  private void setPopupItemState(Composite control, String baseCssId, boolean focused) {
-    String currentBaseCssId = (String) control.getData(POPUP_ITEM_BASE_ID_KEY);
-    boolean currentFocused = Boolean.TRUE.equals(control.getData(POPUP_ITEM_FOCUSED_KEY));
-    if (focused == currentFocused && baseCssId.equals(currentBaseCssId)) {
-      return;
-    }
-    control.setData(POPUP_ITEM_BASE_ID_KEY, baseCssId);
-    control.setData(POPUP_ITEM_FOCUSED_KEY, focused);
-    control.setRedraw(false);
-    applyCssId(control, baseCssId);
-    for (Control child : control.getChildren()) {
-      applyCssIdRecursively(child, focused ? POPUP_ITEM_FOCUSED_ID : baseCssId);
-    }
-    control.setRedraw(true);
-  }
-
-  private void paintFocusedItemBackground(Composite itemComp, GC gc) {
-    if (!Boolean.TRUE.equals(itemComp.getData(POPUP_ITEM_FOCUSED_KEY))) {
-      return;
-    }
-    Rectangle bounds = itemComp.getClientArea();
-    if (bounds.width <= 0 || bounds.height <= 0) {
-      return;
-    }
-    gc.setAntialias(SWT.ON);
-    gc.setBackground(CssConstants.getPopupItemFocusBgColor(itemComp.getDisplay()));
-    gc.fillRoundRectangle(0, 0, bounds.width, bounds.height, ITEM_FOCUS_ARC, ITEM_FOCUS_ARC);
   }
 
   private void applyCssId(Control control, String cssId) {
