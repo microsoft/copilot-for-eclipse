@@ -6,12 +6,15 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.Objects;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 
 /**
  * Result of a chat creation.
  */
 public class ChatCreateResult {
+  @NonNull
   private String conversationId;
+  @NonNull
   private String turnId;
   private String agentSlug;
   private String modelName;
