@@ -82,7 +82,7 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
     }
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     if (ls == null) {
-      target.showCancelled();
+      target.showCompleted(Messages.thinking_completedTitle);
       requestLayout();
       return;
     }
@@ -100,11 +100,19 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
           if (resp != null && StringUtils.isNotBlank(resp.title())) {
             target.showCompleted(resp.title());
           } else {
-            // Title fetch failed: surface the cancelled visual state so the spinner does not run forever.
-            target.showCancelled();
+            target.showCompleted(Messages.thinking_completedTitle);
           }
           requestLayout();
-        }, this));
+        }, this))
+        .exceptionally(ex -> {
+          SwtUtils.invokeOnDisplayThreadAsync(() -> {
+            if (!isDisposed() && !target.isDisposed() && !target.isFinalized()) {
+              target.showCompleted(Messages.thinking_completedTitle);
+              requestLayout();
+            }
+          }, this);
+          return null;
+        });
   }
 
   @Override
