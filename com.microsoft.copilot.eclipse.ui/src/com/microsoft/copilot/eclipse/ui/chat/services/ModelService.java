@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -277,10 +278,7 @@ public class ModelService extends ChatBaseService {
     CopilotModel currentActive = getActiveModel();
     boolean isCurrentModelAvailable = false;
     if (currentActive != null) {
-      String keyToFind = currentActive.getProviderName() != null
-          ? currentActive.getProviderName() + "_" + currentActive.getId()
-          : currentActive.getId();
-      isCurrentModelAvailable = modelsForCurrentMode.containsKey(keyToFind);
+      isCurrentModelAvailable = modelsForCurrentMode.containsKey(ModelUtils.getModelKey(currentActive));
     }
     if (currentActive == null || !isCurrentModelAvailable) {
       // Try to restore user's preferred model if it's available in current mode
@@ -405,6 +403,108 @@ public class ModelService extends ChatBaseService {
   }
 
   /**
+   * Returns the user-selected reasoning effort for the given model, or {@code null} when the user has not made a
+   * selection. Falls back to the persisted {@link UserPreference} when in-memory state is empty.
+   *
+   * @param model the model to query
+   * @return the selected reasoning effort, or {@code null}
+   */
+  public String getSelectedReasoningEffort(CopilotModel model) {
+    String key = ModelUtils.getModelKey(model);
+    if (key == null) {
+      return null;
+    }
+    UserPreference preference = getUserPreference();
+    return preference != null ? preference.getReasoningEffort(key) : null;
+  }
+
+  /**
+   * Resolves the reasoning effort that should be sent to the language server for the given model: the user's explicit
+   * selection when present, otherwise the inferred client-side default from
+   * {@link ModelUtils#resolveDefaultReasoningEffort(CopilotModel)}. Returns {@code null} for models that do not
+   * support reasoning-effort selection or for the special "auto" model.
+   *
+   * @param model the model that will receive the request
+   * @return the effort to send, or {@code null} to omit
+   */
+  public String resolveEffectiveReasoningEffort(CopilotModel model) {
+    String selected = getSelectedReasoningEffort(model);
+    if (StringUtils.isNotBlank(selected)) {
+      return selected;
+    }
+    return ModelUtils.resolveDefaultReasoningEffort(model);
+  }
+
+  /**
+   * Persists the user-selected reasoning effort for the given model and updates dependent observers.
+   *
+   * @param model the model to update
+   * @param reasoningEffort the reasoning effort to store (may be {@code null} to clear)
+   */
+  public void setSelectedReasoningEffort(CopilotModel model, String reasoningEffort) {
+    String key = ModelUtils.getModelKey(model);
+    if (key == null) {
+      return;
+    }
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
+    preference.setReasoningEffort(key, reasoningEffort);
+    CompletableFuture.runAsync(this::persistUserPreference);
+    // Rebuild bound model picker items so the row suffix (which includes the user-selected effort) reflects the
+    // new value the next time the dropdown opens. setItemGroups only affects subsequent open() calls; the
+    // currently open popup (if any) is closed explicitly by the caller after this method returns.
+    ensureRealm(this::refreshBoundModelPickers);
+    // Re-publish the active model so observers (e.g. model picker) refresh derived UI such as the picker tooltip.
+    if (Objects.equals(ModelUtils.getModelKey(getActiveModel()), key)) {
+      ensureRealm(() -> activeModelObservable.setValue(model));
+    }
+  }
+
+  /**
+   * Rebuilds the item groups on every bound model picker. Invoked when the user changes a setting (like the
+   * reasoning effort) that only affects the displayed suffix and not the underlying model list.
+   */
+  private void refreshBoundModelPickers() {
+    Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
+    if (modelMap == null || modelMap.isEmpty()) {
+      return;
+    }
+    boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
+        .copilotPlan() == CopilotPlan.free;
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean showByokManageOption = flags == null || flags.isByokEnabled();
+    CopilotModel activeModel = getActiveModel();
+    String activeDisplayText = activeModel != null ? buildModelButtonDisplayText(activeModel) : null;
+    for (DropdownButton picker : modelButtonSideEffects.keySet()) {
+      if (picker != null && !picker.isDisposed()) {
+        picker.setItemGroups(ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption,
+            showByokManageOption, this::resolveEffectiveReasoningEffort));
+        if (activeDisplayText != null) {
+          picker.setSelectedDisplayText(activeDisplayText);
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds the text shown on the model picker button face. (e.g. {@code "GPT-5.3-Codex - Medium"}).
+   */
+  private String buildModelButtonDisplayText(CopilotModel model) {
+    if (model == null) {
+      return "";
+    }
+    String name = model.getModelName();
+    String effort = resolveEffectiveReasoningEffort(model);
+    String effortLabel = ModelUtils.formatReasoningEffort(effort);
+    if (StringUtils.isBlank(effortLabel)) {
+      return name != null ? name : "";
+    }
+    return (name != null ? name : "") + " - " + effortLabel;
+  }
+
+  /**
    * Binds a {@link DropdownButton} to this service for model selection. The button displays model groups with per-item
    * tooltips and billing suffixes.
    *
@@ -434,7 +534,8 @@ public class ModelService extends ChatBaseService {
           FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
           boolean showByokManageOption = flags == null || flags.isByokEnabled();
           picker.setItemGroups(
-              ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption));
+              ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption,
+                  this::resolveEffectiveReasoningEffort));
         }
       });
 
@@ -445,6 +546,7 @@ public class ModelService extends ChatBaseService {
           return;
         }
         picker.setSelectedItemId(activeModel.getModelName());
+        picker.setSelectedDisplayText(buildModelButtonDisplayText(activeModel));
         String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
             ? " - " + activeModel.getDegradationReason() : "";
         picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));

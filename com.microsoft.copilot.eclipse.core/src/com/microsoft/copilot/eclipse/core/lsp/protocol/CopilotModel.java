@@ -44,12 +44,29 @@ public class CopilotModel {
 
   /**
    * Capabilities supports for the model.
+   *
+   * @param vision whether the model supports vision input
+   * @param reasoningEfforts the list of reasoning effort levels advertised by the model (e.g. {@code low}, {@code
+   *     medium}, {@code high}); may be {@code null} or empty when the model does not expose this list
+   * @param supportsReasoningEffortLevel whether the model surfaces selectable reasoning effort levels to the user
+   *     (the language server only reports {@code true} when the model has more than one effort level and is hosted on
+   *     a compatible endpoint)
    */
-  public record CopilotModelCapabilitiesSupports(boolean vision) {
+  public record CopilotModelCapabilitiesSupports(boolean vision, List<String> reasoningEfforts,
+      boolean supportsReasoningEffortLevel) {
+    /**
+     * Backwards-compatible constructor used by call sites that do not provide reasoning-effort metadata.
+     */
+    public CopilotModelCapabilitiesSupports(boolean vision) {
+      this(vision, null, false);
+    }
+
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.append("vision", vision);
+      builder.append("reasoningEfforts", reasoningEfforts);
+      builder.append("supportsReasoningEffortLevel", supportsReasoningEffortLevel);
       return builder.toString();
     }
   }

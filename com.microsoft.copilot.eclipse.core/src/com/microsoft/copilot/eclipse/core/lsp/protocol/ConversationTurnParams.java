@@ -34,6 +34,7 @@ public class ConversationTurnParams {
   private String[] ignoredSkills;
   private String model;
   private String modelProviderName;
+  private ModelInfo modelInfo;
   private String chatMode;
   private String customChatModeId;
 
@@ -174,6 +175,14 @@ public class ConversationTurnParams {
     this.modelProviderName = modelProviderName;
   }
 
+  public ModelInfo getModelInfo() {
+    return modelInfo;
+  }
+
+  public void setModelInfo(ModelInfo modelInfo) {
+    this.modelInfo = modelInfo;
+  }
+
   public String getAgentSlug() {
     return agentSlug;
   }
@@ -197,7 +206,7 @@ public class ConversationTurnParams {
     result = prime * result + Arrays.hashCode(ignoredSkills);
     result = prime * result
         + Objects.hash(agentSlug, chatMode, computeSuggestions, conversationId, customChatModeId, message, model,
-            modelProviderName, needToolCallConfirmation, references, textDocument, todoList, workDoneToken,
+            modelProviderName, modelInfo, needToolCallConfirmation, references, textDocument, todoList, workDoneToken,
             workspaceFolder, workspaceFolders);
     return result;
   }
@@ -219,6 +228,7 @@ public class ConversationTurnParams {
         && Objects.equals(customChatModeId, other.customChatModeId)
         && Arrays.equals(ignoredSkills, other.ignoredSkills) && Objects.equals(message, other.message)
         && Objects.equals(model, other.model) && Objects.equals(modelProviderName, other.modelProviderName)
+        && Objects.equals(modelInfo, other.modelInfo)
         && needToolCallConfirmation == other.needToolCallConfirmation && Objects.equals(references, other.references)
         && Objects.equals(textDocument, other.textDocument) && Objects.equals(todoList, other.todoList)
         && Objects.equals(workDoneToken, other.workDoneToken)
@@ -243,6 +253,7 @@ public class ConversationTurnParams {
     builder.append("customChatModeId", customChatModeId);
     builder.append("needToolCallConfirmation", needToolCallConfirmation);
     builder.append("modelProviderName", modelProviderName);
+    builder.append("modelInfo", modelInfo);
     builder.append("agentSlug", agentSlug);
     builder.append("todoList", todoList);
     return builder.toString();

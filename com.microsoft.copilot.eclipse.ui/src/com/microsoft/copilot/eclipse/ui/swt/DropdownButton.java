@@ -49,6 +49,7 @@ public class DropdownButton extends Composite {
   private final DropdownPopup popup;
   private List<DropdownItemGroup> itemGroups;
   private String selectedItemId;
+  private String selectedDisplayText;
   private boolean mouseHover;
 
   /**
@@ -138,6 +139,18 @@ public class DropdownButton extends Composite {
   }
 
   /**
+   * Overrides the text shown on the button face. When set to a non-blank value the button displays this text
+   * instead of the selected item's label. Pass {@code null} or blank to fall back to the selected item's label.
+   *
+   * @param displayText the text to display on the button face, or {@code null} to use the selected item's label
+   */
+  public void setSelectedDisplayText(String displayText) {
+    this.selectedDisplayText = displayText;
+    updateWidthHint();
+    redraw();
+  }
+
+  /**
    * Sets the listener called when the user selects an item, replacing any previously set listener.
    *
    * <p>Items with an {@code onAction} Runnable do <em>not</em> trigger this listener.
@@ -191,7 +204,7 @@ public class DropdownButton extends Composite {
     gc.fillRectangle(bounds);
 
     gc.setForeground(getForeground());
-    String text = selected != null ? selected.getLabel() : "";
+    String text = resolveDisplayText(selected);
     Point textExtent = gc.textExtent(text);
     int contentHeight = getContentHeight(textExtent, selectedIcon, arrowIcon);
     int contentTop = Math.max(0, (bounds.height - contentHeight) / 2);
@@ -214,6 +227,13 @@ public class DropdownButton extends Composite {
     }
   }
 
+  private String resolveDisplayText(DropdownItem selected) {
+    if (selectedDisplayText != null && !selectedDisplayText.isEmpty()) {
+      return selectedDisplayText;
+    }
+    return selected != null ? selected.getLabel() : "";
+  }
+
   private DropdownItem findItemById(String id) {
     if (id == null || itemGroups == null) {
       return null;
@@ -233,7 +253,7 @@ public class DropdownButton extends Composite {
     GC gc = new GC(this);
     try {
       DropdownItem selected = findItemById(selectedItemId);
-      String text = selected != null ? selected.getLabel() : "";
+      String text = resolveDisplayText(selected);
       Point textExtent = gc.textExtent(text.isEmpty() ? "M" : text);
       Image selectedIcon = getSelectedItemIcon(selected);
       int iconWidth = 0;
