@@ -208,7 +208,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       try {
         IWorkbenchPage page = getActivePage();
         if (page != null) {
-          IViewPart view = page.showView(IUIConstants.ID);
+          IViewPart view = page.showView(IUIConstants.ID, null, IWorkbenchPage.VIEW_VISIBLE);
           if (view != null) {
             tabFolder = view.getAdapter(CTabFolder.class);
             if (tabFolder != null) {
@@ -366,7 +366,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
         try {
           IWorkbenchPage page = getActivePage();
           if (page != null) {
-            IViewPart view = page.showView(IUIConstants.ID);
+            IViewPart view = page.showView(IUIConstants.ID, null, IWorkbenchPage.VIEW_VISIBLE);
             if (tabFolder.isDisposed() && view != null) {
               tabFolder = view.getAdapter(CTabFolder.class);
             }
