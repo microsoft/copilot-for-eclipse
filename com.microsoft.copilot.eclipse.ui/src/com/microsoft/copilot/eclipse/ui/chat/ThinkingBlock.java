@@ -34,7 +34,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ThinkingBlock extends Composite {
   private static final String SECONDARY_TEXT_CSS_CLASS = "text-secondary";
-  private static final Pattern TITLE_PATTERN = Pattern.compile("\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
+  private static final Pattern TITLE_PATTERN =
+      Pattern.compile("(?:^|\\n)\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
 
   private Composite header;
   private Label iconLabel;
