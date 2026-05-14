@@ -93,7 +93,7 @@ public class ThinkingBlock extends Composite {
     requestLayout();
   }
 
-  /** Hide the icon, set the title, and collapse. No-op if already finalized. Spinner was already stopped at SEALED. */
+  /** Update the title and finalize as completed. Block was already collapsed at seal time. */
   public void showCompleted(String title) {
     if (isFinalized()) {
       return;
@@ -105,7 +105,6 @@ public class ThinkingBlock extends Composite {
       iconLabel.requestLayout();
     }
     setTitleText(title);
-    setExpanded(false);
     state = State.COMPLETED;
   }
 
@@ -138,6 +137,7 @@ public class ThinkingBlock extends Composite {
     state = State.SEALED;
     stopSpinner();
     setTitleText(Messages.thinking_completedTitle);
+    setExpanded(false);
   }
 
   /** True only while new thinking stream fragments should still be appended to this block. */
