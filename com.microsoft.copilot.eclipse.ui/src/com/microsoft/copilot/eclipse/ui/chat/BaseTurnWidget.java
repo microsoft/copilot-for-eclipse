@@ -574,6 +574,15 @@ public abstract class BaseTurnWidget extends Composite {
    * @param modelProviderName the BYOK model-provider name, or {@code null} for built-in models
    */
   protected void createWarnDialog(String message, int code, String modelProviderName) {
+    // TODO: Remove this legacy fallback after TBB is officially released.
+    // When the language server has not enabled token-based billing yet, restore the original
+    // main-branch warning behavior (no plan-driven actions; single upgrade button on the legacy
+    // 30-day free trial message).
+    if (!this.serviceManager.getAuthStatusManager().getQuotaStatus().tokenBasedBillingEnabled()) {
+      new WarnWidget(this, SWT.BOTTOM, message, code);
+      requestLayout();
+      return;
+    }
     boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
     String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
     CopilotPlan planForActions = null;
