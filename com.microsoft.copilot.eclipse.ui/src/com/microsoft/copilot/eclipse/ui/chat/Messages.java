@@ -25,16 +25,13 @@ public final class Messages extends NLS {
   public static String agentMessageWidget_openInBrowserTooltip;
   public static String agentMessageWidget_openJobListButton;
   public static String agentMessageWidget_openJobListTooltip;
-  public static String agentMessageWidget_openJobListError;
   public static String handoffContainer_proceedFrom;
   public static String fileChangeSummary_filesChanged;
   public static String fileChangeSummary_fileChanged;
-  public static String fileChangeSummary_doneButton;
   public static String fileChangeSummary_keepButton;
   public static String fileChangeSummary_undoButton;
   public static String fileChangeSummary_collapseTooltip;
   public static String fileChangeSummary_expandTooltip;
-  public static String todoList_title;
   public static String todoList_titleWithCount;
   public static String todoList_clearButton;
   public static String todoList_clearButtonDisabled;
