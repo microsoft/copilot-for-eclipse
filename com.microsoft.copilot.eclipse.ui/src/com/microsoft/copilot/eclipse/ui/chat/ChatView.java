@@ -386,7 +386,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             boolean warning = "warning".equalsIgnoreCase(params.severity());
             boolean overageEnabled = params.premiumInteractions() != null
                 && params.premiumInteractions().overageEnabled();
-            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), overageEnabled, warning);
+            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), overageEnabled,
+                params.canUpgradePlan(), warning);
           }
         }, parent);
       }

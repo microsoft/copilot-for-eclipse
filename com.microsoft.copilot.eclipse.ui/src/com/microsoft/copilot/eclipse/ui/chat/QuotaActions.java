@@ -37,24 +37,31 @@ public final class QuotaActions {
   /**
    * Returns the ordered list of {@link QuotaAction}s appropriate for the supplied plan.
    *
-   * <p>Mapping:
+   * <p>Non-upgrade actions are derived from the plan:
    * <ul>
-   *   <li>{@code free} &rarr; "Upgrade Plan" (primary)</li>
-   *   <li>{@code individual}, {@code individual_pro} &rarr; "Enable Additional Usage" /
-   *       "Increase Budget" (primary) + "Upgrade Plan" (secondary)</li>
-   *   <li>{@code individual_max} &rarr; "Enable Additional Usage" / "Increase Budget" (primary)</li>
-   *   <li>{@code business}, {@code enterprise} &rarr; empty list</li>
-   *   <li>{@code null} &rarr; empty list</li>
+   *   <li>{@code free} &rarr; none</li>
+   *   <li>{@code individual}, {@code individual_pro}, {@code individual_max} &rarr;
+   *       "Enable Additional Usage" / "Increase Budget"</li>
+   *   <li>{@code business}, {@code enterprise} &rarr; none</li>
    * </ul>
    *
-   * <p>The "Enable Additional Usage" label is replaced with "Increase Budget" when {@code overageEnabled}
-   * is {@code true}, matching the IntelliJ quota dialog wording.
+   * <p>The "Upgrade Plan" action is then appended when the user is eligible. When
+   * {@code canUpgradePlan} is non-{@code null} it takes precedence over the plan-based default;
+   * otherwise the plan default is used (eligible for {@code free}, {@code individual},
+   * {@code individual_pro}). When the upgrade action is the only entry it is rendered as primary;
+   * when it follows another primary action it is rendered as secondary so the surfaces stay
+   * visually consistent.
+   *
+   * <p>The "Enable Additional Usage" label is replaced with "Increase Budget" when
+   * {@code overageEnabled} is {@code true}, matching the IntelliJ quota dialog wording.
    *
    * @param plan the user's Copilot plan, or {@code null} when unknown
    * @param overageEnabled {@code true} when additional paid usage is already enabled for the user
+   * @param canUpgradePlan whether the user can upgrade their Copilot plan, or {@code null} when the
+   *     language server did not supply this field
    * @return an immutable, possibly empty list; never {@code null}
    */
-  public static List<QuotaAction> forPlan(CopilotPlan plan, boolean overageEnabled) {
+  public static List<QuotaAction> forPlan(CopilotPlan plan, boolean overageEnabled, Boolean canUpgradePlan) {
     if (plan == null) {
       return List.of();
     }
@@ -69,20 +76,34 @@ public final class QuotaActions {
     QuotaAction manageOverage = new QuotaAction(overageLabel,
         Messages.chat_noQuotaView_enableAdditionalUsageButton_tooltip,
         UiConstants.MANAGE_COPILOT_OVERAGE_URL, true);
-    return switch (plan) {
-      case free -> List.of(upgradePrimary);
-      case individual, individual_pro -> List.of(manageOverage, upgradeSecondary);
-      case individual_max -> List.of(manageOverage);
-      case business, enterprise -> List.of();
+
+    boolean hasOverage = switch (plan) {
+      case individual, individual_pro, individual_max -> true;
+      case free, business, enterprise -> false;
     };
+    boolean showUpgrade = canUpgradePlan != null ? canUpgradePlan : switch (plan) {
+      case free, individual, individual_pro -> true;
+      case individual_max, business, enterprise -> false;
+    };
+    if (hasOverage && showUpgrade) {
+      return List.of(manageOverage, upgradeSecondary);
+    }
+    if (hasOverage) {
+      return List.of(manageOverage);
+    }
+    if (showUpgrade) {
+      return List.of(upgradePrimary);
+    }
+    return List.of();
   }
 
   /**
    * Returns {@code true} when an error response represents a Bring-Your-Own-Key (BYOK) quota-exceeded
    * condition, i.e. a {@code 402} from the language server that also carries a non-blank model
    * provider name. BYOK usage is governed by the customer's provider account rather than the user's
-   * Copilot plan, so callers should suppress the plan-driven {@link #forPlan(CopilotPlan)} actions
-   * and substitute the BYOK-specific message in this case.
+   * Copilot plan, so callers should suppress the plan-driven
+   * {@link #forPlan(CopilotPlan, boolean, Boolean)} actions and substitute the BYOK-specific
+   * message in this case.
    *
    * @param code the error code from the language server
    * @param modelProviderName the BYOK model-provider name from the server payload, or {@code null}

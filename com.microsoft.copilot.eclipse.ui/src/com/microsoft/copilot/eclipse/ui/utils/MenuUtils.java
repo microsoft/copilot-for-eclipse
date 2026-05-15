@@ -126,8 +126,20 @@ public final class MenuUtils {
 
   /**
    * True when the "Upgrade Plan" row should be shown for the given plan.
+   *
+   * <p>{@code canUpgradePlan} is the language server's authoritative signal of whether the user is eligible
+   * to upgrade. When supplied (non-{@code null}) it takes precedence over the plan-based default; when
+   * {@code null} (older language server that does not yet send this field) we fall back to the previous
+   * plan-only heuristic.
+   *
+   * @param plan the user's Copilot plan
+   * @param canUpgradePlan whether the user can upgrade their Copilot plan, or {@code null} when the language
+   *     server did not supply this field
    */
-  public static boolean shouldShowUpgradePlanRow(CopilotPlan plan) {
+  public static boolean shouldShowUpgradePlanRow(CopilotPlan plan, Boolean canUpgradePlan) {
+    if (canUpgradePlan != null) {
+      return canUpgradePlan;
+    }
     return plan == CopilotPlan.free || plan == CopilotPlan.individual || plan == CopilotPlan.individual_pro;
   }
 

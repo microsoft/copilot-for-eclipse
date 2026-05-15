@@ -13,6 +13,8 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol.quota;
  * @param resetDateUtc ISO-8601 instant when the monthly allowance resets in UTC, or {@code null}
  * @param copilotPlan the user's Copilot plan
  * @param tokenBasedBillingEnabled whether the user's billing is token-based
+ * @param canUpgradePlan whether the user is eligible to upgrade their Copilot plan; {@code null} when the language
+ *     server has not supplied this field, in which case callers should fall back to plan-based defaults
  */
 public record CheckQuotaResult(
     Quota chat,
@@ -21,10 +23,11 @@ public record CheckQuotaResult(
     String resetDate,
     String resetDateUtc,
     CopilotPlan copilotPlan,
-    boolean tokenBasedBillingEnabled) {
+    boolean tokenBasedBillingEnabled,
+    Boolean canUpgradePlan) {
 
   private static final CheckQuotaResult EMPTY =
-      new CheckQuotaResult(null, null, null, null, null, null, false);
+      new CheckQuotaResult(null, null, null, null, null, null, false, null);
 
   /**
    * Returns an empty {@link CheckQuotaResult} used as a placeholder before the language server

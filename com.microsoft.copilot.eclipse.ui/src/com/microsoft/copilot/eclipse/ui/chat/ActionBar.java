@@ -977,16 +977,20 @@ public class ActionBar extends Composite implements NewConversationListener {
 
   /**
    * Show the quota-warning static banner above the input area. Action links are sourced from
-   * {@link QuotaActions#forPlan(CopilotPlan, boolean)} so they stay in sync with the inline {@link WarnWidget}.
+   * {@link QuotaActions#forPlan(CopilotPlan, boolean, Boolean)} so they stay in sync with the inline
+   * {@link WarnWidget}.
    *
    * @param message the message to display
    * @param plan the user's Copilot plan, or {@code null} for no action links
    * @param overageEnabled whether additional paid usage is already enabled for the user; switches the
    *     "Enable Additional Usage" label to "Increase Budget"
+   * @param canUpgradePlan whether the user can upgrade their Copilot plan, or {@code null} when the language
+   *     server did not supply this field
    * @param warning {@code true} for the warning icon; {@code false} for the info icon
    */
-  public void createQuotaWarningBanner(String message, CopilotPlan plan, boolean overageEnabled, boolean warning) {
-    List<BannerAction> bannerActions = QuotaActions.forPlan(plan, overageEnabled).stream()
+  public void createQuotaWarningBanner(String message, CopilotPlan plan, boolean overageEnabled,
+      Boolean canUpgradePlan, boolean warning) {
+    List<BannerAction> bannerActions = QuotaActions.forPlan(plan, overageEnabled, canUpgradePlan).stream()
         .map(action -> new BannerAction(action.label(), action.url()))
         .toList();
     showStaticBanner(message, bannerActions, warning);

@@ -25,8 +25,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Widget that displays a warning message under a chat turn, optionally followed by plan-driven action buttons sourced
- * from {@link QuotaActions#forPlan(CopilotPlan, boolean)}. Presentation-only: the caller decides the message and
- * whether to pass a plan.
+ * from {@link QuotaActions#forPlan(CopilotPlan, boolean, Boolean)}. Presentation-only: the caller decides the message
+ * and whether to pass a plan.
  */
 public class WarnWidget extends Composite {
   private int buttonLeftMargin;
@@ -40,8 +40,11 @@ public class WarnWidget extends Composite {
    * @param userPlan the user's Copilot plan to render plan-driven action buttons, or {@code null} for no buttons
    * @param overageEnabled whether additional paid usage is already enabled for the user; switches the
    *     "Enable Additional Usage" label to "Increase Budget"
+   * @param canUpgradePlan whether the user can upgrade their Copilot plan, or {@code null} when the language
+   *     server did not supply this field; forwarded to {@link QuotaActions#forPlan(CopilotPlan, boolean, Boolean)}
    */
-  public WarnWidget(Composite parent, int style, String message, CopilotPlan userPlan, boolean overageEnabled) {
+  public WarnWidget(Composite parent, int style, String message, CopilotPlan userPlan, boolean overageEnabled,
+      Boolean canUpgradePlan) {
     super(parent, style | SWT.BORDER);
     GridLayout outerLayout = new GridLayout(1, true);
     outerLayout.verticalSpacing = 0;
@@ -51,7 +54,7 @@ public class WarnWidget extends Composite {
     buildWarnLabelWithIcon(message);
 
     if (userPlan != null) {
-      buildActionButtons(userPlan, overageEnabled);
+      buildActionButtons(userPlan, overageEnabled, canUpgradePlan);
     }
     parent.layout();
   }
@@ -83,8 +86,8 @@ public class WarnWidget extends Composite {
   /**
    * Render plan-driven action buttons for a quota-exceeded warning, kept in sync with the quota {@link StaticBanner}.
    */
-  private void buildActionButtons(CopilotPlan userPlan, boolean overageEnabled) {
-    List<QuotaAction> actions = QuotaActions.forPlan(userPlan, overageEnabled);
+  private void buildActionButtons(CopilotPlan userPlan, boolean overageEnabled, Boolean canUpgradePlan) {
+    List<QuotaAction> actions = QuotaActions.forPlan(userPlan, overageEnabled, canUpgradePlan);
     if (actions.isEmpty()) {
       return;
     }
