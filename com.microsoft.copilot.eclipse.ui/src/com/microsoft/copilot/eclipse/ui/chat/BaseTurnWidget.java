@@ -395,12 +395,21 @@ public abstract class BaseTurnWidget extends Composite {
       return;
     }
 
+    // Restore thinking blocks for the subagent
+    BaseTurnWidget subagentWidget = block.getSubagentTurnWidget();
+    ThinkingTurnWidget thinkingWidget =
+        subagentWidget instanceof ThinkingTurnWidget ? (ThinkingTurnWidget) subagentWidget : null;
+
     if (StringUtils.isNotBlank(replyData.getText())) {
       block.appendMessage(replyData.getText());
     }
 
     if (replyData.getEditAgentRounds() != null) {
       for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
+        // Restore thinking block before the round's reply and tool calls
+        if (thinkingWidget != null && round.getThinkingBlock() != null) {
+          thinkingWidget.restoreThinkingBlock(round.getThinkingBlock());
+        }
         if (round.getReply() != null && !round.getReply().isEmpty()) {
           block.appendMessage(round.getReply());
         }
@@ -415,14 +424,14 @@ public abstract class BaseTurnWidget extends Composite {
 
     // Restore error messages into the subagent block
     if (replyData.getErrorMessages() != null) {
-      BaseTurnWidget subagentWidget = block.getSubagentTurnWidget();
-      if (subagentWidget != null) {
+      BaseTurnWidget errorWidget = block.getSubagentTurnWidget();
+      if (errorWidget != null) {
         for (CopilotTurnData.ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
           CopilotTurnData.ErrorData errorData = errorMessageData.getError();
           String errorMessage = errorData != null ? errorData.getMessage() : "";
           int errorCode = errorData != null ? errorData.getCode() : 0;
           String modelProviderName = errorData != null ? errorData.getModelProviderName() : null;
-          subagentWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
+          errorWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
         }
       }
     }

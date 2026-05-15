@@ -105,6 +105,31 @@ class ThinkingBlockParseTest {
     assertEquals("body two", body(sections.get(1)));
   }
 
+  @Test
+  void parseSections_adjacentTitles_withNoBodyBetween() throws Exception {
+    // Two titles back-to-back with no body text between them must not throw
+    // StringIndexOutOfBoundsException (regression test for cursor > matcher.start() case).
+    String raw = "**Title1**\n**Title2**\nbody after both";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(2, sections.size());
+    assertEquals("Title1", title(sections.get(0)));
+    assertEquals("", body(sections.get(0)));
+    assertEquals("Title2", title(sections.get(1)));
+    assertEquals("body after both", body(sections.get(1)));
+  }
+
+  @Test
+  void parseSections_adjacentTitles_crlf() throws Exception {
+    // Same scenario with CRLF line endings.
+    String raw = "**Title1**\r\n**Title2**\r\nbody";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(2, sections.size());
+    assertEquals("Title1", title(sections.get(0)));
+    assertEquals("", body(sections.get(0)));
+    assertEquals("Title2", title(sections.get(1)));
+    assertEquals("body", body(sections.get(1)));
+  }
+
   private static String invokeStripTrailingNewlines(String input) throws Exception {
     Method m = ThinkingBlock.class.getDeclaredMethod("stripTrailingNewlines", String.class);
     m.setAccessible(true);

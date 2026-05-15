@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -58,10 +59,12 @@ public class ChatContentViewer extends ScrolledComposite {
       Pattern.compile("\\s*\\|?\\s*(?:GitHub\\s+)?Request\\s+ID:\\s*\\S+\\.?", Pattern.CASE_INSENSITIVE);
 
   private ChatServiceManager serviceManager;
+  private String conversationId;
 
   private Composite cmpContent;
 
   private Map<String, BaseTurnWidget> turns;
+  private Map<String, String> activeThinkingBlockIds;
   private Composite errorWidget;
 
   private BaseTurnWidget latestUserTurn;
@@ -117,6 +120,7 @@ public class ChatContentViewer extends ScrolledComposite {
     }
 
     this.turns = new HashMap<>();
+    this.activeThinkingBlockIds = new ConcurrentHashMap<>();
 
     this.serviceManager = serviceManager;
 
@@ -166,11 +170,17 @@ public class ChatContentViewer extends ScrolledComposite {
       }
 
       turns.put(workDoneToken, turnWidget);
+      activeThinkingBlockIds.remove(workDoneToken);
       ref.set(turnWidget);
     }, this);
 
     return ref.get();
 
+  }
+
+  /** Set the conversation ID used for thinking-block persistence. */
+  public void setConversationId(String conversationId) {
+    this.conversationId = conversationId;
   }
 
   /**
@@ -191,7 +201,9 @@ public class ChatContentViewer extends ScrolledComposite {
 
       if (value.getKind() == WorkDoneProgressKind.report) {
         if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+          thinkingTurn.setConversationContext(conversationId, value.getTurnId());
           thinkingTurn.appendThinking(value.getThinking());
+          updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
           if (hasRenderableOutput(value)) {
             // Seal before appending the reply so the spinner stops and the title is fetched.
             thinkingTurn.sealThinking();
@@ -221,6 +233,7 @@ public class ChatContentViewer extends ScrolledComposite {
         // Seal any in-progress thinking block before the turn ends.
         if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
           thinkingTurn.sealThinking();
+          updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
         }
         turnWidget.notifyTurnEnd();
       }
@@ -288,6 +301,20 @@ public class ChatContentViewer extends ScrolledComposite {
         }
       }
     }, this);
+  }
+
+  /** Returns the active thinking block ID last observed while processing this turn's progress. */
+  public String getActiveThinkingBlockId(String turnId) {
+    return activeThinkingBlockIds.get(turnId);
+  }
+
+  private void updateActiveThinkingBlockId(String turnId, ThinkingTurnWidget thinkingTurn) {
+    String thinkingBlockId = thinkingTurn.getActiveThinkingBlockId();
+    if (StringUtils.isBlank(thinkingBlockId)) {
+      activeThinkingBlockIds.remove(turnId);
+    } else {
+      activeThinkingBlockIds.put(turnId, thinkingBlockId);
+    }
   }
 
   /**

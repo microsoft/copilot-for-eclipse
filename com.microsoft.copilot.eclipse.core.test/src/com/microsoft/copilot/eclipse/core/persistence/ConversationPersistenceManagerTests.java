@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,10 +36,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
 @ExtendWith(MockitoExtension.class)
@@ -187,7 +193,7 @@ class ConversationPersistenceManagerTests {
 
     when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
 
-    CompletableFuture<Void> result = persistenceManager.cacheConversationProgress(conversationId, progress);
+    CompletableFuture<Void> result = persistenceManager.cacheConversationProgress(conversationId, progress, null);
 
     result.get(); // Wait for completion
 
@@ -199,6 +205,76 @@ class ConversationPersistenceManagerTests {
   }
 
   @Test
+  void testUpdateThinkingBlockTitle_updatesCachedThinkingBlockById() throws Exception {
+    ConversationPersistenceManager manager = createManagerWithRealDataFactory();
+    String conversationId = "00000000-0000-0000-0000-000000000000";
+    String turnId = "00000000-0000-0000-0000-000000000002";
+    String thinkingBlockId = "thinking-block-1";
+    ConversationData conversationData = createTestConversationData(conversationId);
+    when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
+
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "thinking content"), thinkingBlockId).get();
+    manager.updateThinkingBlockTitle(conversationId, turnId, thinkingBlockId, "Generated title").get();
+
+    ThinkingBlockData block = getCachedCopilotTurn(manager, conversationId, turnId).getReply()
+      .getEditAgentRounds().get(0).getThinkingBlock();
+    assertNotNull(block);
+    assertEquals(thinkingBlockId, block.getId());
+    assertEquals("Generated title", block.getTitle());
+  }
+
+  @Test
+  void testCancelThinkingBlock_updatesCachedThinkingBlockById() throws Exception {
+    ConversationPersistenceManager manager = createManagerWithRealDataFactory();
+    String conversationId = "00000000-0000-0000-0000-000000000000";
+    String turnId = "00000000-0000-0000-0000-000000000002";
+    String thinkingBlockId = "thinking-block-1";
+    ConversationData conversationData = createTestConversationData(conversationId);
+    when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
+
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "thinking content"), thinkingBlockId).get();
+    manager.cancelThinkingBlock(conversationId, turnId, thinkingBlockId).get();
+
+    ThinkingBlockData block = getCachedCopilotTurn(manager, conversationId, turnId).getReply()
+      .getEditAgentRounds().get(0).getThinkingBlock();
+    assertNotNull(block);
+    assertEquals(thinkingBlockId, block.getId());
+    assertEquals(ThinkingBlockState.CANCELLED, block.getState());
+  }
+
+  @Test
+  void testCacheConversationProgress_withThinkingBlockId_updatesMatchingPlaceholderRound() throws Exception {
+    ConversationPersistenceManager manager = createManagerWithRealDataFactory();
+    String conversationId = "00000000-0000-0000-0000-000000000000";
+    String turnId = "00000000-0000-0000-0000-000000000002";
+    String firstThinkingBlockId = "thinking-block-1";
+    String secondThinkingBlockId = "thinking-block-2";
+    ConversationData conversationData = createTestConversationData(conversationId);
+    when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
+
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "first"), firstThinkingBlockId).get();
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "second"), secondThinkingBlockId).get();
+    manager.cacheConversationProgress(conversationId,
+        createAgentRoundProgressValue(conversationId, turnId, 1, "round reply"), secondThinkingBlockId).get();
+
+    ReplyData reply = getCachedCopilotTurn(manager, conversationId, turnId).getReply();
+    List<EditAgentRoundData> rounds = reply.getEditAgentRounds();
+    assertEquals(2, rounds.size());
+    EditAgentRoundData updatedRound = rounds.stream()
+        .filter(round -> round.getRoundId() == 1)
+        .findFirst()
+        .orElseThrow();
+    assertEquals(secondThinkingBlockId, updatedRound.getThinkingBlock().getId());
+    assertEquals("round reply", updatedRound.getReply());
+    assertTrue(rounds.stream()
+        .anyMatch(round -> firstThinkingBlockId.equals(round.getThinkingBlock().getId())));
+  }
+
+  @Test
   void testPersistConversationProgress_Success() throws Exception {
     String conversationId = "00000000-0000-0000-0000-000000000000";
     ChatProgressValue progress = createTestChatProgressValue();
@@ -206,7 +282,7 @@ class ConversationPersistenceManagerTests {
 
     when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
 
-    CompletableFuture<Void> result = persistenceManager.persistConversationProgress(conversationId, progress);
+    CompletableFuture<Void> result = persistenceManager.persistConversationProgress(conversationId, progress, null);
 
     result.get(); // Wait for completion
 
@@ -229,7 +305,7 @@ class ConversationPersistenceManagerTests {
     assertNotNull(result);
     assertEquals(conversationId, result.getConversationId());
     verify(mockDataFactory).updateConversationMetadata(newConversationData, progress);
-    verify(mockDataFactory).updateReplyFromProgress(any(), eq(progress));
+    verify(mockDataFactory).updateReplyFromProgress(any(), eq(progress), isNull());
   }
 
   // Helper methods to create test data
@@ -293,5 +369,51 @@ class ConversationPersistenceManagerTests {
     progress.setReply("Test reply");
     progress.setSuggestedTitle("Test Suggested Title");
     return progress;
+  }
+
+  private ConversationPersistenceManager createManagerWithRealDataFactory() throws Exception {
+    ConversationPersistenceManager manager = new ConversationPersistenceManager(mockAuthStatusManager);
+    setPrivateField(manager, "persistenceService", mockPersistenceService);
+    return manager;
+  }
+
+  private CopilotTurnData getCachedCopilotTurn(ConversationPersistenceManager manager, String conversationId,
+      String turnId) throws Exception {
+    ConversationData conversationData = manager.loadConversation(conversationId).get();
+    assertNotNull(conversationData);
+    return conversationData.getTurns().stream()
+        .filter(CopilotTurnData.class::isInstance)
+        .map(CopilotTurnData.class::cast)
+        .filter(turn -> turnId.equals(turn.getTurnId()))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private ChatProgressValue createThinkingProgressValue(String conversationId, String turnId, String thinkingText) {
+    ChatProgressValue progress = new ChatProgressValue();
+    progress.setKind(WorkDoneProgressKind.report);
+    progress.setConversationId(conversationId);
+    progress.setTurnId(turnId);
+    progress.setThinking(new Thinking("server-thinking-id", thinkingText, null));
+    return progress;
+  }
+
+  private ChatProgressValue createAgentRoundProgressValue(String conversationId, String turnId, int roundId,
+      String reply) throws Exception {
+    ChatProgressValue progress = new ChatProgressValue();
+    progress.setKind(WorkDoneProgressKind.report);
+    progress.setConversationId(conversationId);
+    progress.setTurnId(turnId);
+    AgentRound round = new AgentRound();
+    setPrivateField(round, "roundId", roundId);
+    setPrivateField(round, "reply", reply);
+    setPrivateField(progress, "editAgentRounds", List.of(round));
+    return progress;
+  }
+
+  private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
+    var field = target.getClass().getDeclaredField(fieldName);
+    field.setAccessible(true);
+    field.set(target, value);
   }
 }

@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
@@ -63,6 +65,7 @@ public class ThinkingBlock extends Composite {
    */
   private enum State { STREAMING, SEALED, COMPLETED, CANCELLED }
 
+  private final String thinkingId = UUID.randomUUID().toString();
   private State state = State.STREAMING;
   private SpinnerAnimator spinner;
   private Image cancelledIcon;
@@ -121,14 +124,14 @@ public class ThinkingBlock extends Composite {
    * content finished, title fetch in flight), simply finalizes as completed since thinking itself was not interrupted.
    * No-op if already finalized.
    */
-  public void showCancelled() {
+  public boolean showCancelled() {
     if (isFinalized()) {
-      return;
+      return false;
     }
     if (state == State.SEALED) {
       // Thinking content already finished; just finalize without the cancel icon.
       showCompleted();
-      return;
+      return false;
     }
     stopSpinner();
     if (cancelledIcon == null || cancelledIcon.isDisposed()) {
@@ -140,6 +143,7 @@ public class ThinkingBlock extends Composite {
     setExpanded(false);
     unwrapBodyFromScroller();
     state = State.CANCELLED;
+    return true;
   }
 
   /**
@@ -165,6 +169,11 @@ public class ThinkingBlock extends Composite {
   /** True once the block has been completed or cancelled (spinner stopped, final title shown). */
   public boolean isFinalized() {
     return state == State.COMPLETED || state == State.CANCELLED;
+  }
+
+  /** The unique ID for this thinking block, shared with the persistence layer. */
+  public String getThinkingId() {
+    return thinkingId;
   }
 
   /** The full accumulated thinking text streamed so far. */
@@ -272,7 +281,14 @@ public class ThinkingBlock extends Composite {
     if (body == null || body.isDisposed()) {
       return;
     }
-    List<ParsedSection> parsed = parseSections(textBuffer.toString());
+    List<ParsedSection> parsed;
+    try {
+      parsed = parseSections(textBuffer.toString());
+    } catch (RuntimeException e) {
+      // Fallback: render the entire text as a single untitled section rather than crashing the chat view.
+      CopilotCore.LOGGER.error("Failed to parse thinking sections", e);
+      parsed = List.of(new ParsedSection(null, textBuffer.toString()));
+    }
 
     // Sections are append-only: titles never change and new ones are appended at the tail. Update existing
     // bodies in place and create widgets only for newly parsed sections.
@@ -348,7 +364,9 @@ public class ThinkingBlock extends Composite {
     while (matcher.find()) {
       // Preserve the body's original whitespace (e.g. leading indentation for code blocks); only strip the
       // trailing newline(s) that visually separate the body from the upcoming title delimiter.
-      String body = stripTrailingNewlines(raw.substring(cursor, matcher.start()));
+      String body = cursor <= matcher.start()
+          ? stripTrailingNewlines(raw.substring(cursor, matcher.start()))
+          : "";
       if (currentTitle != null || !body.isBlank()) {
         result.add(new ParsedSection(currentTitle, body));
       }

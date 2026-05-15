@@ -365,7 +365,8 @@ public class CopilotTurnData extends AbstractTurnData {
           && hideText == other.hideText && Objects.equals(notifications, other.notifications)
           && Objects.equals(panelMessages, other.panelMessages) && Objects.equals(rating, other.rating)
           && Objects.equals(references, other.references) && Objects.equals(steps, other.steps)
-          && Objects.equals(agentMessages, other.agentMessages) && Objects.equals(text, other.text)
+          && Objects.equals(agentMessages, other.agentMessages)
+          && Objects.equals(text, other.text)
           && Objects.equals(modelName, other.modelName)
           && Double.compare(billingMultiplier, other.billingMultiplier) == 0
           && Objects.equals(reasoningEffort, other.reasoningEffort);
@@ -531,6 +532,7 @@ public class CopilotTurnData extends AbstractTurnData {
     private String reply;
     private List<ToolCallData> toolCalls;
     private Map<String, Object> data;
+    private ThinkingBlockData thinkingBlock;
 
     public int getRoundId() {
       return roundId;
@@ -564,9 +566,17 @@ public class CopilotTurnData extends AbstractTurnData {
       this.data = data;
     }
 
+    public ThinkingBlockData getThinkingBlock() {
+      return thinkingBlock;
+    }
+
+    public void setThinkingBlock(ThinkingBlockData thinkingBlock) {
+      this.thinkingBlock = thinkingBlock;
+    }
+
     @Override
     public int hashCode() {
-      return Objects.hash(data, reply, roundId, toolCalls);
+      return Objects.hash(data, reply, roundId, toolCalls, thinkingBlock);
     }
 
     @Override
@@ -582,7 +592,7 @@ public class CopilotTurnData extends AbstractTurnData {
       }
       EditAgentRoundData other = (EditAgentRoundData) obj;
       return Objects.equals(data, other.data) && Objects.equals(reply, other.reply) && roundId == other.roundId
-          && Objects.equals(toolCalls, other.toolCalls);
+          && Objects.equals(toolCalls, other.toolCalls) && Objects.equals(thinkingBlock, other.thinkingBlock);
     }
 
     @Override
@@ -592,6 +602,7 @@ public class CopilotTurnData extends AbstractTurnData {
       builder.append("reply", reply);
       builder.append("toolCalls", toolCalls);
       builder.append("data", data);
+      builder.append("thinkingBlock", thinkingBlock);
       return builder.toString();
     }
   }
@@ -770,6 +781,104 @@ public class CopilotTurnData extends AbstractTurnData {
       builder.append("prLink", prLink);
       builder.append("agentSlug", agentSlug);
       builder.append("data", data);
+      return builder.toString();
+    }
+  }
+
+  /** Possible final states for a thinking block. */
+  public enum ThinkingBlockState {
+    /** The thinking block completed normally. */
+    COMPLETED,
+    /** The thinking block was cancelled by the user. */
+    CANCELLED
+  }
+
+  /** Data class representing a persisted thinking block. */
+  public static class ThinkingBlockData {
+    private ThinkingBlockState state;
+    private String id;
+    private String content;
+    private String title;
+
+    /** Default constructor. */
+    public ThinkingBlockData() {
+    }
+
+    /** Construct with id and content. */
+    public ThinkingBlockData(String id, String content) {
+      this.id = id;
+      this.content = content;
+    }
+
+    public ThinkingBlockState getState() {
+      return state;
+    }
+
+    public void setState(ThinkingBlockState state) {
+      this.state = state;
+    }
+
+    public boolean isCompleted() {
+      return state == ThinkingBlockState.COMPLETED;
+    }
+
+    public boolean isCancelled() {
+      return state == ThinkingBlockState.CANCELLED;
+    }
+
+    public boolean isFinalized() {
+      return state != null;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    public void setId(String id) {
+      this.id = id;
+    }
+
+    public String getContent() {
+      return content;
+    }
+
+    public void setContent(String content) {
+      this.content = content;
+    }
+
+    public String getTitle() {
+      return title;
+    }
+
+    public void setTitle(String title) {
+      this.title = title;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, content, title, state);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      ThinkingBlockData other = (ThinkingBlockData) obj;
+      return Objects.equals(id, other.id) && Objects.equals(content, other.content)
+          && Objects.equals(title, other.title) && Objects.equals(state, other.state);
+    }
+
+    @Override
+    public String toString() {
+      ToStringBuilder builder = new ToStringBuilder(this);
+      builder.append("id", id);
+      builder.append("content", content);
+      builder.append("title", title);
+      builder.append("state", state);
       return builder.toString();
     }
   }

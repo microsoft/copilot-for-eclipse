@@ -24,6 +24,10 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
 /**
@@ -201,12 +205,18 @@ public class ConversationPersistenceManager {
 
   /**
    * Updates a conversation with progress data and caches it only (no disk persistence).
+   *
+   * @param conversationId the conversation ID
+   * @param progress the progress value
+   * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
    */
-  public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress) {
+  public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress,
+      String thinkingBlockId) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
-        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress);
+        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress,
+            thinkingBlockId);
         conversationCache.put(conversationId, conversationData);
       } catch (Exception e) {
         CopilotCore.LOGGER.error("Failed to cache conversation progress: " + conversationId, e);
@@ -218,12 +228,18 @@ public class ConversationPersistenceManager {
 
   /**
    * Updates a conversation with progress data and persists it to disk.
+   *
+   * @param conversationId the conversation ID
+   * @param progress the progress value
+   * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
    */
-  public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress) {
+  public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress,
+      String thinkingBlockId) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
-        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress);
+        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress,
+            thinkingBlockId);
         persistAndCacheConversation(conversationData);
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to persist conversation progress: " + conversationId, e);
@@ -262,7 +278,7 @@ public class ConversationPersistenceManager {
     return CompletableFuture.supplyAsync(() -> {
       lock.writeLock().lock();
       try {
-        return updateConversationProgressInternal(conversationId, progress);
+        return updateConversationProgressInternal(conversationId, progress, null);
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to update conversation progress: " + conversationId, e);
         throw new RuntimeException("Failed to update conversation progress", e);
@@ -275,8 +291,8 @@ public class ConversationPersistenceManager {
   /**
    * Internal method to update conversation progress without locking (caller must hold write lock).
    */
-  private ConversationData updateConversationProgressInternal(String conversationId, ChatProgressValue progress)
-      throws IOException {
+  private ConversationData updateConversationProgressInternal(String conversationId, ChatProgressValue progress,
+      String thinkingBlockId) throws IOException {
     ConversationData conversationData = getOrCreateNewConversationById(conversationId);
 
     // Update conversation metadata using factory
@@ -284,7 +300,8 @@ public class ConversationPersistenceManager {
 
     // Find or create turn and update it
     CopilotTurnData copilotTurnData = findOrCreateCopilotTurn(conversationData, progress.getTurnId());
-    dataFactory.updateReplyFromProgress(copilotTurnData.getReply(), progress);
+    ReplyData reply = copilotTurnData.getReply();
+    dataFactory.updateReplyFromProgress(reply, progress, thinkingBlockId);
 
     // Mark subagent turns with their parent turn ID
     if (StringUtils.isNotBlank(progress.getParentTurnId())) {
@@ -298,6 +315,86 @@ public class ConversationPersistenceManager {
 
     return conversationData;
   }
+
+  /**
+  * Sets the title on the thinking block with the given ID.
+   *
+   * @param conversationId the conversation ID
+   * @param turnId the turn ID
+   * @param thinkingBlockId the thinking block ID
+   * @param title the generated title
+   */
+  public CompletableFuture<Void> updateThinkingBlockTitle(String conversationId, String turnId, String thinkingBlockId,
+      String title) {
+    if (StringUtils.isAnyBlank(conversationId, turnId, thinkingBlockId, title)) {
+      return CompletableFuture.completedFuture(null);
+    }
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ThinkingBlockData block = findThinkingBlock(conversationId, turnId, thinkingBlockId);
+        if (block != null) {
+          block.setTitle(title);
+        }
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
+  * Cancels the thinking block with the given ID.
+   *
+   * @param conversationId the conversation ID
+   * @param turnId the turn ID
+   * @param thinkingBlockId the thinking block ID
+   */
+  public CompletableFuture<Void> cancelThinkingBlock(String conversationId, String turnId, String thinkingBlockId) {
+    if (StringUtils.isAnyBlank(conversationId, turnId, thinkingBlockId)) {
+      return CompletableFuture.completedFuture(null);
+    }
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ThinkingBlockData block = findThinkingBlock(conversationId, turnId, thinkingBlockId);
+        if (block != null) {
+          block.setState(ThinkingBlockState.CANCELLED);
+        }
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  private ThinkingBlockData findThinkingBlock(String conversationId, String turnId, String thinkingBlockId) {
+    ConversationData conversationData = conversationCache.get(conversationId);
+    if (conversationData == null) {
+      return null;
+    }
+    CopilotTurnData turn = findTurn(conversationData, turnId, CopilotTurnData.class);
+    if (turn == null || turn.getReply() == null) {
+      return null;
+    }
+    return findThinkingBlock(turn.getReply(), thinkingBlockId);
+  }
+
+  private ThinkingBlockData findThinkingBlock(ReplyData reply, String thinkingBlockId) {
+    if (reply == null || StringUtils.isBlank(thinkingBlockId)) {
+      return null;
+    }
+    List<EditAgentRoundData> rounds = reply.getEditAgentRounds();
+    if (rounds == null) {
+      return null;
+    }
+    for (EditAgentRoundData round : rounds) {
+      ThinkingBlockData block = round.getThinkingBlock();
+      if (block != null && thinkingBlockId.equals(block.getId())) {
+        return block;
+      }
+    }
+    return null;
+  }
+
 
   /**
    * Finds a turn by ID and type in the conversation.

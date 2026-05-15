@@ -826,10 +826,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             this.conversationId = newConversationId;
             this.conversationState = ConversationState.CONTINUED_CONVERSATION;
           }
+          // Always sync conversationId — chatContentViewer may have been recreated
+          if (this.chatContentViewer != null) {
+            this.chatContentViewer.setConversationId(this.conversationId);
+          }
         }
 
         // Cache conversation progress on begin
-        persistenceManager.cacheConversationProgress(this.conversationId, value);
+        persistenceManager.cacheConversationProgress(this.conversationId, value, null);
 
         // Set the CLS-assigned turnId on the last user turn that doesn't have one yet.
         // Chain off persistUserTurnFuture to ensure the UserTurnData has been created first.
@@ -878,6 +882,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
         }
+        String thinkingBlockId = this.chatContentViewer != null
+            ? this.chatContentViewer.getActiveThinkingBlockId(value.getTurnId()) : null;
 
         // Track run_subagent tool call ID for associating subagent turns
         if (StringUtils.isBlank(value.getParentTurnId()) && value.getAgentRounds() != null) {
@@ -902,7 +908,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (persistenceManager != null) {
           final String currentConversationId = this.conversationId;
           final String subagentToolCallId = this.lastRunSubagentToolCallId;
-          persistenceManager.cacheConversationProgress(currentConversationId, value)
+          persistenceManager.cacheConversationProgress(currentConversationId, value, thinkingBlockId)
               .thenCompose(v -> {
                 if (StringUtils.isNotBlank(value.getParentTurnId())
                     && StringUtils.isNotBlank(subagentToolCallId)) {
@@ -924,10 +930,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           this.actionBar.resetSendButton();
           this.topBanner.updateTitle(value.getSuggestedTitle());
         }
+        String endThinkingBlockId = this.chatContentViewer != null
+            ? this.chatContentViewer.getActiveThinkingBlockId(value.getTurnId()) : null;
 
         // Persist final conversation state and conversation title on end
         if (persistenceManager != null) {
-          persistenceManager.persistConversationProgress(this.conversationId, value);
+          persistenceManager.persistConversationProgress(this.conversationId, value, endThinkingBlockId);
 
           // Persist todo list at end phase
           TodoListService todoListService = chatServiceManager.getTodoListService();
@@ -1746,12 +1754,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
+    ThinkingTurnWidget thinkingWidget =
+        turnWidget instanceof ThinkingTurnWidget ? (ThinkingTurnWidget) turnWidget : null;
+
     if (StringUtils.isNotBlank(replyData.getText())) {
       turnWidget.appendMessage(replyData.getText());
     }
 
     if (replyData.getEditAgentRounds() != null && !replyData.getEditAgentRounds().isEmpty()) {
       for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
+        // Restore thinking block before the round's reply and tool calls
+        if (thinkingWidget != null && round.getThinkingBlock() != null) {
+          thinkingWidget.restoreThinkingBlock(round.getThinkingBlock());
+        }
         if (round.getReply() != null && !round.getReply().isEmpty()) {
           turnWidget.appendMessage(round.getReply());
         }
