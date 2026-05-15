@@ -119,6 +119,7 @@ public class ModelService extends ChatBaseService {
         @SuppressWarnings("unchecked")
         Map<String, List<ByokModel>> byokModels = (Map<String, List<ByokModel>>) modelsMap;
         saveRegisteredByokModels(byokModels);
+        reconcileReasoningEfforts();
         ensureRealm(() -> updateModelsForChatMode(currentChatMode));
       }
     };
@@ -173,6 +174,7 @@ public class ModelService extends ChatBaseService {
           try {
             fetchCopilotModels();
             fetchByokModels();
+            reconcileReasoningEfforts();
             ensureRealm(() -> {
               updateModelsForChatMode(currentChatMode);
             });
@@ -410,7 +412,8 @@ public class ModelService extends ChatBaseService {
 
   /**
    * Returns the user-selected reasoning effort for the given model, or {@code null} when the user has not made a
-   * selection. Falls back to the persisted {@link UserPreference} when in-memory state is empty.
+   * selection. The persisted snapshot is kept in sync with the current model inventory by
+   * {@link #reconcileReasoningEfforts()} after each model fetch, so this method is a pure lookup.
    *
    * @param model the model to query
    * @return the selected reasoning effort, or {@code null}
@@ -462,6 +465,54 @@ public class ModelService extends ChatBaseService {
     // resolveEffectiveReasoningEffort (which queries UserPreference), so this observable serves
     // purely as a change signal.
     ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
+  }
+
+  /**
+   * Reconciles the persisted reasoning-effort snapshot with the current model inventory
+   * ({@link #copilotModels} ∪ {@link #registeredByokModels}). Entries are kept only when the model still exists and
+   * the stored effort is still in that model's advertised reasoning-effort list; everything else is dropped. The
+   * map is replaced atomically.
+   *
+   * <p>Skipped when the inventory is empty (e.g. the very first fetch has not produced results yet or both fetches
+   * failed) so a transient outage cannot wipe every stored selection.
+   */
+  private void reconcileReasoningEfforts() {
+    if (copilotModels.isEmpty() && registeredByokModels.isEmpty()) {
+      return;
+    }
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
+    Map<String, String> snapshot = preference.getReasoningEffortSnapshot();
+    if (snapshot.isEmpty()) {
+      return;
+    }
+    Map<String, CopilotModel> inventory = new HashMap<>();
+    for (CopilotModel model : copilotModels.values()) {
+      inventory.put(model.getModelKey(), model);
+    }
+    for (CopilotModel model : registeredByokModels.values()) {
+      inventory.put(model.getModelKey(), model);
+    }
+    Map<String, String> reconciled = new HashMap<>();
+    for (Map.Entry<String, String> entry : snapshot.entrySet()) {
+      CopilotModel model = inventory.get(entry.getKey());
+      if (model == null) {
+        continue;
+      }
+      String stored = entry.getValue();
+      for (String effort : ModelUtils.getSupportedReasoningEfforts(model)) {
+        if (effort != null && effort.equalsIgnoreCase(stored)) {
+          reconciled.put(entry.getKey(), effort);
+          break;
+        }
+      }
+    }
+    if (preference.setReasoningEfforts(reconciled)) {
+      CompletableFuture.runAsync(this::persistUserPreference);
+      ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
+    }
   }
 
   /**

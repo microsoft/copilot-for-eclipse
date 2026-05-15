@@ -254,7 +254,7 @@ public class ModelUtils {
    * @param model the model
    * @return the list of supported reasoning effort identifiers (e.g. {@code low}, {@code medium}, {@code high})
    */
-  private static List<String> getSupportedReasoningEfforts(CopilotModel model) {
+  public static List<String> getSupportedReasoningEfforts(CopilotModel model) {
     if (model == null || model.getCapabilities() == null || model.getCapabilities().supports() == null) {
       return List.of();
     }

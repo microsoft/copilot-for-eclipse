@@ -137,6 +137,35 @@ public class UserPreference {
     reasoningEffortByModel = Map.copyOf(next);
   }
 
+  /**
+   * Atomically replaces the entire reasoning-effort map with the given snapshot, dropping any keys not present in
+   * {@code reasoningEffortsByModel}. {@code null} entries in the input map are ignored. Returns {@code true} when
+   * the new snapshot differs from the previous one (so callers can decide whether to persist or notify observers).
+   *
+   * @param reasoningEffortsByModel the new reasoning-effort map keyed by composite model key (matching the
+   *     {@link #getChatModel()} format); may be {@code null} or empty to clear all entries
+   * @return {@code true} when the stored map changed, {@code false} otherwise
+   */
+  public synchronized boolean setReasoningEfforts(Map<String, String> reasoningEffortsByModel) {
+    Map<String, String> updatedReasoningEfforts;
+    if (reasoningEffortsByModel == null || reasoningEffortsByModel.isEmpty()) {
+      updatedReasoningEfforts = Map.of();
+    } else {
+      Map<String, String> copy = new HashMap<>();
+      for (Map.Entry<String, String> entry : reasoningEffortsByModel.entrySet()) {
+        if (entry.getKey() != null && entry.getValue() != null) {
+          copy.put(entry.getKey(), entry.getValue());
+        }
+      }
+      updatedReasoningEfforts = Map.copyOf(copy);
+    }
+    if (updatedReasoningEfforts.equals(this.reasoningEffortByModel)) {
+      return false;
+    }
+    this.reasoningEffortByModel = updatedReasoningEfforts;
+    return true;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(chatModeName, chatModel, userInputs, skipGitHubJobConfirmDialog, reasoningEffortByModel);
