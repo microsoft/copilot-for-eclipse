@@ -219,7 +219,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
   private void addThinkingEffortOption(Composite parent, ModelService modelService, String effort, boolean isSelected,
       boolean isDefault, Runnable closeRequest) {
-    String displayText = ModelUtils.formatReasoningEffort(effort);
+    String displayText = ModelUtils.formatReasoningEffortLevel(effort);
     if (displayText == null) {
       return;
     }
@@ -257,7 +257,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     // Primary text color (default Label foreground); left-aligned in the middle column.
     optionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
 
-    String description = resolveReasoningEffortDescription(effort);
+    String description = ModelUtils.formatReasoningEffortDescription(effort);
     Label descriptionLabel = null;
     if (StringUtils.isNotBlank(description)) {
       descriptionLabel = new Label(row, SWT.NONE);
@@ -307,26 +307,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
         : new Control[] { row, iconLabel, optionLabel };
     for (Control c : interactiveControls) {
       c.addMouseListener(clickHandler);
-    }
-  }
-
-  private static String resolveReasoningEffortDescription(String effort) {
-    if (StringUtils.isBlank(effort)) {
-      return null;
-    }
-    switch (effort.toLowerCase()) {
-      case "none":
-        return Messages.model_reasoningEffort_none_description;
-      case "low":
-        return Messages.model_reasoningEffort_low_description;
-      case "medium":
-        return Messages.model_reasoningEffort_medium_description;
-      case "high":
-        return Messages.model_reasoningEffort_high_description;
-      case "xhigh":
-        return Messages.model_reasoningEffort_xhigh_description;
-      default:
-        return null;
     }
   }
 

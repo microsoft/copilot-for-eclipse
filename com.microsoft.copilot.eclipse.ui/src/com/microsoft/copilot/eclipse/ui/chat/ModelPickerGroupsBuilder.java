@@ -123,7 +123,7 @@ public final class ModelPickerGroupsBuilder {
       String effectiveEffort = reasoningEffortResolver != null ? reasoningEffortResolver.apply(model) : null;
       String suffix = ModelUtils.getModelSuffix(model, effectiveEffort);
       String name = model.getModelName();
-      String effortLabel = ModelUtils.formatReasoningEffort(effectiveEffort);
+      String effortLabel = ModelUtils.formatReasoningEffortLevel(effectiveEffort);
       String selectedLabel = StringUtils.isNotBlank(effortLabel) && StringUtils.isNotBlank(name)
           ? name + " - " + effortLabel : null;
       items.add(new DropdownItem.Builder().id(name).label(name).selectedLabel(selectedLabel).suffix(suffix)

@@ -75,7 +75,7 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
         }
         if (StringUtils.isNotBlank(modelName)) {
           Label modelInfoLabel = new Label(footer, SWT.NONE);
-          String formattedEffort = ModelUtils.formatReasoningEffort(reasoningEffort);
+          String formattedEffort = ModelUtils.formatReasoningEffortLevel(reasoningEffort);
           String modelWithEffort;
           if (StringUtils.isNotBlank(formattedEffort)) {
             modelWithEffort = modelName + " - " + formattedEffort;

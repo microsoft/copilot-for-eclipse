@@ -123,7 +123,7 @@ public class ModelUtils {
     // Only surface a reasoning-effort suffix when the model actually exposes more than one effort level. Models with
     // zero or a single effort have nothing meaningful for the user to pick, so the suffix would just be noise.
     if (getSupportedReasoningEfforts(model).size() > 1) {
-      addIfNotBlank(parts, formatReasoningEffort(reasoningEffort));
+      addIfNotBlank(parts, formatReasoningEffortLevel(reasoningEffort));
     }
     addIfNotBlank(parts, formatPriceCategory(model.getModelPickerPriceCategory()));
     return parts;
@@ -227,7 +227,7 @@ public class ModelUtils {
    * @param effort the effort identifier
    * @return the display label, or {@code null} when blank
    */
-  public static String formatReasoningEffort(String effort) {
+  public static String formatReasoningEffortLevel(String effort) {
     if (StringUtils.isBlank(effort)) {
       return null;
     }
@@ -245,6 +245,33 @@ public class ModelUtils {
         return Messages.model_reasoningEffort_xhigh;
       default:
         return Character.toUpperCase(trimmed.charAt(0)) + trimmed.substring(1).toLowerCase(Locale.ROOT);
+    }
+  }
+
+  /**
+   * Returns the localized secondary description for a reasoning effort identifier (e.g. {@code low} -> "Faster
+   * responses, less thorough reasoning"). Returns {@code null} when {@code effort} is blank or unrecognized.
+   *
+   * @param effort the effort identifier
+   * @return the localized description, or {@code null} when blank or unrecognized
+   */
+  public static String formatReasoningEffortDescription(String effort) {
+    if (StringUtils.isBlank(effort)) {
+      return null;
+    }
+    switch (effort.trim().toLowerCase(Locale.ROOT)) {
+      case "none":
+        return Messages.model_reasoningEffort_none_description;
+      case "low":
+        return Messages.model_reasoningEffort_low_description;
+      case "medium":
+        return Messages.model_reasoningEffort_medium_description;
+      case "high":
+        return Messages.model_reasoningEffort_high_description;
+      case "xhigh":
+        return Messages.model_reasoningEffort_xhigh_description;
+      default:
+        return null;
     }
   }
 
