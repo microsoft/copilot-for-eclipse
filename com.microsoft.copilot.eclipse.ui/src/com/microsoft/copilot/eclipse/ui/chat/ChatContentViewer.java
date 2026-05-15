@@ -246,9 +246,10 @@ public class ChatContentViewer extends ScrolledComposite {
         // original main-branch 402 behavior: replace the message with a plan-driven fallback
         // notice, switch to the fallback model, refresh quota, and replay the previous input.
         CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+        CopilotModel fallbackModel = null;
         if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402) {
           CopilotPlan userPlan = quotaStatus.copilotPlan();
-          CopilotModel fallbackModel = this.serviceManager.getModelService().getFallbackModel();
+          fallbackModel = this.serviceManager.getModelService().getFallbackModel();
           String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
               : Messages.chat_noQuotaView_fallbackModel;
 
@@ -264,8 +265,12 @@ public class ChatContentViewer extends ScrolledComposite {
         renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode(), value.getErrorModelProviderName());
 
         // TODO: Remove this legacy fallback after TBB is officially released.
+        // Only replay the previous input when a fallback model is actually available; otherwise
+        // setFallBackModelAsActiveModel() is a no-op and re-posting the input with the same
+        // active model would just trigger the same 402 again.
         if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402
-            && quotaStatus.copilotPlan() != CopilotPlan.free) {
+            && quotaStatus.copilotPlan() != CopilotPlan.free
+            && fallbackModel != null) {
           // Detach the failed turn so the replayed response creates a new Copilot turn below the
           // warning, instead of streaming into the same turn that just rendered the warn widget.
           this.latestTurnWidget = null;
