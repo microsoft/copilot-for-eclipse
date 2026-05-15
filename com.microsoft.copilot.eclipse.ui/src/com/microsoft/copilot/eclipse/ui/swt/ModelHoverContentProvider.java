@@ -37,8 +37,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title header,
- * an optional category badge, an optional degradation warning, and model-specific details such as context size, token
- * pricing, and context window.
+ * an optional category badge, an optional degradation warning, and model-specific details such as context size and
+ * token pricing.
  */
 public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
@@ -83,7 +83,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     CopilotModelCapabilitiesLimits limits = model.getCapabilities() != null ? model.getCapabilities().limits() : null;
 
     addContextSizeSection(parent, limits);
-    addContextWindowSection(parent, limits);
     addPricingSection(parent, model.getModelPickerPriceCategory());
     addThinkingEffortSection(parent, closeRequest);
   }
@@ -151,14 +150,161 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     addKeyValueRow(parent, Messages.model_hover_cost, costSymbols);
   }
 
-  private void addContextWindowSection(Composite parent, CopilotModelCapabilitiesLimits limits) {
-    if (limits == null || !isPositive(limits.maxContextWindowTokens())) {
+  private void addThinkingEffortSection(Composite parent, Runnable closeRequest) {
+    if (model == null || model.getCapabilities() == null) {
+      return;
+    }
+    CopilotModelCapabilitiesSupports supports = model.getCapabilities().supports();
+    if (supports == null) {
+      return;
+    }
+    List<String> efforts = supports.reasoningEfforts();
+    if (efforts == null || efforts.size() <= 1) {
       return;
     }
 
     addSeparator(parent);
-    addKeyValueRow(parent, Messages.model_hover_contextWindow,
-        ModelUtils.formatTokenCount(limits.maxContextWindowTokens()));
+
+    Composite section = new Composite(parent, SWT.NONE);
+    section.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    GridLayout sectionLayout = new GridLayout(1, false);
+    sectionLayout.marginWidth = 0;
+    sectionLayout.marginHeight = 0;
+    sectionLayout.verticalSpacing = 2;
+    ((GridData) section.getLayoutData()).verticalIndent = SECTION_SPACING;
+    section.setLayout(sectionLayout);
+
+    Label keyLabel = createSecondaryTextLabel(section, Messages.model_hover_thinkingEffort);
+    keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
+
+    Composite options = new Composite(section, SWT.NONE);
+    options.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    GridLayout optionsLayout = new GridLayout(1, false);
+    optionsLayout.marginWidth = 0;
+    optionsLayout.marginHeight = 0;
+    optionsLayout.verticalSpacing = 2;
+    options.setLayout(optionsLayout);
+
+    populateThinkingEffortOptions(options, efforts, closeRequest);
+  }
+
+  private void populateThinkingEffortOptions(Composite options, List<String> efforts, Runnable closeRequest) {
+    ModelService modelService = resolveModelService();
+    String selected = modelService != null ? modelService.getSelectedReasoningEffort(model) : null;
+    String defaultEffort = ModelUtils.resolveDefaultReasoningEffort(model);
+    // Show the user's selection when present, otherwise pre-mark the default so the hover always communicates
+    // which effort the request will use.
+    String effective = StringUtils.isNotBlank(selected) ? selected : defaultEffort;
+
+    for (String effort : efforts) {
+      if (StringUtils.isBlank(effort)) {
+        continue;
+      }
+      addThinkingEffortOption(options, modelService, effort, effort.equals(effective), effort.equals(defaultEffort),
+          closeRequest);
+    }
+    options.requestLayout();
+  }
+
+  private void addThinkingEffortOption(Composite parent, ModelService modelService, String effort, boolean isSelected,
+      boolean isDefault, Runnable closeRequest) {
+    String displayText = ModelUtils.formatReasoningEffortLevel(effort);
+    if (displayText == null) {
+      return;
+    }
+
+    // Three-column layout mirroring the model item row in DropdownPopup: a fixed-width leading icon column that
+    // reserves space for the selection check mark, the left-aligned effort label, and the right-aligned secondary
+    // description that grows to fill the remaining width.
+    GridLayout rowLayout = new GridLayout(3, false);
+    rowLayout.marginWidth = THINKING_EFFORT_ROW_H_PADDING;
+    rowLayout.marginHeight = THINKING_EFFORT_ROW_V_PADDING;
+    rowLayout.horizontalSpacing = 6;
+    Composite row = new Composite(parent, SWT.NONE);
+    row.setLayout(rowLayout);
+    row.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+
+    Image checkIcon = getCheckIcon(parent);
+    Label iconLabel = new Label(row, SWT.NONE);
+    GridData iconGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+    if (checkIcon != null) {
+      Rectangle iconBounds = checkIcon.getBounds();
+      iconGd.widthHint = iconBounds.width;
+      iconGd.heightHint = iconBounds.height;
+    } else {
+      iconGd.widthHint = 12;
+    }
+    iconLabel.setLayoutData(iconGd);
+    if (isSelected && checkIcon != null) {
+      iconLabel.setImage(checkIcon);
+    }
+
+    String labelText = isDefault ? NLS.bind(Messages.model_hover_thinkingEffort_default_suffix, displayText)
+        : displayText;
+    Label optionLabel = new Label(row, SWT.NONE);
+    optionLabel.setText(labelText);
+    // Primary text color (default Label foreground); left-aligned in the middle column.
+    optionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+
+    String description = ModelUtils.formatReasoningEffortDescription(effort);
+    Label descriptionLabel = null;
+    if (StringUtils.isNotBlank(description)) {
+      descriptionLabel = new Label(row, SWT.NONE);
+      descriptionLabel.setText(description);
+      // Right-aligned and grabs the remaining horizontal space so the description hugs the right edge of the
+      // hover popup while the effort label stays anchored to the left.
+      descriptionLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, true, false));
+      setCssClass(descriptionLabel, POPUP_SECONDARY_TEXT_CLASS);
+    }
+
+    Cursor handCursor = parent.getDisplay().getSystemCursor(SWT.CURSOR_HAND);
+    row.setCursor(handCursor);
+    iconLabel.setCursor(handCursor);
+    optionLabel.setCursor(handCursor);
+    if (descriptionLabel != null) {
+      descriptionLabel.setCursor(handCursor);
+    }
+
+    // Attach the shared row controller: seeds CSS state on the row + its descendants and installs the
+    // focused-background paint listener so hover/keyboard focus can flip the entire subtree to the
+    // focused color via the shared CSS rules.
+    ItemController rowController = ItemController.attach(row, stylingEngine, ItemController.CSS_DEFAULT_ID);
+    rowController.installHoverFocus(iconLabel, optionLabel, descriptionLabel);
+
+    MouseAdapter clickHandler = new MouseAdapter() {
+      @Override
+      public void mouseDown(MouseEvent e) {
+        if (e.button != 1 || modelService == null) {
+          return;
+        }
+        // Persist the chosen effort first, then activate this model. Activating triggers the picker button
+        // to update its label/suffix so the dropdown control reflects the (model, effort) pair the user just
+        // chose -- even when they clicked an effort on a non-active model.
+        modelService.setSelectedReasoningEffort(model, effort);
+        modelService.setActiveModel(model.getModelName());
+        // Close the entire dropdown (hover + main popup) via the host-provided callback so the user sees an
+        // immediate dismiss. Next time the dropdown opens, refreshBoundModelPickers (invoked from
+        // setSelectedReasoningEffort) has updated the model row's suffix to reflect the newly selected effort.
+        if (closeRequest != null) {
+          closeRequest.run();
+        }
+      }
+    };
+
+    Control[] interactiveControls = descriptionLabel != null
+        ? new Control[] { row, iconLabel, optionLabel, descriptionLabel }
+        : new Control[] { row, iconLabel, optionLabel };
+    for (Control c : interactiveControls) {
+      c.addMouseListener(clickHandler);
+    }
+  }
+
+  private static ModelService resolveModelService() {
+    CopilotUi plugin = CopilotUi.getPlugin();
+    if (plugin == null || plugin.getChatServiceManager() == null) {
+      return null;
+    }
+    return plugin.getChatServiceManager().getModelService();
   }
 
   private void addThinkingEffortSection(Composite parent, Runnable closeRequest) {
