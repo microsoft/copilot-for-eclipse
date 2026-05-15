@@ -1,3 +1,42 @@
+# GitHub Copilot 0.18.0 Release Notes
+
+### Prepare for the Upcoming Usage-Based Billing
+Starting from this version, we have added internal support for the [upcoming usage-based billing experience](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/), including experience updates to the usage panel, usage notifications, and model picker. These changes will become visible once usage-based billing is rolled out.
+
+Clients using older plugin versions will continue to function. However, the billing and usage experience may not be optimal and may not accurately reflect the latest usage-based billing experience.
+
+---
+
+### Custom Instructions Loading Preference
+A new Copilot preference lets you control how a chat's custom instructions are loaded. Tailor when and how your project-specific or personal instructions are picked up by Copilot, giving you finer control over the context that shapes each conversation. By default, custom instructions are loaded from **all projects** in your Eclipse workspace; switch to **Referenced projects** to only load instructions from projects whose files or folders are referenced in the current chat.
+
+![Custom Instructions Loading Preference](0.18.0/custom_instructions_loading.png)
+
+---
+
+### Skills and Prompt Files
+Copilot for Eclipse now supports skills and prompt files. Define reusable prompts and skills to streamline your workflows — invoke them on demand to apply consistent instructions and patterns across your chats. Persist your skill files under `<workspace>/.github/skills/` (for example, `.github/skills/my-skill/SKILL.md`) and prompt files under `<workspace>/.github/prompts/` (e.g. `my-prompt.prompt.md`) so they're picked up automatically.
+
+To trigger a skill or prompt in chat, type `/` in the chat input box to open the slash command picker.
+
+![Skills and Prompt Files](0.18.0/skills_and_prompt_files.png)
+
+---
+
+### Thinking Blocks in Chat View
+For models that support reasoning, the chat view now displays thinking blocks so you can follow Copilot's reasoning process alongside its final response. Expand or collapse the blocks to dive into the details or keep the view focused on results.
+
+![Thinking Blocks in Chat View](0.18.0/thinking_blocks.png)
+
+---
+
+### Selectable Thinking Effort
+You can now choose the thinking effort level for supported models. Dial the reasoning depth up for complex problems or keep it light for quick tasks — giving you control over the trade-off between latency and answer quality.
+
+![Selectable Thinking Effort](0.18.0/thinking_effort.png)
+
+---
+
 # GitHub Copilot 0.17.0 Release Notes
 
 ### GitHub Copilot for Eclipse Is Now Open Source
@@ -57,50 +96,4 @@ Ask Mode now supports tool calling. When a question requires additional context,
 Code snippets in Copilot's chat view now render with full syntax highlighting. Code blocks in responses are automatically highlighted based on the detected language, improving readability and making it easier to follow along with code suggestions and explanations.
 
 ![Syntax Highlighting](0.16.0/syntax_highlighting.png)
-
----
-
-# GitHub Copilot 0.15.0 Release Notes
-### MCP Registry
-Discover and install MCP servers from a centralized registry with just a few clicks. Browse available servers, view their capabilities, and add them to your workspace instantly — no manual configuration required.
-
-<video controls="true" src="./0.15.0/mcp_registry.mp4" title="MCP Registry" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Chat View UX Enhancements
-We've refreshed the chat experience with several improvements:
-
-- **Font Size Control**: Adjust the chat view font size to your preference using keyboard shortcuts or the view menu. Use `⌘ + =` / `⌘ + -` on macOS or `Ctrl + =` / `Ctrl + -` on Windows/Linux. Make it easier on your eyes!
-- **Dark Theme Refresh**: A polished dark theme with improved contrast and readability for those late-night coding sessions.
-- **Undo/Redo Support**: Made a typo in your chat input? Now you can undo and redo your edits seamlessly.
-
-<video controls="true" src="./0.15.0/chat_ux_improvements.mp4" title="Chat UX Improvements" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Editor Selection Context
-Copilot now automatically includes your current editor selection in the chat context. Simply select some code, open the chat, and Copilot already knows what you're working with — making your conversations more relevant and focused.
-
-<video controls="true" src="./0.15.0/editor_selection.mp4" title="Editor Selection Context" style="max-width: 800px; width: 100%; height: auto;"></video>
-
----
-
-### Manage Todo List Tool
-Stay organized with the new Todo List feature. When working on complex tasks, Copilot can now create and manage a structured todo list to track progress and plan steps. Watch as todos are checked off in real-time while the agent works through your request — giving you clear visibility into what's done and what's next.
-
-![Manage Todo List Tool](0.15.0/todo_tool.png)
-
----
-
-### New Preferences
-Fine-tune your Copilot experience with new preference options:
-
-- **Agent Max Requests**: Control how many requests the agent can make before asking to reply 'continue', giving you more control over large, complex tasks.
-
-  ![Agent Max Requests](0.15.0/agent_max_request.png)
-
-- **Commit Instructions**: Customize how Copilot generates commit messages to match your team's conventions and style.
-
-  ![Commit Instructions](0.15.0/commit_instructions.png)
 
