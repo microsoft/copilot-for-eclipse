@@ -48,7 +48,7 @@ class DropdownPopup {
   private static final int LABEL_SUFFIX_GAP = 12;
   private static final int BORDER_ARC = 8;
   private static final int MAX_VISIBLE_ITEMS = 15;
-  private static final int SHORT_POPUP_WIDTH = 230;
+  private static final int SHORT_POPUP_WIDTH = 250;
   private static final int LONG_POPUP_WIDTH = 300;
 
   private static Image checkIcon;
@@ -65,12 +65,17 @@ class DropdownPopup {
   private Listener keyboardFilter;
 
   private Shell hoverShell;
+  private Composite hoverAnchorItem;
+  private Runnable hoverPollRunnable;
   private ScrolledComposite scrolledComposite;
   private final IStylingEngine stylingEngine;
   private final Control anchorControl;
 
   private static final String POPUP_SECONDARY_TEXT_CLASS = "popup-secondary-text";
   private static final String POPUP_ACTION_TEXT_CLASS = "popup-action-text";
+  // Poll interval used to detect when the cursor has truly left both the dropdown item and the hover shell.
+  // Mirrors the approach used by BaseHoverPopup so the hover survives the transit gap between the two shells.
+  private static final int HOVER_POLL_INTERVAL_MS = 100;
 
   DropdownPopup(Shell parentShell, Control anchorControl) {
     this.parentShell = parentShell;
@@ -174,6 +179,9 @@ class DropdownPopup {
 
     shell.addListener(SWT.Deactivate, e -> {
       if (anchorControl != null && !anchorControl.isDisposed() && isCursorInsideControl(anchorControl)) {
+        return;
+      }
+      if (hoverShell != null && !hoverShell.isDisposed() && hoverShell.isVisible()) {
         return;
       }
       close();
@@ -321,7 +329,8 @@ class DropdownPopup {
   private void addItem(Composite parent, DropdownItem item) {
     final Display display = parent.getDisplay();
     final boolean isSelected = item.getId() != null && item.getId().equals(selectedItemId);
-    final String itemBaseCssId = isSelected ? ItemController.CSS_SELECTED_ID : ItemController.CSS_DEFAULT_ID;
+    final String itemBaseCssId = isSelected ? ItemController.CSS_SELECTED_ID
+        : ItemController.CSS_DEFAULT_ID;
 
     Composite itemComp = new Composite(parent, SWT.NONE);
     itemComp.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -404,9 +413,14 @@ class DropdownPopup {
           }
           updateFocusBorder(focusedIndex, true);
         }
-        if (item.getHoverProvider() != null
-            && (!alreadyFocused || hoverShell == null || hoverShell.isDisposed())) {
-          openHoverShell(item, itemComp);
+        if (item.getHoverProvider() != null) {
+          if (!alreadyFocused || hoverShell == null || hoverShell.isDisposed()) {
+            openHoverShell(item, itemComp);
+          }
+        } else {
+          // Entering an item without a hover provider should clear any lingering hover that was kept alive
+          // while the cursor was over the dropdown body (e.g. on the scrollbar or transit gap).
+          closeHoverShell();
         }
       }
 
@@ -415,11 +429,17 @@ class DropdownPopup {
         if (!itemComp.isDisposed() && isCursorInsideControl(itemComp)) {
           return;
         }
+        if (hoverShell != null && !hoverShell.isDisposed() && isCursorInsideControl(hoverShell)) {
+          // Cursor moved into the hover shell (e.g. to interact with controls there); keep the hover open.
+          return;
+        }
         if (!itemComp.isDisposed() && itemIndex == focusedIndex) {
           focusedIndex = -1;
           updateFocusBorder(itemIndex, false);
         }
-        closeHoverShell();
+        // Don't close the hover synchronously -- the cursor may be in the transit gap between the item and the
+        // hover shell. The polling loop started in openHoverShell will close the hover once the cursor truly
+        // leaves both regions. If no hover is open we have nothing to defer.
       }
     };
   }
@@ -462,6 +482,7 @@ class DropdownPopup {
     if (shell == null || shell.isDisposed()) {
       return;
     }
+    hoverAnchorItem = anchorItem;
     hoverShell = new Shell(shell, SWT.NO_TRIM | SWT.ON_TOP);
     hoverShell.setData(CssConstants.CSS_ID_KEY, "dropdown-popup");
     final Display display = hoverShell.getDisplay();
@@ -485,7 +506,7 @@ class DropdownPopup {
     contentLayout.marginBottom = ITEM_V_PADDING;
     hoverContent.setLayout(contentLayout);
 
-    item.getHoverProvider().configureHover(hoverContent, item);
+    item.getHoverProvider().configureHover(hoverContent, item, this::close);
 
     final Color borderColor = CssConstants.getBorderColor(display);
     hoverShell.addPaintListener(e -> {
@@ -517,16 +538,72 @@ class DropdownPopup {
     } else {
       x = popupBounds.x - hoverSize.x;
     }
-    int y = Math.max(screen.y, Math.min(itemLoc.y, screen.y + screen.height - hoverSize.y));
+    // Vertically center the hover on the hovered item, then clamp to the visible monitor area.
+    int anchorHeight = anchorItem.getSize().y;
+    int desiredY = itemLoc.y + (anchorHeight - hoverSize.y) / 2;
+    int y = Math.max(screen.y, Math.min(desiredY, screen.y + screen.height - hoverSize.y));
     hoverShell.setLocation(x, y);
     hoverShell.setVisible(true);
+
+    // Drive close detection from a polling loop instead of MouseTrackAdapter.mouseExit so the hover survives the
+    // tiny cursor transit gap between the source item and the hover shell. The loop also closes the dropdown
+    // itself when the cursor leaves both regions -- needed because Deactivate is suppressed while the hover is
+    // visible (see the SWT.Deactivate listener registered on the main shell).
+    startHoverPolling();
   }
 
   private void closeHoverShell() {
+    stopHoverPolling();
     if (hoverShell != null && !hoverShell.isDisposed()) {
       hoverShell.dispose();
     }
     hoverShell = null;
+    hoverAnchorItem = null;
+  }
+
+  private void startHoverPolling() {
+    stopHoverPolling();
+    if (hoverShell == null || hoverShell.isDisposed()) {
+      return;
+    }
+    final Display display = hoverShell.getDisplay();
+    hoverPollRunnable = new Runnable() {
+      @Override
+      public void run() {
+        if (hoverShell == null || hoverShell.isDisposed()) {
+          return;
+        }
+        boolean overHover = isCursorInsideControl(hoverShell);
+        boolean overDropdown = shell != null && !shell.isDisposed() && isCursorInsideControl(shell);
+        if (!overHover && !overDropdown) {
+          closeHoverShell();
+          // Deactivate is suppressed while the hover is visible, so dismiss the dropdown here once the
+          // cursor has truly left every region we treat as "stay".
+          close();
+          return;
+        }
+        display.timerExec(HOVER_POLL_INTERVAL_MS, this);
+      }
+    };
+    display.timerExec(HOVER_POLL_INTERVAL_MS, hoverPollRunnable);
+  }
+
+  private void stopHoverPolling() {
+    if (hoverPollRunnable == null) {
+      return;
+    }
+    Display display = null;
+    if (hoverShell != null && !hoverShell.isDisposed()) {
+      display = hoverShell.getDisplay();
+    } else if (shell != null && !shell.isDisposed()) {
+      display = shell.getDisplay();
+    } else {
+      display = SwtUtils.getDisplay();
+    }
+    if (display != null && !display.isDisposed()) {
+      display.timerExec(-1, hoverPollRunnable);
+    }
+    hoverPollRunnable = null;
   }
 
   private void moveFocus(int delta) {

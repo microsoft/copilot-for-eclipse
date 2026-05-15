@@ -209,6 +209,18 @@ public final class Messages extends NLS {
   public static String model_hover_contextSize;
   public static String model_hover_contextWindow;
   public static String model_hover_cost;
+  public static String model_hover_thinkingEffort;
+  public static String model_hover_thinkingEffort_default_suffix;
+  public static String model_reasoningEffort_none;
+  public static String model_reasoningEffort_low;
+  public static String model_reasoningEffort_medium;
+  public static String model_reasoningEffort_high;
+  public static String model_reasoningEffort_xhigh;
+  public static String model_reasoningEffort_none_description;
+  public static String model_reasoningEffort_low_description;
+  public static String model_reasoningEffort_medium_description;
+  public static String model_reasoningEffort_high_description;
+  public static String model_reasoningEffort_xhigh_description;
   public static String chat_actionBar_modePicker_Tooltip;
   public static String chat_actionBar_modelPicker_Tooltip;
   public static String context_window_title;

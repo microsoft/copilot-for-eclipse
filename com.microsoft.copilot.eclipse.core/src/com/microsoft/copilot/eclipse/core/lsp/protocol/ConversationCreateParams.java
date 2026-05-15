@@ -33,6 +33,7 @@ public class ConversationCreateParams {
   private String userLanguage;
   private String model;
   private String modelProviderName;
+  private ModelInfo modelInfo;
   private String chatMode;
   private String customChatModeId;
 
@@ -200,6 +201,14 @@ public class ConversationCreateParams {
     this.modelProviderName = modelProviderName;
   }
 
+  public ModelInfo getModelInfo() {
+    return modelInfo;
+  }
+
+  public void setModelInfo(ModelInfo modelInfo) {
+    this.modelInfo = modelInfo;
+  }
+
   public String getConversationId() {
     return conversationId;
   }
@@ -225,7 +234,7 @@ public class ConversationCreateParams {
     result = prime * result
         + Objects.hash(capabilities, chatMode, computeSuggestions, customChatModeId, model, needToolCallConfirmation,
             references, source, textDocument, userLanguage, workDoneToken, workspaceFolder, workspaceFolders,
-            modelProviderName, todoList, conversationId, restoreToTurnId);
+            modelProviderName, modelInfo, todoList, conversationId, restoreToTurnId);
     return result;
   }
 
@@ -251,6 +260,7 @@ public class ConversationCreateParams {
         && Objects.equals(workDoneToken, other.workDoneToken) && Objects.equals(workspaceFolder, other.workspaceFolder)
         && Objects.equals(workspaceFolders, other.workspaceFolders)
         && Objects.equals(modelProviderName, other.modelProviderName)
+        && Objects.equals(modelInfo, other.modelInfo)
         && Objects.equals(todoList, other.todoList)
         && Objects.equals(conversationId, other.conversationId)
         && Objects.equals(restoreToTurnId, other.restoreToTurnId);
@@ -272,6 +282,7 @@ public class ConversationCreateParams {
     builder.append("userLanguage", userLanguage);
     builder.append("model", model);
     builder.append("modelProviderName", modelProviderName);
+    builder.append("modelInfo", modelInfo);
     builder.append("chatMode", chatMode);
     builder.append("customChatModeId", customChatModeId);
     builder.append("needToolCallConfirmation", needToolCallConfirmation);

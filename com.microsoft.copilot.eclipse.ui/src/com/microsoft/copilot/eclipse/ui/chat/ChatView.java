@@ -1033,21 +1033,24 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         currentTodos = todoListService != null ? todoListService.getTodoList() : null;
       }
 
+      String turnReasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, currentSelection, activeModel, chatModeName, customChatModeId,
-          currentTodos, agentSlug, agentJobWorkspaceFolder, deriveWorkspaceFolders(currentFile, references));
+          processedMessage, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
+          customChatModeId, currentTodos, agentSlug, agentJobWorkspaceFolder,
+          deriveWorkspaceFolders(currentFile, references));
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.thenAccept(result -> {
         // Render and persist model information in the Copilot turn widget
         if (result != null && StringUtils.isNotBlank(result.getModelName())
             && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
-          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier());
+          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier(),
+              turnReasoningEffort);
 
           // Persist model information
           if (persistenceManager != null) {
             persistenceManager.persistModelInfo(result.getConversationId(), result.getTurnId(), result.getModelName(),
-                result.getBillingMultiplier());
+                result.getBillingMultiplier(), turnReasoningEffort);
           }
         }
       }).exceptionally(th -> {
@@ -1095,16 +1098,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
+      String reasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null,
-            restoredConversationId, restoreToTurnId, workspaceFolders);
+            currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, todosToRestore, null,
+            null, restoredConversationId, restoreToTurnId, workspaceFolders);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, null, agentSlug,
+            currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, null, agentSlug,
             agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
       }
       conversationFutures.add(createConversationFuture);
@@ -1121,12 +1125,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Render model information in the Copilot turn widget
         if (result != null && StringUtils.isNotBlank(result.getModelName())
             && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
-          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier());
+          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier(),
+              reasoningEffort);
 
           // Persist model information
           if (persistenceManager != null) {
             persistenceManager.persistModelInfo(newConversationId, result.getTurnId(), result.getModelName(),
-                result.getBillingMultiplier());
+                result.getBillingMultiplier(), reasoningEffort);
           }
         }
       }).exceptionally(th -> {
@@ -1664,11 +1669,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * @param conversationId the conversation ID to use for persistence
    * @param modelName the model name
    * @param billingMultiplier the billing multiplier
+   * @param reasoningEffort the reasoning effort sent for this turn (may be {@code null} when the model does not
+   *     support reasoning effort)
    */
-  private void renderModelInfoInTurnWidget(String turnId, String modelName, double billingMultiplier) {
+  private void renderModelInfoInTurnWidget(String turnId, String modelName, double billingMultiplier,
+      String reasoningEffort) {
     BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(turnId);
     if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
-      copilotWidget.renderModelInfo(modelName, billingMultiplier);
+      copilotWidget.renderModelInfo(modelName, billingMultiplier, reasoningEffort);
 
       // Refresh the scroller layout to ensure the footer is visible
       SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(), this.chatContentViewer);
@@ -1720,7 +1728,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
       ReplyData replyData = copilotTurn.getReply();
       if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
-        renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier());
+        // Reasoning effort was captured and persisted at send time so the footer reflects what was actually used
+        // for this turn, not whatever the user has selected now.
+        renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier(),
+            replyData.getReasoningEffort());
       }
     }
   }

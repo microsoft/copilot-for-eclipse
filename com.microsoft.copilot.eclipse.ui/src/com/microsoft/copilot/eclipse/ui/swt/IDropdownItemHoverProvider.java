@@ -22,6 +22,8 @@ public interface IDropdownItemHoverProvider {
    *
    * @param parent the parent composite inside the hover shell
    * @param item the item being hovered
+   * @param closeRequest invoked by interactive hover content (e.g. clickable rows) to request that the host dropdown
+   *     dismiss itself, including this hover shell; never {@code null}
    */
-  void configureHover(Composite parent, DropdownItem item);
+  void configureHover(Composite parent, DropdownItem item, Runnable closeRequest);
 }

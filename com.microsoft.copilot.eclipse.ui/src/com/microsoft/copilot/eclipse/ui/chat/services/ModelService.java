@@ -55,6 +55,7 @@ public class ModelService extends ChatBaseService {
   // models for the model picker
   private IObservableValue<Map<String, CopilotModel>> modelObservable;
   private IObservableValue<CopilotModel> activeModelObservable;
+  private IObservableValue<Map<String, String>> reasoningEffortObservable;
   // Used to update modelObservable
   private Map<String, CopilotModel> copilotModels = new HashMap<>();
   private Map<String, CopilotModel> registeredByokModels = new HashMap<>();
@@ -83,6 +84,12 @@ public class ModelService extends ChatBaseService {
     ensureRealm(() -> {
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       activeModelObservable = new WritableValue<>(null, CopilotModel.class);
+      Map<String, String> initialEfforts = Map.of();
+      UserPreference initialPreference = getUserPreference();
+      if (initialPreference != null) {
+        initialEfforts = initialPreference.getReasoningEffortSnapshot();
+      }
+      reasoningEffortObservable = new WritableValue<>(initialEfforts, Map.class);
     });
 
     initializeEventHandlers();
@@ -112,6 +119,7 @@ public class ModelService extends ChatBaseService {
         @SuppressWarnings("unchecked")
         Map<String, List<ByokModel>> byokModels = (Map<String, List<ByokModel>>) modelsMap;
         saveRegisteredByokModels(byokModels);
+        reconcileReasoningEfforts();
         ensureRealm(() -> updateModelsForChatMode(currentChatMode));
       }
     };
@@ -166,6 +174,7 @@ public class ModelService extends ChatBaseService {
           try {
             fetchCopilotModels();
             fetchByokModels();
+            reconcileReasoningEfforts();
             ensureRealm(() -> {
               updateModelsForChatMode(currentChatMode);
             });
@@ -194,7 +203,7 @@ public class ModelService extends ChatBaseService {
       boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
       boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
       if (supportsChat || supportsAgent) {
-        newModels.put(model.getId(), model);
+        newModels.put(model.getModelKey(), model);
       }
       if (model.isChatDefault()) {
         defaultModel = model;
@@ -275,13 +284,8 @@ public class ModelService extends ChatBaseService {
    */
   private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode, String scope) {
     CopilotModel currentActive = getActiveModel();
-    boolean isCurrentModelAvailable = false;
-    if (currentActive != null) {
-      String keyToFind = currentActive.getProviderName() != null
-          ? currentActive.getProviderName() + "_" + currentActive.getId()
-          : currentActive.getId();
-      isCurrentModelAvailable = modelsForCurrentMode.containsKey(keyToFind);
-    }
+    boolean isCurrentModelAvailable = currentActive != null
+        && modelsForCurrentMode.containsKey(currentActive.getModelKey());
     if (currentActive == null || !isCurrentModelAvailable) {
       // Try to restore user's preferred model if it's available in current mode
       String restoredModelId = restoreActiveModel();
@@ -405,6 +409,111 @@ public class ModelService extends ChatBaseService {
   }
 
   /**
+   * Returns the user-selected reasoning effort for the given model, or {@code null} when the user has not made a
+   * selection. The persisted snapshot is kept in sync with the current model inventory by
+   * {@link #reconcileReasoningEfforts()} after each model fetch, so this method is a pure lookup.
+   *
+   * @param model the model to query
+   * @return the selected reasoning effort, or {@code null}
+   */
+  public String getSelectedReasoningEffort(CopilotModel model) {
+    if (model == null) {
+      return null;
+    }
+    String key = model.getModelKey();
+    UserPreference preference = getUserPreference();
+    return preference != null ? preference.getReasoningEffort(key) : null;
+  }
+
+  /**
+   * Resolves the reasoning effort that should be sent to the language server for the given model: the user's explicit
+   * selection when present, otherwise the inferred client-side default from
+   * {@link ModelUtils#resolveDefaultReasoningEffort(CopilotModel)}. Returns {@code null} for models that do not
+   * support reasoning-effort selection or for the special "auto" model.
+   *
+   * @param model the model that will receive the request
+   * @return the effort to send, or {@code null} to omit
+   */
+  public String resolveEffectiveReasoningEffort(CopilotModel model) {
+    String selected = getSelectedReasoningEffort(model);
+    if (StringUtils.isNotBlank(selected)) {
+      return selected;
+    }
+    return ModelUtils.resolveDefaultReasoningEffort(model);
+  }
+
+  /**
+   * Persists the user-selected reasoning effort for the given model and updates dependent observers.
+   *
+   * @param model the model to update
+   * @param reasoningEffort the reasoning effort to store (may be {@code null} to clear)
+   */
+  public void setSelectedReasoningEffort(CopilotModel model, String reasoningEffort) {
+    if (model == null) {
+      return;
+    }
+    String key = model.getModelKey();
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
+    preference.setReasoningEffort(key, reasoningEffort);
+    CompletableFuture.runAsync(this::persistUserPreference);
+    // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
+    // resolveEffectiveReasoningEffort (which queries UserPreference), so this observable serves
+    // purely as a change signal.
+    ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
+  }
+
+  /**
+   * Reconciles the persisted reasoning-effort snapshot with the current model inventory
+   * ({@link #copilotModels} ∪ {@link #registeredByokModels}). Entries are kept only when the model still exists and
+   * the stored effort is still in that model's advertised reasoning-effort list; everything else is dropped. The
+   * map is replaced atomically.
+   *
+   * <p>Skipped when the inventory is empty (e.g. the very first fetch has not produced results yet or both fetches
+   * failed) so a transient outage cannot wipe every stored selection.
+   */
+  private void reconcileReasoningEfforts() {
+    if (copilotModels.isEmpty() && registeredByokModels.isEmpty()) {
+      return;
+    }
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
+    Map<String, String> snapshot = preference.getReasoningEffortSnapshot();
+    if (snapshot.isEmpty()) {
+      return;
+    }
+    Map<String, CopilotModel> inventory = new HashMap<>();
+    for (CopilotModel model : copilotModels.values()) {
+      inventory.put(model.getModelKey(), model);
+    }
+    for (CopilotModel model : registeredByokModels.values()) {
+      inventory.put(model.getModelKey(), model);
+    }
+    Map<String, String> reconciled = new HashMap<>();
+    for (Map.Entry<String, String> entry : snapshot.entrySet()) {
+      CopilotModel model = inventory.get(entry.getKey());
+      if (model == null) {
+        continue;
+      }
+      String stored = entry.getValue();
+      for (String effort : ModelUtils.getSupportedReasoningEfforts(model)) {
+        if (effort != null && effort.equalsIgnoreCase(stored)) {
+          reconciled.put(entry.getKey(), effort);
+          break;
+        }
+      }
+    }
+    if (preference.setReasoningEfforts(reconciled)) {
+      CompletableFuture.runAsync(this::persistUserPreference);
+      ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
+    }
+  }
+
+  /**
    * Binds a {@link DropdownButton} to this service for model selection. The button displays model groups with per-item
    * tooltips and billing suffixes.
    *
@@ -422,33 +531,27 @@ public class ModelService extends ChatBaseService {
     ensureRealm(() -> {
       ISideEffect modelsSideEffect = ISideEffect.create(() -> {
         Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
+        this.reasoningEffortObservable.getValue();
         if (picker.isDisposed() || modelMap.isEmpty()) {
           return Collections.emptyMap();
         }
         return modelMap;
-      }, (Map<String, CopilotModel> modelMap) -> {
-        if (!picker.isDisposed()) {
-          boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
-              .copilotPlan() == CopilotPlan.free;
-          // TODO: need to remove this logic after group policy is available
-          FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-          boolean showByokManageOption = flags == null || flags.isByokEnabled();
-          picker.setItemGroups(
-              ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption));
-        }
-      });
+      }, (Map<String, CopilotModel> modelMap) -> rebuildPickerItems(picker, modelMap));
 
-      ISideEffect activeModelSideEffect = ISideEffect.create(() -> {
-        return this.activeModelObservable.getValue();
-      }, (CopilotModel activeModel) -> {
-        if (activeModel == null || picker.isDisposed()) {
-          return;
-        }
-        picker.setSelectedItemId(activeModel.getModelName());
-        String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
-            ? " - " + activeModel.getDegradationReason() : "";
-        picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));
-      });
+      // Active-model render path: only depends on the active model. The button-face text is read from the matching
+      // DropdownItem's selectedLabel (populated by ModelPickerGroupsBuilder with the effective effort), which is
+      // refreshed by modelsSideEffect above whenever the reasoning-effort observable changes. There is no need to
+      // track the effort observable here.
+      ISideEffect activeModelSideEffect = ISideEffect.create(this.activeModelObservable::getValue,
+          (CopilotModel activeModel) -> {
+            if (activeModel == null || picker.isDisposed()) {
+              return;
+            }
+            picker.setSelectedItemId(activeModel.getModelName());
+            String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
+                ? " - " + activeModel.getDegradationReason() : "";
+            picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));
+          });
 
       // Store the side effects for later disposal
       modelButtonSideEffects.put(picker, new ISideEffect[] { modelsSideEffect, activeModelSideEffect });
@@ -456,6 +559,23 @@ public class ModelService extends ChatBaseService {
       // Add a dispose listener to auto-unbind when the combo is disposed
       picker.addDisposeListener(e -> unbindModelPicker(picker));
     });
+  }
+
+  /**
+   * Rebuilds the item groups for a single picker. Single render path shared by the model-list and
+   * reasoning-effort side effects.
+   */
+  private void rebuildPickerItems(DropdownButton picker, Map<String, CopilotModel> modelMap) {
+    if (picker.isDisposed()) {
+      return;
+    }
+    boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
+        .copilotPlan() == CopilotPlan.free;
+    // TODO: need to remove this logic after group policy is available
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean showByokManageOption = flags == null || flags.isByokEnabled();
+    picker.setItemGroups(ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption,
+        this::resolveEffectiveReasoningEffort));
   }
 
   /**

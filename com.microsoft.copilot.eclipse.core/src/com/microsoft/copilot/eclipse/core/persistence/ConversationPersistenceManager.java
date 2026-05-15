@@ -504,15 +504,17 @@ public class ConversationPersistenceManager {
   }
 
   /**
-   * Persists model information (model name and billing multiplier) for a Copilot turn.
+   * Persists model information (model name, billing multiplier, reasoning effort) for a Copilot turn.
    *
    * @param conversationId the ID of the conversation
    * @param turnId the ID of the turn
    * @param modelName the name of the model used
    * @param billingMultiplier the billing multiplier for the model
+   * @param reasoningEffort the reasoning effort sent for this turn, or {@code null} when the model does not support
+   *     reasoning effort
    */
   public CompletableFuture<Void> persistModelInfo(String conversationId, String turnId, String modelName,
-      double billingMultiplier) {
+      double billingMultiplier, String reasoningEffort) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
@@ -523,6 +525,7 @@ public class ConversationPersistenceManager {
         if (copilotTurn.getReply() != null) {
           copilotTurn.getReply().setModelName(modelName);
           copilotTurn.getReply().setBillingMultiplier(billingMultiplier);
+          copilotTurn.getReply().setReasoningEffort(reasoningEffort);
         }
 
         // Persist the updated conversation

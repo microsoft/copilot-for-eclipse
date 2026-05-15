@@ -111,6 +111,7 @@ public class DropdownButton extends Composite {
    */
   public void setItemGroups(List<DropdownItemGroup> itemGroups) {
     this.itemGroups = itemGroups;
+    updateWidthHint();
     redraw();
   }
 
@@ -191,7 +192,7 @@ public class DropdownButton extends Composite {
     gc.fillRectangle(bounds);
 
     gc.setForeground(getForeground());
-    String text = selected != null ? selected.getLabel() : "";
+    String text = resolveDisplayText(selected);
     Point textExtent = gc.textExtent(text);
     int contentHeight = getContentHeight(textExtent, selectedIcon, arrowIcon);
     int contentTop = Math.max(0, (bounds.height - contentHeight) / 2);
@@ -214,6 +215,14 @@ public class DropdownButton extends Composite {
     }
   }
 
+  private String resolveDisplayText(DropdownItem selected) {
+    if (selected == null) {
+      return "";
+    }
+    String selectedLabel = selected.getSelectedLabel();
+    return selectedLabel != null ? selectedLabel : selected.getLabel();
+  }
+
   private DropdownItem findItemById(String id) {
     if (id == null || itemGroups == null) {
       return null;
@@ -233,7 +242,7 @@ public class DropdownButton extends Composite {
     GC gc = new GC(this);
     try {
       DropdownItem selected = findItemById(selectedItemId);
-      String text = selected != null ? selected.getLabel() : "";
+      String text = resolveDisplayText(selected);
       Point textExtent = gc.textExtent(text.isEmpty() ? "M" : text);
       Image selectedIcon = getSelectedItemIcon(selected);
       int iconWidth = 0;

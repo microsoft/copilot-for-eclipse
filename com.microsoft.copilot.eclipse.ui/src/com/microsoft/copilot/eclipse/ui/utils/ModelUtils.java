@@ -6,10 +6,14 @@ package com.microsoft.copilot.eclipse.ui.utils;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
@@ -46,12 +50,12 @@ public class ModelUtils {
 
     ByokModelCapabilities byokCapabilities = byokModel.getModelCapabilities();
     if (byokCapabilities != null) {
-      CopilotModel.CopilotModelCapabilitiesSupports supports = new CopilotModel.CopilotModelCapabilitiesSupports(
-          byokCapabilities.isVision());
+      CopilotModelCapabilitiesSupports supports = new CopilotModelCapabilitiesSupports(
+          byokCapabilities.isVision(), null, false);
       // BYOK only exposes input/output token limits; context window and non-streaming output are unknown.
-      CopilotModel.CopilotModelCapabilitiesLimits limits = new CopilotModel.CopilotModelCapabilitiesLimits(null,
+      CopilotModelCapabilitiesLimits limits = new CopilotModelCapabilitiesLimits(null,
           byokCapabilities.getMaxOutputTokens(), byokCapabilities.getMaxInputTokens(), null);
-      copilotModel.setCapabilities(new CopilotModel.CopilotModelCapabilities(supports, limits));
+      copilotModel.setCapabilities(new CopilotModelCapabilities(supports, limits));
     }
     copilotModel.setBilling(null);
     copilotModel.setPreview(false);
@@ -81,17 +85,15 @@ public class ModelUtils {
   /**
    * Returns the display suffix for a model in the model picker.
    *
-   * <p>The suffix is composed of multiple parts joined by {@value #SUFFIX_PART_SEPARATOR}. New parts (e.g. context
-   * window size, thinking effort) should be appended to the list returned by {@link #buildSuffixParts(CopilotModel)}
-   * in the desired display order; blank values are skipped automatically.
-   *
-   * <p>For BYOK models the provider name is used as-is, and the {@code Auto} model uses a fixed {@code Variable}
-   * label.
+   * <p>The suffix is composed of multiple parts joined by {@value #SUFFIX_PART_SEPARATOR} (e.g. context window,
+   * reasoning effort, price tier). For BYOK models the provider name is used as-is, and the {@code Auto} model uses
+   * a fixed {@code Variable} label.
    *
    * @param model the model
+   * @param reasoningEffort the effective reasoning effort to display, or {@code null} to omit
    * @return the suffix string, or an empty string if no suffix applies
    */
-  public static String getModelSuffix(CopilotModel model) {
+  public static String getModelSuffix(CopilotModel model, String reasoningEffort) {
     if (model == null) {
       return "";
     }
@@ -108,17 +110,21 @@ public class ModelUtils {
     if (model.getBilling() != null && !model.getBilling().tokenBasedBillingEnabled()) {
       return formatBillingMultiplier(model.getBilling().multiplier());
     }
-    return String.join(SUFFIX_PART_SEPARATOR, buildSuffixParts(model));
+    return String.join(SUFFIX_PART_SEPARATOR, buildSuffixParts(model, reasoningEffort));
   }
 
   /**
    * Builds the ordered list of suffix parts for a model. Add new parts (e.g. thinking effort) here in the desired
    * display order. Blank values are filtered out by the caller.
    */
-  private static List<String> buildSuffixParts(CopilotModel model) {
+  private static List<String> buildSuffixParts(CopilotModel model, String reasoningEffort) {
     List<String> parts = new ArrayList<>();
     addIfNotBlank(parts, getContextWindowText(model));
-    // TODO: thinking effort (e.g. "High") goes here.
+    // Only surface a reasoning-effort suffix when the model actually exposes more than one effort level. Models with
+    // zero or a single effort have nothing meaningful for the user to pick, so the suffix would just be noise.
+    if (getSupportedReasoningEfforts(model).size() > 1) {
+      addIfNotBlank(parts, formatReasoningEffortLevel(reasoningEffort));
+    }
     addIfNotBlank(parts, formatPriceCategory(model.getModelPickerPriceCategory()));
     return parts;
   }
@@ -187,5 +193,99 @@ public class ModelUtils {
       return formatted + "K";
     }
     return String.valueOf(tokens);
+  }
+
+  /**
+   * Returns the default reasoning effort to use when the user has not made a selection. Prefers {@code high} for
+   * Claude models and {@code medium} for all others, falling back to the first entry in the supported list.
+   *
+   * @param model the model
+   * @return the default effort identifier, or {@code null} when none can be determined
+   */
+  public static String resolveDefaultReasoningEffort(CopilotModel model) {
+    List<String> efforts = getSupportedReasoningEfforts(model);
+    if (efforts.isEmpty()) {
+      return null;
+    }
+    String modelFamily = model.getModelFamily();
+    String preferred = modelFamily != null && modelFamily.toLowerCase(Locale.ROOT).startsWith("claude") ? "high"
+        : "medium";
+    for (String effort : efforts) {
+      if (preferred.equalsIgnoreCase(effort)) {
+        return effort;
+      }
+    }
+    return efforts.get(0);
+  }
+
+  /**
+   * Formats a reasoning effort identifier as a localized display label. Known identifiers ({@code none}, {@code low},
+   * {@code medium}, {@code high}, {@code xhigh}) resolve to their localized {@code Messages} constants; unknown
+   * identifiers fall back to a title-cased rendering of the first character (e.g. {@code custom} -> {@code Custom}).
+   * Returns {@code null} when {@code effort} is blank.
+   *
+   * @param effort the effort identifier
+   * @return the display label, or {@code null} when blank
+   */
+  public static String formatReasoningEffortLevel(String effort) {
+    if (StringUtils.isBlank(effort)) {
+      return null;
+    }
+    String trimmed = effort.trim();
+    switch (trimmed.toLowerCase(Locale.ROOT)) {
+      case "none":
+        return Messages.model_reasoningEffort_none;
+      case "low":
+        return Messages.model_reasoningEffort_low;
+      case "medium":
+        return Messages.model_reasoningEffort_medium;
+      case "high":
+        return Messages.model_reasoningEffort_high;
+      case "xhigh":
+        return Messages.model_reasoningEffort_xhigh;
+      default:
+        return Character.toUpperCase(trimmed.charAt(0)) + trimmed.substring(1).toLowerCase(Locale.ROOT);
+    }
+  }
+
+  /**
+   * Returns the localized secondary description for a reasoning effort identifier (e.g. {@code low} -> "Faster
+   * responses, less thorough reasoning"). Returns {@code null} when {@code effort} is blank or unrecognized.
+   *
+   * @param effort the effort identifier
+   * @return the localized description, or {@code null} when blank or unrecognized
+   */
+  public static String formatReasoningEffortDescription(String effort) {
+    if (StringUtils.isBlank(effort)) {
+      return null;
+    }
+    switch (effort.trim().toLowerCase(Locale.ROOT)) {
+      case "none":
+        return Messages.model_reasoningEffort_none_description;
+      case "low":
+        return Messages.model_reasoningEffort_low_description;
+      case "medium":
+        return Messages.model_reasoningEffort_medium_description;
+      case "high":
+        return Messages.model_reasoningEffort_high_description;
+      case "xhigh":
+        return Messages.model_reasoningEffort_xhigh_description;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Returns the list of reasoning effort levels advertised by the model, or an empty list when none are advertised.
+   *
+   * @param model the model
+   * @return the list of supported reasoning effort identifiers (e.g. {@code low}, {@code medium}, {@code high})
+   */
+  public static List<String> getSupportedReasoningEfforts(CopilotModel model) {
+    if (model == null || model.getCapabilities() == null || model.getCapabilities().supports() == null) {
+      return List.of();
+    }
+    List<String> efforts = model.getCapabilities().supports().reasoningEfforts();
+    return efforts == null ? List.of() : efforts;
   }
 }

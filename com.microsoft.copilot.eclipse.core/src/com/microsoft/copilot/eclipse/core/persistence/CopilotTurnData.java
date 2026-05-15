@@ -194,6 +194,7 @@ public class CopilotTurnData extends AbstractTurnData {
     private Map<String, Object> data;
     private String modelName;
     private double billingMultiplier;
+    private String reasoningEffort;
 
     /**
      * Default constructor initializing lists and data maps.
@@ -331,10 +332,19 @@ public class CopilotTurnData extends AbstractTurnData {
       this.billingMultiplier = billingMultiplier;
     }
 
+    public String getReasoningEffort() {
+      return reasoningEffort;
+    }
+
+    public void setReasoningEffort(String reasoningEffort) {
+      this.reasoningEffort = reasoningEffort;
+    }
+
     @Override
     public int hashCode() {
       return Objects.hash(annotations, data, editAgentRounds, errorMessages, followups, hideText, notifications,
-          panelMessages, rating, references, steps, agentMessages, text, modelName, billingMultiplier);
+          panelMessages, rating, references, steps, agentMessages, text, modelName, billingMultiplier,
+          reasoningEffort);
     }
 
     @Override
@@ -357,7 +367,8 @@ public class CopilotTurnData extends AbstractTurnData {
           && Objects.equals(references, other.references) && Objects.equals(steps, other.steps)
           && Objects.equals(agentMessages, other.agentMessages) && Objects.equals(text, other.text)
           && Objects.equals(modelName, other.modelName)
-          && Double.compare(billingMultiplier, other.billingMultiplier) == 0;
+          && Double.compare(billingMultiplier, other.billingMultiplier) == 0
+          && Objects.equals(reasoningEffort, other.reasoningEffort);
     }
 
     @Override
@@ -378,6 +389,7 @@ public class CopilotTurnData extends AbstractTurnData {
       builder.append("data", data);
       builder.append("modelName", modelName);
       builder.append("billingMultiplier", billingMultiplier);
+      builder.append("reasoningEffort", reasoningEffort);
       return builder.toString();
     }
   }
