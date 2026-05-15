@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -22,18 +23,24 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.ScrollBar;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -234,7 +241,51 @@ public class ChatContentViewer extends ScrolledComposite {
         errMsg = Messages.chat_model_unsupported_message;
       }
       if (StringUtils.isNotEmpty(errMsg)) {
+        // TODO: Remove this legacy fallback after TBB is officially released.
+        // When the language server has not enabled token-based billing yet, fall back to the
+        // original main-branch 402 behavior: replace the message with a plan-driven fallback
+        // notice, switch to the fallback model, refresh quota, and replay the previous input.
+        CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+        CopilotModel fallbackModel = null;
+        if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402) {
+          CopilotPlan userPlan = quotaStatus.copilotPlan();
+          fallbackModel = this.serviceManager.getModelService().getFallbackModel();
+          String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
+              : Messages.chat_noQuotaView_fallbackModel;
+
+          if (MenuUtils.isCfiPlan(userPlan)) {
+            // Pro, Pro+ and Max message
+            errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
+          } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
+            // CE and CB message
+            errMsg = String.format(Messages.chat_noQuotaView_cbCeWarnMsg, fallbackModelName);
+          }
+        }
+
         renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode(), value.getErrorModelProviderName());
+
+        // TODO: Remove this legacy fallback after TBB is officially released.
+        // Only replay the previous input when a fallback model is actually available; otherwise
+        // setFallBackModelAsActiveModel() is a no-op and re-posting the input with the same
+        // active model would just trigger the same 402 again.
+        if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402
+            && quotaStatus.copilotPlan() != CopilotPlan.free
+            && fallbackModel != null) {
+          // Detach the failed turn so the replayed response creates a new Copilot turn below the
+          // warning, instead of streaming into the same turn that just rendered the warn widget.
+          this.latestTurnWidget = null;
+          this.latestCopilotTurn = null;
+
+          this.serviceManager.getModelService().setFallBackModelAsActiveModel();
+          this.serviceManager.getAuthStatusManager().checkQuota();
+
+          String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
+          if (StringUtils.isNotEmpty(previousInput)) {
+            IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+            Map<String, Object> properties = Map.of("previousInput", previousInput, "needCreateUserTurn", false);
+            eventBroker.post(CopilotEventConstants.TOPIC_CHAT_ON_SEND, properties);
+          }
+        }
       }
     }, this);
   }

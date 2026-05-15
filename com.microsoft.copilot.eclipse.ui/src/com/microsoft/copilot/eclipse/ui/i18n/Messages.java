@@ -158,6 +158,14 @@ public final class Messages extends NLS {
   public static String chat_noQuotaView_enableAdditionalUsageButton;
   public static String chat_noQuotaView_enableAdditionalUsageButton_tooltip;
   public static String chat_noQuotaView_viewYourPlanButton_Tooltip;
+  // TODO: Remove these legacy keys after TBB is officially released.
+  // Legacy quota-warning keys used when tokenBasedBillingEnabled is false on the CheckQuotaResult,
+  // in which case the chat warning falls back to the original main-branch behavior.
+  public static String chat_noQuotaView_fallbackModel;
+  public static String chat_noQuotaView_updatePlanButton;
+  public static String chat_noQuotaView_updatePlanLink;
+  public static String chat_noQuotaView_proProplusWarnMsg;
+  public static String chat_noQuotaView_cbCeWarnMsg;
   public static String chat_currentReferencedFile_description;
   public static String chat_turnWidget_copilot;
   public static String chat_turnWidget_user;
@@ -207,7 +215,6 @@ public final class Messages extends NLS {
   public static String model_billing_multiplier_suffix;
   public static String model_billing_multiplier_variable;
   public static String model_hover_contextSize;
-  public static String model_hover_contextWindow;
   public static String model_hover_cost;
   public static String model_hover_thinkingEffort;
   public static String model_hover_thinkingEffort_default_suffix;
