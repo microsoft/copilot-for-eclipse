@@ -16,8 +16,11 @@ import com.google.gson.annotations.SerializedName;
  * @param completions current completions quota snapshot, when available
  * @param premiumInteractions current premium interactions quota snapshot, when available
  * @param copilotPlan the user's Copilot plan
+ * @param canUpgradePlan whether the user is eligible to upgrade their Copilot plan; {@code null} when the language
+ *     server has not supplied this field, in which case callers should fall back to plan-based defaults
  */
 public record QuotaWarningParams(String title, String message, String severity, QuotaSnapshotParams chat,
     QuotaSnapshotParams completions,
-    @SerializedName("premium_interactions") QuotaSnapshotParams premiumInteractions, CopilotPlan copilotPlan) {
+    @SerializedName("premium_interactions") QuotaSnapshotParams premiumInteractions, CopilotPlan copilotPlan,
+    Boolean canUpgradePlan) {
 }

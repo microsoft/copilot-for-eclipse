@@ -339,7 +339,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
     // For free / individual / individual_pro users, show an Upgrade Plan row. When the overage row is
     // already showing the upgrade icon directly above, this row uses the blank icon to avoid duplication.
-    if (MenuUtils.shouldShowUpgradePlanRow(plan)) {
+    if (MenuUtils.shouldShowUpgradePlanRow(plan, quotaStatus.canUpgradePlan())) {
       ImageDescriptor upgradePlanIcon = hasNonOrgPremiumQuota ? blankIcon : upgradeIcon;
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_upgradePlan, upgradePlanIcon, handlerService,
           "com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan", true);
