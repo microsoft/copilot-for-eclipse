@@ -97,7 +97,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
     synchronized (lock) {
       if (!isBackground && this.persistentTerminalViewControl != null) {
-        bringTerminalViewAndCopilotConsoleToFront();
+        revealTerminal();
         this.persistentTerminalViewControl.pasteString(finalCommand);
         return this.resultFuture;
       }
@@ -122,7 +122,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
           if (!isBackground) {
             this.persistentTerminalViewControl = terminalViewControl;
-            bringTerminalViewAndCopilotConsoleToFront();
+            revealTerminal();
           }
           terminalViewControl.pasteString(finalCommand);
         } else {
@@ -360,7 +360,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     };
   }
 
-  private void bringTerminalViewAndCopilotConsoleToFront() {
+  private void revealTerminal() {
     if (tabFolder != null && copilotTabItem != null) {
       Display.getDefault().syncExec(() -> {
         try {
