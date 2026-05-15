@@ -65,6 +65,7 @@ import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -118,6 +119,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image autoBreakpointDisabledImage;
   private ContextSizeDonut contextSizeDonut;
   private StaticBanner staticBanner;
+  private Composite inputArea;
 
   private ChatServiceManager chatServiceManager;
   IEventBroker eventBroker;
@@ -163,13 +165,28 @@ public class ActionBar extends Composite implements NewConversationListener {
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS,
         featureFlagsChangedEventHandler);
-    Composite actionBar = new Composite(this, style | SWT.BORDER);
+    // Transparent wrapper for the optional TodoListBar / WorkingSetBar and the bordered input below.
+    // StaticBanner is created as a sibling of inputArea so it stays structurally above the whole stack.
+    this.inputArea = new Composite(this, SWT.NONE);
+    GridLayout glInputArea = new GridLayout(1, false);
+    glInputArea.marginWidth = 0;
+    glInputArea.marginHeight = 0;
+    glInputArea.marginLeft = 0;
+    glInputArea.marginRight = 0;
+    glInputArea.marginTop = 0;
+    glInputArea.marginBottom = 0;
+    glInputArea.horizontalSpacing = 0;
+    glInputArea.verticalSpacing = 0;
+    this.inputArea.setLayout(glInputArea);
+    this.inputArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+    Composite borderedActionBar = new Composite(this.inputArea, style | SWT.BORDER);
     GridLayout gl = new GridLayout(1, false);
     gl.marginHeight = 5;
     gl.verticalSpacing = 0;
-    actionBar.setLayout(gl);
-    actionBar.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-    actionBar.setData(CssConstants.CSS_ID_KEY, "chat-action-bar");
+    borderedActionBar.setLayout(gl);
+    borderedActionBar.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    borderedActionBar.setData(CssConstants.CSS_ID_KEY, "chat-action-bar");
 
     RowLayout rowLayout = new RowLayout();
     rowLayout.wrap = true;
@@ -185,7 +202,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     rowLayout.marginTop = 0;
     rowLayout.marginBottom = 10;
     rowLayout.center = true;
-    this.cmpFileRef = new Composite(actionBar, SWT.NONE);
+    this.cmpFileRef = new Composite(borderedActionBar, SWT.NONE);
     this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.cmpFileRef.setLayout(rowLayout);
     new AddContextButton(this.cmpFileRef);
@@ -197,7 +214,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindActionBarForSupportVisionChange(this);
 
-    ChatInputTextViewer tv = new ChatInputTextViewer(actionBar, chatServiceManager);
+    ChatInputTextViewer tv = new ChatInputTextViewer(borderedActionBar, chatServiceManager);
     tv.setEditable(true);
     tv.addTextListener(new ITextListener() {
       @Override
@@ -279,7 +296,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     glActionArea.marginLeft = 0;
     glActionArea.marginTop = 5;
     glActionArea.marginBottom = -5;
-    this.cmpActionArea = new Composite(actionBar, SWT.NONE);
+    this.cmpActionArea = new Composite(borderedActionBar, SWT.NONE);
     this.cmpActionArea.setLayout(glActionArea);
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
@@ -947,11 +964,35 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   /**
-   * Show the static banner above the bordered action bar area.
+   * Show the rate-limit static banner above the input area, with a single "Get more info" action link.
    *
    * @param message the message to display
+   * @param warning {@code true} for the warning icon; {@code false} for the info icon
    */
-  public void createStaticBanner(String message) {
+  public void createRateLimitBanner(String message, boolean warning) {
+    List<BannerAction> actions = List.of(
+        new BannerAction(Messages.chat_rateLimitBanner_getMoreInfo, UiConstants.COPILOT_RATE_LIMIT_INFO_URL));
+    showStaticBanner(message, actions, warning);
+  }
+
+  /**
+   * Show the quota-warning static banner above the input area. Action links are sourced from
+   * {@link QuotaActions#forPlan(CopilotPlan, boolean)} so they stay in sync with the inline {@link WarnWidget}.
+   *
+   * @param message the message to display
+   * @param plan the user's Copilot plan, or {@code null} for no action links
+   * @param overageEnabled whether additional paid usage is already enabled for the user; switches the
+   *     "Enable Additional Usage" label to "Increase Budget"
+   * @param warning {@code true} for the warning icon; {@code false} for the info icon
+   */
+  public void createQuotaWarningBanner(String message, CopilotPlan plan, boolean overageEnabled, boolean warning) {
+    List<BannerAction> bannerActions = QuotaActions.forPlan(plan, overageEnabled).stream()
+        .map(action -> new BannerAction(action.label(), action.url()))
+        .toList();
+    showStaticBanner(message, bannerActions, warning);
+  }
+
+  private void showStaticBanner(String message, List<BannerAction> actions, boolean warning) {
     if (isDisposed()) {
       return;
     }
@@ -959,14 +1000,22 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.staticBanner.dispose();
     }
 
-    this.staticBanner = new StaticBanner(this, SWT.NONE, message, Messages.chat_rateLimitBanner_getMoreInfo,
-        UiConstants.COPILOT_RATE_LIMIT_INFO_URL, Messages.chat_rateLimitBanner_closeTooltip);
-    // Position the banner above the first child (the bordered action bar composite)
-    if (getChildren().length > 0) {
-      this.staticBanner.moveAbove(getChildren()[0]);
+    this.staticBanner = new StaticBanner(this, SWT.NONE, message, actions,
+        Messages.chat_rateLimitBanner_closeTooltip, warning);
+    // Keep the banner above the inputArea sibling, the only other child of this composite.
+    if (this.inputArea != null && !this.inputArea.isDisposed()) {
+      this.staticBanner.moveAbove(this.inputArea);
     }
     this.staticBanner.show();
     requestLayout();
+  }
+
+  /**
+   * Returns the input-area wrapper that owns {@code TodoListBar}, {@code WorkingSetBar}, and the bordered chat input.
+   * Services creating those top bars should parent them here so the sibling {@code StaticBanner} stays above.
+   */
+  public Composite getInputArea() {
+    return this.inputArea;
   }
 
   /**

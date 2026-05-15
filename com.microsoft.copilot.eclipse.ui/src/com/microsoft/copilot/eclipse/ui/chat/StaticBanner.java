@@ -3,8 +3,9 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
@@ -22,31 +23,35 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * A reusable banner widget that displays an informational message with an inline link and a close button. Shows an info
- * icon, the provided message with an appended link, and a dismiss (×) button.
+ * Reusable, dismissible banner shown above the chat input. Layout is a 3-column grid: severity icon, wrapping message,
+ * close button; an optional second row of action links is added when {@code actions} is non-empty.
+ *
+ * <p>The banner is constructed hidden and layout-excluded; call {@link #show()} to reveal it. Callers must pass
+ * already-localized strings.
  *
  * <p>Usage example:
  *
- * <pre>var banner = new StaticBanner(parent, SWT.NONE, "You've used 90% of your rate limit.", "Get more info",
- *     "https://example.com", "Dismiss");
+ * <pre>
+ * var banner = new StaticBanner(parent, SWT.NONE, "You've used 75% of your monthly quota.",
+ *     List.of(new BannerAction("Upgrade Plan", "https://example.com/upgrade")), "Dismiss", true);
  * banner.show();
  * </pre>
  */
 public class StaticBanner extends Composite {
-  private Link messageLink;
+  private Label messageLabel;
 
   /**
-   * Create a static informational banner.
+   * Create a hidden static banner; call {@link #show()} to reveal. {@link SWT#BORDER} is always applied.
    *
    * @param parent the parent composite
-   * @param style the SWT style
-   * @param message the informational message to display
-   * @param linkText the text for the inline link (e.g. "Get more info")
-   * @param linkUrl the URL to open when the link is clicked
-   * @param closeTooltip the tooltip for the close button
+   * @param style additional SWT style bits
+   * @param message the message to display ({@code null} treated as empty)
+   * @param actions optional action links below the message; entries with blank label or URL are skipped
+   * @param closeTooltip tooltip for the close (×) button
+   * @param warning {@code true} for the warning icon; {@code false} for the info icon
    */
-  public StaticBanner(Composite parent, int style, String message, String linkText, String linkUrl,
-      String closeTooltip) {
+  public StaticBanner(Composite parent, int style, String message, List<BannerAction> actions, String closeTooltip,
+      boolean warning) {
     super(parent, style | SWT.BORDER);
 
     GridLayout layout = new GridLayout(3, false);
@@ -56,26 +61,19 @@ public class StaticBanner extends Composite {
     setLayout(layout);
     setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
 
-    // Info icon
+    // Severity icon
     Label iconLabel = new Label(this, SWT.NONE);
-    Image infoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_INFO_TSK);
-    iconLabel.setImage(infoImage);
+    String iconKey = warning ? ISharedImages.IMG_OBJS_WARN_TSK : ISharedImages.IMG_OBJS_INFO_TSK;
+    Image iconImage = PlatformUI.getWorkbench().getSharedImages().getImage(iconKey);
+    iconLabel.setImage(iconImage);
     iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
 
-    // Message + inline link
-    this.messageLink = new Link(this, SWT.WRAP);
-    this.messageLink.setText(buildMessageText(message, linkText, linkUrl));
-    this.messageLink.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    this.messageLink.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(SelectionEvent e) {
-        if (StringUtils.isNotBlank(linkUrl)) {
-          UiUtils.openLink(linkUrl);
-        }
-      }
-    });
+    // Wrapping message text
+    this.messageLabel = new Label(this, SWT.WRAP);
+    this.messageLabel.setText(StringUtils.defaultString(message));
+    this.messageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-    // Close button
+    // Close (×) button
     Label closeButton = new Label(this, SWT.NONE);
     Image closeImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
     closeButton.setImage(closeImage);
@@ -89,13 +87,35 @@ public class StaticBanner extends Composite {
       }
     });
 
+    // Optional action-link row, aligned under the message column.
+    List<BannerAction> safeActions = actions == null ? List.of() : actions;
+    if (!safeActions.isEmpty()) {
+      // Spacer to align with the icon column above.
+      new Label(this, SWT.NONE).setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+
+      GridLayout actionLayout = new GridLayout(safeActions.size(), false);
+      actionLayout.marginWidth = 0;
+      actionLayout.marginHeight = 0;
+      actionLayout.horizontalSpacing = 12;
+      actionLayout.verticalSpacing = 0;
+      GridData actionRowData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+      actionRowData.horizontalSpan = 2;
+      Composite actionRow = new Composite(this, SWT.NONE);
+      actionRow.setLayout(actionLayout);
+      actionRow.setLayoutData(actionRowData);
+
+      for (BannerAction action : safeActions) {
+        addActionLink(actionRow, action);
+      }
+    }
+
     setVisible(false);
     GridData gd = (GridData) getLayoutData();
     gd.exclude = true;
   }
 
   /**
-   * Show the banner.
+   * Reveal the banner and re-layout the parent. No-op if disposed.
    */
   public void show() {
     if (isDisposed()) {
@@ -118,13 +138,19 @@ public class StaticBanner extends Composite {
     }
   }
 
-  private static String buildMessageText(String message, String linkText, String linkUrl) {
-    String safeMessage = escapeForLink(message);
-    if (StringUtils.isBlank(linkText) || StringUtils.isBlank(linkUrl)) {
-      return safeMessage;
+  private static void addActionLink(Composite parent, BannerAction action) {
+    if (action == null || StringUtils.isBlank(action.text()) || StringUtils.isBlank(action.url())) {
+      return;
     }
-    return NLS.bind(com.microsoft.copilot.eclipse.ui.i18n.Messages.chat_staticBanner_messageWithLink, safeMessage,
-        escapeForLink(linkText));
+    Link link = new Link(parent, SWT.NONE);
+    link.setText("<a>" + escapeForLink(action.text()) + "</a>");
+    link.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+    link.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        UiUtils.openLink(action.url());
+      }
+    });
   }
 
   private static String escapeForLink(String text) {

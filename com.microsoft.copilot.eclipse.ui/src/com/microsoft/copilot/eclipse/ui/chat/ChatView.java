@@ -66,6 +66,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
@@ -142,9 +143,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler codingAgentMessageHandler;
   private EventHandler autoBreakpointToggleHandler;
   private EventHandler rateLimitWarningHandler;
+  private EventHandler quotaWarningHandler;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
+
+  /**
+   * Percentage-remaining threshold below which the rate-limit banner switches from the informational
+   * icon to the warning icon.
+   */
+  private static final double RATE_LIMIT_WARNING_THRESHOLD_PERCENT_REMAINING = 25.0;
+
   private IContextActivation chatViewContextActivation;
   private IPartListener2 partListener;
 
@@ -359,12 +368,30 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (data instanceof RateLimitWarningParams params) {
         SwtUtils.invokeOnDisplayThreadAsync(() -> {
           if (actionBar != null && !actionBar.isDisposed()) {
-            actionBar.createStaticBanner(params.message());
+            RateLimitWarningParams.RateLimit rateLimit = params.rateLimit();
+            boolean warning = rateLimit != null
+                && rateLimit.percentRemaining() <= RATE_LIMIT_WARNING_THRESHOLD_PERCENT_REMAINING;
+            actionBar.createRateLimitBanner(params.message(), warning);
           }
         }, parent);
       }
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_RATE_LIMIT_WARNING, this.rateLimitWarningHandler);
+
+    this.quotaWarningHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (data instanceof QuotaWarningParams params) {
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          if (actionBar != null && !actionBar.isDisposed()) {
+            boolean warning = "warning".equalsIgnoreCase(params.severity());
+            boolean overageEnabled = params.premiumInteractions() != null
+                && params.premiumInteractions().overageEnabled();
+            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), overageEnabled, warning);
+          }
+        }, parent);
+      }
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_QUOTA_WARNING, this.quotaWarningHandler);
 
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
@@ -1423,6 +1450,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         this.eventBroker.unsubscribe(this.rateLimitWarningHandler);
         rateLimitWarningHandler = null;
       }
+      if (quotaWarningHandler != null) {
+        this.eventBroker.unsubscribe(this.quotaWarningHandler);
+        quotaWarningHandler = null;
+      }
     }
 
     if (this.chatServiceManager != null) {
@@ -1729,7 +1760,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         SwtUtils.invokeOnDisplayThread(() -> {
           String errorMessage = errorData != null ? errorData.getMessage() : Messages.chat_warnWidget_defaultErrorMsg;
           int errorCode = errorData != null ? errorData.getCode() : 0;
-          turnWidget.createWarnDialog(errorMessage, errorCode);
+          String modelProviderName = errorData != null ? errorData.getModelProviderName() : null;
+          turnWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
         }, parent);
       }
     }
