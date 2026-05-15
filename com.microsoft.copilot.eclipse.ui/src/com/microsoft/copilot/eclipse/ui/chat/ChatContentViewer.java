@@ -266,11 +266,6 @@ public class ChatContentViewer extends ScrolledComposite {
         // TODO: Remove this legacy fallback after TBB is officially released.
         if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402
             && quotaStatus.copilotPlan() != CopilotPlan.free) {
-          // Detach the failed turn so the replayed response creates a new Copilot turn below the
-          // warning, instead of streaming into the same turn that just rendered the warn widget.
-          this.latestTurnWidget = null;
-          this.latestCopilotTurn = null;
-
           this.serviceManager.getModelService().setFallBackModelAsActiveModel();
           this.serviceManager.getAuthStatusManager().checkQuota();
 
