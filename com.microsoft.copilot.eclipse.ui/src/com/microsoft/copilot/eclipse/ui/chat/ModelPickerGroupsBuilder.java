@@ -122,7 +122,11 @@ public final class ModelPickerGroupsBuilder {
     for (CopilotModel model : models) {
       String effectiveEffort = reasoningEffortResolver != null ? reasoningEffortResolver.apply(model) : null;
       String suffix = ModelUtils.getModelSuffix(model, effectiveEffort);
-      items.add(new DropdownItem.Builder().id(model.getModelName()).label(model.getModelName()).suffix(suffix)
+      String name = model.getModelName();
+      String effortLabel = ModelUtils.formatReasoningEffort(effectiveEffort);
+      String selectedLabel = StringUtils.isNotBlank(effortLabel) && StringUtils.isNotBlank(name)
+          ? name + " - " + effortLabel : null;
+      items.add(new DropdownItem.Builder().id(name).label(name).selectedLabel(selectedLabel).suffix(suffix)
           .icon(resolveModelIcon(model)).hoverProvider(new ModelHoverContentProvider(model)).build());
     }
     return items;

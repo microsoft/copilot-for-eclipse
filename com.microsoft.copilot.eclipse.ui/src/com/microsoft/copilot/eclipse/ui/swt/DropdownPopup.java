@@ -413,9 +413,14 @@ class DropdownPopup {
           }
           updateFocusBorder(focusedIndex, true);
         }
-        if (item.getHoverProvider() != null
-            && (!alreadyFocused || hoverShell == null || hoverShell.isDisposed())) {
-          openHoverShell(item, itemComp);
+        if (item.getHoverProvider() != null) {
+          if (!alreadyFocused || hoverShell == null || hoverShell.isDisposed()) {
+            openHoverShell(item, itemComp);
+          }
+        } else {
+          // Entering an item without a hover provider should clear any lingering hover that was kept alive
+          // while the cursor was over the dropdown body (e.g. on the scrollbar or transit gap).
+          closeHoverShell();
         }
       }
 
@@ -533,7 +538,10 @@ class DropdownPopup {
     } else {
       x = popupBounds.x - hoverSize.x;
     }
-    int y = Math.max(screen.y, Math.min(itemLoc.y, screen.y + screen.height - hoverSize.y));
+    // Vertically center the hover on the hovered item, then clamp to the visible monitor area.
+    int anchorHeight = anchorItem.getSize().y;
+    int desiredY = itemLoc.y + (anchorHeight - hoverSize.y) / 2;
+    int y = Math.max(screen.y, Math.min(desiredY, screen.y + screen.height - hoverSize.y));
     hoverShell.setLocation(x, y);
     hoverShell.setVisible(true);
 
@@ -566,15 +574,12 @@ class DropdownPopup {
           return;
         }
         boolean overHover = isCursorInsideControl(hoverShell);
-        boolean overAnchor = hoverAnchorItem != null && !hoverAnchorItem.isDisposed()
-            && isCursorInsideControl(hoverAnchorItem);
-        if (!overHover && !overAnchor) {
+        boolean overDropdown = shell != null && !shell.isDisposed() && isCursorInsideControl(shell);
+        if (!overHover && !overDropdown) {
           closeHoverShell();
-          // If the cursor has also left the dropdown itself, fully dismiss the popup. Deactivate was
-          // suppressed earlier while the hover was visible, so without this the dropdown would linger.
-          if (shell != null && !shell.isDisposed() && !isCursorInsideControl(shell)) {
-            close();
-          }
+          // Deactivate is suppressed while the hover is visible, so dismiss the dropdown here once the
+          // cursor has truly left every region we treat as "stay".
+          close();
           return;
         }
         display.timerExec(HOVER_POLL_INTERVAL_MS, this);

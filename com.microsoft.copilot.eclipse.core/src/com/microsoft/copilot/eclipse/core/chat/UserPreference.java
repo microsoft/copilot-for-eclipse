@@ -95,6 +95,16 @@ public class UserPreference {
   }
 
   /**
+   * Returns an immutable snapshot of the model-key to reasoning-effort map. Useful as an observable value that
+   * changes by equality whenever any individual entry is added, updated, or removed.
+   *
+   * @return an immutable snapshot of the current reasoning-effort map (never {@code null})
+   */
+  public Map<String, String> getReasoningEffortSnapshot() {
+    return reasoningEffortByModel;
+  }
+
+  /**
    * Stores the user-selected reasoning effort for the given model key. Passing a {@code null} effort clears any
    * previously stored value for that key.
    *

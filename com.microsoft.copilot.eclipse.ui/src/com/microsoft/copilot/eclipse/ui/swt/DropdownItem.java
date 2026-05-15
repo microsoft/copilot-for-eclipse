@@ -32,6 +32,7 @@ public final class DropdownItem {
 
   private final String id;
   private final String label;
+  private final String selectedLabel;
   private final Image icon;
   private final String suffix;
   private final String tooltip;
@@ -45,6 +46,7 @@ public final class DropdownItem {
   private DropdownItem(Builder builder) {
     this.id = builder.id;
     this.label = builder.label;
+    this.selectedLabel = builder.selectedLabel;
     this.icon = builder.icon;
     this.suffix = builder.suffix;
     this.tooltip = builder.tooltip;
@@ -80,6 +82,19 @@ public final class DropdownItem {
    */
   public String getLabel() {
     return label;
+  }
+
+  /**
+   * Returns the optional label shown on the {@link DropdownButton} button face when this item is selected, or
+   * {@code null} when the regular {@link #getLabel() label} should be used.
+   *
+   * <p>Use this to render a richer or differently-formatted text on the button than what appears in the dropdown row
+   * (e.g. {@code "GPT-5.3-Codex - Medium"} on the button while the row only shows {@code "GPT-5.3-Codex"}).
+   *
+   * @return the button-face label override, or {@code null}
+   */
+  public String getSelectedLabel() {
+    return selectedLabel;
   }
 
   /**
@@ -159,6 +174,7 @@ public final class DropdownItem {
 
     private String id;
     private String label = "";
+    private String selectedLabel;
     private Image icon;
     private String suffix;
     private String tooltip;
@@ -186,6 +202,19 @@ public final class DropdownItem {
      */
     public Builder label(String label) {
       this.label = label != null ? label : "";
+      return this;
+    }
+
+    /**
+     * Sets the optional button-face label override. When this item is the selected one on a {@link DropdownButton},
+     * the button paints this text instead of {@link #label(String)}. Pass {@code null} (the default) to reuse the
+     * row label on the button face.
+     *
+     * @param selectedLabel the button-face label, or {@code null}
+     * @return this builder
+     */
+    public Builder selectedLabel(String selectedLabel) {
+      this.selectedLabel = selectedLabel;
       return this;
     }
 

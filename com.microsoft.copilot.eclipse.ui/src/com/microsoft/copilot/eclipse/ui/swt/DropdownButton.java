@@ -49,7 +49,6 @@ public class DropdownButton extends Composite {
   private final DropdownPopup popup;
   private List<DropdownItemGroup> itemGroups;
   private String selectedItemId;
-  private String selectedDisplayText;
   private boolean mouseHover;
 
   /**
@@ -112,6 +111,7 @@ public class DropdownButton extends Composite {
    */
   public void setItemGroups(List<DropdownItemGroup> itemGroups) {
     this.itemGroups = itemGroups;
+    updateWidthHint();
     redraw();
   }
 
@@ -136,18 +136,6 @@ public class DropdownButton extends Composite {
    */
   public String getSelectedItemId() {
     return selectedItemId;
-  }
-
-  /**
-   * Overrides the text shown on the button face. When set to a non-blank value the button displays this text
-   * instead of the selected item's label. Pass {@code null} or blank to fall back to the selected item's label.
-   *
-   * @param displayText the text to display on the button face, or {@code null} to use the selected item's label
-   */
-  public void setSelectedDisplayText(String displayText) {
-    this.selectedDisplayText = displayText;
-    updateWidthHint();
-    redraw();
   }
 
   /**
@@ -228,10 +216,11 @@ public class DropdownButton extends Composite {
   }
 
   private String resolveDisplayText(DropdownItem selected) {
-    if (selectedDisplayText != null && !selectedDisplayText.isEmpty()) {
-      return selectedDisplayText;
+    if (selected == null) {
+      return "";
     }
-    return selected != null ? selected.getLabel() : "";
+    String selectedLabel = selected.getSelectedLabel();
+    return selectedLabel != null ? selectedLabel : selected.getLabel();
   }
 
   private DropdownItem findItemById(String id) {

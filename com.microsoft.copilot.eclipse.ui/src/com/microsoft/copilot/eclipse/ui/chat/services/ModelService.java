@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -56,6 +55,7 @@ public class ModelService extends ChatBaseService {
   // models for the model picker
   private IObservableValue<Map<String, CopilotModel>> modelObservable;
   private IObservableValue<CopilotModel> activeModelObservable;
+  private IObservableValue<Map<String, String>> reasoningEffortObservable;
   // Used to update modelObservable
   private Map<String, CopilotModel> copilotModels = new HashMap<>();
   private Map<String, CopilotModel> registeredByokModels = new HashMap<>();
@@ -84,6 +84,12 @@ public class ModelService extends ChatBaseService {
     ensureRealm(() -> {
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       activeModelObservable = new WritableValue<>(null, CopilotModel.class);
+      Map<String, String> initialEfforts = Map.of();
+      UserPreference initialPreference = getUserPreference();
+      if (initialPreference != null) {
+        initialEfforts = initialPreference.getReasoningEffortSnapshot();
+      }
+      reasoningEffortObservable = new WritableValue<>(initialEfforts, Map.class);
     });
 
     initializeEventHandlers();
@@ -452,57 +458,10 @@ public class ModelService extends ChatBaseService {
     }
     preference.setReasoningEffort(key, reasoningEffort);
     CompletableFuture.runAsync(this::persistUserPreference);
-    // Rebuild bound model picker items so the row suffix (which includes the user-selected effort) reflects the
-    // new value the next time the dropdown opens. setItemGroups only affects subsequent open() calls; the
-    // currently open popup (if any) is closed explicitly by the caller after this method returns.
-    ensureRealm(this::refreshBoundModelPickers);
-    // Re-publish the active model so observers (e.g. model picker) refresh derived UI such as the picker tooltip.
-    CopilotModel activeModel = getActiveModel();
-    if (Objects.equals(activeModel != null ? activeModel.getModelKey() : null, key)) {
-      ensureRealm(() -> activeModelObservable.setValue(model));
-    }
-  }
-
-  /**
-   * Rebuilds the item groups on every bound model picker. Invoked when the user changes a setting (like the
-   * reasoning effort) that only affects the displayed suffix and not the underlying model list.
-   */
-  private void refreshBoundModelPickers() {
-    Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
-    if (modelMap == null || modelMap.isEmpty()) {
-      return;
-    }
-    boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
-        .copilotPlan() == CopilotPlan.free;
-    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    boolean showByokManageOption = flags == null || flags.isByokEnabled();
-    CopilotModel activeModel = getActiveModel();
-    String activeDisplayText = activeModel != null ? buildModelButtonDisplayText(activeModel) : null;
-    for (DropdownButton picker : modelButtonSideEffects.keySet()) {
-      if (picker != null && !picker.isDisposed()) {
-        picker.setItemGroups(ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption,
-            showByokManageOption, this::resolveEffectiveReasoningEffort));
-        if (activeDisplayText != null) {
-          picker.setSelectedDisplayText(activeDisplayText);
-        }
-      }
-    }
-  }
-
-  /**
-   * Builds the text shown on the model picker button face. (e.g. {@code "GPT-5.3-Codex - Medium"}).
-   */
-  private String buildModelButtonDisplayText(CopilotModel model) {
-    if (model == null) {
-      return "";
-    }
-    String name = model.getModelName();
-    String effort = resolveEffectiveReasoningEffort(model);
-    String effortLabel = ModelUtils.formatReasoningEffort(effort);
-    if (StringUtils.isBlank(effortLabel)) {
-      return name != null ? name : "";
-    }
-    return (name != null ? name : "") + " - " + effortLabel;
+    // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
+    // resolveEffectiveReasoningEffort (which queries UserPreference), so this observable serves
+    // purely as a change signal.
+    ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
   }
 
   /**
@@ -523,35 +482,27 @@ public class ModelService extends ChatBaseService {
     ensureRealm(() -> {
       ISideEffect modelsSideEffect = ISideEffect.create(() -> {
         Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
+        this.reasoningEffortObservable.getValue();
         if (picker.isDisposed() || modelMap.isEmpty()) {
           return Collections.emptyMap();
         }
         return modelMap;
-      }, (Map<String, CopilotModel> modelMap) -> {
-        if (!picker.isDisposed()) {
-          boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
-              .copilotPlan() == CopilotPlan.free;
-          // TODO: need to remove this logic after group policy is available
-          FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-          boolean showByokManageOption = flags == null || flags.isByokEnabled();
-          picker.setItemGroups(
-              ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption,
-                  this::resolveEffectiveReasoningEffort));
-        }
-      });
+      }, (Map<String, CopilotModel> modelMap) -> rebuildPickerItems(picker, modelMap));
 
-      ISideEffect activeModelSideEffect = ISideEffect.create(() -> {
-        return this.activeModelObservable.getValue();
-      }, (CopilotModel activeModel) -> {
-        if (activeModel == null || picker.isDisposed()) {
-          return;
-        }
-        picker.setSelectedItemId(activeModel.getModelName());
-        picker.setSelectedDisplayText(buildModelButtonDisplayText(activeModel));
-        String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
-            ? " - " + activeModel.getDegradationReason() : "";
-        picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));
-      });
+      // Active-model render path: only depends on the active model. The button-face text is read from the matching
+      // DropdownItem's selectedLabel (populated by ModelPickerGroupsBuilder with the effective effort), which is
+      // refreshed by modelsSideEffect above whenever the reasoning-effort observable changes. There is no need to
+      // track the effort observable here.
+      ISideEffect activeModelSideEffect = ISideEffect.create(this.activeModelObservable::getValue,
+          (CopilotModel activeModel) -> {
+            if (activeModel == null || picker.isDisposed()) {
+              return;
+            }
+            picker.setSelectedItemId(activeModel.getModelName());
+            String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
+                ? " - " + activeModel.getDegradationReason() : "";
+            picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));
+          });
 
       // Store the side effects for later disposal
       modelButtonSideEffects.put(picker, new ISideEffect[] { modelsSideEffect, activeModelSideEffect });
@@ -559,6 +510,23 @@ public class ModelService extends ChatBaseService {
       // Add a dispose listener to auto-unbind when the combo is disposed
       picker.addDisposeListener(e -> unbindModelPicker(picker));
     });
+  }
+
+  /**
+   * Rebuilds the item groups for a single picker. Single render path shared by the model-list and
+   * reasoning-effort side effects.
+   */
+  private void rebuildPickerItems(DropdownButton picker, Map<String, CopilotModel> modelMap) {
+    if (picker.isDisposed()) {
+      return;
+    }
+    boolean showAddPremiumModelOption = this.authStatusManager.getQuotaStatus()
+        .copilotPlan() == CopilotPlan.free;
+    // TODO: need to remove this logic after group policy is available
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean showByokManageOption = flags == null || flags.isByokEnabled();
+    picker.setItemGroups(ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption,
+        this::resolveEffectiveReasoningEffort));
   }
 
   /**
