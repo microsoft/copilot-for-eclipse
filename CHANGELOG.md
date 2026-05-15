@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.18.0
 ### Added
-- ‼️ Prepare for the [upcoming usage-based billing](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/), We strongly recommend upgrading to this version as soon as possible. [#203](https://github.com/microsoft/copilot-for-eclipse/issues/203)
+- ℹ️ Prepare for the [upcoming usage-based billing](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/). We strongly recommend upgrading to this version as soon as possible. [#203](https://github.com/microsoft/copilot-for-eclipse/issues/203)
 - Add Copilot preference for a chat's custom instructions loading. [#62](https://github.com/microsoft/copilot-for-eclipse/issues/62), contributed by [@travkin79](https://github.com/travkin79)
 - Support skills and prompt files. [PR#133](https://github.com/microsoft/copilot-for-eclipse/pull/133)
 - Support displaying thinking blocks in chat view. [#202](https://github.com/microsoft/copilot-for-eclipse/issues/202)
