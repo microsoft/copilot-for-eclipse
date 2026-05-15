@@ -495,6 +495,7 @@ public abstract class BaseTurnWidget extends Composite {
   private void appendTextToTextViewer(String text) {
     if (currentTextBlock == null) {
       this.createTextBlock();
+      ensureFooterAtBottom();
     }
     if (currentTextBlock instanceof ChatMarkupViewer markupViewer) {
       markupViewer.setMarkup(text);
@@ -549,6 +550,7 @@ public abstract class BaseTurnWidget extends Composite {
 
     this.currentCodeBlock = codeBlock;
     this.codeBlockIndex++;
+    ensureFooterAtBottom();
   }
 
   /**
@@ -566,6 +568,18 @@ public abstract class BaseTurnWidget extends Composite {
   }
 
   /**
+   * Move the footer composite (if any) to the bottom of this turn widget. Should be called after
+   * adding a new child widget so the footer always remains visually at the bottom of the turn,
+   * including when content is appended to the same turn after the footer is first created (for
+   * example, when a legacy 402 response triggers a fallback-model replay into the same turn).
+   */
+  protected void ensureFooterAtBottom() {
+    if (this.footer != null && !this.footer.isDisposed()) {
+      this.footer.moveBelow(null);
+    }
+  }
+
+  /**
    * Render a warning dialog under the turn. BYOK 402 (402 + non-blank provider name) shows the BYOK message with no
    * actions; plain 402 shows the server message plus plan-driven actions; other codes show the server message only.
    *
@@ -574,6 +588,16 @@ public abstract class BaseTurnWidget extends Composite {
    * @param modelProviderName the BYOK model-provider name, or {@code null} for built-in models
    */
   protected void createWarnDialog(String message, int code, String modelProviderName) {
+    // TODO: Remove this legacy fallback after TBB is officially released.
+    // When the language server has not enabled token-based billing yet, restore the original
+    // main-branch warning behavior (no plan-driven actions; single upgrade button on the legacy
+    // 30-day free trial message).
+    if (!this.serviceManager.getAuthStatusManager().getQuotaStatus().tokenBasedBillingEnabled()) {
+      new WarnWidget(this, SWT.BOTTOM, message, code);
+      ensureFooterAtBottom();
+      requestLayout();
+      return;
+    }
     boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
     String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
     CopilotPlan planForActions = null;
@@ -585,6 +609,7 @@ public abstract class BaseTurnWidget extends Composite {
           && quotaStatus.premiumInteractions().overagePermitted();
     }
     new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled);
+    ensureFooterAtBottom();
     requestLayout();
   }
 
