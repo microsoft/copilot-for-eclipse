@@ -203,7 +203,7 @@ public class ModelService extends ChatBaseService {
       boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
       boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
       if (supportsChat || supportsAgent) {
-        newModels.put(model.getId(), model);
+        newModels.put(model.getModelKey(), model);
       }
       if (model.isChatDefault()) {
         defaultModel = model;
@@ -283,12 +283,10 @@ public class ModelService extends ChatBaseService {
    * user preference or falling back to default.
    */
   private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode, String scope) {
-    CopilotModel activeModel = getActiveModel();
-    boolean isCurrentModelAvailable = false;
-    if (activeModel != null) {
-      isCurrentModelAvailable = modelsForCurrentMode.containsKey(activeModel.getModelKey());
-    }
-    if (activeModel == null || !isCurrentModelAvailable) {
+    CopilotModel currentActive = getActiveModel();
+    boolean isCurrentModelAvailable = currentActive != null
+        && modelsForCurrentMode.containsKey(currentActive.getModelKey());
+    if (currentActive == null || !isCurrentModelAvailable) {
       // Try to restore user's preferred model if it's available in current mode
       String restoredModelId = restoreActiveModel();
       if (restoredModelId != null && modelsForCurrentMode.containsKey(restoredModelId)) {

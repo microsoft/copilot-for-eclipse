@@ -3,7 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.Locale;
+import java.util.List;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
@@ -18,13 +18,15 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 
-import com.microsoft.copilot.eclipse.ui.UiConstants;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
+import com.microsoft.copilot.eclipse.ui.chat.QuotaActions.QuotaAction;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * Widget to display a message when the user has no quota.
+ * Widget that displays a warning message under a chat turn, optionally followed by plan-driven action buttons sourced
+ * from {@link QuotaActions#forPlan(CopilotPlan, boolean)}. Presentation-only: the caller decides the message and
+ * whether to pass a plan.
  */
 public class WarnWidget extends Composite {
   private int buttonLeftMargin;
@@ -33,28 +35,31 @@ public class WarnWidget extends Composite {
    * Create the composite.
    *
    * @param parent the parent composite
-   * @param message the message to display
+   * @param style the SWT style bits
+   * @param message the message to display ({@code null} treated as empty)
+   * @param userPlan the user's Copilot plan to render plan-driven action buttons, or {@code null} for no buttons
+   * @param overageEnabled whether additional paid usage is already enabled for the user; switches the
+   *     "Enable Additional Usage" label to "Increase Budget"
    */
-  public WarnWidget(Composite parent, int style, String message, int code) {
+  public WarnWidget(Composite parent, int style, String message, CopilotPlan userPlan, boolean overageEnabled) {
     super(parent, style | SWT.BORDER);
-    setLayout(new GridLayout(1, true));
+    GridLayout outerLayout = new GridLayout(1, true);
+    outerLayout.verticalSpacing = 0;
+    setLayout(outerLayout);
     setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
 
     buildWarnLabelWithIcon(message);
 
-    // 402 = quota exceeded. The server bakes the recommended next steps into the message text itself
-    // (see copilot-language-server-internal fetch.ts), so we drive button visibility off of message
-    // content to keep parity with the IntelliJ UpgradeNotificationComponent#initTbb rendering. See:
-    // https://github.com/microsoft/copilot-client/blob/77f8f28e1a1e2efb51b6f92649bd9d085b8b64f5/lib/src/conversation/fetchPostProcessor.ts#L232-L248
-    if (code == 402) {
-      buildActionButtonsFromMessage(message);
+    if (userPlan != null) {
+      buildActionButtons(userPlan, overageEnabled);
     }
     parent.layout();
   }
 
   private void buildWarnLabelWithIcon(String message) {
     Composite composite = new Composite(this, SWT.NONE);
-    composite.setLayout(new GridLayout(2, false));
+    GridLayout warnLayout = new GridLayout(2, false);
+    composite.setLayout(warnLayout);
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
     Label iconLabel = new Label(composite, SWT.TOP);
@@ -63,7 +68,8 @@ public class WarnWidget extends Composite {
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;
     iconLabel.setLayoutData(iconGd);
-    buttonLeftMargin = warnImage.getBounds().width + iconGd.verticalIndent;
+    buttonLeftMargin = warnLayout.marginWidth + warnLayout.marginLeft + warnImage.getBounds().width
+        + warnLayout.horizontalSpacing;
 
     ChatMarkupViewer textLabel = new ChatMarkupViewer(composite, SWT.LEFT | SWT.WRAP);
     StyledText styledText = textLabel.getTextWidget();
@@ -75,56 +81,31 @@ public class WarnWidget extends Composite {
   }
 
   /**
-   * Render action buttons based on phrases present in the 402 message body, mirroring the IntelliJ
-   * {@code UpgradeNotificationComponent#initTbb} logic:
-   * <ul>
-   *   <li>{@code "additional overage"} or {@code "additional usage"} &rarr; "Enable Additional Usage"
-   *       (manage-overage URL)</li>
-   *   <li>{@code "increase budget"} (when neither overage nor usage phrase is present) &rarr;
-   *       "Increase Budget" (manage-overage URL)</li>
-   *   <li>{@code "upgrade your plan"} or the legacy {@code "30-day free trial"} hint &rarr;
-   *       "Upgrade Plan" (upgrade-plan URL)</li>
-   * </ul>
-   *
-   * <p>The overage button is shown as primary when present; the upgrade button is primary only when no
-   * overage button is rendered, matching the IntelliJ button styling.
+   * Render plan-driven action buttons for a quota-exceeded warning, kept in sync with the quota {@link StaticBanner}.
    */
-  private void buildActionButtonsFromMessage(String message) {
-    if (message == null) {
-      return;
-    }
-    String lower = message.toLowerCase(Locale.ROOT);
-    boolean enableAdditionalUsage = lower.contains("additional overage") || lower.contains("additional usage");
-    boolean increaseBudget = !enableAdditionalUsage && lower.contains("increase budget");
-    boolean upgradePlan = lower.contains("upgrade your plan") || lower.contains("30-day free trial");
-    if (!enableAdditionalUsage && !increaseBudget && !upgradePlan) {
+  private void buildActionButtons(CopilotPlan userPlan, boolean overageEnabled) {
+    List<QuotaAction> actions = QuotaActions.forPlan(userPlan, overageEnabled);
+    if (actions.isEmpty()) {
       return;
     }
 
-    Composite composite = new Composite(this, SWT.NONE);
     RowLayout layout = new RowLayout(SWT.HORIZONTAL);
     layout.marginLeft = this.buttonLeftMargin; // Align with the message text
+    layout.marginTop = 0;
     layout.spacing = 10;
+
+    Composite composite = new Composite(this, SWT.NONE);
     composite.setLayout(layout);
 
-    boolean overageButtonShown = enableAdditionalUsage || increaseBudget;
-    if (enableAdditionalUsage) {
-      addActionButton(composite, Messages.menu_quota_enableAdditionalUsage,
-          UiConstants.MANAGE_COPILOT_OVERAGE_URL, true);
-    } else if (increaseBudget) {
-      addActionButton(composite, Messages.menu_quota_increaseBudget,
-          UiConstants.MANAGE_COPILOT_OVERAGE_URL, true);
-    }
-    if (upgradePlan) {
-      addActionButton(composite, Messages.menu_quota_upgradePlan,
-          UiConstants.COPILOT_UPGRADE_PLAN_URL, !overageButtonShown);
+    for (QuotaAction action : actions) {
+      addButton(composite, action.label(), action.tooltip(), action.url(), action.primary());
     }
   }
 
-  private static void addActionButton(Composite parent, String label, String link, boolean primary) {
+  private static void addButton(Composite parent, String label, String tooltip, String link, boolean primary) {
     Button button = new Button(parent, SWT.PUSH);
     button.setText(label);
-    button.setToolTipText(label);
+    button.setToolTipText(tooltip);
     button.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(org.eclipse.swt.events.SelectionEvent event) {
