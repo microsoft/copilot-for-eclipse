@@ -135,7 +135,7 @@ public class ThinkingBlock extends Composite {
 
   /**
    * Mark the block as sealed: the owning widget has requested a title and any further thinking stream fragments must
-   * land in a new block. Stops the spinner and shows the intermediate "Thinking..." title while the title
+   * land in a new block. Stops the spinner and shows the intermediate "Thinking" title while the title
    * fetch is in flight. No-op once the block has been finalized or already sealed.
    */
   public void markSealed() {
