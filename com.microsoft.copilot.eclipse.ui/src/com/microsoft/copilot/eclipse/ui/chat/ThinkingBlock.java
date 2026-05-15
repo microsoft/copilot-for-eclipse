@@ -116,9 +116,18 @@ public class ThinkingBlock extends Composite {
     state = State.COMPLETED;
   }
 
-  /** Swap to the cancel icon, set the cancelled title, and collapse. No-op if already finalized. */
+  /**
+   * Cancel the thinking block. If still streaming, shows the cancel icon and collapses. If already sealed (thinking
+   * content finished, title fetch in flight), simply finalizes as completed since thinking itself was not interrupted.
+   * No-op if already finalized.
+   */
   public void showCancelled() {
     if (isFinalized()) {
+      return;
+    }
+    if (state == State.SEALED) {
+      // Thinking content already finished; just finalize without the cancel icon.
+      showCompleted();
       return;
     }
     stopSpinner();
