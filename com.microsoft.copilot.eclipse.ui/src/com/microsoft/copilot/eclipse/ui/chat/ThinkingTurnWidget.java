@@ -83,7 +83,7 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
     CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     if (ls == null) {
       target.markSealed();
-      target.showCompleted(Messages.thinking_completedTitle);
+      target.showCompleted();
       requestLayout();
       return;
     }
@@ -99,16 +99,15 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
             return;
           }
           if (resp != null && StringUtils.isNotBlank(resp.title())) {
-            target.showCompleted(resp.title());
-          } else {
-            target.showCompleted(Messages.thinking_completedTitle);
+            target.setTitle(resp.title());
           }
+          target.showCompleted();
           requestLayout();
         }, this))
         .exceptionally(ex -> {
           SwtUtils.invokeOnDisplayThreadAsync(() -> {
             if (!isDisposed() && !target.isDisposed() && !target.isFinalized()) {
-              target.showCompleted(Messages.thinking_completedTitle);
+              target.showCompleted();
               requestLayout();
             }
           }, this);
