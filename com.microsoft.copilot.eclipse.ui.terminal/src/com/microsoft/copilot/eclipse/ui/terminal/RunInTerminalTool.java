@@ -99,7 +99,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
     synchronized (lock) {
       if (!isBackground && this.persistentTerminalViewControl != null) {
-        bringTerminalViewAndCopilotConsoleToFront();
+        revealTerminal();
         this.persistentTerminalViewControl.pasteString(finalCommand);
         return this.resultFuture;
       }
@@ -124,7 +124,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
           if (!isBackground) {
             this.persistentTerminalViewControl = terminalViewControl;
-            bringTerminalViewAndCopilotConsoleToFront();
+            revealTerminal();
           }
           terminalViewControl.pasteString(finalCommand);
         } else {
@@ -208,7 +208,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       try {
         IWorkbenchPage page = getActivePage();
         if (page != null) {
-          IViewPart view = page.showView(IUIConstants.ID);
+          IViewPart view = page.showView(IUIConstants.ID, null, IWorkbenchPage.VIEW_VISIBLE);
           if (view != null) {
             tabFolder = view.getAdapter(CTabFolder.class);
             if (tabFolder != null) {
@@ -360,13 +360,13 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     };
   }
 
-  private void bringTerminalViewAndCopilotConsoleToFront() {
+  private void revealTerminal() {
     if (tabFolder != null && copilotTabItem != null) {
       Display.getDefault().syncExec(() -> {
         try {
           IWorkbenchPage page = getActivePage();
           if (page != null) {
-            IViewPart view = page.showView(IUIConstants.ID);
+            IViewPart view = page.showView(IUIConstants.ID, null, IWorkbenchPage.VIEW_VISIBLE);
             if (tabFolder.isDisposed() && view != null) {
               tabFolder = view.getAdapter(CTabFolder.class);
             }

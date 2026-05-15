@@ -149,6 +149,36 @@ public final class MenuUtils {
   }
 
   /**
+   * Returns the label for the "Additional usage" status row shown below the allowance-reset row
+   * for paid users when token-based billing is enabled. Renders as
+   * {@code "Additional usage enabled"} or {@code "Additional usage not enabled"} depending on
+   * {@link Quota#overagePermitted()}.
+   */
+  public static String getAdditionalUsageRowLabel(Quota premiumQuota) {
+    boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
+    return Messages.menu_quota_additionalPremiumRequests
+        + (overageEnabled ? Messages.menu_quota_enabled : Messages.menu_quota_disabled);
+  }
+
+  /**
+   * Returns the tooltip for the "Additional usage" status row, or {@code null} when no tooltip
+   * applies. Business / Enterprise plans receive a plan-specific tooltip; other plans currently
+   * have no tooltip.
+   */
+  public static String getAdditionalUsageRowTooltip(CheckQuotaResult quotaStatus) {
+    CopilotPlan plan = quotaStatus.copilotPlan();
+    boolean isOrg = plan == CopilotPlan.business || plan == CopilotPlan.enterprise;
+    if (!isOrg) {
+      return null;
+    }
+    Quota premiumQuota = quotaStatus.premiumInteractions();
+    boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
+    return overageEnabled
+        ? Messages.menu_quota_additionalUsageOrgEnabledTooltip
+        : Messages.menu_quota_additionalUsageOrgNotConfiguredTooltip;
+  }
+
+  /**
    * True when the allowance-reset row should be shown. The row is hidden when there is no monthly
    * allowance to reset (premium-interactions quota is unlimited), when no reset date was supplied,
    * or when the supplied reset date cannot be parsed.

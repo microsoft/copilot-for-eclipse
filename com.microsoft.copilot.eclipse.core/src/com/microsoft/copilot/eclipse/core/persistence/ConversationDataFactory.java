@@ -179,6 +179,7 @@ public class ConversationDataFactory {
     ErrorData errorData = new ErrorData();
     errorData.setMessage(error.getMessage());
     errorData.setCode(error.getCode());
+    errorData.setModelProviderName(error.getModelProviderName());
     ErrorMessageData em = new ErrorMessageData();
     em.setError(errorData);
     reply.getErrorMessages().add(em);

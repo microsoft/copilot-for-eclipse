@@ -19,6 +19,7 @@ public final class Messages extends NLS {
   public static String confirmDialog_keepChangesButton;
   public static String confirmDialog_undoChangesButton;
   public static String chat_warnWidget_defaultErrorMsg;
+  public static String chat_warnWidget_byokQuotaUsageMessage;
   public static String configureModes;
   public static String agentMessageWidget_openInBrowserButton;
   public static String agentMessageWidget_openInBrowserTooltip;
@@ -39,9 +40,7 @@ public final class Messages extends NLS {
   public static String todoList_clearButtonDisabled;
   public static String todoList_expandTooltip;
   public static String todoList_collapseTooltip;
-  public static String thinking_inProgressTitle;
-  public static String thinking_completedTitle;
-  public static String thinking_cancelledTitle;
+  public static String thinking_title;
   public static String thinking_expandTooltip;
   public static String thinking_collapseTooltip;
 

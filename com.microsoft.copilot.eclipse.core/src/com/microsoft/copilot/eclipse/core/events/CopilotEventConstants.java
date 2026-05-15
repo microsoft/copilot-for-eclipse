@@ -31,6 +31,11 @@ public class CopilotEventConstants {
   private static final String TOPIC_MCP = TOPIC_BASE + "MCP/";
 
   /**
+   * Topic for quota events.
+   */
+  private static final String TOPIC_QUOTA = TOPIC_BASE + "QUOTA/";
+
+  /**
    * Topic for Next Edit Suggestion (NES) events.
    */
   private static final String TOPIC_NES = TOPIC_BASE + "NES/";
@@ -160,6 +165,11 @@ public class CopilotEventConstants {
    * Event when a rate limit warning is received from the language server.
    */
   public static final String TOPIC_RATE_LIMIT_WARNING = TOPIC_CHAT + "RATE_LIMIT_WARNING";
+
+  /**
+   * Event when a quota warning notification is received from the language server.
+   */
+  public static final String TOPIC_QUOTA_WARNING = TOPIC_QUOTA + "WARNING";
 
   /**
    * Event when custom prompts, skills, agents, or instructions change on the language server. Clients should re-fetch

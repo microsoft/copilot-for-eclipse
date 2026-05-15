@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationDataFactory;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
@@ -420,7 +421,8 @@ public abstract class BaseTurnWidget extends Composite {
           CopilotTurnData.ErrorData errorData = errorMessageData.getError();
           String errorMessage = errorData != null ? errorData.getMessage() : "";
           int errorCode = errorData != null ? errorData.getCode() : 0;
-          subagentWidget.createWarnDialog(errorMessage, errorCode);
+          String modelProviderName = errorData != null ? errorData.getModelProviderName() : null;
+          subagentWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
         }
       }
     }
@@ -564,10 +566,25 @@ public abstract class BaseTurnWidget extends Composite {
   }
 
   /**
-   * Create a warning dialog to the turn widget.
+   * Render a warning dialog under the turn. BYOK 402 (402 + non-blank provider name) shows the BYOK message with no
+   * actions; plain 402 shows the server message plus plan-driven actions; other codes show the server message only.
+   *
+   * @param message the server error message
+   * @param code the server error code
+   * @param modelProviderName the BYOK model-provider name, or {@code null} for built-in models
    */
-  protected void createWarnDialog(String message, int code) {
-    new WarnWidget(this, SWT.BOTTOM, message, code);
+  protected void createWarnDialog(String message, int code, String modelProviderName) {
+    boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
+    String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
+    CopilotPlan planForActions = null;
+    boolean overageEnabled = false;
+    if (code == 402 && !byokQuotaExceeded) {
+      var quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+      planForActions = quotaStatus.copilotPlan();
+      overageEnabled = quotaStatus.premiumInteractions() != null
+          && quotaStatus.premiumInteractions().overagePermitted();
+    }
+    new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled);
     requestLayout();
   }
 

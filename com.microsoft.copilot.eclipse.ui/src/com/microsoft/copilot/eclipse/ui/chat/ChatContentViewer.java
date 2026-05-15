@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -22,23 +22,18 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.ScrollBar;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
-import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -47,6 +42,13 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 public class ChatContentViewer extends ScrolledComposite {
 
   private static final int SCROLL_THRESHOLD = 100;
+
+  /**
+   * Matches the trailing "| Request ID: ..." and "GitHub Request ID: ..." segments that the
+   * language server appends to user-facing error messages.
+   */
+  private static final Pattern REQUEST_ID_SUFFIX =
+      Pattern.compile("\\s*\\|?\\s*(?:GitHub\\s+)?Request\\s+ID:\\s*\\S+\\.?", Pattern.CASE_INSENSITIVE);
 
   private ChatServiceManager serviceManager;
 
@@ -223,42 +225,16 @@ public class ChatContentViewer extends ScrolledComposite {
       }
 
       String errMsg = value.getErrorMessage();
+      if (StringUtils.isNotEmpty(errMsg)) {
+        errMsg = REQUEST_ID_SUFFIX.matcher(errMsg).replaceAll(StringUtils.EMPTY).trim();
+      }
       String reason = value.getErrorReason();
       if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
         // TODO: add enable button for better UX.
         errMsg = Messages.chat_model_unsupported_message;
       }
       if (StringUtils.isNotEmpty(errMsg)) {
-        // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.
-        if (value.getCode() == 402) {
-          CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan();
-          CopilotModel fallbackModel = this.serviceManager.getModelService().getFallbackModel();
-          String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
-              : Messages.chat_noQuotaView_fallbackModel;
-
-          if (MenuUtils.isCfiPlan(userPlan)) {
-            // Pro, Pro+ and Max message
-            errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
-          } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
-            // CE and CB message
-            errMsg = String.format(Messages.chat_noQuotaView_cbCeWarnMsg, fallbackModelName);
-          }
-        }
-
-        renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode());
-
-        if (value.getCode() == 402
-            && this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan() != CopilotPlan.free) {
-          this.serviceManager.getModelService().setFallBackModelAsActiveModel();
-          this.serviceManager.getAuthStatusManager().checkQuota();
-
-          String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
-          if (StringUtils.isNotEmpty(previousInput)) {
-            IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-            Map<String, Object> properties = Map.of("previousInput", previousInput, "needCreateUserTurn", false);
-            eventBroker.post(CopilotEventConstants.TOPIC_CHAT_ON_SEND, properties);
-          }
-        }
+        renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode(), value.getErrorModelProviderName());
       }
     }, this);
   }
@@ -332,8 +308,8 @@ public class ChatContentViewer extends ScrolledComposite {
     return turns.get(turnId);
   }
 
-  private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code) {
-    latestTurnWidget.createWarnDialog(errorMessage, code);
+  private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code, String modelProviderName) {
+    latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
     refreshScrollerLayout();
     scrollToLatestUserTurn();
   }
