@@ -37,8 +37,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title header,
- * an optional category badge, an optional degradation warning, and model-specific details such as context size, token
- * pricing, and context window.
+ * an optional category badge, an optional degradation warning, and model-specific details such as context size and
+ * token pricing.
  */
 public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
@@ -83,7 +83,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     CopilotModelCapabilitiesLimits limits = model.getCapabilities() != null ? model.getCapabilities().limits() : null;
 
     addContextSizeSection(parent, limits);
-    addContextWindowSection(parent, limits);
     addPricingSection(parent, model.getModelPickerPriceCategory());
     addThinkingEffortSection(parent, closeRequest);
   }
@@ -149,16 +148,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
     addSeparator(parent);
     addKeyValueRow(parent, Messages.model_hover_cost, costSymbols);
-  }
-
-  private void addContextWindowSection(Composite parent, CopilotModelCapabilitiesLimits limits) {
-    if (limits == null || !isPositive(limits.maxContextWindowTokens())) {
-      return;
-    }
-
-    addSeparator(parent);
-    addKeyValueRow(parent, Messages.model_hover_contextWindow,
-        ModelUtils.formatTokenCount(limits.maxContextWindowTokens()));
   }
 
   private void addThinkingEffortSection(Composite parent, Runnable closeRequest) {
