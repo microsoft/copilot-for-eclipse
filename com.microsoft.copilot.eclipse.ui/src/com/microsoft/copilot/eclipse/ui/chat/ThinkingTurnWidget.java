@@ -60,7 +60,8 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
    * Must be called on the UI thread.
    */
   public void appendThinking(Thinking thinking) {
-    if (thinking == null || StringUtils.isBlank(thinking.text())) {
+    // Preserve whitespace-only thinking fragments; they can carry markdown boundaries between sections.
+    if (thinking == null || StringUtils.isEmpty(thinking.text())) {
       return;
     }
     if (isDisposed()) {
@@ -164,9 +165,8 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
       if (active.currentBlock != null && !active.currentBlock.isDisposed()
           && !active.currentBlock.isFinalized()) {
         boolean cancelled = active.currentBlock.showCancelled();
-        if (cancelled) {
-          String cancelTurnId = active.persistTurnId != null ? active.persistTurnId : active.turnId;
-          active.cancelThinkingBlock(cancelTurnId, active.currentBlock.getThinkingId());
+        if (cancelled && active.persistTurnId != null) {
+          active.cancelThinkingBlock(active.persistTurnId, active.currentBlock.getThinkingId());
         }
         active.requestLayout();
       }

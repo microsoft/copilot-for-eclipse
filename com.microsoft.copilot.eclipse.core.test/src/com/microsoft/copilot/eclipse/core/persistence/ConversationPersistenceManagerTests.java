@@ -275,6 +275,28 @@ class ConversationPersistenceManagerTests {
   }
 
   @Test
+  void testCacheConversationProgress_preservesWhitespaceOnlyThinkingFragments() throws Exception {
+    ConversationPersistenceManager manager = createManagerWithRealDataFactory();
+    String conversationId = "00000000-0000-0000-0000-000000000000";
+    String turnId = "00000000-0000-0000-0000-000000000002";
+    String thinkingBlockId = "thinking-block-1";
+    ConversationData conversationData = createTestConversationData(conversationId);
+    when(mockPersistenceService.loadConversationFromPersistedJsonFile(conversationId)).thenReturn(conversationData);
+
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "before title."), thinkingBlockId).get();
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "\n"), thinkingBlockId).get();
+    manager.cacheConversationProgress(conversationId,
+        createThinkingProgressValue(conversationId, turnId, "**Next title**\n\nbody"), thinkingBlockId).get();
+
+    ThinkingBlockData block = getCachedCopilotTurn(manager, conversationId, turnId).getReply()
+        .getEditAgentRounds().get(0).getThinkingBlock();
+    assertNotNull(block);
+    assertEquals("before title.\n**Next title**\n\nbody", block.getContent());
+  }
+
+  @Test
   void testPersistConversationProgress_Success() throws Exception {
     String conversationId = "00000000-0000-0000-0000-000000000000";
     ChatProgressValue progress = createTestChatProgressValue();

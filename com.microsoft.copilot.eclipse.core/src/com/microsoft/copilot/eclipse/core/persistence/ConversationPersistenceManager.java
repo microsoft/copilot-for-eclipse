@@ -317,7 +317,7 @@ public class ConversationPersistenceManager {
   }
 
   /**
-  * Sets the title on the thinking block with the given ID.
+   * Sets the title on the thinking block with the given ID.
    *
    * @param conversationId the conversation ID
    * @param turnId the turn ID
@@ -343,7 +343,7 @@ public class ConversationPersistenceManager {
   }
 
   /**
-  * Cancels the thinking block with the given ID.
+   * Cancels the thinking block with the given ID.
    *
    * @param conversationId the conversation ID
    * @param turnId the turn ID
@@ -394,7 +394,6 @@ public class ConversationPersistenceManager {
     }
     return null;
   }
-
 
   /**
    * Finds a turn by ID and type in the conversation.

@@ -180,7 +180,8 @@ public class ConversationDataFactory {
   }
 
   private void appendThinkingContent(ReplyData reply, Thinking thinking, String thinkingBlockId) {
-    if (thinking == null || StringUtils.isBlank(thinking.text())) {
+    // Preserve whitespace-only thinking fragments; they can carry markdown boundaries between sections.
+    if (thinking == null || StringUtils.isEmpty(thinking.text())) {
       return;
     }
     if (StringUtils.isBlank(thinkingBlockId)) {
