@@ -216,6 +216,18 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     ChatInputTextViewer tv = new ChatInputTextViewer(borderedActionBar, chatServiceManager);
     tv.setEditable(true);
+    // Relayout the chat view container so the new ActionBar preferred height is honored when the input grows or
+    // shrinks (e.g., recalling a long history entry with Up arrow, wrapping a long line, or clearing the input).
+    // Avoids a brittle fixed-depth parent traversal inside ChatInputTextViewer (see issue #215).
+    tv.setLayoutRefreshCallback(() -> {
+      if (ActionBar.this.isDisposed()) {
+        return;
+      }
+      Composite layoutTarget = ActionBar.this.getParent();
+      if (layoutTarget != null && !layoutTarget.isDisposed()) {
+        layoutTarget.layout(true, false);
+      }
+    });
     tv.addTextListener(new ITextListener() {
       @Override
       public void textChanged(TextEvent event) {
