@@ -53,6 +53,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
   static final String META_TOOL_KEY = "toolKey";
 
   private static final String SEPARATOR = "::";
+  private static final int MAX_SESSION_CONVERSATIONS = 50;
   private static final Type STRING_LIST_TYPE =
       new TypeToken<List<String>>() {}.getType();
 
@@ -94,15 +95,18 @@ public class McpConfirmationHandler implements ConfirmationHandler {
 
     // 1. Session: server approved for this conversation
     if (serverLower != null) {
-      Set<String> sessionServers = approvedServers.get(sessionConversationId);
-      if (sessionServers != null && sessionServers.contains(serverLower)) {
+      Set<String> sessionServers =
+          approvedServers.get(sessionConversationId);
+      if (sessionServers != null
+          && sessionServers.contains(serverLower)) {
         return ConfirmationResult.AUTO_APPROVED;
       }
     }
 
     // 2. Session: specific tool approved for this conversation
     if (toolKey != null) {
-      Set<String> sessionTools = approvedTools.get(sessionConversationId);
+      Set<String> sessionTools =
+          approvedTools.get(sessionConversationId);
       if (sessionTools != null && sessionTools.contains(toolKey)) {
         return ConfirmationResult.AUTO_APPROVED;
       }
@@ -169,18 +173,24 @@ public class McpConfirmationHandler implements ConfirmationHandler {
     switch (type) {
       case ACCEPT_TOOL_SESSION:
         if (toolKey != null) {
-          evictOldestIfNeeded(approvedTools);
-          approvedTools.computeIfAbsent(
-              sessionConversationId, k -> ConcurrentHashMap.newKeySet())
-              .add(toolKey.toLowerCase(Locale.ROOT));
+          synchronized (approvedTools) {
+            evictOldestIfNeeded(approvedTools);
+            approvedTools.computeIfAbsent(
+                sessionConversationId,
+                k -> ConcurrentHashMap.newKeySet())
+                .add(toolKey.toLowerCase(Locale.ROOT));
+          }
         }
         break;
       case ACCEPT_SERVER_SESSION:
         if (serverName != null) {
-          evictOldestIfNeeded(approvedServers);
-          approvedServers.computeIfAbsent(
-              sessionConversationId, k -> ConcurrentHashMap.newKeySet())
-              .add(serverName.toLowerCase(Locale.ROOT));
+          synchronized (approvedServers) {
+            evictOldestIfNeeded(approvedServers);
+            approvedServers.computeIfAbsent(
+                sessionConversationId,
+                k -> ConcurrentHashMap.newKeySet())
+                .add(serverName.toLowerCase(Locale.ROOT));
+          }
         }
         break;
       case ACCEPT_TOOL_GLOBAL:
@@ -324,17 +334,17 @@ public class McpConfirmationHandler implements ConfirmationHandler {
   }
 
   /**
-   * Evicts the oldest entry from a LinkedHashMap when it reaches the
-   * maximum number of tracked conversations.
+   * Evicts the oldest entry when the map reaches the maximum number of
+   * tracked conversations. Caller must hold the map's monitor.
    */
   private static <V> void evictOldestIfNeeded(Map<String, V> map) {
-    synchronized (map) {
-      while (map.size() >= TerminalConfirmationHandler.MAX_SESSION_CONVERSATIONS) {
-        var it = map.entrySet().iterator();
-        if (it.hasNext()) {
-          it.next();
-          it.remove();
-        }
+    while (map.size() >= MAX_SESSION_CONVERSATIONS) {
+      var it = map.entrySet().iterator();
+      if (it.hasNext()) {
+        it.next();
+        it.remove();
+      } else {
+        break;
       }
     }
   }

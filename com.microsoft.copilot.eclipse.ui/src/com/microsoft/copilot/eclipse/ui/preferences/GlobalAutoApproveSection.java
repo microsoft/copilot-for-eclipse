@@ -48,16 +48,18 @@ public class GlobalAutoApproveSection extends Composite {
       @Override
       public void widgetSelected(SelectionEvent e) {
         if (yoloCheckbox.getSelection()) {
-          int result = MessageDialog.open(
-              MessageDialog.WARNING,
+          MessageDialog dialog = new MessageDialog(
               getShell(),
               Messages.preferences_page_global_auto_approve_confirm_title,
+              null,
               Messages.preferences_page_global_auto_approve_confirm_message,
-              1,
+              MessageDialog.WARNING,
               new String[] {
                   Messages.preferences_page_global_auto_approve_confirm_button,
                   Messages.preferences_page_global_auto_approve_cancel_button
-              });
+              },
+              1);
+          int result = dialog.open();
           if (result != 0) {
             yoloCheckbox.setSelection(false);
           }

@@ -377,6 +377,8 @@ public class McpAutoApproveSection extends Composite {
     }
 
     private void updateParentState(McpServerToolsCollection server) {
+      String serverLower = server.getName() != null
+          ? server.getName().toLowerCase(Locale.ROOT) : "";
       List<McpToolInformation> tools = server.getTools();
       if (tools == null || tools.isEmpty()) {
         return;
@@ -390,12 +392,15 @@ public class McpAutoApproveSection extends Composite {
       if (checkedCount == 0) {
         treeViewer.setChecked(server, false);
         treeViewer.setGrayed(server, false);
+        checkedServers.remove(serverLower);
       } else if (checkedCount == tools.size()) {
         treeViewer.setChecked(server, true);
         treeViewer.setGrayed(server, false);
+        checkedServers.add(serverLower);
       } else {
         treeViewer.setChecked(server, true);
         treeViewer.setGrayed(server, true);
+        checkedServers.remove(serverLower);
       }
     }
 
