@@ -23,10 +23,12 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
@@ -128,6 +130,12 @@ public class FileOperationAutoApproveSection extends Composite {
       public String getText(Object element) {
         return ((FileOperationAutoApproveRule) element).getPattern();
       }
+
+      @Override
+      public Color getForeground(Object element) {
+        return ((FileOperationAutoApproveRule) element).isDefault()
+            ? Display.getDefault().getSystemColor(SWT.COLOR_DARK_GRAY) : null;
+      }
     });
 
     TableViewerColumn descCol =
@@ -142,6 +150,12 @@ public class FileOperationAutoApproveSection extends Composite {
             ((FileOperationAutoApproveRule) element).getDescription();
         return desc != null ? desc : "";
       }
+
+      @Override
+      public Color getForeground(Object element) {
+        return ((FileOperationAutoApproveRule) element).isDefault()
+            ? Display.getDefault().getSystemColor(SWT.COLOR_DARK_GRAY) : null;
+      }
     });
 
     TableViewerColumn statusCol =
@@ -155,6 +169,12 @@ public class FileOperationAutoApproveSection extends Composite {
         return ((FileOperationAutoApproveRule) element).isAutoApprove()
             ? Messages.preferences_page_auto_approve_allow
             : Messages.preferences_page_auto_approve_deny;
+      }
+
+      @Override
+      public Color getForeground(Object element) {
+        return ((FileOperationAutoApproveRule) element).isDefault()
+            ? Display.getDefault().getSystemColor(SWT.COLOR_DARK_GRAY) : null;
       }
     });
 
@@ -242,9 +262,11 @@ public class FileOperationAutoApproveSection extends Composite {
     if (!sel.isEmpty()) {
       FileOperationAutoApproveRule rule =
           (FileOperationAutoApproveRule) sel.getFirstElement();
-      rule.setAutoApprove(!rule.isAutoApprove());
-      tableViewer.refresh();
-      updateButtonState();
+      if (!rule.isDefault()) {
+        rule.setAutoApprove(!rule.isAutoApprove());
+        tableViewer.refresh();
+        updateButtonState();
+      }
     }
   }
 
@@ -282,7 +304,7 @@ public class FileOperationAutoApproveSection extends Composite {
     boolean isDefault = selected != null && selected.isDefault();
 
     removeButton.setEnabled(hasSelection && !isDefault);
-    toggleButton.setEnabled(hasSelection);
+    toggleButton.setEnabled(hasSelection && !isDefault);
     if (hasSelection) {
       toggleButton.setText(selected.isAutoApprove()
           ? Messages.preferences_page_auto_approve_deny
