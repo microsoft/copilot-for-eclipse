@@ -225,6 +225,8 @@ public class ActionBar extends Composite implements NewConversationListener {
       }
       Composite layoutTarget = ActionBar.this.getParent();
       if (layoutTarget != null && !layoutTarget.isDisposed()) {
+        // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
+        // The width of welcome view will become shorter and shorter, may investigate it later
         layoutTarget.layout(true, false);
       }
     });

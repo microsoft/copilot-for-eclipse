@@ -215,14 +215,9 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     }
     gd.heightHint = newHeightHint;
     // Delegate the relayout to the owner (e.g., ActionBar) so the chat view container reserves space for the
-    // updated input height. Falling back to a local requestLayout() keeps things working when no owner is wired
-    // up (e.g., in unit tests with a synthetic parent hierarchy).
-    // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
-    // The width of welcome view will become shorter and shorter, may investigate it later
+    // updated input height.
     if (this.layoutRefreshCallback != null) {
       this.layoutRefreshCallback.run();
-    } else if (this.parent != null && !this.parent.isDisposed()) {
-      this.parent.layout(true, false);
     }
   }
 
