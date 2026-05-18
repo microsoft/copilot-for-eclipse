@@ -78,9 +78,9 @@ public class ModelUtils {
   }
 
   /**
-   * Separator used between parts of the model picker suffix (e.g. "1M | High | $$$").
+   * Separator used between parts of the model picker suffix (e.g. "1M - High - $$$").
    */
-  private static final String SUFFIX_PART_SEPARATOR = " | ";
+  private static final String SUFFIX_PART_SEPARATOR = " - ";
 
   /**
    * Returns the display suffix for a model in the model picker.
@@ -196,8 +196,8 @@ public class ModelUtils {
   }
 
   /**
-   * Returns the default reasoning effort to use when the user has not made a selection. Prefers {@code high} for
-   * Claude models and {@code medium} for all others, falling back to the first entry in the supported list.
+    * Returns the default reasoning effort to use when the user has not made a selection. Prefers {@code medium} when
+    * it is supported, falling back to the first entry in the supported list.
    *
    * @param model the model
    * @return the default effort identifier, or {@code null} when none can be determined
@@ -207,11 +207,8 @@ public class ModelUtils {
     if (efforts.isEmpty()) {
       return null;
     }
-    String modelFamily = model.getModelFamily();
-    String preferred = modelFamily != null && modelFamily.toLowerCase(Locale.ROOT).startsWith("claude") ? "high"
-        : "medium";
     for (String effort : efforts) {
-      if (preferred.equalsIgnoreCase(effort)) {
+      if ("medium".equalsIgnoreCase(effort)) {
         return effort;
       }
     }

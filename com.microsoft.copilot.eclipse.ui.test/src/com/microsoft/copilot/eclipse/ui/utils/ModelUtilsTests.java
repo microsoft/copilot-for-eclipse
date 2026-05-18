@@ -8,9 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
@@ -75,5 +80,16 @@ class ModelUtilsTests {
     assertNull(result.getCapabilities().limits().maxContextWindowTokens());
     assertEquals(128000, result.getCapabilities().limits().maxInputTokens());
     assertEquals(16000, result.getCapabilities().limits().maxOutputTokens());
+  }
+
+  @Test
+  void testResolveDefaultReasoningEffort_prefersMediumForClaudeModels() {
+    CopilotModel model = new CopilotModel();
+    model.setModelFamily("claude-3.7-sonnet");
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, List.of("low", "medium", "high"), true),
+        new CopilotModelCapabilitiesLimits(null, null, null, null)));
+
+    assertEquals("medium", ModelUtils.resolveDefaultReasoningEffort(model));
   }
 }
