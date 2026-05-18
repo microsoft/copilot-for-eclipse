@@ -192,6 +192,8 @@ public class Messages extends NLS {
   public static String preferences_page_file_op_auto_approve_add_dialog_message;
   public static String preferences_page_file_op_auto_approve_add_dialog_pattern;
   public static String preferences_page_file_op_auto_approve_add_dialog_description;
+  public static String preferences_page_file_op_auto_approve_add_dialog_pattern_hint;
+  public static String preferences_page_file_op_auto_approve_add_dialog_description_hint;
   public static String preferences_page_file_op_auto_approve_duplicate_title;
   public static String preferences_page_file_op_auto_approve_duplicate_message;
 

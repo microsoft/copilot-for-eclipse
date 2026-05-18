@@ -118,14 +118,9 @@ public class AttachedFileRegistry {
     attachedPaths.remove(conversationId);
   }
 
-  /**
-   * Returns debug info for the given conversation.
-   */
-  public String debugInfo(String conversationId) {
-    Set<String> paths = attachedPaths.get(conversationId);
-    return "pending=" + pendingFiles
-        + ", knownConvIds=" + attachedPaths.keySet()
-        + ", filesForConv=" + (paths != null ? paths : "null");
+  /** Discards any pending (pre-conversation) files. */
+  public void clearPending() {
+    pendingFiles.clear();
   }
 
   private void evictOldestIfNeeded() {

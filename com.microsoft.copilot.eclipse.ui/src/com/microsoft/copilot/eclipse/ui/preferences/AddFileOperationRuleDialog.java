@@ -59,7 +59,8 @@ public class AddFileOperationRuleDialog extends Dialog {
     GridData patternData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     patternData.widthHint = 300;
     patternText.setLayoutData(patternData);
-    patternText.setMessage("e.g., **/.idea/**/* or **/*.config");
+    patternText.setMessage(
+        Messages.preferences_page_file_op_auto_approve_add_dialog_pattern_hint);
     patternText.addModifyListener(e -> updateOkButton());
 
     // Description
@@ -67,7 +68,8 @@ public class AddFileOperationRuleDialog extends Dialog {
     descLabel.setText(
         Messages.preferences_page_file_op_auto_approve_add_dialog_description);
     descriptionText = new Text(container, SWT.BORDER);
-    descriptionText.setMessage("Optional description");
+    descriptionText.setMessage(
+        Messages.preferences_page_file_op_auto_approve_add_dialog_description_hint);
     descriptionText.setLayoutData(
         new GridData(SWT.FILL, SWT.CENTER, true, false));
 

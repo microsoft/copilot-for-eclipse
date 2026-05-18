@@ -356,7 +356,8 @@ public class FileOperationAutoApproveSection extends Composite {
           return loaded;
         }
       } catch (Exception e) {
-        // Invalid JSON, return empty
+        CopilotCore.LOGGER.error(
+            "Failed to parse file operation auto-approve rules", e);
       }
     }
     return List.of();

@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
@@ -1111,6 +1110,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
         }
       }).exceptionally(th -> {
+        clearPendingAttachedFiles();
         if (!ConversationUtils.isConversationCancellationThrowable(th)) {
           CopilotCore.LOGGER.error("Error creating new conversation with exception: ", th);
           displayErrorAndResetSendButton(workDoneToken, th.getMessage());
@@ -1247,8 +1247,20 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         .flushPending(conversationId);
   }
 
+  private void clearPendingAttachedFiles() {
+    if (this.chatServiceManager == null) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService != null) {
+      agentToolService.getAttachedFileRegistry().clearPending();
+    }
+  }
+
   private void clearCurrentConversation() {
     this.onCancel();
+    clearPendingAttachedFiles();
     this.hasHistory = false;
     this.conversationId = "";
     this.conversationState = ConversationState.NEW_CONVERSATION;
