@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
@@ -31,6 +33,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolMetadata;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolMetadata.TerminalCommandData;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class TerminalConfirmationHandlerTests {
 
   private static final String CONV_ID = "conv-1";

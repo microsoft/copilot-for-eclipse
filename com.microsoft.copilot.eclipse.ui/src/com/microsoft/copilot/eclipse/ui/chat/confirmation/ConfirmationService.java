@@ -66,11 +66,19 @@ public class ConfirmationService {
    * Creates a new ConfirmationService.
    *
    * @param preferenceStore the preference store for reading auto-approve settings
+   * @param attachedFileRegistry registry of user-attached context files
    */
-  public ConfirmationService(IPreferenceStore preferenceStore) {
+  public ConfirmationService(IPreferenceStore preferenceStore,
+      AttachedFileRegistry attachedFileRegistry) {
     this.preferenceStore = preferenceStore;
     handlers.put(ToolCategory.TERMINAL,
         new TerminalConfirmationHandler(preferenceStore));
+    FileOperationConfirmationHandler fileHandler =
+        new FileOperationConfirmationHandler(preferenceStore,
+            attachedFileRegistry);
+    handlers.put(ToolCategory.FILE_READ, fileHandler);
+    handlers.put(ToolCategory.FILE_WRITE, fileHandler);
+    handlers.put(ToolCategory.FILE_OPERATION, fileHandler);
   }
 
   /**
