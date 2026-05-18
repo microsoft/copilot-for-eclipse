@@ -14,6 +14,8 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 
 /**
  * Auto-Approve preference page for terminal and file operation auto-approval rules.
@@ -26,6 +28,8 @@ public class AutoApprovePreferencePage extends PreferencePage
 
   private TerminalAutoApproveSection terminalSection;
   private FileOperationAutoApproveSection fileOperationSection;
+  private McpAutoApproveSection mcpSection;
+  private GlobalAutoApproveSection globalSection;
 
   @Override
   public void init(IWorkbench workbench) {
@@ -42,11 +46,15 @@ public class AutoApprovePreferencePage extends PreferencePage
     IPreferenceStore store = getPreferenceStore();
 
     terminalSection = new TerminalAutoApproveSection(root, SWT.NONE);
+
+    IPreferenceStore store = getPreferenceStore();
     terminalSection.loadFromPreferences(store);
 
     fileOperationSection = new FileOperationAutoApproveSection(root, SWT.NONE);
     fileOperationSection.loadFromPreferences(store);
 
+    mcpSection = new McpAutoApproveSection(root, SWT.NONE);
+    globalSection = new GlobalAutoApproveSection(root, SWT.NONE);
     return root;
   }
 
@@ -55,6 +63,20 @@ public class AutoApprovePreferencePage extends PreferencePage
     IPreferenceStore store = getPreferenceStore();
     terminalSection.saveToPreferences(store);
     fileOperationSection.saveToPreferences(store);
+    mcpSection.saveToPreferences(store);
+    globalSection.saveToPreferences(store);
     return true;
+  }
+
+  private void bindMcpConfigService() {
+    ChatServiceManager chatServiceManager =
+        CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      McpConfigService mcpConfigService =
+          chatServiceManager.getMcpConfigService();
+      if (mcpConfigService != null) {
+        mcpConfigService.bindWithAutoApproveSection(mcpSection);
+      }
+    }
   }
 }

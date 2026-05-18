@@ -52,6 +52,12 @@ public final class Messages extends NLS {
   public static String confirmation_action_allowFileSession;
   public static String confirmation_action_allowFolderSession;
 
+  // MCP confirmation dialog action labels
+  public static String confirmation_title_mcpTool;
+  public static String confirmation_title_mcpToolDefault;
+  public static String confirmation_action_allowServerSession;
+  public static String confirmation_action_alwaysAllowServer;
+
   // Confirmation dialog titles
   public static String confirmation_title_terminal;
   public static String confirmation_title_fallback;

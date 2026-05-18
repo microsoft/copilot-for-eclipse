@@ -197,6 +197,22 @@ public class Messages extends NLS {
   public static String preferences_page_file_op_auto_approve_duplicate_title;
   public static String preferences_page_file_op_auto_approve_duplicate_message;
 
+  // MCP Auto-Approve
+  public static String preferences_page_mcp_auto_approve_title;
+  public static String preferences_page_mcp_auto_approve_trust_annotations;
+  public static String preferences_page_mcp_auto_approve_trust_annotations_note;
+  public static String preferences_page_mcp_auto_approve_server_tools_label;
+  public static String preferences_page_mcp_auto_approve_no_servers;
+  public static String preferences_page_mcp_auto_approve_loading;
+
+  // Global Auto-Approve
+  public static String preferences_page_global_auto_approve_title;
+  public static String preferences_page_global_auto_approve_label;
+  public static String preferences_page_global_auto_approve_confirm_title;
+  public static String preferences_page_global_auto_approve_confirm_message;
+  public static String preferences_page_global_auto_approve_confirm_button;
+  public static String preferences_page_global_auto_approve_cancel_button;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
@@ -79,6 +80,8 @@ public class ConfirmationService {
     handlers.put(ToolCategory.FILE_READ, fileHandler);
     handlers.put(ToolCategory.FILE_WRITE, fileHandler);
     handlers.put(ToolCategory.FILE_OPERATION, fileHandler);
+    handlers.put(ToolCategory.MCP_TOOL,
+        new McpConfirmationHandler(preferenceStore));
   }
 
   /**
@@ -90,6 +93,10 @@ public class ConfirmationService {
   public ConfirmationResult evaluate(
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
+    if (preferenceStore.getBoolean(Constants.AUTO_APPROVE_YOLO_MODE)) {
+      return ConfirmationResult.AUTO_APPROVED;
+    }
+
     ToolCategory category = classify(params);
     if (category == ToolCategory.SAFE_TOOL) {
       return ConfirmationResult.AUTO_APPROVED;
