@@ -136,7 +136,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
       String sessionConversationId) {
     String filePath = extractFilePath(params);
     if (StringUtils.isBlank(filePath)) {
-      return ConfirmationResult.needsConfirmation(buildContent(params));
+      return ConfirmationResult.DISMISSED;
     }
 
     // Auto-approve files explicitly attached by the user in the context panel
@@ -192,7 +192,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
       InvokeClientToolConfirmationParams params) {
     String filePath = extractFilePath(params);
     final FileToolType fileType =
-        FileToolType.fromValue(extractToolType(params));
+        FileToolType.fromValue(ConfirmationHandler.extractToolType(params));
     String safeFilePath = filePath != null ? filePath : "";
     boolean outsideWorkspace = isOutsideWorkspace(params);
 
@@ -202,11 +202,11 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
 
     if (outsideWorkspace && filePath != null) {
       // Outside workspace: offer folder-level approval
-      String folderName = Path.of(filePath).getParent() != null
-          ? Path.of(filePath).getParent().getFileName().toString()
-          : filePath;
-      String folderPath = Path.of(filePath).getParent() != null
-          ? Path.of(filePath).getParent().toString() : "";
+      Path parent = Path.of(filePath).getParent();
+      String folderName = (parent != null && parent.getFileName() != null)
+          ? parent.getFileName().toString()
+          : (parent != null ? parent.toString() : filePath);
+      String folderPath = parent != null ? parent.toString() : "";
       actions.add(action(Action.ACCEPT_FOLDER_SESSION,
           NLS.bind(Messages.confirmation_action_allowFolderSession,
               folderName),
@@ -247,17 +247,6 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
     return new ConfirmationAction(label, true, scope, meta, false);
   }
 
-  private String extractToolType(InvokeClientToolConfirmationParams params) {
-    Object input = params.getInput();
-    if (input instanceof Map<?, ?> inputMap) {
-      Object toolType = inputMap.get("toolType");
-      if (toolType instanceof String) {
-        return (String) toolType;
-      }
-    }
-    return null;
-  }
-
   private String extractFilePath(InvokeClientToolConfirmationParams params) {
     // Try toolMetadata first
     ToolMetadata metadata = params.getToolMetadata();
@@ -287,7 +276,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
 
   /** Normalizes a file path for case-insensitive, separator-agnostic comparison. */
   private static String normalizePath(String path) {
-    return path.replace('\\', '/').toLowerCase(java.util.Locale.ROOT);
+    return ConfirmationHandler.normalizePath(path);
   }
 
   static boolean matchesGlob(String filePath, String globPattern) {
@@ -401,7 +390,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
    */
   private static <V> void evictOldestIfNeeded(Map<String, V> map) {
     synchronized (map) {
-      while (map.size() >= TerminalConfirmationHandler.MAX_SESSION_CONVERSATIONS) {
+      while (map.size() >= MAX_SESSION_CONVERSATIONS) {
         var it = map.entrySet().iterator();
         if (it.hasNext()) {
           it.next();

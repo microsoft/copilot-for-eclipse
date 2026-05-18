@@ -131,18 +131,7 @@ public class ConfirmationService {
   }
 
   ToolCategory classify(InvokeClientToolConfirmationParams params) {
-    return ToolCategory.fromValue(extractToolType(params));
+    return ToolCategory.fromValue(ConfirmationHandler.extractToolType(params));
   }
 
-  private String extractToolType(
-      InvokeClientToolConfirmationParams params) {
-    Object input = params.getInput();
-    if (input instanceof Map<?, ?> inputMap) {
-      Object toolType = inputMap.get("toolType");
-      if (toolType instanceof String) {
-        return (String) toolType;
-      }
-    }
-    return null;
-  }
 }

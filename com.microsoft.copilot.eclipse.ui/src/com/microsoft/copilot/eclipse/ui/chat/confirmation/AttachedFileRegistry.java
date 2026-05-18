@@ -7,7 +7,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -125,8 +124,7 @@ public class AttachedFileRegistry {
 
   private void evictOldestIfNeeded() {
     synchronized (attachedPaths) {
-      while (attachedPaths.size()
-          >= TerminalConfirmationHandler.MAX_SESSION_CONVERSATIONS) {
+      while (attachedPaths.size() >= ConfirmationHandler.MAX_SESSION_CONVERSATIONS) {
         var it = attachedPaths.entrySet().iterator();
         if (it.hasNext()) {
           it.next();
@@ -137,6 +135,6 @@ public class AttachedFileRegistry {
   }
 
   private static String toComparisonKey(String path) {
-    return path.replace('\\', '/').toLowerCase(Locale.ROOT);
+    return ConfirmationHandler.normalizePath(path);
   }
 }

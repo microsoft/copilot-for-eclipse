@@ -274,6 +274,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return CompletableFuture.completedFuture(
           new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
     }
+    if (autoApproveResult.isDismissed()) {
+      return CompletableFuture.completedFuture(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
+    }
 
     BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
     if (turnWidget == null) {
