@@ -10,7 +10,7 @@ GitHub Copilot for Eclipse brings AI-assisted coding to the Eclipse IDE with the
 
 ## Usage-based billing support
 
-Starting from version **0.18.0**, we have added internal support for the upcoming usage-based billing experience, including experience updates to the usage panel, usage notifications, and model picker. These changes will become visible once usage-based billing is rolled out.
+Starting from version **0.18.0**, we have added internal support for the upcoming [usage-based billing experience](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/), including experience updates to the usage panel, usage notifications, and model picker. These changes will become visible once usage-based billing is rolled out.
 
 To ensure compatibility with the new billing experience, we strongly recommend upgrading to the plugin to **0.18.0 or later** as soon as possible.
 
