@@ -120,13 +120,16 @@ public final class ModelPickerGroupsBuilder {
       Function<CopilotModel, String> reasoningEffortResolver) {
     List<DropdownItem> items = new ArrayList<>();
     for (CopilotModel model : models) {
+      String rawName = model.getModelName();
+      boolean alreadyHasPreview = rawName != null && rawName.toLowerCase().endsWith("(preview)");
+      String name = model.isPreview() && !alreadyHasPreview ? rawName + " " + Messages.model_preview_suffix : rawName;
+
       String effectiveEffort = reasoningEffortResolver != null ? reasoningEffortResolver.apply(model) : null;
       String suffix = ModelUtils.getModelSuffix(model, effectiveEffort);
-      String name = model.getModelName();
-      String effortLabel = ModelUtils.formatReasoningEffortLevel(effectiveEffort);
-      String selectedLabel = StringUtils.isNotBlank(effortLabel) && StringUtils.isNotBlank(name)
-          ? name + " - " + effortLabel : null;
-      items.add(new DropdownItem.Builder().id(name).label(name).selectedLabel(selectedLabel).suffix(suffix)
+      String effortLevel = ModelUtils.formatReasoningEffortLevel(effectiveEffort);
+      String selectedLabel = StringUtils.isNotBlank(effortLevel) ? name + " - " + effortLevel : null;
+
+      items.add(new DropdownItem.Builder().id(rawName).label(name).selectedLabel(selectedLabel).suffix(suffix)
           .icon(resolveModelIcon(model)).hoverProvider(new ModelHoverContentProvider(model)).build());
     }
     return items;
