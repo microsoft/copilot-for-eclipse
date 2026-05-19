@@ -49,7 +49,6 @@ class DropdownPopup {
   private static final int BORDER_ARC = 8;
   private static final int MAX_VISIBLE_ITEMS = 15;
   private static final int SHORT_POPUP_WIDTH = 250;
-  private static final int LONG_POPUP_WIDTH = 300;
 
   private static Image checkIcon;
 
@@ -518,11 +517,9 @@ class DropdownPopup {
 
     hoverShell.pack();
     Point hoverSize = hoverShell.getSize();
-    int width = hoverSize.x <= SHORT_POPUP_WIDTH ? SHORT_POPUP_WIDTH : LONG_POPUP_WIDTH;
-    if (width != hoverSize.x) {
-      // Recompute size at the target width so wrapped labels lay out correctly.
-      hoverSize = hoverShell.computeSize(width, SWT.DEFAULT);
-      hoverSize.x = width;
+    if (hoverSize.x < SHORT_POPUP_WIDTH) {
+      hoverSize = hoverShell.computeSize(SHORT_POPUP_WIDTH, SWT.DEFAULT);
+      hoverSize.x = SHORT_POPUP_WIDTH;
       hoverShell.setSize(hoverSize);
     }
 
