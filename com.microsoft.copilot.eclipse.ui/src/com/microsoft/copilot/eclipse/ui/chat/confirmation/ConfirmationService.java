@@ -66,11 +66,19 @@ public class ConfirmationService {
    * Creates a new ConfirmationService.
    *
    * @param preferenceStore the preference store for reading auto-approve settings
+   * @param attachedFileRegistry registry of user-attached context files
    */
-  public ConfirmationService(IPreferenceStore preferenceStore) {
+  public ConfirmationService(IPreferenceStore preferenceStore,
+      AttachedFileRegistry attachedFileRegistry) {
     this.preferenceStore = preferenceStore;
     handlers.put(ToolCategory.TERMINAL,
         new TerminalConfirmationHandler(preferenceStore));
+    FileOperationConfirmationHandler fileHandler =
+        new FileOperationConfirmationHandler(preferenceStore,
+            attachedFileRegistry);
+    handlers.put(ToolCategory.FILE_READ, fileHandler);
+    handlers.put(ToolCategory.FILE_WRITE, fileHandler);
+    handlers.put(ToolCategory.FILE_OPERATION, fileHandler);
   }
 
   /**
@@ -123,18 +131,7 @@ public class ConfirmationService {
   }
 
   ToolCategory classify(InvokeClientToolConfirmationParams params) {
-    return ToolCategory.fromValue(extractToolType(params));
+    return ToolCategory.fromValue(ConfirmationHandler.extractToolType(params));
   }
 
-  private String extractToolType(
-      InvokeClientToolConfirmationParams params) {
-    Object input = params.getInput();
-    if (input instanceof Map<?, ?> inputMap) {
-      Object toolType = inputMap.get("toolType");
-      if (toolType instanceof String) {
-        return (String) toolType;
-      }
-    }
-    return null;
-  }
 }

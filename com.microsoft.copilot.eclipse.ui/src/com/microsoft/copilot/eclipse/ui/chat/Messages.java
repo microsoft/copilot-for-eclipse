@@ -50,10 +50,20 @@ public final class Messages extends NLS {
   public static String confirmation_action_allowExactSession;
   public static String confirmation_action_alwaysAllowExact;
   public static String confirmation_action_alwaysAllow;
+  public static String confirmation_action_allowFileSession;
+  public static String confirmation_action_allowFolderSession;
 
   // Confirmation dialog titles
   public static String confirmation_title_terminal;
   public static String confirmation_title_fallback;
+  public static String confirmation_title_fileRead;
+  public static String confirmation_title_fileWrite;
+  public static String confirmation_title_fileOperation;
+
+  // Confirmation dialog messages
+  public static String confirmation_message_fileRead;
+  public static String confirmation_message_fileWrite;
+  public static String confirmation_message_fileOperation;
 
   // Misc
   public static String confirmation_autoApprovedDescription;

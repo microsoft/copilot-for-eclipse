@@ -176,6 +176,23 @@ public class Messages extends NLS {
   public static String preferences_page_terminal_auto_approve_add_dialog_command;
   public static String preferences_page_terminal_auto_approve_add_dialog_placeholder;
 
+  // File Operations Auto Approve
+  public static String preferences_page_file_op_auto_approve_title;
+  public static String preferences_page_file_op_auto_approve_description;
+  public static String preferences_page_file_op_auto_approve_column_pattern;
+  public static String preferences_page_file_op_auto_approve_column_description;
+  public static String preferences_page_file_op_auto_approve_reset_title;
+  public static String preferences_page_file_op_auto_approve_unmatched;
+  public static String preferences_page_file_op_auto_approve_unmatched_note;
+  public static String preferences_page_file_op_auto_approve_add_dialog_title;
+  public static String preferences_page_file_op_auto_approve_add_dialog_message;
+  public static String preferences_page_file_op_auto_approve_add_dialog_pattern;
+  public static String preferences_page_file_op_auto_approve_add_dialog_description;
+  public static String preferences_page_file_op_auto_approve_add_dialog_pattern_hint;
+  public static String preferences_page_file_op_auto_approve_add_dialog_description_hint;
+  public static String preferences_page_file_op_auto_approve_duplicate_title;
+  public static String preferences_page_file_op_auto_approve_duplicate_message;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

@@ -16,7 +16,7 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
- * Auto-Approve preference page for terminal command auto-approval rules.
+ * Auto-Approve preference page for terminal and file operation auto-approval rules.
  */
 public class AutoApprovePreferencePage extends PreferencePage
     implements IWorkbenchPreferencePage {
@@ -25,6 +25,7 @@ public class AutoApprovePreferencePage extends PreferencePage
       "com.microsoft.copilot.eclipse.ui.preferences.AutoApprovePreferencePage";
 
   private TerminalAutoApproveSection terminalSection;
+  private FileOperationAutoApproveSection fileOperationSection;
 
   @Override
   public void init(IWorkbench workbench) {
@@ -38,10 +39,13 @@ public class AutoApprovePreferencePage extends PreferencePage
     root.setLayout(new GridLayout(1, false));
     root.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
-    terminalSection = new TerminalAutoApproveSection(root, SWT.NONE);
-
     IPreferenceStore store = getPreferenceStore();
+
+    terminalSection = new TerminalAutoApproveSection(root, SWT.NONE);
     terminalSection.loadFromPreferences(store);
+
+    fileOperationSection = new FileOperationAutoApproveSection(root, SWT.NONE);
+    fileOperationSection.loadFromPreferences(store);
 
     return root;
   }
@@ -50,6 +54,7 @@ public class AutoApprovePreferencePage extends PreferencePage
   public boolean performOk() {
     IPreferenceStore store = getPreferenceStore();
     terminalSection.saveToPreferences(store);
+    fileOperationSection.saveToPreferences(store);
     return true;
   }
 }

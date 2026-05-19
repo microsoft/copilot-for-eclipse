@@ -12,6 +12,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.FileOperationConfirmationHandler;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.TerminalConfirmationHandler;
 
 /**
@@ -66,6 +67,9 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.AUTO_APPROVE_TERMINAL_RULES,
         new Gson().toJson(TerminalConfirmationHandler.DEFAULT_RULES));
     pref.setDefault(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL, false);
+    pref.setDefault(Constants.AUTO_APPROVE_FILE_OP_RULES,
+        new Gson().toJson(FileOperationConfirmationHandler.FALLBACK_DEFAULT_RULES));
+    pref.setDefault(Constants.AUTO_APPROVE_UNMATCHED_FILE_OP, true);
 
     IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());

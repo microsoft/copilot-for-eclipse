@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallDa
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
@@ -1027,7 +1029,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     final CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     final CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
 
+    // Collect attached file paths for auto-approve of file operations.
+    // Stage as pending so confirmation requests can match immediately,
+    // even before the real conversation ID arrives.
+    List<String> pendingAttachedFiles =
+        collectAttachedFilePaths(currentFile, references);
+    stagePendingAttachedFiles(pendingAttachedFiles);
+
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
+      // conversationId is already the real one — flush pending into registry
+      flushPendingAttachedFiles(this.conversationId);
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
@@ -1131,6 +1142,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
         }
 
+        // Flush pending attached files into the real conversation ID
+        flushPendingAttachedFiles(newConversationId);
+
         // Render model information in the Copilot turn widget
         if (result != null && StringUtils.isNotBlank(result.getModelName())
             && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
@@ -1144,6 +1158,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
         }
       }).exceptionally(th -> {
+        clearPendingAttachedFiles();
         if (!ConversationUtils.isConversationCancellationThrowable(th)) {
           CopilotCore.LOGGER.error("Error creating new conversation with exception: ", th);
           displayErrorAndResetSendButton(workDoneToken, th.getMessage());
@@ -1246,8 +1261,75 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }, parent);
   }
 
+  /**
+   * Collects absolute paths of the current file and explicitly attached
+   * references. The returned list is saved to the
+   * {@link AttachedFileRegistry} once a stable conversation ID is available.
+   */
+  private List<String> collectAttachedFilePaths(IFile currentFile,
+      List<IResource> references) {
+    List<String> filePaths = new ArrayList<>();
+    if (currentFile != null && currentFile.getLocation() != null) {
+      filePaths.add(currentFile.getLocation().toOSString());
+    }
+    if (references != null) {
+      for (IResource r : references) {
+        if (r instanceof IFile && r.getLocation() != null) {
+          filePaths.add(r.getLocation().toOSString());
+        }
+      }
+    }
+    return filePaths;
+  }
+
+  /**
+   * Stages file paths as pending in the attached file registry.
+   * These are immediately visible to confirmation handlers.
+   */
+  private void stagePendingAttachedFiles(List<String> filePaths) {
+    if (filePaths.isEmpty() || this.chatServiceManager == null) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService == null) {
+      return;
+    }
+    agentToolService.getAttachedFileRegistry().addPending(filePaths);
+  }
+
+  /**
+   * Flushes pending attached files into per-conversation storage
+   * under the given (stable) conversation ID.
+   */
+  private void flushPendingAttachedFiles(String conversationId) {
+    if (this.chatServiceManager == null
+        || StringUtils.isBlank(conversationId)) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService == null) {
+      return;
+    }
+    agentToolService.getAttachedFileRegistry()
+        .flushPending(conversationId);
+  }
+
+  private void clearPendingAttachedFiles() {
+    if (this.chatServiceManager == null) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService != null) {
+      agentToolService.getAttachedFileRegistry().clearPending();
+    }
+  }
+
   private void clearCurrentConversation() {
     this.onCancel();
+    clearPendingAttachedFiles();
     this.hasHistory = false;
     this.conversationId = "";
     this.conversationState = ConversationState.NEW_CONVERSATION;

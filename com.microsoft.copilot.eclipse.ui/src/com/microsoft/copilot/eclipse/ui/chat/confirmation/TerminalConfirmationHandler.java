@@ -89,12 +89,6 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
   private static final Type RULES_TYPE = new TypeToken<List<TerminalAutoApproveRule>>() {
   }.getType();
 
-  /**
-   * Maximum number of conversations whose session-scoped approvals are kept
-   * in memory. When exceeded, the oldest conversation's data is evicted.
-   */
-  static final int MAX_SESSION_CONVERSATIONS = 50;
-
   private final IPreferenceStore preferenceStore;
 
   // Session-scoped in-memory storage keyed by conversationId.

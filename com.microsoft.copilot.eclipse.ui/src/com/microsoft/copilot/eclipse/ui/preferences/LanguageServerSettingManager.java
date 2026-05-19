@@ -29,6 +29,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
+import com.microsoft.copilot.eclipse.core.chat.FileOperationAutoApproveRule;
 import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -98,7 +99,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setAutoApproveUnmatchedTerminal(
             preferenceStore.getBoolean(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL));
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setAutoApproveUnmatchedFileOp(
+            preferenceStore.getBoolean(Constants.AUTO_APPROVE_UNMATCHED_FILE_OP));
     syncTerminalRulesToCls();
+    syncFileOperationRulesToCls();
 
     // Set workspace context instructions when it is enabled
     if (preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED)) {
@@ -200,6 +205,16 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         syncTerminalRulesToCls();
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
+      case Constants.AUTO_APPROVE_UNMATCHED_FILE_OP:
+        settings.getGithubSettings().getCopilotSettings().getAgent()
+            .setAutoApproveUnmatchedFileOp(
+                preferenceStore.getBoolean(Constants.AUTO_APPROVE_UNMATCHED_FILE_OP));
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
+      case Constants.AUTO_APPROVE_FILE_OP_RULES:
+        syncFileOperationRulesToCls();
+        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
+        break;
       default:
         return;
     }
@@ -272,6 +287,30 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .getTools().getTerminal().setAutoApprove(rulesMap);
+  }
+
+  /**
+   * Converts file-operation auto-approve rules from preference store JSON to the Map format
+   * expected by CLS and syncs them.
+   */
+  private void syncFileOperationRulesToCls() {
+    String json = preferenceStore.getString(Constants.AUTO_APPROVE_FILE_OP_RULES);
+    Map<String, Boolean> rulesMap = new LinkedHashMap<>();
+    if (StringUtils.isNotBlank(json)) {
+      try {
+        List<FileOperationAutoApproveRule> rules =
+            new Gson().fromJson(json,
+                new TypeToken<List<FileOperationAutoApproveRule>>() {
+                }.getType());
+        if (rules != null) {
+          rules.forEach(r -> rulesMap.put(r.getPattern(), r.isAutoApprove()));
+        }
+      } catch (Exception e) {
+        CopilotCore.LOGGER.error("Failed to parse file-operation rules for CLS sync", e);
+      }
+    }
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getEdit().setAutoApprove(rulesMap);
   }
 
   /**

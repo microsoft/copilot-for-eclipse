@@ -57,6 +57,8 @@ public class Constants {
   // Auto-Approve settings
   public static final String AUTO_APPROVE_TERMINAL_RULES = "autoApproveTerminalRules";
   public static final String AUTO_APPROVE_UNMATCHED_TERMINAL = "autoApproveUnmatchedTerminal";
+  public static final String AUTO_APPROVE_FILE_OP_RULES = "autoApproveEditRules";
+  public static final String AUTO_APPROVE_UNMATCHED_FILE_OP = "autoApproveUnmatchedFileOp";
 
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list
