@@ -58,15 +58,15 @@ Entry points exercised:
 8. Wait for the Copilot turn — the agent should invoke the MCP tool.
 9. Observe the **confirmation dialog** that appears in the chat panel.
 10. Verify the dialog shows:
-    - Bold title mentioning the tool name and/or server name.
+    - Bold title: `Run '<toolName>' tool from '<serverName>' MCP server`.
     - A description of the MCP tool call.
     - A blue **"Allow Once ▾"** split-dropdown button and a **"Skip"** button.
 11. Click the dropdown arrow on "Allow Once ▾".
 12. Verify the dropdown contains:
     - "Allow '<toolName>' in this Session"
     - "Always Allow '<toolName>'"
-    - "Allow all tools from '<serverName>' in this Session"
-    - "Always Allow all tools from '<serverName>'"
+    - "Allow tools from '<serverName>' in this Session"
+    - "Always Allow tools from '<serverName>'"
 13. Click **"Skip"**.
 14. Verify the tool was **NOT** executed.
 
@@ -89,6 +89,10 @@ conversation resets
 
 **Type:** `Happy Path`
 **Priority:** `P0`
+
+#### Preconditions
+- No global approved servers or tools.
+- "Trust MCP tool annotations" is **unchecked**.
 
 #### Steps
 1. In Agent Mode, send a prompt that triggers the MCP tool.
@@ -124,6 +128,10 @@ that server auto-approve
 **Type:** `Happy Path`
 **Priority:** `P0`
 
+#### Preconditions
+- No global approved servers or tools.
+- "Trust MCP tool annotations" is **unchecked**.
+
 #### Steps
 1. In Agent Mode, send a prompt that triggers any tool from the target
    MCP server.
@@ -143,7 +151,7 @@ that server auto-approve
 - New conversation resets the session approval.
 
 #### 📸 Key Screenshots
-- [ ] Dropdown: selecting "Allow all tools from '<serverName>' in this Session".
+- [ ] Dropdown: selecting "Allow tools from '<serverName>' in this Session".
 - [ ] Second tool from same server: auto-approved.
 - [ ] New conversation: dialog reappears.
 
@@ -156,6 +164,10 @@ visible in preferences tree
 
 **Type:** `Happy Path`
 **Priority:** `P0`
+
+#### Preconditions
+- No global approved servers or tools.
+- "Trust MCP tool annotations" is **unchecked**.
 
 #### Steps
 1. In Agent Mode, trigger the MCP tool.
@@ -188,6 +200,11 @@ checked in preferences
 
 **Type:** `Happy Path`
 **Priority:** `P1`
+
+#### Preconditions
+- No global approved servers or tools (clear any rules written by TC-004
+  if running in sequence).
+- "Trust MCP tool annotations" is **unchecked**.
 
 #### Steps
 1. In Agent Mode, trigger any MCP tool.

@@ -44,16 +44,14 @@ public class AutoApprovePreferencePage extends PreferencePage
     root.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
     IPreferenceStore store = getPreferenceStore();
-
     terminalSection = new TerminalAutoApproveSection(root, SWT.NONE);
-
-    IPreferenceStore store = getPreferenceStore();
     terminalSection.loadFromPreferences(store);
 
     fileOperationSection = new FileOperationAutoApproveSection(root, SWT.NONE);
     fileOperationSection.loadFromPreferences(store);
 
     mcpSection = new McpAutoApproveSection(root, SWT.NONE);
+    bindMcpConfigService();
     globalSection = new GlobalAutoApproveSection(root, SWT.NONE);
     return root;
   }

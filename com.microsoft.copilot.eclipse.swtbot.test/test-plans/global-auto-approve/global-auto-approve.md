@@ -71,7 +71,7 @@ confirmation again
 **Priority:** `P1`
 
 #### Preconditions
-- Global Auto-Approve is **enabled** (from TC-001).
+- Global Auto-Approve is **enabled**.
 
 #### Steps
 1. Open **Preferences → Tool Auto Approve → Global Auto-Approve** section.

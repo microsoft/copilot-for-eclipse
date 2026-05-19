@@ -53,7 +53,6 @@ public class McpConfirmationHandler implements ConfirmationHandler {
   static final String META_TOOL_KEY = "toolKey";
 
   private static final String SEPARATOR = "::";
-  private static final int MAX_SESSION_CONVERSATIONS = 50;
   private static final Type STRING_LIST_TYPE =
       new TypeToken<List<String>>() {}.getType();
 
