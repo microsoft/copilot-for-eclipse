@@ -14,6 +14,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedHashMap;
+
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -23,6 +25,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -33,6 +37,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class LanguageServerSettingManagerTests {
   @Mock
   private IPreferenceStore mockPreferenceStore;
@@ -53,6 +58,10 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getEdit().setAutoApprove(new LinkedHashMap<>());
     params.setSettings(settings);
 
     // act
@@ -83,6 +92,10 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getEdit().setAutoApprove(new LinkedHashMap<>());
     params.setSettings(settings);
 
     // act
@@ -121,6 +134,10 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().setCopilotSettings(copilotSettings);
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
+    settings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getEdit().setAutoApprove(new LinkedHashMap<>());
     params.setSettings(settings);
 
     // act
@@ -152,6 +169,10 @@ class LanguageServerSettingManagerTests {
     expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
+    expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
+        .getTools().getEdit().setAutoApprove(new LinkedHashMap<>());
     expectedParams.setSettings(expectedSettings);
 
     // act

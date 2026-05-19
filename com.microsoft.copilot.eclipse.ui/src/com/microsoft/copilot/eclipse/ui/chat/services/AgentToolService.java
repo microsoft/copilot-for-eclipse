@@ -40,6 +40,7 @@ import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.InvokeToolConfirmationDialog;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.AttachedFileRegistry;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.ConfirmationService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
@@ -62,6 +63,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   private volatile boolean terminalToolsRegistered = false;
   private List<LanguageModelToolInformation> cachedBuiltInTools;
   private final ConfirmationService confirmationService;
+  private final AttachedFileRegistry attachedFileRegistry;
 
   /**
    * Constructor for AgentToolService.
@@ -69,8 +71,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   public AgentToolService(CopilotLanguageServerConnection lsConnection) {
     this.tools = new ConcurrentHashMap<>();
     this.lsConnection = lsConnection;
+    this.attachedFileRegistry = new AttachedFileRegistry();
     this.confirmationService = new ConfirmationService(
-        CopilotUi.getPlugin().getPreferenceStore());
+        CopilotUi.getPlugin().getPreferenceStore(),
+        attachedFileRegistry);
     TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
     if (terminalManager != null) {
       terminalManager.addListener(this);
@@ -270,6 +274,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return CompletableFuture.completedFuture(
           new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
     }
+    if (autoApproveResult.isDismissed()) {
+      return CompletableFuture.completedFuture(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
+    }
 
     BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
     if (turnWidget == null) {
@@ -335,6 +343,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
    */
   public ConfirmationService getConfirmationService() {
     return confirmationService;
+  }
+
+  /** Returns the registry of user-attached context files. */
+  public AttachedFileRegistry getAttachedFileRegistry() {
+    return attachedFileRegistry;
   }
 
   /**

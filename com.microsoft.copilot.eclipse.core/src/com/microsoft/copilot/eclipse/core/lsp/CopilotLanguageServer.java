@@ -36,6 +36,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GetDefaultFileSafetyRulesResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
@@ -284,6 +285,13 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("githubApi/searchPR")
   CompletableFuture<SearchPrResponse> searchPr(SearchPrParams params);
+
+  /**
+   * Get the default file safety rules from CLS.
+   */
+  @JsonRequest("getDefaultFileSafetyRules")
+  CompletableFuture<GetDefaultFileSafetyRulesResult> getDefaultFileSafetyRules(
+      NullParams params);
 
   /**
    * Notify that an inline edit was shown.
