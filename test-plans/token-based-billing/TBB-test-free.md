@@ -2,7 +2,8 @@
 
 ## Overview
 Free plan accounts track separate **Code Completions** and **Chat Messages**
-quotas. They are eligible to upgrade and have no overage row.
+quotas and have no overage row. Upgrade Plan visibility depends on the
+ language-server `canUpgradePlan` signal.
 
 Expected plan label in the menu header: `Copilot Free Plan`.
 
@@ -48,8 +49,7 @@ Expected plan label in the menu header: `Copilot Free Plan`.
 **Priority:** `P0`
 
 #### Preconditions
-- Both the Code Completions and Chat Messages quotas are under 75% used
-  used.
+- Both the Code Completions and Chat Messages quotas are under 75% used.
 
 #### Steps
 1. Click the Copilot icon in the status bar.
