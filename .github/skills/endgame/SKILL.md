@@ -34,7 +34,7 @@ Ask for:
 ### Step 2 — Fetch the endgame issue (ONE call only)
 
 ```shell
-gh issue view <issue_number> --repo microsoft/copilot-for-eclipse
+gh issue view <issue_number> --repo microsoft/copilot-for-eclipse --json body --jq '.body'
 ```
 
 Parse the body to find **all tasks (checkboxes) assigned to the specified

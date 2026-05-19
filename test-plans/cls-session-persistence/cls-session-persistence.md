@@ -1,13 +1,15 @@
 # CLS Session Persistence and Restoration for Conversation History
 
 ## Overview
-This feature integrates CLS (Copilot Language Server) server-side session persistence so that when a conversation is restored the CLS receives the original `conversationId` and `restoreToTurnId`, enabling full context continuation rather than relying solely on IDE-side turn history. It also configures `~/.copilot/eclipse` as the transcript directory (matching IntelliJ's convention).
+This feature integrates CLS (Copilot Language Server) server-side session persistence so that when a conversation is restored the CLS receives the original `conversationId` and `restoreToTurnId`, enabling full context continuation rather than relying solely on IDE-side turn history. It also configures `<user home>/.copilot/eclipse` as the transcript directory (matching IntelliJ's convention).
+
+> **Path note:** On macOS/Linux this directory is `~/.copilot/eclipse`; on Windows it is `%USERPROFILE%\.copilot\eclipse`.
 
 ---
 
 ## Test Cases
 
-### TC-002: Conversation history displays correctly after session switch
+### TC-001: Conversation history displays correctly after session switch
 
 **Type:** `Happy Path`
 **Priority:** `P0`
@@ -32,19 +34,19 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 
 ---
 
-### TC-003: Conversation history persists across Eclipse restarts
+### TC-002: Conversation history persists across Eclipse restarts
 
 **Type:** `Happy Path`
 **Priority:** `P0`
 
 #### Preconditions
 - Eclipse is open with Copilot Chat functional
-- The `~/.copilot/eclipse` directory does not exist (or is empty) before the test
+- The `<user home>/.copilot/eclipse` directory does not exist (or is empty) before the test
 
 #### Steps
 1. Open Copilot Chat and send at least 2 messages; wait for responses
 2. Close Eclipse completely (File → Exit or equivalent)
-3. Verify that `~/.copilot/eclipse` directory exists and contains transcript files
+3. Verify that the `<user home>/.copilot/eclipse` directory exists and contains transcript files
 4. Reopen Eclipse and open Copilot Chat
 5. Open chat history and select the conversation from before the restart
 
@@ -53,12 +55,12 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 - Continuing the conversation produces contextually aware responses (CLS uses transcript for context)
 
 #### 📸 Key Screenshots
-- [ ] **Transcript directory** — `~/.copilot/eclipse` folder visible with transcript files
+- [ ] **Transcript directory** — `<user home>/.copilot/eclipse` folder visible with transcript files
 - [ ] **After restart** — Conversation restored in chat history after Eclipse reopen
 
 ---
 
-### TC-004: New conversation starts without interference from restored state
+### TC-003: New conversation starts without interference from restored state
 
 **Type:** `Regression`
 **Priority:** `P0`
@@ -78,29 +80,29 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 
 ---
 
-### TC-005: Transcript directory created on first startup
+### TC-004: Transcript directory created on first startup
 
 **Type:** `Happy Path`
 **Priority:** `P1`
 
 #### Preconditions
-- `~/.copilot/eclipse` directory does not exist
+- `<user home>/.copilot/eclipse` directory does not exist
 
 #### Steps
 1. Start Eclipse with the Copilot plugin installed
 2. Wait for the Copilot language server to finish initializing (status bar shows Copilot ready)
-3. Check the file system for `~/.copilot/eclipse`
+3. Check the file system for `<user home>/.copilot/eclipse`
 
 #### Expected Result
-- `~/.copilot/eclipse` directory is created automatically on startup
-- The path mirrors IntelliJ's `~/.copilot/jb` convention (different subdirectory, same parent)
+- `<user home>/.copilot/eclipse` directory is created automatically on startup
+- The path mirrors IntelliJ's `<user home>/.copilot/jb` convention (different subdirectory, same parent)
 
 #### 📸 Key Screenshots
-- [ ] **Directory exists** — File explorer showing `~/.copilot/eclipse` after startup
+- [ ] **Directory exists** — File explorer showing `<user home>/.copilot/eclipse` after startup
 
 ---
 
-### TC-006: Partially completed conversation restores to the last completed turn
+### TC-005: Partially completed conversation restores to the last completed turn
 
 **Type:** `Edge Case`
 **Priority:** `P1`
@@ -126,7 +128,7 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 
 ---
 
-### TC-008: No 400 Bad Request after restoring a tool-call conversation
+### TC-006: No 400 Bad Request after restoring a tool-call conversation
 
 **Type:** `Regression`
 **Priority:** `P0`
@@ -152,7 +154,7 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 
 ---
 
-### TC-009: Restored history shows no duplicated user messages
+### TC-007: Restored history shows no duplicated user messages
 
 **Type:** `Regression`
 **Priority:** `P0`
@@ -182,14 +184,14 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 ## Screenshots Checklist
 > Consolidated list of all key screenshot moments.
 
-- [ ] `TC-002` Full conversation before session switch
-- [ ] `TC-002` Same conversation after restore, all turns in correct order
-- [ ] `TC-003` `~/.copilot/eclipse` directory with transcript files
-- [ ] `TC-003` Conversation restored in history after Eclipse restart
-- [ ] `TC-005` `~/.copilot/eclipse` directory created on first startup
-- [ ] `TC-006` Conversation with cancelled turn visible
-- [ ] `TC-006` New response coherent with completed context after restore
-- [ ] `TC-008` Completed tool-call turn before restart
-- [ ] `TC-008` Restored history with successful follow-up and no 400 error
-- [ ] `TC-009` Original conversation showing assistant reply
-- [ ] `TC-009` Restored conversation with correctly attributed messages and no duplicates
+- [ ] `TC-001` Full conversation before session switch
+- [ ] `TC-001` Same conversation after restore, all turns in correct order
+- [ ] `TC-002` `<user home>/.copilot/eclipse` directory with transcript files
+- [ ] `TC-002` Conversation restored in history after Eclipse restart
+- [ ] `TC-004` `<user home>/.copilot/eclipse` directory created on first startup
+- [ ] `TC-005` Conversation with cancelled turn visible
+- [ ] `TC-005` New response coherent with completed context after restore
+- [ ] `TC-006` Completed tool-call turn before restart
+- [ ] `TC-006` Restored history with successful follow-up and no 400 error
+- [ ] `TC-007` Original conversation showing assistant reply
+- [ ] `TC-007` Restored conversation with correctly attributed messages and no duplicates
