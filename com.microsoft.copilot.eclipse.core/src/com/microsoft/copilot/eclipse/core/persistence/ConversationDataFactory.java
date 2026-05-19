@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -343,11 +344,17 @@ public class ConversationDataFactory {
   }
 
   private EditAgentRoundData findThinkingPlaceholderRound(List<EditAgentRoundData> rounds, String thinkingBlockId) {
-    EditAgentRoundData round = findRoundByThinkingBlockId(rounds, thinkingBlockId);
-    if (round == null || round.getRoundId() != SYNTHETIC_ROUND_ID) {
+    if (rounds == null || StringUtils.isBlank(thinkingBlockId)) {
       return null;
     }
-    return round;
+    for (EditAgentRoundData round : rounds) {
+      ThinkingBlockData thinkingBlock = round.getThinkingBlock();
+      if (Objects.equals(round.getRoundId(), SYNTHETIC_ROUND_ID) && thinkingBlock != null
+          && thinkingBlockId.equals(thinkingBlock.getId())) {
+        return round;
+      }
+    }
+    return null;
   }
 
   private EditAgentRoundData findRoundById(List<EditAgentRoundData> rounds, int roundId) {
