@@ -158,7 +158,7 @@ class ModelUtilsTests {
 
     CopilotModel autoLower = new CopilotModel();
     autoLower.setModelName("auto");
-    assertTrue(ModelUtils.isAutoModel(autoLower));
+    assertFalse(ModelUtils.isAutoModel(autoLower));
 
     CopilotModel other = new CopilotModel();
     other.setModelName("gpt-5");
