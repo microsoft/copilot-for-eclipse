@@ -429,12 +429,16 @@ public class ModelService extends ChatBaseService {
    * Resolves the reasoning effort that should be sent to the language server for the given model: the user's explicit
    * selection when present, otherwise the inferred client-side default from
    * {@link ModelUtils#resolveDefaultReasoningEffort(CopilotModel)}. Returns {@code null} for models that do not
-   * support reasoning-effort selection or for the special "auto" model.
+   * support reasoning-effort selection (see {@link ModelUtils#supportsReasoningEffortLevel(CopilotModel)}) or for
+   * the special "auto" model.
    *
    * @param model the model that will receive the request
    * @return the effort to send, or {@code null} to omit
    */
   public String resolveEffectiveReasoningEffort(CopilotModel model) {
+    if (!ModelUtils.supportsReasoningEffortLevel(model)) {
+      return null;
+    }
     String selected = getSelectedReasoningEffort(model);
     if (StringUtils.isNotBlank(selected)) {
       return selected;

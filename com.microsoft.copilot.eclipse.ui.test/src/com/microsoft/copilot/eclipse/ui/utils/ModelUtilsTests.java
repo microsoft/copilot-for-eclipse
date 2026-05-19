@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -91,5 +92,78 @@ class ModelUtilsTests {
         new CopilotModelCapabilitiesLimits(null, null, null, null)));
 
     assertEquals("medium", ModelUtils.resolveDefaultReasoningEffort(model));
+  }
+
+  @Test
+  void testResolveDefaultReasoningEffort_returnsNullWhenSupportsReasoningEffortLevelFalse() {
+    CopilotModel model = new CopilotModel();
+    model.setModelFamily("gpt-4o");
+    // efforts list is populated, but the server has not vetted the model as supporting effort selection
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, List.of("low", "medium", "high"), false),
+        new CopilotModelCapabilitiesLimits(null, null, null, null)));
+
+    assertNull(ModelUtils.resolveDefaultReasoningEffort(model));
+  }
+
+  @Test
+  void testSupportsReasoningEffortLevel_trueWhenCapabilityFlagSet() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("gpt-5");
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, List.of("low", "medium", "high"), true),
+        new CopilotModelCapabilitiesLimits(null, null, null, null)));
+
+    assertTrue(ModelUtils.supportsReasoningEffortLevel(model));
+  }
+
+  @Test
+  void testSupportsReasoningEffortLevel_falseWhenCapabilityFlagUnset() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("gpt-4o");
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, List.of("low", "medium", "high"), false),
+        new CopilotModelCapabilitiesLimits(null, null, null, null)));
+
+    assertFalse(ModelUtils.supportsReasoningEffortLevel(model));
+  }
+
+  @Test
+  void testSupportsReasoningEffortLevel_falseForAutoModel() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("Auto");
+    // Even if the server were to advertise the capability, the Auto model routes to other models and does not
+    // own its own effort selection.
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, List.of("low", "medium", "high"), true),
+        new CopilotModelCapabilitiesLimits(null, null, null, null)));
+
+    assertFalse(ModelUtils.supportsReasoningEffortLevel(model));
+  }
+
+  @Test
+  void testSupportsReasoningEffortLevel_falseWhenCapabilitiesMissing() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("gpt-5");
+
+    assertFalse(ModelUtils.supportsReasoningEffortLevel(model));
+    assertFalse(ModelUtils.supportsReasoningEffortLevel(null));
+  }
+
+  @Test
+  void testIsAutoModel() {
+    CopilotModel auto = new CopilotModel();
+    auto.setModelName("Auto");
+    assertTrue(ModelUtils.isAutoModel(auto));
+
+    CopilotModel autoLower = new CopilotModel();
+    autoLower.setModelName("auto");
+    assertTrue(ModelUtils.isAutoModel(autoLower));
+
+    CopilotModel other = new CopilotModel();
+    other.setModelName("gpt-5");
+    assertFalse(ModelUtils.isAutoModel(other));
+
+    assertFalse(ModelUtils.isAutoModel(null));
   }
 }

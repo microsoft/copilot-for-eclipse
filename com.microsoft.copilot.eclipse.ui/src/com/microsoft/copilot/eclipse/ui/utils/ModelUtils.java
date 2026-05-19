@@ -120,9 +120,10 @@ public class ModelUtils {
   private static List<String> buildSuffixParts(CopilotModel model, String reasoningEffort) {
     List<String> parts = new ArrayList<>();
     addIfNotBlank(parts, getContextWindowText(model));
-    // Only surface a reasoning-effort suffix when the model actually exposes more than one effort level. Models with
-    // zero or a single effort have nothing meaningful for the user to pick, so the suffix would just be noise.
-    if (getSupportedReasoningEfforts(model).size() > 1) {
+    // Only surface a reasoning-effort suffix when the language server has explicitly advertised the model as
+    // supporting selectable effort levels. The server only sets supportsReasoningEffortLevel when the model has
+    // more than one effort level AND is hosted on a compatible endpoint.
+    if (supportsReasoningEffortLevel(model)) {
       addIfNotBlank(parts, formatReasoningEffortLevel(reasoningEffort));
     }
     addIfNotBlank(parts, formatPriceCategory(model.getModelPickerPriceCategory()));
@@ -197,12 +198,16 @@ public class ModelUtils {
 
   /**
     * Returns the default reasoning effort to use when the user has not made a selection. Prefers {@code medium} when
-    * it is supported, falling back to the first entry in the supported list.
+    * it is supported, falling back to the first entry in the supported list. Returns {@code null} when the model
+    * does not surface selectable reasoning effort levels (see {@link #supportsReasoningEffortLevel(CopilotModel)}).
    *
    * @param model the model
    * @return the default effort identifier, or {@code null} when none can be determined
    */
   public static String resolveDefaultReasoningEffort(CopilotModel model) {
+    if (!supportsReasoningEffortLevel(model)) {
+      return null;
+    }
     List<String> efforts = getSupportedReasoningEfforts(model);
     if (efforts.isEmpty()) {
       return null;
@@ -284,5 +289,36 @@ public class ModelUtils {
     }
     List<String> efforts = model.getCapabilities().supports().reasoningEfforts();
     return efforts == null ? List.of() : efforts;
+  }
+
+  /**
+   * Returns whether the model is the special "Auto" model, which dynamically routes requests to other models and
+   * therefore does not expose its own reasoning-effort selection.
+   *
+   * @param model the model
+   * @return {@code true} when the model is the Auto model
+   */
+  public static boolean isAutoModel(CopilotModel model) {
+    return model != null && "Auto".equalsIgnoreCase(model.getModelName());
+  }
+
+  /**
+   * Returns whether the model surfaces selectable reasoning effort levels to the user. The language server only
+   * advertises {@code supportsReasoningEffortLevel = true} when the model has more than one effort level and is
+   * hosted on a compatible endpoint, so this is the canonical gate for the reasoning-effort UI and for sending a
+   * {@code modelInfo.reasoningEffort} payload with chat requests. The Auto model is excluded because it routes to
+   * other models and does not own its own effort selection.
+   *
+   * @param model the model
+   * @return {@code true} when the user can select a reasoning effort for this model
+   */
+  public static boolean supportsReasoningEffortLevel(CopilotModel model) {
+    if (model == null || model.getCapabilities() == null || model.getCapabilities().supports() == null) {
+      return false;
+    }
+    if (isAutoModel(model)) {
+      return false;
+    }
+    return model.getCapabilities().supports().supportsReasoningEffortLevel();
   }
 }

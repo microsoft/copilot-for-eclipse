@@ -151,15 +151,12 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   }
 
   private void addThinkingEffortSection(Composite parent, Runnable closeRequest) {
-    if (model == null || model.getCapabilities() == null) {
+    if (!ModelUtils.supportsReasoningEffortLevel(model)) {
       return;
     }
     CopilotModelCapabilitiesSupports supports = model.getCapabilities().supports();
-    if (supports == null) {
-      return;
-    }
     List<String> efforts = supports.reasoningEfforts();
-    if (efforts == null || efforts.size() <= 1) {
+    if (efforts == null || efforts.isEmpty()) {
       return;
     }
 
