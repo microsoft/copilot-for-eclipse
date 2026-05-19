@@ -2,7 +2,7 @@
 
 ## Overview
 Pro accounts use the **Included Credits** row, have an Enable Additional Usage
-overage row, and are eligible to upgrade.
+overage row, and show Upgrade Plan based on the recorded `canUpgradePlan` value.
 
 Expected plan label in the menu header: `Copilot Pro Plan`.
 
