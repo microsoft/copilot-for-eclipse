@@ -16,9 +16,9 @@ Custom Instructions**, inside the existing _Project Custom Instructions_ group.
 | **projects inferred from chat-attached files** (`REFERENCED_PROJECTS`) | Custom instructions are loaded only from the parent projects of files/folders that are currently attached to the chat window. If nothing is attached, no custom instructions are loaded. |
 
 The selected value is persisted in the Eclipse preference store under the key
-`customInstructionsChatLoadScope` and is read by
-`CopilotLanguageServerConnection` each time workspace folders are sent to the
-language server.
+`customInstructionsChatLoadScope` and is read by `ChatView#deriveWorkspaceFolders(...)`,
+which uses it to compute the set of workspace folders sent to the language server on
+each chat request.
 
 Entry points:
 - **Window → Preferences → GitHub Copilot → Custom Instructions** → _Load custom instructions from_ combo.
@@ -32,8 +32,11 @@ Entry points:
 - At least **two Java (or any language) projects** in the workspace, each
   containing a `.github/copilot-instructions.md` with a distinct, observable
   style rule:
-  - **Project A**: `Always end every sentence with "[A]".`
-  - **Project B**: `Always end every sentence with "[B]".`
+  - **Project A**: `.github/copilot-instructions.md` containing `Always start every response with "[SRC-A]".`
+  - **Project B**: `.github/copilot-instructions.md` containing `Always end every response with "[SRC-B]".`
+
+  Using a prefix marker for one project and a suffix marker for the other makes it
+  unambiguous whether one or both instruction sources are active at the same time.
 - The Copilot Chat view is open and visible in the workbench.
 - The Custom Instructions preference page is accessible via
   **Window → Preferences → GitHub Copilot → Custom Instructions**.
