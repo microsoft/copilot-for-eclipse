@@ -100,7 +100,7 @@ public class ModelUtils {
     if (model.getProviderName() != null) {
       return model.getProviderName();
     }
-    if ("Auto".equals(model.getModelName())) {
+    if (isAutoModel(model)) {
       return Messages.model_billing_multiplier_variable;
     }
     // TODO: Remove this legacy fallback after TBB is officially released.
@@ -299,7 +299,7 @@ public class ModelUtils {
    * @return {@code true} when the model is the Auto model
    */
   public static boolean isAutoModel(CopilotModel model) {
-    return model != null && "Auto".equalsIgnoreCase(model.getModelName());
+    return model != null && "Auto".equals(model.getModelName());
   }
 
   /**
