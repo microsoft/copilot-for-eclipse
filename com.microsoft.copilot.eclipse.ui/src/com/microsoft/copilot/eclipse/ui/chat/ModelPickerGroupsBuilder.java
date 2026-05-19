@@ -127,7 +127,8 @@ public final class ModelPickerGroupsBuilder {
       String effectiveEffort = reasoningEffortResolver != null ? reasoningEffortResolver.apply(model) : null;
       String suffix = ModelUtils.getModelSuffix(model, effectiveEffort);
       String effortLevel = ModelUtils.formatReasoningEffortLevel(effectiveEffort);
-      String selectedLabel = StringUtils.isNotBlank(effortLevel) ? name + " - " + effortLevel : null;
+      String selectedLabel = StringUtils.isNotBlank(effortLevel) && StringUtils.isNotBlank(name)
+          ? name + " - " + effortLevel : null;
 
       items.add(new DropdownItem.Builder().id(rawName).label(name).selectedLabel(selectedLabel).suffix(suffix)
           .icon(resolveModelIcon(model)).hoverProvider(new ModelHoverContentProvider(model)).build());
