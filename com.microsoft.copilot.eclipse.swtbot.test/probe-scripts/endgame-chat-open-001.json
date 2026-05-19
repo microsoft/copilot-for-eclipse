@@ -1,0 +1,31 @@
+[
+  { "action": "waitForIdle" },
+  { "action": "screenshot", "id": "01-startup" },
+
+  { "action": "showView", "idRef": "com.microsoft.copilot.eclipse.ui.chat.ChatView" },
+  { "action": "waitForIdle" },
+  { "action": "screenshot", "id": "02-chat-open" },
+
+  { "action": "assertExists",
+    "locator": { "by": "viewId", "id": "com.microsoft.copilot.eclipse.ui.chat.ChatView" } },
+
+  { "action": "waitFor",
+    "locator": { "by": "styledText" },
+    "timeoutSec": 30 },
+
+  { "action": "dumpUi", "id": "03-chat-widgets" },
+  { "action": "screenshot", "id": "03-chat-ready" },
+
+  { "action": "waitForMethod",
+    "locator": { "by": "widgetId", "value": "model-picker" },
+    "method": "getSelectedItemId",
+    "timeoutSec": 60 },
+
+  { "action": "screenshot", "id": "04-model-loaded" },
+  { "action": "assertExists",
+    "locator": { "by": "widgetId", "value": "model-picker" } },
+
+  { "action": "screenshot", "id": "05-final" },
+  { "action": "assertExists",
+    "locator": { "by": "styledText" } }
+]
