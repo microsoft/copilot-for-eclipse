@@ -54,8 +54,8 @@ Entry points exercised:
 2. Verify the "File Operation Auto Approve" section is visible with a
    table showing default deny rules (e.g., `.github/instructions/*`,
    `github-copilot/**/*`).
-3. Confirm "Auto approve file operations not covered by rules" is
-   unchecked. Close preferences.
+3. **Manually uncheck** "Auto approve file operations not covered by rules"
+   (system default is checked; uncheck it for this test). Close preferences.
 4. Open the **Copilot Chat** view, select **Agent** mode.
 5. Type: `read the file src/demo/App.java and summarize it`.
 6. Wait for the agent to invoke the `copilot.read_file` tool.
@@ -88,7 +88,8 @@ Entry points exercised:
 **Priority:** `P0`
 
 #### Preconditions
-- "Auto approve file operations not covered by rules" is **unchecked**.
+- **Manually uncheck** "Auto approve file operations not covered by rules"
+  (system default is checked; uncheck it for this test).
 
 #### Steps
 1. Open preferences, add a deny rule `**/*.java` → **Deny**.
@@ -121,6 +122,10 @@ Entry points exercised:
 
 **Type:** `Happy Path`
 **Priority:** `P0`
+
+#### Preconditions
+- **Manually uncheck** "Auto approve file operations not covered by rules"
+  (system default is checked; uncheck it so the initial read triggers a dialog).
 
 #### Steps
 1. Ensure no custom rules exist for the test file.
@@ -194,9 +199,13 @@ Entry points exercised:
 **Type:** `Happy Path`
 **Priority:** `P0`
 
+#### Preconditions
+- **Manually uncheck** "Auto approve file operations not covered by rules"
+  (system default is checked; uncheck it for this test).
+
 #### Steps
 1. Open preferences, add deny rule for the file's absolute path
-   (e.g., `C:\...\demo\src\demo\App.java`) → **Deny**. Apply and close.
+   (e.g., `C:\<your-workspace-path>\demo\src\demo\App.java`) → **Deny**. Apply and close.
 2. In Agent Mode, trigger a file read for `App.java`.
 3. Confirmation dialog appears (deny rule matches).
 4. Click dropdown → **"Always Allow"**.
@@ -316,7 +325,10 @@ approval
    Apply and close.
 2. Verify in Agent Mode: `.java` files auto-approve.
 3. Open preferences, click **"Reset to Defaults"** and confirm.
-4. Verify only default deny rules remain (`.github/instructions/*`,
+4. **Manually uncheck** "Auto approve file operations not covered by rules"
+   (Reset to Defaults only clears rules, it does not reset this checkbox).
+   Apply and close.
+5. Verify only default deny rules remain (`.github/instructions/*`,
    `github-copilot/**/*`).
 5. Apply and close.
 6. In Agent Mode, trigger a `.java` file read.
