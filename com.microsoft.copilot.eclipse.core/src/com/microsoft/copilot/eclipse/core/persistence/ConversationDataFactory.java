@@ -130,15 +130,10 @@ public class ConversationDataFactory {
     if (agentRounds == null || agentRounds.isEmpty()) {
       return;
     }
-    boolean thinkingRoundUpdated = false;
     for (AgentRound round : agentRounds) {
-      EditAgentRoundData existingRound = thinkingRoundUpdated
-          ? null : findRoundByThinkingBlockId(reply.getEditAgentRounds(), thinkingBlockId);
-      if (existingRound != null) {
-        thinkingRoundUpdated = true;
-      }
+      EditAgentRoundData existingRound = findRoundById(reply.getEditAgentRounds(), round.getRoundId());
       if (existingRound == null) {
-        existingRound = findRoundById(reply.getEditAgentRounds(), round.getRoundId());
+        existingRound = findThinkingPlaceholderRound(reply.getEditAgentRounds(), thinkingBlockId);
       }
       if (existingRound == null) {
         EditAgentRoundData er = convertAgentRoundToEditAgentRoundData(round);
@@ -345,6 +340,14 @@ public class ConversationDataFactory {
       }
     }
     return null;
+  }
+
+  private EditAgentRoundData findThinkingPlaceholderRound(List<EditAgentRoundData> rounds, String thinkingBlockId) {
+    EditAgentRoundData round = findRoundByThinkingBlockId(rounds, thinkingBlockId);
+    if (round == null || round.getRoundId() != SYNTHETIC_ROUND_ID) {
+      return null;
+    }
+    return round;
   }
 
   private EditAgentRoundData findRoundById(List<EditAgentRoundData> rounds, int roundId) {
