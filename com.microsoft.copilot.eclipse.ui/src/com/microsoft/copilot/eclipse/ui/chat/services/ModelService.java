@@ -338,9 +338,10 @@ public class ModelService extends ChatBaseService {
     CopilotModel foundModel = null;
 
     for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
-      if (ModelUtils.getPickerId(entry.getValue()).equals(modelName)) {
+      CopilotModel candidate = entry.getValue();
+      if (ModelUtils.getPickerId(candidate).equals(modelName) || candidate.getModelName().equals(modelName)) {
         compositeKey = entry.getKey();
-        foundModel = entry.getValue();
+        foundModel = candidate;
         break;
       }
     }
@@ -392,7 +393,7 @@ public class ModelService extends ChatBaseService {
    */
   public void setFallBackModelAsActiveModel() {
     if (fallbackModel != null) {
-      setActiveModel(fallbackModel.getModelName());
+      setActiveModel(ModelUtils.getPickerId(fallbackModel));
     }
   }
 
