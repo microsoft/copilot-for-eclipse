@@ -1,13 +1,13 @@
 ---
 name: endgame
-description: Orchestrate endgame verification for a GitHub milestone issue. Fetches the issue, parses assigned tasks, delegates each task to a subagent that researches the linked PR/issue and writes a test plan, and saves every plan to test-plans/ following the project's standard test-plan format.
+description: Orchestrate endgame verification for a GitHub milestone issue. Fetches the issue, parses assigned tasks, delegates each task to a subagent that researches the linked PR/issue and writes a test plan, and saves every plan to com.microsoft.copilot.eclipse.swtbot.test/test-plans/ following the project's standard test-plan format.
 ---
 
 # Endgame Verification Skill
 
 Use this skill to run an endgame verification pass for a GitHub milestone issue.
 Each task in the issue is delegated to a subagent that researches the linked
-PR/issue and writes a test plan under `test-plans/`.
+PR/issue and writes a test plan under `com.microsoft.copilot.eclipse.swtbot.test/test-plans/`.
 
 ## Workflow
 
@@ -79,11 +79,11 @@ derived from the task title (e.g. `chat-history-restore`).
 Create the directory and file:
 
 ```
-test-plans/<feature-slug>/<feature-slug>.md
+com.microsoft.copilot.eclipse.swtbot.test/test-plans/<feature-slug>/<feature-slug>.md
 ```
 
 Use **exactly** this format, matching the project's existing test plans
-(see `test-plans/thinking-persistence/thinking-persistence.md` for a live
+(see `com.microsoft.copilot.eclipse.swtbot.test/test-plans/thinking-persistence/thinking-persistence.md` for a live
 example):
 
 ```markdown
@@ -145,7 +145,7 @@ Guidelines:
 ### Step 3: Return a brief summary
 
 Return ONLY:
-- File path created (e.g. `test-plans/chat-history-restore/chat-history-restore.md`)
+- File path created (e.g. `com.microsoft.copilot.eclipse.swtbot.test/test-plans/chat-history-restore/chat-history-restore.md`)
 - One-line summary of what needs to be verified
 
 ---
