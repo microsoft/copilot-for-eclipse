@@ -19,6 +19,7 @@ public class ConversationError {
   private String reason;
   private boolean responseIsIncomplete;
   private boolean responseIsFiltered;
+  private String modelProviderName;
 
   public void setMessage(String message) {
     this.message = message;
@@ -38,6 +39,10 @@ public class ConversationError {
 
   public void setResponseIsFiltered(boolean responseIsFiltered) {
     this.responseIsFiltered = responseIsFiltered;
+  }
+
+  public void setModelProviderName(String modelProviderName) {
+    this.modelProviderName = modelProviderName;
   }
 
   public String getMessage() {
@@ -60,9 +65,17 @@ public class ConversationError {
     return responseIsFiltered;
   }
 
+  /**
+   * The name of the model provider that produced the error, when the failing request was routed to a custom
+   * Bring-Your-Own-Key (BYOK) model. {@code null} or blank for built-in Copilot models.
+   */
+  public String getModelProviderName() {
+    return modelProviderName;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(message, code, reason, responseIsIncomplete, responseIsFiltered);
+    return Objects.hash(message, code, reason, responseIsIncomplete, responseIsFiltered, modelProviderName);
   }
 
   @Override
@@ -75,7 +88,8 @@ public class ConversationError {
     }
     ConversationError that = (ConversationError) o;
     return Objects.equals(message, that.message) && code == that.code && Objects.equals(reason, that.reason)
-        && responseIsIncomplete == that.responseIsIncomplete && responseIsFiltered == that.responseIsFiltered;
+        && responseIsIncomplete == that.responseIsIncomplete && responseIsFiltered == that.responseIsFiltered
+        && Objects.equals(modelProviderName, that.modelProviderName);
   }
 
   @Override
@@ -86,6 +100,7 @@ public class ConversationError {
     builder.append("reason", reason);
     builder.append("responseIsIncomplete", responseIsIncomplete);
     builder.append("responseIsFiltered", responseIsFiltered);
+    builder.append("modelProviderName", modelProviderName);
     return builder.toString();
   }
 }

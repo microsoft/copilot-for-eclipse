@@ -28,6 +28,8 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationDataFactory;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
@@ -394,12 +396,21 @@ public abstract class BaseTurnWidget extends Composite {
       return;
     }
 
+    // Restore thinking blocks for the subagent
+    BaseTurnWidget subagentWidget = block.getSubagentTurnWidget();
+    ThinkingTurnWidget thinkingWidget =
+        subagentWidget instanceof ThinkingTurnWidget ? (ThinkingTurnWidget) subagentWidget : null;
+
     if (StringUtils.isNotBlank(replyData.getText())) {
       block.appendMessage(replyData.getText());
     }
 
     if (replyData.getEditAgentRounds() != null) {
       for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
+        // Restore thinking block before the round's reply and tool calls
+        if (thinkingWidget != null && round.getThinkingBlock() != null) {
+          thinkingWidget.restoreThinkingBlock(round.getThinkingBlock());
+        }
         if (round.getReply() != null && !round.getReply().isEmpty()) {
           block.appendMessage(round.getReply());
         }
@@ -414,13 +425,14 @@ public abstract class BaseTurnWidget extends Composite {
 
     // Restore error messages into the subagent block
     if (replyData.getErrorMessages() != null) {
-      BaseTurnWidget subagentWidget = block.getSubagentTurnWidget();
-      if (subagentWidget != null) {
+      BaseTurnWidget errorWidget = block.getSubagentTurnWidget();
+      if (errorWidget != null) {
         for (CopilotTurnData.ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
           CopilotTurnData.ErrorData errorData = errorMessageData.getError();
           String errorMessage = errorData != null ? errorData.getMessage() : "";
           int errorCode = errorData != null ? errorData.getCode() : 0;
-          subagentWidget.createWarnDialog(errorMessage, errorCode);
+          String modelProviderName = errorData != null ? errorData.getModelProviderName() : null;
+          errorWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
         }
       }
     }
@@ -493,6 +505,7 @@ public abstract class BaseTurnWidget extends Composite {
   private void appendTextToTextViewer(String text) {
     if (currentTextBlock == null) {
       this.createTextBlock();
+      ensureFooterAtBottom();
     }
     if (currentTextBlock instanceof ChatMarkupViewer markupViewer) {
       markupViewer.setMarkup(text);
@@ -547,6 +560,7 @@ public abstract class BaseTurnWidget extends Composite {
 
     this.currentCodeBlock = codeBlock;
     this.codeBlockIndex++;
+    ensureFooterAtBottom();
   }
 
   /**
@@ -564,10 +578,50 @@ public abstract class BaseTurnWidget extends Composite {
   }
 
   /**
-   * Create a warning dialog to the turn widget.
+   * Move the footer composite (if any) to the bottom of this turn widget. Should be called after
+   * adding a new child widget so the footer always remains visually at the bottom of the turn,
+   * including when content is appended to the same turn after the footer is first created (for
+   * example, when a legacy 402 response triggers a fallback-model replay into the same turn).
    */
-  protected void createWarnDialog(String message, int code) {
-    new WarnWidget(this, SWT.BOTTOM, message, code);
+  protected void ensureFooterAtBottom() {
+    if (this.footer != null && !this.footer.isDisposed()) {
+      this.footer.moveBelow(null);
+    }
+  }
+
+  /**
+   * Render a warning dialog under the turn. BYOK 402 (402 + non-blank provider name) shows the BYOK message with no
+   * actions; plain 402 shows the server message plus plan-driven actions; other codes show the server message only.
+   *
+   * @param message the server error message
+   * @param code the server error code
+   * @param modelProviderName the BYOK model-provider name, or {@code null} for built-in models
+   */
+  protected void createWarnDialog(String message, int code, String modelProviderName) {
+    // TODO: Remove this legacy fallback after TBB is officially released.
+    // When the language server has not enabled token-based billing yet, restore the original
+    // main-branch warning behavior (no plan-driven actions; single upgrade button on the legacy
+    // 30-day free trial message).
+    if (!this.serviceManager.getAuthStatusManager().getQuotaStatus().tokenBasedBillingEnabled()) {
+      new WarnWidget(this, SWT.BOTTOM, message, code);
+      ensureFooterAtBottom();
+      requestLayout();
+      return;
+    }
+    boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
+    String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
+    CopilotPlan planForActions = null;
+    boolean overageEnabled = false;
+    Boolean canUpgradePlan = null;
+    if (code == 402 && !byokQuotaExceeded) {
+      CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+      planForActions = quotaStatus.copilotPlan();
+      overageEnabled = quotaStatus.premiumInteractions() != null
+          && quotaStatus.premiumInteractions().overagePermitted();
+      canUpgradePlan = quotaStatus.canUpgradePlan();
+    }
+    new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
+    ensureFooterAtBottom();
     requestLayout();
   }
 

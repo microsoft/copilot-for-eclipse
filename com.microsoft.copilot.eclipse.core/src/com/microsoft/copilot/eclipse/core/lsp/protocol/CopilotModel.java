@@ -44,12 +44,23 @@ public class CopilotModel {
 
   /**
    * Capabilities supports for the model.
+   *
+   * @param vision whether the model supports vision input
+   * @param reasoningEfforts the list of reasoning effort levels advertised by the model (e.g. {@code low}, {@code
+   *     medium}, {@code high}); may be {@code null} or empty when the model does not expose this list
+   * @param supportsReasoningEffortLevel whether the model surfaces selectable reasoning effort levels to the user
+   *     (the language server only reports {@code true} when the model has more than one effort level and is hosted on
+   *     a compatible endpoint)
    */
-  public record CopilotModelCapabilitiesSupports(boolean vision) {
+  public record CopilotModelCapabilitiesSupports(boolean vision, List<String> reasoningEfforts,
+      boolean supportsReasoningEffortLevel) {
+
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.append("vision", vision);
+      builder.append("reasoningEfforts", reasoningEfforts);
+      builder.append("supportsReasoningEffortLevel", supportsReasoningEffortLevel);
       return builder.toString();
     }
   }
@@ -235,6 +246,15 @@ public class CopilotModel {
 
   public void setModelPickerPriceCategory(String modelPickerPriceCategory) {
     this.modelPickerPriceCategory = modelPickerPriceCategory;
+  }
+
+  /**
+   * Builds the composite key used to identify this model in maps and user preferences.
+   *
+   * @return the composite key
+   */
+  public String getModelKey() {
+    return providerName != null ? providerName + "_" + id : id;
   }
 
   @Override

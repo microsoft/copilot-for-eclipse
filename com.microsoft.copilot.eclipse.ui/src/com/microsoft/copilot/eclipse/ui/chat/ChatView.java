@@ -66,6 +66,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
@@ -142,9 +143,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler codingAgentMessageHandler;
   private EventHandler autoBreakpointToggleHandler;
   private EventHandler rateLimitWarningHandler;
+  private EventHandler quotaWarningHandler;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
+
+  /**
+   * Percentage-remaining threshold below which the rate-limit banner switches from the informational
+   * icon to the warning icon.
+   */
+  private static final double RATE_LIMIT_WARNING_THRESHOLD_PERCENT_REMAINING = 25.0;
+
   private IContextActivation chatViewContextActivation;
   private IPartListener2 partListener;
 
@@ -359,12 +368,31 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (data instanceof RateLimitWarningParams params) {
         SwtUtils.invokeOnDisplayThreadAsync(() -> {
           if (actionBar != null && !actionBar.isDisposed()) {
-            actionBar.createStaticBanner(params.message());
+            RateLimitWarningParams.RateLimit rateLimit = params.rateLimit();
+            boolean warning = rateLimit != null
+                && rateLimit.percentRemaining() <= RATE_LIMIT_WARNING_THRESHOLD_PERCENT_REMAINING;
+            actionBar.createRateLimitBanner(params.message(), warning);
           }
         }, parent);
       }
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_RATE_LIMIT_WARNING, this.rateLimitWarningHandler);
+
+    this.quotaWarningHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (data instanceof QuotaWarningParams params) {
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          if (actionBar != null && !actionBar.isDisposed()) {
+            boolean warning = "warning".equalsIgnoreCase(params.severity());
+            boolean overageEnabled = params.premiumInteractions() != null
+                && params.premiumInteractions().overageEnabled();
+            actionBar.createQuotaWarningBanner(params.message(), params.copilotPlan(), overageEnabled,
+                params.canUpgradePlan(), warning);
+          }
+        }, parent);
+      }
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_QUOTA_WARNING, this.quotaWarningHandler);
 
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
@@ -799,10 +827,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             this.conversationId = newConversationId;
             this.conversationState = ConversationState.CONTINUED_CONVERSATION;
           }
+          // Always sync conversationId — chatContentViewer may have been recreated
+          if (this.chatContentViewer != null) {
+            this.chatContentViewer.setConversationId(this.conversationId);
+          }
         }
 
         // Cache conversation progress on begin
-        persistenceManager.cacheConversationProgress(this.conversationId, value);
+        persistenceManager.cacheConversationProgress(this.conversationId, value, null);
 
         // Set the CLS-assigned turnId on the last user turn that doesn't have one yet.
         // Chain off persistUserTurnFuture to ensure the UserTurnData has been created first.
@@ -851,6 +883,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
         }
+        String thinkingBlockId = this.chatContentViewer != null
+            ? this.chatContentViewer.getActiveThinkingBlockId(value.getTurnId()) : null;
 
         // Track run_subagent tool call ID for associating subagent turns
         if (StringUtils.isBlank(value.getParentTurnId()) && value.getAgentRounds() != null) {
@@ -875,7 +909,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (persistenceManager != null) {
           final String currentConversationId = this.conversationId;
           final String subagentToolCallId = this.lastRunSubagentToolCallId;
-          persistenceManager.cacheConversationProgress(currentConversationId, value)
+          persistenceManager.cacheConversationProgress(currentConversationId, value, thinkingBlockId)
               .thenCompose(v -> {
                 if (StringUtils.isNotBlank(value.getParentTurnId())
                     && StringUtils.isNotBlank(subagentToolCallId)) {
@@ -897,10 +931,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           this.actionBar.resetSendButton();
           this.topBanner.updateTitle(value.getSuggestedTitle());
         }
+        String endThinkingBlockId = this.chatContentViewer != null
+            ? this.chatContentViewer.getActiveThinkingBlockId(value.getTurnId()) : null;
 
         // Persist final conversation state and conversation title on end
         if (persistenceManager != null) {
-          persistenceManager.persistConversationProgress(this.conversationId, value);
+          persistenceManager.persistConversationProgress(this.conversationId, value, endThinkingBlockId);
 
           // Persist todo list at end phase
           TodoListService todoListService = chatServiceManager.getTodoListService();
@@ -1006,21 +1042,24 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         currentTodos = todoListService != null ? todoListService.getTodoList() : null;
       }
 
+      String turnReasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, currentSelection, activeModel, chatModeName, customChatModeId,
-          currentTodos, agentSlug, agentJobWorkspaceFolder, deriveWorkspaceFolders(currentFile, references));
+          processedMessage, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
+          customChatModeId, currentTodos, agentSlug, agentJobWorkspaceFolder,
+          deriveWorkspaceFolders(currentFile, references));
       conversationFutures.add(addConversationFuture);
 
       addConversationFuture.thenAccept(result -> {
         // Render and persist model information in the Copilot turn widget
         if (result != null && StringUtils.isNotBlank(result.getModelName())
             && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
-          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier());
+          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier(),
+              turnReasoningEffort);
 
           // Persist model information
           if (persistenceManager != null) {
             persistenceManager.persistModelInfo(result.getConversationId(), result.getTurnId(), result.getModelName(),
-                result.getBillingMultiplier());
+                result.getBillingMultiplier(), turnReasoningEffort);
           }
         }
       }).exceptionally(th -> {
@@ -1068,16 +1107,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
+      String reasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, todosToRestore, null, null,
-            restoredConversationId, restoreToTurnId, workspaceFolders);
+            currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, todosToRestore, null,
+            null, restoredConversationId, restoreToTurnId, workspaceFolders);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
-            currentSelection, turns, activeModel, chatModeName, customChatModeId, null, agentSlug,
+            currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, null, agentSlug,
             agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
       }
       conversationFutures.add(createConversationFuture);
@@ -1094,12 +1134,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Render model information in the Copilot turn widget
         if (result != null && StringUtils.isNotBlank(result.getModelName())
             && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
-          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier());
+          renderModelInfoInTurnWidget(result.getTurnId(), result.getModelName(), result.getBillingMultiplier(),
+              reasoningEffort);
 
           // Persist model information
           if (persistenceManager != null) {
             persistenceManager.persistModelInfo(newConversationId, result.getTurnId(), result.getModelName(),
-                result.getBillingMultiplier());
+                result.getBillingMultiplier(), reasoningEffort);
           }
         }
       }).exceptionally(th -> {
@@ -1240,7 +1281,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.lastRunSubagentToolCallId = null;
 
     if (persistenceManager != null && StringUtils.isNotBlank(this.conversationId)) {
-      persistenceManager.persistCachedConversation(this.conversationId);
+      persistenceManager.markRunningToolCallsCancelledAndPersist(this.conversationId);
     }
     conversationFutures.forEach(future -> {
       future.cancel(false);
@@ -1422,6 +1463,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (rateLimitWarningHandler != null) {
         this.eventBroker.unsubscribe(this.rateLimitWarningHandler);
         rateLimitWarningHandler = null;
+      }
+      if (quotaWarningHandler != null) {
+        this.eventBroker.unsubscribe(this.quotaWarningHandler);
+        quotaWarningHandler = null;
       }
     }
 
@@ -1633,11 +1678,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * @param conversationId the conversation ID to use for persistence
    * @param modelName the model name
    * @param billingMultiplier the billing multiplier
+   * @param reasoningEffort the reasoning effort sent for this turn (may be {@code null} when the model does not
+   *     support reasoning effort)
    */
-  private void renderModelInfoInTurnWidget(String turnId, String modelName, double billingMultiplier) {
+  private void renderModelInfoInTurnWidget(String turnId, String modelName, double billingMultiplier,
+      String reasoningEffort) {
     BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(turnId);
     if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
-      copilotWidget.renderModelInfo(modelName, billingMultiplier);
+      copilotWidget.renderModelInfo(modelName, billingMultiplier, reasoningEffort);
 
       // Refresh the scroller layout to ensure the footer is visible
       SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(), this.chatContentViewer);
@@ -1689,7 +1737,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
       ReplyData replyData = copilotTurn.getReply();
       if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
-        renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier());
+        // Reasoning effort was captured and persisted at send time so the footer reflects what was actually used
+        // for this turn, not whatever the user has selected now.
+        renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier(),
+            replyData.getReasoningEffort());
       }
     }
   }
@@ -1704,12 +1755,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
+    ThinkingTurnWidget thinkingWidget =
+        turnWidget instanceof ThinkingTurnWidget ? (ThinkingTurnWidget) turnWidget : null;
+
     if (StringUtils.isNotBlank(replyData.getText())) {
       turnWidget.appendMessage(replyData.getText());
     }
 
     if (replyData.getEditAgentRounds() != null && !replyData.getEditAgentRounds().isEmpty()) {
       for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
+        // Restore thinking block before the round's reply and tool calls
+        if (thinkingWidget != null && round.getThinkingBlock() != null) {
+          thinkingWidget.restoreThinkingBlock(round.getThinkingBlock());
+        }
         if (round.getReply() != null && !round.getReply().isEmpty()) {
           turnWidget.appendMessage(round.getReply());
         }
@@ -1729,7 +1787,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         SwtUtils.invokeOnDisplayThread(() -> {
           String errorMessage = errorData != null ? errorData.getMessage() : Messages.chat_warnWidget_defaultErrorMsg;
           int errorCode = errorData != null ? errorData.getCode() : 0;
-          turnWidget.createWarnDialog(errorMessage, errorCode);
+          String modelProviderName = errorData != null ? errorData.getModelProviderName() : null;
+          turnWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
         }, parent);
       }
     }

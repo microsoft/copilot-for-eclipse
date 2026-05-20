@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -32,6 +34,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -48,11 +51,20 @@ public class ChatContentViewer extends ScrolledComposite {
 
   private static final int SCROLL_THRESHOLD = 100;
 
+  /**
+   * Matches the trailing "| Request ID: ..." and "GitHub Request ID: ..." segments that the
+   * language server appends to user-facing error messages.
+   */
+  private static final Pattern REQUEST_ID_SUFFIX =
+      Pattern.compile("\\s*\\|?\\s*(?:GitHub\\s+)?Request\\s+ID:\\s*\\S+\\.?", Pattern.CASE_INSENSITIVE);
+
   private ChatServiceManager serviceManager;
+  private String conversationId;
 
   private Composite cmpContent;
 
   private Map<String, BaseTurnWidget> turns;
+  private Map<String, String> activeThinkingBlockIds;
   private Composite errorWidget;
 
   private BaseTurnWidget latestUserTurn;
@@ -108,6 +120,7 @@ public class ChatContentViewer extends ScrolledComposite {
     }
 
     this.turns = new HashMap<>();
+    this.activeThinkingBlockIds = new ConcurrentHashMap<>();
 
     this.serviceManager = serviceManager;
 
@@ -157,11 +170,17 @@ public class ChatContentViewer extends ScrolledComposite {
       }
 
       turns.put(workDoneToken, turnWidget);
+      activeThinkingBlockIds.remove(workDoneToken);
       ref.set(turnWidget);
     }, this);
 
     return ref.get();
 
+  }
+
+  /** Set the conversation ID used for thinking-block persistence. */
+  public void setConversationId(String conversationId) {
+    this.conversationId = conversationId;
   }
 
   /**
@@ -182,7 +201,9 @@ public class ChatContentViewer extends ScrolledComposite {
 
       if (value.getKind() == WorkDoneProgressKind.report) {
         if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+          thinkingTurn.setConversationContext(conversationId, value.getTurnId());
           thinkingTurn.appendThinking(value.getThinking());
+          updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
           if (hasRenderableOutput(value)) {
             // Seal before appending the reply so the spinner stops and the title is fetched.
             thinkingTurn.sealThinking();
@@ -212,6 +233,7 @@ public class ChatContentViewer extends ScrolledComposite {
         // Seal any in-progress thinking block before the turn ends.
         if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
           thinkingTurn.sealThinking();
+          updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
         }
         turnWidget.notifyTurnEnd();
       }
@@ -223,16 +245,24 @@ public class ChatContentViewer extends ScrolledComposite {
       }
 
       String errMsg = value.getErrorMessage();
+      if (StringUtils.isNotEmpty(errMsg)) {
+        errMsg = REQUEST_ID_SUFFIX.matcher(errMsg).replaceAll(StringUtils.EMPTY).trim();
+      }
       String reason = value.getErrorReason();
       if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
         // TODO: add enable button for better UX.
         errMsg = Messages.chat_model_unsupported_message;
       }
       if (StringUtils.isNotEmpty(errMsg)) {
-        // TODO: remove this error message replacement if statement when the CLS side warn message is aligned.
-        if (value.getCode() == 402) {
-          CopilotPlan userPlan = this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan();
-          CopilotModel fallbackModel = this.serviceManager.getModelService().getFallbackModel();
+        // TODO: Remove this legacy fallback after TBB is officially released.
+        // When the language server has not enabled token-based billing yet, fall back to the
+        // original main-branch 402 behavior: replace the message with a plan-driven fallback
+        // notice, switch to the fallback model, refresh quota, and replay the previous input.
+        CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+        CopilotModel fallbackModel = null;
+        if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402) {
+          CopilotPlan userPlan = quotaStatus.copilotPlan();
+          fallbackModel = this.serviceManager.getModelService().getFallbackModel();
           String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
               : Messages.chat_noQuotaView_fallbackModel;
 
@@ -245,10 +275,20 @@ public class ChatContentViewer extends ScrolledComposite {
           }
         }
 
-        renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode());
+        renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode(), value.getErrorModelProviderName());
 
-        if (value.getCode() == 402
-            && this.serviceManager.getAuthStatusManager().getQuotaStatus().copilotPlan() != CopilotPlan.free) {
+        // TODO: Remove this legacy fallback after TBB is officially released.
+        // Only replay the previous input when a fallback model is actually available; otherwise
+        // setFallBackModelAsActiveModel() is a no-op and re-posting the input with the same
+        // active model would just trigger the same 402 again.
+        if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402
+            && quotaStatus.copilotPlan() != CopilotPlan.free
+            && fallbackModel != null) {
+          // Detach the failed turn so the replayed response creates a new Copilot turn below the
+          // warning, instead of streaming into the same turn that just rendered the warn widget.
+          this.latestTurnWidget = null;
+          this.latestCopilotTurn = null;
+
           this.serviceManager.getModelService().setFallBackModelAsActiveModel();
           this.serviceManager.getAuthStatusManager().checkQuota();
 
@@ -261,6 +301,20 @@ public class ChatContentViewer extends ScrolledComposite {
         }
       }
     }, this);
+  }
+
+  /** Returns the active thinking block ID last observed while processing this turn's progress. */
+  public String getActiveThinkingBlockId(String turnId) {
+    return activeThinkingBlockIds.get(turnId);
+  }
+
+  private void updateActiveThinkingBlockId(String turnId, ThinkingTurnWidget thinkingTurn) {
+    String thinkingBlockId = thinkingTurn.getActiveThinkingBlockId();
+    if (StringUtils.isBlank(thinkingBlockId)) {
+      activeThinkingBlockIds.remove(turnId);
+    } else {
+      activeThinkingBlockIds.put(turnId, thinkingBlockId);
+    }
   }
 
   /**
@@ -332,8 +386,8 @@ public class ChatContentViewer extends ScrolledComposite {
     return turns.get(turnId);
   }
 
-  private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code) {
-    latestTurnWidget.createWarnDialog(errorMessage, code);
+  private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code, String modelProviderName) {
+    latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
     refreshScrollerLayout();
     scrollToLatestUserTurn();
   }

@@ -12,7 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
@@ -56,6 +55,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ModelInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NotifyAcceptedParams;
@@ -254,44 +254,12 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Create a conversation with the given parameters.
-   */
-  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
-      List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
-      String customChatModeId, List<TodoItem> todos) {
-    return createConversation(workDoneToken, message, files, currentFile, null, turns, activeModel, chatModeName,
-        customChatModeId, todos, null, null);
-  }
-
-  /**
-   * Create a conversation with the given parameters and optional agentSlug, agentJobWorkspaceFolder.
-   */
-  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
-      List<IResource> files, IFile currentFile, List<Turn> turns, CopilotModel activeModel, String chatModeName,
-      String customChatModeId, List<TodoItem> todos, String agentSlug, String agentJobWorkspaceFolder) {
-    return createConversation(workDoneToken, message, files, currentFile, null, turns, activeModel, chatModeName,
-        customChatModeId, todos, agentSlug, agentJobWorkspaceFolder);
-  }
-
-  /**
-   * Create a conversation with the given parameters, including optional currentSelection from the editor.
+   * Create a conversation with the given parameters, including an optional reasoning effort to forward to the server
+   * via {@code modelInfo}.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
-      String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
-      String agentJobWorkspaceFolder) {
-    return createConversation(workDoneToken, message, files, currentFile, currentSelection, turns, activeModel,
-        chatModeName, customChatModeId, todos, agentSlug, agentJobWorkspaceFolder, null, null,
-        LSPEclipseUtils.getWorkspaceFolders());
-  }
-
-  /**
-   * Create a conversation with the given parameters, including optional conversationId, restoreToTurnId for session
-   * restoration, and optional workspace folders argument.
-   */
-  public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
-      List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
-      String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
+      String reasoningEffort, String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
       String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId,
       List<WorkspaceFolder> workspaceFolders) {
 
@@ -303,6 +271,7 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
+      param.setModelInfo(buildModelInfo(activeModel, reasoningEffort));
       param.setChatMode(chatModeName);
       param.setCustomChatModeId(customChatModeId);
 
@@ -344,33 +313,12 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Create a conversation turn with the given parameters.
-   */
-  public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
-      String message, List<IResource> files, IFile currentFile, CopilotModel activeModel, String chatModeName,
-      String customChatModeId, List<TodoItem> todoList, String agentSlug, String agentJobWorkspaceFolder) {
-    return addConversationTurn(workDoneToken, conversationId, message, files, currentFile, null, activeModel,
-        chatModeName, customChatModeId, todoList, agentSlug, agentJobWorkspaceFolder);
-  }
-
-  /**
-   * Create a conversation turn with the given parameters, including optional currentSelection from the editor.
+   * Create a conversation turn with the given parameters, including an optional reasoning effort to forward to the
+   * server via {@code modelInfo}.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
-      String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
-      String agentJobWorkspaceFolder) {
-    return addConversationTurn(workDoneToken, conversationId, message, files, currentFile, currentSelection,
-        activeModel, chatModeName, customChatModeId, todoList, agentSlug, agentJobWorkspaceFolder,
-        LSPEclipseUtils.getWorkspaceFolders());
-  }
-
-  /**
-   * Create a conversation turn with the given parameters, including optional workspace folders argument.
-   */
-  public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
-      String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
-      String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
+      String reasoningEffort, String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
       String agentJobWorkspaceFolder, List<WorkspaceFolder> workspaceFolders) {
 
     boolean supportVision = activeModel.getCapabilities().supports().vision();
@@ -381,6 +329,7 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
+      param.setModelInfo(buildModelInfo(activeModel, reasoningEffort));
       param.setChatMode(chatModeName);
       param.setCustomChatModeId(customChatModeId);
 
@@ -745,5 +694,22 @@ public class CopilotLanguageServerConnection {
   private String getModelName(CopilotModel activeModel) {
     return activeModel == null ? null
         : activeModel.isChatFallback() ? activeModel.getId() : activeModel.getModelFamily();
+  }
+
+  /**
+   * Builds the {@link ModelInfo} payload to forward with chat requests. Returns {@code null} when no reasoning effort
+   * is available so we do not send redundant {@code id}/{@code providerName} fields ahead of the future migration
+   * away from the legacy {@code model}/{@code modelProviderName} fields. Today the language server only consumes
+   * {@code modelInfo.reasoningEffort}, so suppressing the payload when there is nothing meaningful to forward keeps
+   * the protocol surface minimal and avoids implicit behaviour changes if the server starts honouring id/providerName
+   * before the client migration lands.
+   */
+  private static ModelInfo buildModelInfo(CopilotModel activeModel, String reasoningEffort) {
+    if (StringUtils.isBlank(reasoningEffort)) {
+      return null;
+    }
+    String id = activeModel != null ? activeModel.getId() : null;
+    String providerName = activeModel != null ? activeModel.getProviderName() : null;
+    return new ModelInfo(id, providerName, reasoningEffort);
   }
 }

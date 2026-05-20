@@ -62,6 +62,74 @@ class ThinkingBlockParseTest {
     assertEquals("plan body", body(sections.get(1)));
   }
 
+  @Test
+  void parseSections_inlineBoldNotTreatedAsTitle() throws Exception {
+    // Inline bold at end of string should NOT be parsed as a section title.
+    String raw = "combined with **The Ship of Theseus**";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(1, sections.size());
+    assertNull(title(sections.get(0)));
+    assertEquals("combined with **The Ship of Theseus**", body(sections.get(0)));
+  }
+
+  @Test
+  void parseSections_inlineBoldFollowedByText() throws Exception {
+    // Inline bold mid-line should remain as body text.
+    String raw = "text with **bold** and more text";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(1, sections.size());
+    assertNull(title(sections.get(0)));
+    assertEquals("text with **bold** and more text", body(sections.get(0)));
+  }
+
+  @Test
+  void parseSections_mixOfInlineBoldAndStandaloneTitle() throws Exception {
+    // Inline bold on one line, standalone title on next line.
+    String raw = "text with **inline bold** here\n**Standalone Title**\nbody after title";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(2, sections.size());
+    assertNull(title(sections.get(0)));
+    assertEquals("text with **inline bold** here", body(sections.get(0)));
+    assertEquals("Standalone Title", title(sections.get(1)));
+    assertEquals("body after title", body(sections.get(1)));
+  }
+
+  @Test
+  void parseSections_titleAtStartOfText() throws Exception {
+    String raw = "**First**\nbody one\n**Second**\nbody two";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(2, sections.size());
+    assertEquals("First", title(sections.get(0)));
+    assertEquals("body one", body(sections.get(0)));
+    assertEquals("Second", title(sections.get(1)));
+    assertEquals("body two", body(sections.get(1)));
+  }
+
+  @Test
+  void parseSections_adjacentTitles_withNoBodyBetween() throws Exception {
+    // Two titles back-to-back with no body text between them must not throw
+    // StringIndexOutOfBoundsException (regression test for cursor > matcher.start() case).
+    String raw = "**Title1**\n**Title2**\nbody after both";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(2, sections.size());
+    assertEquals("Title1", title(sections.get(0)));
+    assertEquals("", body(sections.get(0)));
+    assertEquals("Title2", title(sections.get(1)));
+    assertEquals("body after both", body(sections.get(1)));
+  }
+
+  @Test
+  void parseSections_adjacentTitles_crlf() throws Exception {
+    // Same scenario with CRLF line endings.
+    String raw = "**Title1**\r\n**Title2**\r\nbody";
+    List<?> sections = invokeParseSections(raw);
+    assertEquals(2, sections.size());
+    assertEquals("Title1", title(sections.get(0)));
+    assertEquals("", body(sections.get(0)));
+    assertEquals("Title2", title(sections.get(1)));
+    assertEquals("body", body(sections.get(1)));
+  }
+
   private static String invokeStripTrailingNewlines(String input) throws Exception {
     Method m = ThinkingBlock.class.getDeclaredMethod("stripTrailingNewlines", String.class);
     m.setAccessible(true);

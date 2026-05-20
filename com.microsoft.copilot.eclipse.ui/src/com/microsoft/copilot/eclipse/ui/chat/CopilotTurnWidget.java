@@ -64,8 +64,10 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
    *
    * @param modelName the name of the model used
    * @param billingMultiplier the billing multiplier for the model
+   * @param reasoningEffort the reasoning effort that was sent for this turn (may be {@code null} or blank if the model
+   *     does not support reasoning effort or the user did not select one)
    */
-  public void renderModelInfo(String modelName, double billingMultiplier) {
+  public void renderModelInfo(String modelName, double billingMultiplier, String reasoningEffort) {
     if (modelName != null && !modelName.isEmpty()) {
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
         if (footer == null || footer.isDisposed()) {
@@ -73,6 +75,13 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
         }
         if (StringUtils.isNotBlank(modelName)) {
           Label modelInfoLabel = new Label(footer, SWT.NONE);
+          String formattedEffort = ModelUtils.formatReasoningEffortLevel(reasoningEffort);
+          String modelWithEffort;
+          if (StringUtils.isNotBlank(formattedEffort)) {
+            modelWithEffort = modelName + " - " + formattedEffort;
+          } else {
+            modelWithEffort = modelName;
+          }
           // When token-based billing is enabled on the language server, the per-turn billing
           // multiplier is no longer a meaningful price signal, so render the model name on its
           // own. Fall back to the legacy "{model} - {multiplier}" format otherwise.
@@ -80,11 +89,11 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
               .getQuotaStatus().tokenBasedBillingEnabled();
           String displayText;
           if (tbbEnabled) {
-            displayText = modelName;
+            displayText = modelWithEffort;
           } else {
             // TODO: Remove this legacy fallback after TBB is officially released.
             String formattedMultiplier = ModelUtils.formatBillingMultiplier(billingMultiplier);
-            displayText = String.format("%s - %s", modelName, formattedMultiplier);
+            displayText = String.format("%s - %s", modelWithEffort, formattedMultiplier);
           }
           modelInfoLabel.setText(displayText);
           GridData labelGridData = new GridData(SWT.RIGHT, SWT.CENTER, true, false);

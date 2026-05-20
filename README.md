@@ -8,6 +8,14 @@ GitHub Copilot for Eclipse brings AI-assisted coding to the Eclipse IDE with the
 - **Model Context Protocol (MCP)** integration to connect Copilot with external tools and services.
 - **Advanced Agentic Capabilities** include Custom Agents, Isolated Subagents, and Plan Agent, with more agentic capabilities coming soon.
 
+## Usage-based billing support
+
+Starting from version **0.18.0**, we have added internal support for the upcoming [usage-based billing experience](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/), including experience updates to the usage panel, usage notifications, and model picker. These changes will become visible once usage-based billing is rolled out.
+
+To ensure compatibility with the new billing experience, we strongly recommend upgrading to the plugin to **0.18.0 or later** as soon as possible.
+
+Clients using older plugin versions will continue to function. However, the billing and usage experience may not be optimal and may not accurately reflect the latest usage-based billing experience.
+
 
 ## Getting access to GitHub Copilot
 

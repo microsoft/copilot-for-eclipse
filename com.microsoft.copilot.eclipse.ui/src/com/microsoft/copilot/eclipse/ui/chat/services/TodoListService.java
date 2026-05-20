@@ -69,9 +69,10 @@ public class TodoListService extends ChatBaseService implements ChatProgressList
           disposeTodoListBar();
         } else {
           if (this.todoListBar == null || this.todoListBar.isDisposed()) {
-            this.todoListBar = new TodoListBar(chatView.getActionBar(), SWT.NONE);
+            this.todoListBar = new TodoListBar(chatView.getActionBar().getInputArea(), SWT.NONE);
           }
-          // Always position TodoListBar at the very top
+          // Always position TodoListBar at the very top of the inputArea (still below the
+          // StaticBanner, which lives on the outer ActionBar as a sibling of inputArea).
           this.todoListBar.moveAbove(null);
           this.todoListBar.buildTodoListBar(todoList);
         }

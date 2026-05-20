@@ -20,10 +20,16 @@ import org.eclipse.core.resources.IResource;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
 /**
@@ -201,12 +207,18 @@ public class ConversationPersistenceManager {
 
   /**
    * Updates a conversation with progress data and caches it only (no disk persistence).
+   *
+   * @param conversationId the conversation ID
+   * @param progress the progress value
+   * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
    */
-  public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress) {
+  public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress,
+      String thinkingBlockId) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
-        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress);
+        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress,
+            thinkingBlockId);
         conversationCache.put(conversationId, conversationData);
       } catch (Exception e) {
         CopilotCore.LOGGER.error("Failed to cache conversation progress: " + conversationId, e);
@@ -218,12 +230,18 @@ public class ConversationPersistenceManager {
 
   /**
    * Updates a conversation with progress data and persists it to disk.
+   *
+   * @param conversationId the conversation ID
+   * @param progress the progress value
+   * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
    */
-  public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress) {
+  public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress,
+      String thinkingBlockId) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
-        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress);
+        ConversationData conversationData = updateConversationProgressInternal(conversationId, progress,
+            thinkingBlockId);
         persistAndCacheConversation(conversationData);
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to persist conversation progress: " + conversationId, e);
@@ -255,6 +273,41 @@ public class ConversationPersistenceManager {
   }
 
   /**
+   * Marks cached running tool calls as cancelled, then persists the cached conversation to disk.
+   *
+   * @param conversationId the ID of the cached conversation to persist
+   * @return a future that completes when the cached conversation has been persisted
+   */
+  public CompletableFuture<Void> markRunningToolCallsCancelledAndPersist(String conversationId) {
+    if (StringUtils.isBlank(conversationId)) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    ConversationData conversationData;
+    lock.writeLock().lock();
+    try {
+      conversationData = conversationCache.get(conversationId);
+      if (conversationData == null) {
+        return CompletableFuture.completedFuture(null);
+      }
+      markRunningToolCallsCancelled(conversationData);
+    } finally {
+      lock.writeLock().unlock();
+    }
+
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        persistAndCacheConversation(conversationData);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to persist cancelled tool calls for conversation: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
    * Updates a conversation with progress data. This method is synchronous and handles all IO operations internally.
    */
   public CompletableFuture<ConversationData> updateConversationProgress(String conversationId,
@@ -262,7 +315,7 @@ public class ConversationPersistenceManager {
     return CompletableFuture.supplyAsync(() -> {
       lock.writeLock().lock();
       try {
-        return updateConversationProgressInternal(conversationId, progress);
+        return updateConversationProgressInternal(conversationId, progress, null);
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to update conversation progress: " + conversationId, e);
         throw new RuntimeException("Failed to update conversation progress", e);
@@ -275,8 +328,8 @@ public class ConversationPersistenceManager {
   /**
    * Internal method to update conversation progress without locking (caller must hold write lock).
    */
-  private ConversationData updateConversationProgressInternal(String conversationId, ChatProgressValue progress)
-      throws IOException {
+  private ConversationData updateConversationProgressInternal(String conversationId, ChatProgressValue progress,
+      String thinkingBlockId) throws IOException {
     ConversationData conversationData = getOrCreateNewConversationById(conversationId);
 
     // Update conversation metadata using factory
@@ -284,7 +337,8 @@ public class ConversationPersistenceManager {
 
     // Find or create turn and update it
     CopilotTurnData copilotTurnData = findOrCreateCopilotTurn(conversationData, progress.getTurnId());
-    dataFactory.updateReplyFromProgress(copilotTurnData.getReply(), progress);
+    ReplyData reply = copilotTurnData.getReply();
+    dataFactory.updateReplyFromProgress(reply, progress, thinkingBlockId);
 
     // Mark subagent turns with their parent turn ID
     if (StringUtils.isNotBlank(progress.getParentTurnId())) {
@@ -297,6 +351,85 @@ public class ConversationPersistenceManager {
     }
 
     return conversationData;
+  }
+
+  /**
+   * Sets the title on the thinking block with the given ID.
+   *
+   * @param conversationId the conversation ID
+   * @param turnId the turn ID
+   * @param thinkingBlockId the thinking block ID
+   * @param title the generated title
+   */
+  public CompletableFuture<Void> updateThinkingBlockTitle(String conversationId, String turnId, String thinkingBlockId,
+      String title) {
+    if (StringUtils.isAnyBlank(conversationId, turnId, thinkingBlockId, title)) {
+      return CompletableFuture.completedFuture(null);
+    }
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ThinkingBlockData block = findThinkingBlock(conversationId, turnId, thinkingBlockId);
+        if (block != null) {
+          block.setTitle(title);
+        }
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
+   * Cancels the thinking block with the given ID.
+   *
+   * @param conversationId the conversation ID
+   * @param turnId the turn ID
+   * @param thinkingBlockId the thinking block ID
+   */
+  public CompletableFuture<Void> cancelThinkingBlock(String conversationId, String turnId, String thinkingBlockId) {
+    if (StringUtils.isAnyBlank(conversationId, turnId, thinkingBlockId)) {
+      return CompletableFuture.completedFuture(null);
+    }
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        ThinkingBlockData block = findThinkingBlock(conversationId, turnId, thinkingBlockId);
+        if (block != null) {
+          block.setState(ThinkingBlockState.CANCELLED);
+        }
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  private ThinkingBlockData findThinkingBlock(String conversationId, String turnId, String thinkingBlockId) {
+    ConversationData conversationData = conversationCache.get(conversationId);
+    if (conversationData == null) {
+      return null;
+    }
+    CopilotTurnData turn = findTurn(conversationData, turnId, CopilotTurnData.class);
+    if (turn == null || turn.getReply() == null) {
+      return null;
+    }
+    return findThinkingBlock(turn.getReply(), thinkingBlockId);
+  }
+
+  private ThinkingBlockData findThinkingBlock(ReplyData reply, String thinkingBlockId) {
+    if (reply == null || StringUtils.isBlank(thinkingBlockId)) {
+      return null;
+    }
+    List<EditAgentRoundData> rounds = reply.getEditAgentRounds();
+    if (rounds == null) {
+      return null;
+    }
+    for (EditAgentRoundData round : rounds) {
+      ThinkingBlockData block = round.getThinkingBlock();
+      if (block != null && thinkingBlockId.equals(block.getId())) {
+        return block;
+      }
+    }
+    return null;
   }
 
   /**
@@ -402,6 +535,28 @@ public class ConversationPersistenceManager {
     conversationCache.put(conversation.getConversationId(), conversation);
   }
 
+  private void markRunningToolCallsCancelled(ConversationData conversationData) {
+    if (conversationData.getTurns() == null) {
+      return;
+    }
+    for (AbstractTurnData turn : conversationData.getTurns()) {
+      if (!(turn instanceof CopilotTurnData copilotTurnData) || copilotTurnData.getReply() == null
+          || copilotTurnData.getReply().getEditAgentRounds() == null) {
+        continue;
+      }
+      for (EditAgentRoundData round : copilotTurnData.getReply().getEditAgentRounds()) {
+        if (round.getToolCalls() == null) {
+          continue;
+        }
+        for (ToolCallData toolCall : round.getToolCalls()) {
+          if (toolCall != null && ChatStepStatus.RUNNING.equalsIgnoreCase(toolCall.getStatus())) {
+            toolCall.setStatus(ChatStepStatus.CANCELLED);
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Removes a conversation by ID from both disk and in-memory cache.
    *
@@ -504,15 +659,17 @@ public class ConversationPersistenceManager {
   }
 
   /**
-   * Persists model information (model name and billing multiplier) for a Copilot turn.
+   * Persists model information (model name, billing multiplier, reasoning effort) for a Copilot turn.
    *
    * @param conversationId the ID of the conversation
    * @param turnId the ID of the turn
    * @param modelName the name of the model used
    * @param billingMultiplier the billing multiplier for the model
+   * @param reasoningEffort the reasoning effort sent for this turn, or {@code null} when the model does not support
+   *     reasoning effort
    */
   public CompletableFuture<Void> persistModelInfo(String conversationId, String turnId, String modelName,
-      double billingMultiplier) {
+      double billingMultiplier, String reasoningEffort) {
     return CompletableFuture.runAsync(() -> {
       lock.writeLock().lock();
       try {
@@ -523,6 +680,7 @@ public class ConversationPersistenceManager {
         if (copilotTurn.getReply() != null) {
           copilotTurn.getReply().setModelName(modelName);
           copilotTurn.getReply().setBillingMultiplier(billingMultiplier);
+          copilotTurn.getReply().setReasoningEffort(reasoningEffort);
         }
 
         // Persist the updated conversation

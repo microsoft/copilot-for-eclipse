@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -19,11 +20,14 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatCompletionContentPart;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationError;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessageData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
@@ -32,6 +36,8 @@ import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
  * no business logic.
  */
 public class ConversationDataFactory {
+  private static final int SYNTHETIC_ROUND_ID = -1;
+
   private final AuthStatusManager authStatusManager;
 
   /**
@@ -95,12 +101,16 @@ public class ConversationDataFactory {
    *
    * @param reply the reply data to update
    * @param progress the progress value to extract data from
+   * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
    */
-  public void updateReplyFromProgress(ReplyData reply, ChatProgressValue progress) {
+  public void updateReplyFromProgress(ReplyData reply, ChatProgressValue progress, String thinkingBlockId) {
     ensureReplyInitialized(reply);
 
+    // Accumulate thinking content
+    appendThinkingContent(reply, progress.getThinking(), thinkingBlockId);
+
     // Merge agent rounds and append tool calls
-    mergeAgentRounds(reply, progress.getAgentRounds());
+    mergeAgentRounds(reply, progress.getAgentRounds(), thinkingBlockId);
 
     // Handle plain reply streaming (no agentRounds)
     appendProgressReplyText(reply, progress.getReply());
@@ -117,27 +127,20 @@ public class ConversationDataFactory {
     reply.setHideText(progress.isHideText());
   }
 
-  private void mergeAgentRounds(ReplyData reply, List<AgentRound> agentRounds) {
+  private void mergeAgentRounds(ReplyData reply, List<AgentRound> agentRounds, String thinkingBlockId) {
     if (agentRounds == null || agentRounds.isEmpty()) {
       return;
     }
     for (AgentRound round : agentRounds) {
       EditAgentRoundData existingRound = findRoundById(reply.getEditAgentRounds(), round.getRoundId());
       if (existingRound == null) {
+        existingRound = findThinkingPlaceholderRound(reply.getEditAgentRounds(), thinkingBlockId);
+      }
+      if (existingRound == null) {
         EditAgentRoundData er = convertAgentRoundToEditAgentRoundData(round);
         reply.getEditAgentRounds().add(er);
       } else {
-        appendReplyToAgentRound(existingRound, round.getReply());
-        if (round.getToolCalls() != null && !round.getToolCalls().isEmpty()) {
-          for (AgentToolCall tc : round.getToolCalls()) {
-            ToolCallData existingToolCall = findToolCallById(existingRound.getToolCalls(), tc.getId());
-            if (existingToolCall == null) {
-              existingRound.getToolCalls().add(convertAgentToolCallToToolCallData(tc));
-            } else {
-              updateToolCallData(existingToolCall, tc);
-            }
-          }
-        }
+        updateAgentRoundData(existingRound, round);
       }
     }
   }
@@ -172,6 +175,19 @@ public class ConversationDataFactory {
     round.setReply(existingReply + addition);
   }
 
+  private void appendThinkingContent(ReplyData reply, Thinking thinking, String thinkingBlockId) {
+    // Preserve whitespace-only thinking fragments; they can carry markdown boundaries between sections.
+    if (thinking == null || StringUtils.isEmpty(thinking.text())) {
+      return;
+    }
+    if (StringUtils.isBlank(thinkingBlockId)) {
+      return;
+    }
+    EditAgentRoundData round = getOrCreateThinkingRound(reply, thinkingBlockId);
+    ThinkingBlockData block = round.getThinkingBlock();
+    block.setContent(StringUtils.defaultString(block.getContent()) + thinking.text());
+  }
+
   private void applyConversationError(ReplyData reply, ConversationError error) {
     if (error == null) {
       return;
@@ -179,6 +195,7 @@ public class ConversationDataFactory {
     ErrorData errorData = new ErrorData();
     errorData.setMessage(error.getMessage());
     errorData.setCode(error.getCode());
+    errorData.setModelProviderName(error.getModelProviderName());
     ErrorMessageData em = new ErrorMessageData();
     em.setError(errorData);
     reply.getErrorMessages().add(em);
@@ -277,6 +294,69 @@ public class ConversationDataFactory {
   }
 
   // Private helper methods for data transformation
+  private EditAgentRoundData getOrCreateThinkingRound(ReplyData reply, String thinkingBlockId) {
+    EditAgentRoundData existingRound = findRoundByThinkingBlockId(reply.getEditAgentRounds(), thinkingBlockId);
+    if (existingRound != null) {
+      return existingRound;
+    }
+    EditAgentRoundData round = new EditAgentRoundData();
+    round.setRoundId(SYNTHETIC_ROUND_ID);
+    round.setToolCalls(new ArrayList<>());
+    round.setThinkingBlock(new ThinkingBlockData(thinkingBlockId, ""));
+    reply.getEditAgentRounds().add(round);
+    return round;
+  }
+
+  private void updateAgentRoundData(EditAgentRoundData target, AgentRound source) {
+    target.setRoundId(source.getRoundId());
+    appendReplyToAgentRound(target, source.getReply());
+    ThinkingBlockData thinkingBlock = target.getThinkingBlock();
+    if (thinkingBlock != null && !thinkingBlock.isFinalized()) {
+      thinkingBlock.setState(ThinkingBlockState.COMPLETED);
+    }
+    if (source.getToolCalls() == null || source.getToolCalls().isEmpty()) {
+      return;
+    }
+    if (target.getToolCalls() == null) {
+      target.setToolCalls(new ArrayList<>());
+    }
+    for (AgentToolCall toolCall : source.getToolCalls()) {
+      ToolCallData existingToolCall = findToolCallById(target.getToolCalls(), toolCall.getId());
+      if (existingToolCall == null) {
+        target.getToolCalls().add(convertAgentToolCallToToolCallData(toolCall));
+      } else {
+        updateToolCallData(existingToolCall, toolCall);
+      }
+    }
+  }
+
+  private EditAgentRoundData findRoundByThinkingBlockId(List<EditAgentRoundData> rounds, String thinkingBlockId) {
+    if (rounds == null || StringUtils.isBlank(thinkingBlockId)) {
+      return null;
+    }
+    for (EditAgentRoundData round : rounds) {
+      ThinkingBlockData thinkingBlock = round.getThinkingBlock();
+      if (thinkingBlock != null && thinkingBlockId.equals(thinkingBlock.getId())) {
+        return round;
+      }
+    }
+    return null;
+  }
+
+  private EditAgentRoundData findThinkingPlaceholderRound(List<EditAgentRoundData> rounds, String thinkingBlockId) {
+    if (rounds == null || StringUtils.isBlank(thinkingBlockId)) {
+      return null;
+    }
+    for (EditAgentRoundData round : rounds) {
+      ThinkingBlockData thinkingBlock = round.getThinkingBlock();
+      if (Objects.equals(round.getRoundId(), SYNTHETIC_ROUND_ID) && thinkingBlock != null
+          && thinkingBlockId.equals(thinkingBlock.getId())) {
+        return round;
+      }
+    }
+    return null;
+  }
+
   private EditAgentRoundData findRoundById(List<EditAgentRoundData> rounds, int roundId) {
     if (rounds == null) {
       return null;

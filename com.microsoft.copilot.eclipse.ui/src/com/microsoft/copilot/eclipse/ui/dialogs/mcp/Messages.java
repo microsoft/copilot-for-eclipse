@@ -12,13 +12,6 @@ public final class Messages extends NLS {
   public static String mcpRegistryDialog_mcpRegistry;
   public static String mcpRegistryDialog_banner_description;
   public static String mcpRegistryDialog_searchPlaceholder;
-  public static String mcpRegistryDialog_col_name;
-  public static String mcpRegistryDialog_col_desc;
-  public static String mcpRegistryDialog_col_actions;
-  public static String mcpRegistryDialog_details;
-  public static String mcpRegistryDialog_moreInfo;
-  public static String mcpRegistryDialog_install;
-  public static String mcpRegistryDialog_empty;
   public static String mcpRegistryDialog_errorLoading_prefix;
   public static String mcpRegistryDialog_errorLoading_default;
   public static String mcpRegistryDialog_invalidResponse;
@@ -34,19 +27,14 @@ public final class Messages extends NLS {
 
   public static String mcpServerDetailDialog_title;
   public static String mcpServerDetailDialog_description;
-  public static String mcpServerDetailDialog_category;
   public static String mcpServerDetailDialog_version;
   public static String mcpServerDetailDialog_repository;
   public static String mcpServerDetailDialog_repository_tooltip;
   public static String mcpServerDetailDialog_close;
   public static String mcpServerDetailDialog_noDetailsAvailable;
   public static String mcpServerDetailDialog_noDescription;
-  public static String mcpServerDetailDialog_noVersion;
-  public static String mcpServerDetailDialog_categoryDeveloperTools;
-  public static String mcpServerDetailDialog_categoryDataScience;
   public static String mcpServerDetailDialog_published;
   public static String mcpServerDetailDialog_updated;
-  public static String mcpServerDetailDialog_install;
   public static String mcpServerDetailDialog_noPublishedDate;
   public static String mcpServerDetailDialog_noUpdatedDate;
   public static String mcpServerDetailDialog_installation_options;

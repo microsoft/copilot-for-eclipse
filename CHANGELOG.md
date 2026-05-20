@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.18.0
+### Added
+- ℹ️ Prepare for the [upcoming usage-based billing](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/). We strongly recommend upgrading to this version as soon as possible. [#203](https://github.com/microsoft/copilot-for-eclipse/issues/203)
+- Add Copilot preference for a chat's custom instructions loading. [#62](https://github.com/microsoft/copilot-for-eclipse/issues/62), contributed by [@travkin79](https://github.com/travkin79)
+- Support skills and prompt files. [PR#133](https://github.com/microsoft/copilot-for-eclipse/pull/133)
+- Support displaying thinking blocks in chat view. [#202](https://github.com/microsoft/copilot-for-eclipse/issues/202)
+- Support selecting thinking effort for model. [#204](https://github.com/microsoft/copilot-for-eclipse/issues/204)
+
+### Fixed
+- Cannot fall back to JS-based CLS when native binary fails to start. [#116](https://github.com/microsoft/copilot-for-eclipse/issues/116)
+- 400 Bad Request when restoring conversation from persistence. [#131](https://github.com/microsoft/copilot-for-eclipse/issues/131)
+- Tool call errors failed to render in chat view. [PR#145](https://github.com/microsoft/copilot-for-eclipse/pull/145)
+- BYOK display name label should be optional. [PR#158](https://github.com/microsoft/copilot-for-eclipse/pull/158)
+- Subagent progress events leak into unrelated conversation UI when switching sessions. [#160](https://github.com/microsoft/copilot-for-eclipse/issues/160)
+- Integrate CLS session persistence and restoration for conversation history. [PR#161](https://github.com/microsoft/copilot-for-eclipse/pull/161)
+- Subagent turns appear as separate assistant messages after restoration. [#163](https://github.com/microsoft/copilot-for-eclipse/issues/163)
+- UI freeze: caused by deadlock in EditorsManager. [#175](https://github.com/microsoft/copilot-for-eclipse/issues/175)
+- UI freeze: deadlock between main thread and LSP listener on quota fallback. [#179](https://github.com/microsoft/copilot-for-eclipse/issues/179)
+- The mode picker will be blank in preference page when workspace contains 'remote' FS project. [#180](https://github.com/microsoft/copilot-for-eclipse/issues/180)
+- Prevent focusing the Terminal view after executing a CLI command in Chat view. [#188](https://github.com/microsoft/copilot-for-eclipse/issues/188), contributed by [@rsd-darshan](https://github.com/rsd-darshan)
+
+### Engineering
+- Extend CONTRIBUTING.md and adapt some Eclipse project settings to simplify getting started. [PR#176](https://github.com/microsoft/copilot-for-eclipse/pull/176), contributed by [@travkin79](https://github.com/travkin79)
+- Add explicit least-privilege permissions to CI workflow. [PR#185](https://github.com/microsoft/copilot-for-eclipse/pull/185), contributed by [@arpitjain099](https://github.com/arpitjain099)
+
+
 ## 0.17.0
 ### Added
 - Add context size donut and popup for visualizing token usage.

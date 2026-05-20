@@ -48,15 +48,12 @@ public class Messages extends NLS {
   public static String preferences_page_byok_enabledCount;
   public static String preferences_page_byok_disabled_tip;
   public static String preferences_page_completions_codeMiningNote;
-  public static String preferences_page_customModes_defaultDescription;
-  public static String preferences_page_customModes_defaultInstructions;
   public static String preferences_page_completions_enableNes;
   public static String preferences_page_restart_required;
   public static String preferences_page_enable_strict_ssl;
   public static String preferences_page_whats_new_settings;
   public static String preferences_page_enable_whats_new;
   public static String preferences_page_enable_whats_new_tooltip;
-  public static String preferences_page_proxy_kerberos_sp;
   public static String preferences_page_github_enterprise;
   public static String preferences_page_watched_files;
   public static String preferences_page_watched_files_note_content;
@@ -88,17 +85,14 @@ public class Messages extends NLS {
   public static String preferences_page_mcp_registry_description;
   public static String preferences_page_mcp_registry_button;
   public static String preferences_page_mcp_registry_restricted_info;
-  public static String preferences_page_custom_instructions_copilot_instructions;
   public static String preferences_page_custom_instructions_copilot_instructions_desc;
   public static String preferences_page_custom_instructions_copilot_instructions_note;
   public static String preferences_page_custom_instructions_workspace;
   public static String preferences_page_custom_instructions_workspace_enable;
   public static String preferences_page_custom_instructions_project;
-  public static String preferences_page_custom_instructions_project_enable;
   public static String preferences_page_custom_instructions_project_intro;
   public static String preferences_page_custom_instructions_project_table_projectName;
   public static String preferences_page_custom_instructions_project_table_fileLocation;
-  public static String preferences_page_custom_instructions_project_table_deleteButton;
   public static String preferences_page_custom_instructions_project_table_editButton;
   public static String preferences_page_custom_instructions_project_table_note;
   public static String preferences_page_custom_instructions_project_editDialog_title;
@@ -116,8 +110,6 @@ public class Messages extends NLS {
   public static String preferences_page_custom_instructions_chat_load_scope_combo_tooltip;
   public static String preferences_page_note_prefix;
   public static String preferences_page_note_content;
-  public static String preferences_page_mcpOAuth_confirmTitle;
-  public static String preferences_page_mcpOAuth_confirmMessage;
 
   // CustomModesPreferencePage
   public static String customModes_page_description;

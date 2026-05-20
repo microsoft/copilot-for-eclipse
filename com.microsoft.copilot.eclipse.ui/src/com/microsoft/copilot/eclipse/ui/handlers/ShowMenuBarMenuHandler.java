@@ -213,6 +213,14 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       items.add(this.allowanceResetItem);
     }
 
+    // "Additional usage enabled" / "Additional usage not enabled" status row, shown for paid
+    // users with a bounded premium-interactions quota
+    if (hasNonOrgPremiumQuota) {
+      items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.disabledDoNothing",
+          MenuUtils.getAdditionalUsageRowLabel(premiumQuota),
+          MenuUtils.getAdditionalUsageRowTooltip(quotaStatus), null));
+    }
+
     // Upsell actions based on the user's plan
     ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
 
@@ -226,7 +234,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
 
     // For free / individual / individual_pro users, show an Upgrade Plan row. When the overage row is
     // already showing the upgrade icon directly above, this row uses the blank icon to avoid duplication.
-    if (MenuUtils.shouldShowUpgradePlanRow(plan)) {
+    if (MenuUtils.shouldShowUpgradePlanRow(plan, quotaStatus.canUpgradePlan())) {
       ImageDescriptor upgradePlanIcon = hasNonOrgPremiumQuota ? blankIcon : upgradeIcon;
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
           Messages.menu_quota_upgradePlan, upgradePlanIcon));

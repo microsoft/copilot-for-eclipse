@@ -126,8 +126,20 @@ public final class MenuUtils {
 
   /**
    * True when the "Upgrade Plan" row should be shown for the given plan.
+   *
+   * <p>{@code canUpgradePlan} is the language server's authoritative signal of whether the user is eligible
+   * to upgrade. When supplied (non-{@code null}) it takes precedence over the plan-based default; when
+   * {@code null} (older language server that does not yet send this field) we fall back to the previous
+   * plan-only heuristic.
+   *
+   * @param plan the user's Copilot plan
+   * @param canUpgradePlan whether the user can upgrade their Copilot plan, or {@code null} when the language
+   *     server did not supply this field
    */
-  public static boolean shouldShowUpgradePlanRow(CopilotPlan plan) {
+  public static boolean shouldShowUpgradePlanRow(CopilotPlan plan, Boolean canUpgradePlan) {
+    if (canUpgradePlan != null) {
+      return canUpgradePlan;
+    }
     return plan == CopilotPlan.free || plan == CopilotPlan.individual || plan == CopilotPlan.individual_pro;
   }
 
@@ -146,6 +158,36 @@ public final class MenuUtils {
   public static String getOverageRowLabel(Quota premiumQuota) {
     boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
     return overageEnabled ? Messages.menu_quota_increaseBudget : Messages.menu_quota_enableAdditionalUsage;
+  }
+
+  /**
+   * Returns the label for the "Additional usage" status row shown below the allowance-reset row
+   * for paid users when token-based billing is enabled. Renders as
+   * {@code "Additional usage enabled"} or {@code "Additional usage not enabled"} depending on
+   * {@link Quota#overagePermitted()}.
+   */
+  public static String getAdditionalUsageRowLabel(Quota premiumQuota) {
+    boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
+    return Messages.menu_quota_additionalPremiumRequests
+        + (overageEnabled ? Messages.menu_quota_enabled : Messages.menu_quota_disabled);
+  }
+
+  /**
+   * Returns the tooltip for the "Additional usage" status row, or {@code null} when no tooltip
+   * applies. Business / Enterprise plans receive a plan-specific tooltip; other plans currently
+   * have no tooltip.
+   */
+  public static String getAdditionalUsageRowTooltip(CheckQuotaResult quotaStatus) {
+    CopilotPlan plan = quotaStatus.copilotPlan();
+    boolean isOrg = plan == CopilotPlan.business || plan == CopilotPlan.enterprise;
+    if (!isOrg) {
+      return null;
+    }
+    Quota premiumQuota = quotaStatus.premiumInteractions();
+    boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
+    return overageEnabled
+        ? Messages.menu_quota_additionalUsageOrgEnabledTooltip
+        : Messages.menu_quota_additionalUsageOrgNotConfiguredTooltip;
   }
 
   /**

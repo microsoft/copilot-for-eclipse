@@ -58,6 +58,8 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
 
   private Color placeholderColor;
 
+  private Runnable layoutRefreshCallback;
+
   /**
    * Constructs a new ChatInputTextViewer.
    *
@@ -75,6 +77,17 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
 
   public void setSendMessageHandler(Consumer<String> handler) {
     this.sendMessageHandler = handler;
+  }
+
+  /**
+   * Registers a callback invoked after the input area's preferred height changes, so the owner can relayout the
+   * enclosing chat view container. This avoids a brittle fixed-depth parent traversal that breaks whenever the input
+   * area is rewrapped in a new composite (see issue #215).
+   *
+   * @param callback the layout-refresh callback; may be {@code null} to clear
+   */
+  public void setLayoutRefreshCallback(Runnable callback) {
+    this.layoutRefreshCallback = callback;
   }
 
   public String getContent() {
@@ -188,15 +201,24 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
 
   private void refreshHeightLayout() {
     StyledText tvw = this.getTextWidget();
+    if (tvw == null || tvw.isDisposed()) {
+      return;
+    }
     // If the width is not initialized, use SWT.DEFAULT to compute the size
     // otherwise, swt will think that each line can only have one character.
     int widthHint = tvw.getSize().x == 0 ? SWT.DEFAULT : tvw.getSize().x;
     Point size = tvw.computeSize(widthHint, SWT.DEFAULT);
     GridData gd = (GridData) tvw.getLayoutData();
-    gd.heightHint = Math.min(tvw.getLineHeight() * MAX_INPUT_ROWS, size.y);
-    // TODO: An very interesting bug here, if we call layout(true, true), even no changes,
-    // The width of welcome view will become shorter and shorter, may investigate it later
-    ChatInputTextViewer.this.parent.getParent().getParent().layout(true, false);
+    int newHeightHint = Math.min(tvw.getLineHeight() * MAX_INPUT_ROWS, size.y);
+    if (gd.heightHint == newHeightHint) {
+      return;
+    }
+    gd.heightHint = newHeightHint;
+    // Delegate the relayout to the owner (e.g., ActionBar) so the chat view container reserves space for the
+    // updated input height.
+    if (this.layoutRefreshCallback != null) {
+      this.layoutRefreshCallback.run();
+    }
   }
 
   private void onKeyPressed(KeyEvent e) {
