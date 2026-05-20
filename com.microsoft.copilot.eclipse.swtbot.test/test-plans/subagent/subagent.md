@@ -197,3 +197,28 @@ Not exercised:
   `subagentToolCallId` association is incorrect; check that
   `lastRunSubagentToolCallId` is updated for each `run_subagent`
   tool call.
+
+---
+
+## 5. Non-subagent conversation unaffected
+
+### TC-006: Conversation with no subagent restores cleanly
+
+**Type:** `Regression`
+**Priority:** `P0`
+
+#### Preconditions
+- A new conversation in Agent mode.
+
+#### Steps
+1. Send a message that produces a normal (non-subagent) agent response.
+2. Wait for the response to complete.
+3. Switch to another conversation via chat history, then switch back.
+
+#### Expected Result
+- The restored conversation looks identical to before the session switch.
+- No duplicate or extra assistant messages appear.
+- No orphaned subagent card headers or tool-call labels are shown.
+
+#### Key Screenshots
+- [ ] **After restore** — conversation unchanged, no extra messages.
