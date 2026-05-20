@@ -28,6 +28,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentR
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
 /**
@@ -42,6 +43,8 @@ public class ConversationPersistenceManager {
 
   // Maximum number of conversations to keep persisted
   private static final int MAX_PERSISTED_CONVERSATIONS = 256;
+  private static final String TOOL_STATUS_RUNNING = "running";
+  private static final String TOOL_STATUS_CANCELLED = "cancelled";
 
   /**
    * Constructor for ConversationPersistenceManager.
@@ -264,6 +267,43 @@ public class ConversationPersistenceManager {
         }
       } catch (IOException e) {
         CopilotCore.LOGGER.error("Failed to persist cached conversation: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
+   * Marks cached running tool calls as cancelled, then persists the cached conversation to disk.
+   *
+   * @param conversationId the ID of the cached conversation to persist
+   * @return a future that completes when the cached conversation has been persisted
+   */
+  public CompletableFuture<Void> markRunningToolCallsCancelledAndPersist(String conversationId) {
+    if (StringUtils.isBlank(conversationId)) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    ConversationData conversationData;
+    lock.writeLock().lock();
+    try {
+      conversationData = conversationCache.get(conversationId);
+      if (conversationData == null) {
+        return CompletableFuture.completedFuture(null);
+      }
+      if (!markRunningToolCallsCancelled(conversationData)) {
+        return CompletableFuture.completedFuture(null);
+      }
+    } finally {
+      lock.writeLock().unlock();
+    }
+
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        persistAndCacheConversation(conversationData);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to persist cancelled tool calls for conversation: " + conversationId, e);
       } finally {
         lock.writeLock().unlock();
       }
@@ -496,6 +536,31 @@ public class ConversationPersistenceManager {
   private void persistAndCacheConversation(ConversationData conversation) throws IOException {
     persistenceService.saveConversation(conversation);
     conversationCache.put(conversation.getConversationId(), conversation);
+  }
+
+  private boolean markRunningToolCallsCancelled(ConversationData conversationData) {
+    boolean updated = false;
+    if (conversationData.getTurns() == null) {
+      return false;
+    }
+    for (AbstractTurnData turn : conversationData.getTurns()) {
+      if (!(turn instanceof CopilotTurnData copilotTurnData) || copilotTurnData.getReply() == null
+          || copilotTurnData.getReply().getEditAgentRounds() == null) {
+        continue;
+      }
+      for (EditAgentRoundData round : copilotTurnData.getReply().getEditAgentRounds()) {
+        if (round.getToolCalls() == null) {
+          continue;
+        }
+        for (ToolCallData toolCall : round.getToolCalls()) {
+          if (toolCall != null && TOOL_STATUS_RUNNING.equalsIgnoreCase(toolCall.getStatus())) {
+            toolCall.setStatus(TOOL_STATUS_CANCELLED);
+            updated = true;
+          }
+        }
+      }
+    }
+    return updated;
   }
 
   /**

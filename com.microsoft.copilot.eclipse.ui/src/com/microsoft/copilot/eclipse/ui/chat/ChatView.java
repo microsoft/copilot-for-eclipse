@@ -1281,7 +1281,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     this.lastRunSubagentToolCallId = null;
 
     if (persistenceManager != null && StringUtils.isNotBlank(this.conversationId)) {
-      persistenceManager.persistCachedConversation(this.conversationId);
+      persistenceManager.markRunningToolCallsCancelledAndPersist(this.conversationId);
     }
     conversationFutures.forEach(future -> {
       future.cancel(false);

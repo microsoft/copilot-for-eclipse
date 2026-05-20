@@ -43,6 +43,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
@@ -312,6 +313,28 @@ class ConversationPersistenceManagerTests {
   }
 
   @Test
+  void testMarkRunningToolCallsCancelledAndPersist_UpdatesOnlyRunningToolCalls() throws Exception {
+    String conversationId = "00000000-0000-0000-0000-000000000000";
+    ConversationData conversationData = createTestConversationData(conversationId);
+    CopilotTurnData copilotTurnData = (CopilotTurnData) conversationData.getTurns().get(1);
+    ToolCallData runningToolCall = createTestToolCallData("tool-1", "running");
+    ToolCallData completedToolCall = createTestToolCallData("tool-2", "completed");
+    EditAgentRoundData roundData = new EditAgentRoundData();
+    roundData.setRoundId(1);
+    roundData.setToolCalls(List.of(runningToolCall, completedToolCall));
+    copilotTurnData.getReply().setEditAgentRounds(List.of(roundData));
+
+    Map<String, ConversationData> cache = getConversationCache();
+    cache.put(conversationId, conversationData);
+
+    persistenceManager.markRunningToolCallsCancelledAndPersist(conversationId).get();
+
+    assertEquals("cancelled", runningToolCall.getStatus());
+    assertEquals("completed", completedToolCall.getStatus());
+    verify(mockPersistenceService).saveConversation(conversationData);
+  }
+
+  @Test
   void testUpdateConversationProgress_NewConversation() throws Exception {
     String conversationId = "00000000-0000-0000-0000-000000000001";
     ChatProgressValue progress = createTestChatProgressValue();
@@ -437,5 +460,20 @@ class ConversationPersistenceManagerTests {
     var field = target.getClass().getDeclaredField(fieldName);
     field.setAccessible(true);
     field.set(target, value);
+  }
+
+  private ToolCallData createTestToolCallData(String id, String status) {
+    ToolCallData toolCallData = new ToolCallData();
+    toolCallData.setId(id);
+    toolCallData.setName("run_in_terminal");
+    toolCallData.setProgressMessage("Running command");
+    toolCallData.setStatus(status);
+    return toolCallData;
+  }
+
+  private Map<String, ConversationData> getConversationCache() throws Exception {
+    var cacheField = ConversationPersistenceManager.class.getDeclaredField("conversationCache");
+    cacheField.setAccessible(true);
+    return (Map<String, ConversationData>) cacheField.get(persistenceManager);
   }
 }
