@@ -25,6 +25,17 @@ public class ModelUtils {
   }
 
   /**
+   * Returns a unique picker ID for the given model. BYOK models include the provider name as a
+   * prefix to avoid collisions with Copilot-native models that share the same display name.
+   */
+  public static String getPickerId(CopilotModel model) {
+    if (model.getProviderName() != null) {
+      return model.getProviderName() + "_" + model.getModelName();
+    }
+    return model.getModelName();
+  }
+
+  /**
    * Convert ByokModel to CopilotModel format for unified handling.
    */
   public static CopilotModel convertByokModelToCopilotModel(ByokModel byokModel) {

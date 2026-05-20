@@ -102,7 +102,7 @@ public final class ModelPickerGroupsBuilder {
     List<DropdownItem> items = new ArrayList<>();
     for (CopilotModel model : models) {
       String suffix = ModelUtils.getModelSuffix(model);
-      items.add(new DropdownItem.Builder().id(model.getModelName()).label(model.getModelName()).suffix(suffix)
+      items.add(new DropdownItem.Builder().id(ModelUtils.getPickerId(model)).label(model.getModelName()).suffix(suffix)
           .icon(resolveModelIcon(model)).hoverProvider(new ModelHoverContentProvider(model)).build());
     }
     return items;
