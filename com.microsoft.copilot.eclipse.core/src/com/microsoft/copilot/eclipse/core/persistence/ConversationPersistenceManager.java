@@ -20,6 +20,7 @@ import org.eclipse.core.resources.IResource;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
@@ -43,8 +44,6 @@ public class ConversationPersistenceManager {
 
   // Maximum number of conversations to keep persisted
   private static final int MAX_PERSISTED_CONVERSATIONS = 256;
-  private static final String TOOL_STATUS_RUNNING = "running";
-  private static final String TOOL_STATUS_CANCELLED = "cancelled";
 
   /**
    * Constructor for ConversationPersistenceManager.
@@ -291,9 +290,7 @@ public class ConversationPersistenceManager {
       if (conversationData == null) {
         return CompletableFuture.completedFuture(null);
       }
-      if (!markRunningToolCallsCancelled(conversationData)) {
-        return CompletableFuture.completedFuture(null);
-      }
+      markRunningToolCallsCancelled(conversationData);
     } finally {
       lock.writeLock().unlock();
     }
@@ -538,10 +535,9 @@ public class ConversationPersistenceManager {
     conversationCache.put(conversation.getConversationId(), conversation);
   }
 
-  private boolean markRunningToolCallsCancelled(ConversationData conversationData) {
-    boolean updated = false;
+  private void markRunningToolCallsCancelled(ConversationData conversationData) {
     if (conversationData.getTurns() == null) {
-      return false;
+      return;
     }
     for (AbstractTurnData turn : conversationData.getTurns()) {
       if (!(turn instanceof CopilotTurnData copilotTurnData) || copilotTurnData.getReply() == null
@@ -553,14 +549,12 @@ public class ConversationPersistenceManager {
           continue;
         }
         for (ToolCallData toolCall : round.getToolCalls()) {
-          if (toolCall != null && TOOL_STATUS_RUNNING.equalsIgnoreCase(toolCall.getStatus())) {
-            toolCall.setStatus(TOOL_STATUS_CANCELLED);
-            updated = true;
+          if (toolCall != null && ChatStepStatus.RUNNING.equalsIgnoreCase(toolCall.getStatus())) {
+            toolCall.setStatus(ChatStepStatus.CANCELLED);
           }
         }
       }
     }
-    return updated;
   }
 
   /**

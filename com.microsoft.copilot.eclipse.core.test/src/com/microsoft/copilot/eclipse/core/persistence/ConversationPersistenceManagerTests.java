@@ -38,6 +38,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Thinking;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
@@ -317,8 +318,8 @@ class ConversationPersistenceManagerTests {
     String conversationId = "00000000-0000-0000-0000-000000000000";
     ConversationData conversationData = createTestConversationData(conversationId);
     CopilotTurnData copilotTurnData = (CopilotTurnData) conversationData.getTurns().get(1);
-    ToolCallData runningToolCall = createTestToolCallData("tool-1", "running");
-    ToolCallData completedToolCall = createTestToolCallData("tool-2", "completed");
+    ToolCallData runningToolCall = createTestToolCallData("tool-1", ChatStepStatus.RUNNING);
+    ToolCallData completedToolCall = createTestToolCallData("tool-2", ChatStepStatus.COMPLETED);
     EditAgentRoundData roundData = new EditAgentRoundData();
     roundData.setRoundId(1);
     roundData.setToolCalls(List.of(runningToolCall, completedToolCall));
@@ -329,8 +330,28 @@ class ConversationPersistenceManagerTests {
 
     persistenceManager.markRunningToolCallsCancelledAndPersist(conversationId).get();
 
-    assertEquals("cancelled", runningToolCall.getStatus());
-    assertEquals("completed", completedToolCall.getStatus());
+    assertEquals(ChatStepStatus.CANCELLED, runningToolCall.getStatus());
+    assertEquals(ChatStepStatus.COMPLETED, completedToolCall.getStatus());
+    verify(mockPersistenceService).saveConversation(conversationData);
+  }
+
+  @Test
+  void testMarkRunningToolCallsCancelledAndPersist_PersistsWhenNoRunningToolCalls() throws Exception {
+    String conversationId = "00000000-0000-0000-0000-000000000000";
+    ConversationData conversationData = createTestConversationData(conversationId);
+    CopilotTurnData copilotTurnData = (CopilotTurnData) conversationData.getTurns().get(1);
+    ToolCallData completedToolCall = createTestToolCallData("tool-1", ChatStepStatus.COMPLETED);
+    EditAgentRoundData roundData = new EditAgentRoundData();
+    roundData.setRoundId(1);
+    roundData.setToolCalls(List.of(completedToolCall));
+    copilotTurnData.getReply().setEditAgentRounds(List.of(roundData));
+
+    Map<String, ConversationData> cache = getConversationCache();
+    cache.put(conversationId, conversationData);
+
+    persistenceManager.markRunningToolCallsCancelledAndPersist(conversationId).get();
+
+    assertEquals(ChatStepStatus.COMPLETED, completedToolCall.getStatus());
     verify(mockPersistenceService).saveConversation(conversationData);
   }
 
