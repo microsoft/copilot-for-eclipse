@@ -13,7 +13,6 @@ public final class TerminalCommandProcessor {
   private static final int MAX_OUTPUT_LINE_COUNT = 1000;
   private static final String BRACKETED_PASTE_START = "\u001b[200~";
   private static final String BRACKETED_PASTE_END = "\u001b[201~";
-  private static final String BELL = "\u0007";
   private static final String ANSI_CSI_SEQUENCE_PATTERN = "\u001B\\[(\\?)?[\\d;]*[a-zA-Z]";
   private static final String OSC_SEQUENCE_PATTERN = "\u001B\\][^\u0007\u001B]*(?:\u0007|\u001B\\\\)";
   private static final Pattern PROMPT_START_MARKER_PATTERN = buildMarkerPattern("A", false);
@@ -31,8 +30,19 @@ public final class TerminalCommandProcessor {
    * @return command text formatted for terminal input
    */
   public static String formatForExecution(String command) {
+    return formatForExecution(command, true);
+  }
+
+  /**
+   * Formats a command for immediate terminal execution.
+   *
+   * @param command the command to send
+   * @param useBracketedPaste whether multiline commands should be sent using bracketed paste
+   * @return command text formatted for terminal input
+   */
+  public static String formatForExecution(String command, boolean useBracketedPaste) {
     String normalizedCommand = removeTrailingLineEndings(normalizeLineEndings(command));
-    String terminalInput = isMultilineCommand(normalizedCommand)
+    String terminalInput = useBracketedPaste && isMultilineCommand(normalizedCommand)
         ? BRACKETED_PASTE_START + normalizedCommand + BRACKETED_PASTE_END
         : normalizedCommand;
     terminalInput = terminalInput.replace('\n', '\r');

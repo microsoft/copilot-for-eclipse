@@ -46,7 +46,7 @@ public final class ShellIntegrationScripts {
   }
 
   private static String buildOscMarkerPattern() {
-    return "(?:\u001B)?\\]?" + OSC_NAMESPACE + ";[ABC](?:;[-]?\\d+)?(?:\u0007|\u001B\\\\)?";
+    return "(?:\u001B)?\\]" + OSC_NAMESPACE + ";[ABC](?:;[-]?\\d+)?(?:\u0007|\u001B\\\\)?";
   }
 
   /**

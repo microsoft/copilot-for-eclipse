@@ -111,7 +111,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     }
 
     String executionId = UUID.randomUUID().toString();
-    final String finalCommand = TerminalCommandProcessor.formatForExecution(command);
+    final String finalCommand = TerminalCommandProcessor.formatForExecution(command, useBracketedPaste());
 
     synchronized (lock) {
       if (!isBackground && this.persistentTerminalViewControl != null) {
@@ -163,6 +163,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       String workingDirectory) {
     Map<String, Object> properties = new HashMap<>();
 
+    properties.put(ITerminalsConnectorConstants.PROP_ENCODING, "UTF-8");
     properties.put(ITerminalsConnectorConstants.PROP_TITLE_DISABLE_ANSI_TITLE, true);
     if (StringUtils.isNotBlank(workingDirectory)) {
       properties.put(ITerminalsConnectorConstants.PROP_PROCESS_WORKING_DIR, workingDirectory);
@@ -272,6 +273,11 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       return ShellIntegrationScripts.getBashScriptPath() != null;
     }
     return false;
+  }
+
+  private boolean useBracketedPaste() {
+    // macOS terminal multiline handling differs from PowerShell/Bash integration, so keep its existing plain input.
+    return Platform.getOS().equals(Platform.OS_WIN32) || Platform.getOS().equals(Platform.OS_LINUX);
   }
 
   private ITerminalViewControl finalizeTerminalSetup(String executionId, boolean isBackground) {

@@ -36,6 +36,12 @@ class TerminalCommandProcessorTest {
   }
 
   @Test
+  void testFormatForExecution_multilineWithoutBracketedPaste_submitsPlainLines() {
+    assertEquals("echo first\recho second\r",
+        TerminalCommandProcessor.formatForExecution("echo first\necho second", false));
+  }
+
+  @Test
   void testFormatForExecution_singleLineWithTrailingNewline_doesNotUseBracketedPaste() {
     assertEquals("echo hello\r", TerminalCommandProcessor.formatForExecution("echo hello\n"));
   }
@@ -154,11 +160,11 @@ class TerminalCommandProcessorTest {
   @Test
   void testPrepareOutputForModel_removesCopilotShellMarkers() {
     String output = "start\n" + ShellIntegrationScripts.PROMPT_START_MARKER
-        + "]7775;B\nbody\n]7775;C;0\n"
+        + "]7775;B\nbody\n]7775;C;0\nliteral 7775;A remains\n"
         + ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX + "1\u0007end";
 
     String result = TerminalCommandProcessor.prepareOutputForModel(output);
 
-    assertEquals("start\n\nbody\n\nend", result);
+    assertEquals("start\n\nbody\n\nliteral 7775;A remains\nend", result);
   }
 }

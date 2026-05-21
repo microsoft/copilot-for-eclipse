@@ -55,9 +55,9 @@ public class RunInTerminalToolAdapter extends BaseTool {
           - Use ; to chain commands on one line
           - Never create a sub-shell (e.g., powershell -c "command") unless explicitly asked
           - Prefer pipelines | for object-based data flow
-          - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands, \
-          unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
-          then run it
+          - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands,
+            unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
+            then run it
           - Must use absolute paths to avoid navigation issues
           - If a command may use a pager, disable it with command flags (e.g., `git --no-pager`)
           - Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow
@@ -79,9 +79,9 @@ public class RunInTerminalToolAdapter extends BaseTool {
           - Use && to chain commands on one line
           - Never create a sub-shell (e.g., bash -c "command") unless explicitly asked
           - Prefer pipelines | for data flow
-          - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands, \
-          unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
-          then run it
+          - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands,
+            unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
+            then run it
           - Must use absolute paths to avoid navigation issues
           - If a command may use a pager, disable it (e.g., `git --no-pager` or add `| cat`)
           - Bash syntax is supported, including arrays and [[ ]]
@@ -102,9 +102,9 @@ public class RunInTerminalToolAdapter extends BaseTool {
         - Use && to chain commands on one line
         - Never create a sub-shell (e.g., bash -c "command") unless explicitly asked
         - Prefer pipelines | for data flow
-        - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands, \
-        unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
-        then run it
+        - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands,
+          unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
+          then run it
         - Must use absolute paths to avoid navigation issues
         - If a command may use a pager, disable it (e.g., `git --no-pager` or add `| cat`)
         - Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow
@@ -274,7 +274,7 @@ public class RunInTerminalToolAdapter extends BaseTool {
       // Set the name and description of the tool
       toolInfo.setName(TOOL_NAME);
       toolInfo.setDescription("""
-          Get the output of a terminal command previous started with run_in_terminal.
+          Get the output of a terminal command previously started with run_in_terminal.
           Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow.
           """);
 

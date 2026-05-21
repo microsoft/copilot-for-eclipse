@@ -16,6 +16,7 @@ __copilot_bash_integration_main() {
             __copilot_prompt_initialized=1
         fi
         printf '\033]7775;A\007'
+        return "$__copilot_status"
     }
 
     __copilot_prompt_end() {
@@ -26,7 +27,18 @@ __copilot_bash_integration_main() {
         __copilot_original_ps1=${PS1:-'\$ '}
     fi
 
-    PROMPT_COMMAND=__copilot_precmd
+    case "$(declare -p PROMPT_COMMAND 2>/dev/null)" in
+        declare\ -a*|declare\ -A*)
+            PROMPT_COMMAND=(__copilot_precmd "${PROMPT_COMMAND[@]}")
+            ;;
+        *)
+            if [ -n "${PROMPT_COMMAND:-}" ]; then
+                PROMPT_COMMAND="__copilot_precmd; ${PROMPT_COMMAND}"
+            else
+                PROMPT_COMMAND=__copilot_precmd
+            fi
+            ;;
+    esac
     PS1="${__copilot_original_ps1}"'\[$(__copilot_prompt_end)\]'
 }
 
