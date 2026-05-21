@@ -106,16 +106,6 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addField(agentMaxRequestsField);
 
     addNote(parent, Messages.preferences_page_agent_max_requests_desc);
-    addSeparator(parent);
-
-    // Add Auto Compress toggle
-    Composite autoCompressComposite = createSectionComposite(parent, gdf);
-    BooleanFieldEditor autoCompressField = new BooleanFieldEditor(Constants.AUTO_COMPRESS,
-        Messages.preferences_page_auto_compress, SWT.WRAP, autoCompressComposite);
-    applyFieldWidthHint(autoCompressField, autoCompressComposite);
-    addField(autoCompressField);
-
-    new WrappableNoteLabel(parent, "", Messages.preferences_page_auto_compress_desc);
   }
 
   @Override

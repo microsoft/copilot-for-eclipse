@@ -42,7 +42,6 @@ public class Constants {
   public static final String CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE = "customInstructionsChatLoadScope";
   public static final String CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE_ALL = "allProjects";
   public static final String CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE_REFERENCED = "referencedProjects";
-  public static final String AUTO_COMPRESS = "autoCompress";
   public static final String GITHUB_COPILOT_URL = "http://github.com";
   @Deprecated
   public static final String QUICK_START_VERSION = "quickStartVersion";

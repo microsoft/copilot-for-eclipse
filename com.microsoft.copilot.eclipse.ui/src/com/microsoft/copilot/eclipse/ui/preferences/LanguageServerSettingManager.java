@@ -89,7 +89,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled());
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
-        .setAutoCompress(preferenceStore.getBoolean(Constants.AUTO_COMPRESS));
+        .setAutoCompress(true);
 
     // Set transcript directory for CLS session persistence and restoration
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
@@ -183,11 +183,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.ENABLE_SKILLS:
         settings.getGithubSettings().getCopilotSettings().getAgent()
             .setEnableSkills(PreferencesUtils.isSkillsEnabled());
-        singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
-        break;
-      case Constants.AUTO_COMPRESS:
-        settings.getGithubSettings().getCopilotSettings().getAgent()
-            .setAutoCompress(preferenceStore.getBoolean(Constants.AUTO_COMPRESS));
         singleSetting = new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings());
         break;
       default:

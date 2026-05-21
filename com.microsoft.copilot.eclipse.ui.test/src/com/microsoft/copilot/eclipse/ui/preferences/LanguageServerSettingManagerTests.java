@@ -53,6 +53,7 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent().setAutoCompress(true);
     params.setSettings(settings);
 
     // act
@@ -83,6 +84,7 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent().setAutoCompress(true);
     params.setSettings(settings);
 
     // act
@@ -117,6 +119,7 @@ class LanguageServerSettingManagerTests {
     CopilotSettings copilotSettings = new CopilotSettings();
     copilotSettings.setWorkspaceCopilotInstructions("Test instructions");
     copilotSettings.getAgent().setEnableSkills(PreferencesUtils.isSkillsEnabled());
+    copilotSettings.getAgent().setAutoCompress(true);
     CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
     settings.getGithubSettings().setCopilotSettings(copilotSettings);
     settings.getGithubSettings().getCopilotSettings().getAgent()
@@ -152,6 +155,7 @@ class LanguageServerSettingManagerTests {
     expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    expectedSettings.getGithubSettings().getCopilotSettings().getAgent().setAutoCompress(true);
     expectedParams.setSettings(expectedSettings);
 
     // act
