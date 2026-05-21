@@ -60,7 +60,7 @@ class McpConfirmationHandlerTests {
   void evaluate_autoApprovedWhenServerInGlobalList() {
     stubGlobalServers(List.of(SERVER));
 
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     assertTrue(result.isAutoApproved());
@@ -70,7 +70,7 @@ class McpConfirmationHandlerTests {
   void evaluate_autoApprovedWhenServerInGlobalListCaseInsensitive() {
     stubGlobalServers(List.of(SERVER.toUpperCase()));
 
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER.toLowerCase(), TOOL), CONV_ID);
 
     assertTrue(result.isAutoApproved());
@@ -80,7 +80,7 @@ class McpConfirmationHandlerTests {
   void evaluate_notAutoApprovedWhenServerNotInGlobalList() {
     stubGlobalServers(List.of("otherServer"));
 
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     assertFalse(result.isAutoApproved());
@@ -93,7 +93,7 @@ class McpConfirmationHandlerTests {
     String toolKey = SERVER.toLowerCase() + "::" + TOOL.toLowerCase();
     stubGlobalTools(List.of(toolKey));
 
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     assertTrue(result.isAutoApproved());
@@ -104,7 +104,7 @@ class McpConfirmationHandlerTests {
     String toolKey = SERVER.toUpperCase() + "::" + TOOL.toUpperCase();
     stubGlobalTools(List.of(toolKey));
 
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER.toLowerCase(), TOOL.toLowerCase()), CONV_ID);
 
     assertTrue(result.isAutoApproved());
@@ -115,7 +115,7 @@ class McpConfirmationHandlerTests {
     String otherKey = SERVER.toLowerCase() + "::otherTool";
     stubGlobalTools(List.of(otherKey));
 
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     assertFalse(result.isAutoApproved());
@@ -133,7 +133,7 @@ class McpConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params = buildParams(SERVER, TOOL);
     params.setAnnotations(annotations);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }
@@ -148,7 +148,7 @@ class McpConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params = buildParams(SERVER, TOOL);
     params.setAnnotations(annotations);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -163,7 +163,7 @@ class McpConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params = buildParams(SERVER, TOOL);
     params.setAnnotations(annotations);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -178,7 +178,7 @@ class McpConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params = buildParams(SERVER, TOOL);
     params.setAnnotations(annotations);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -194,7 +194,7 @@ class McpConfirmationHandlerTests {
             SERVER.toLowerCase() + "::" + TOOL.toLowerCase()));
     handler.cacheDecision(action, params, CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }
@@ -208,7 +208,7 @@ class McpConfirmationHandlerTests {
             SERVER.toLowerCase() + "::" + TOOL.toLowerCase()));
     handler.cacheDecision(action, params, "other-conv");
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
   }
@@ -221,7 +221,7 @@ class McpConfirmationHandlerTests {
         Map.of(McpConfirmationHandler.META_SERVER_NAME, SERVER));
     handler.cacheDecision(action, params, CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertTrue(result.isAutoApproved());
   }
@@ -292,7 +292,7 @@ class McpConfirmationHandlerTests {
 
     handler.clearSession(CONV_ID);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
     assertFalse(result.isAutoApproved());
   }
 
@@ -307,7 +307,7 @@ class McpConfirmationHandlerTests {
 
     handler.clearSession("other-conv");
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
     assertTrue(result.isAutoApproved());
   }
 
@@ -315,7 +315,7 @@ class McpConfirmationHandlerTests {
 
   @Test
   void buildContent_hasAllowOnceAsFirstAction() {
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -326,7 +326,7 @@ class McpConfirmationHandlerTests {
 
   @Test
   void buildContent_hasSkipAsLastAction() {
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -335,7 +335,7 @@ class McpConfirmationHandlerTests {
 
   @Test
   void buildContent_hasAllFourScopedActions() {
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -351,7 +351,7 @@ class McpConfirmationHandlerTests {
 
   @Test
   void buildContent_toolAndServerActionsHaveCorrectScopes() {
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -373,7 +373,7 @@ class McpConfirmationHandlerTests {
 
   @Test
   void buildContent_contentHasTitleWithToolAndServer() {
-    ConfirmationResult result = handler.evaluate(
+    ConfirmationResult result = evaluate(
         buildParams(SERVER, TOOL), CONV_ID);
 
     ConfirmationContent content = result.getContent();
@@ -388,7 +388,7 @@ class McpConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams(null, null);
 
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
     List<ConfirmationAction> actions = result.getContent().getActions();
@@ -414,6 +414,11 @@ class McpConfirmationHandlerTests {
     when(preferenceStore.getBoolean(
         Constants.AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS))
         .thenReturn(value);
+  }
+
+  private ConfirmationResult evaluate(
+      InvokeClientToolConfirmationParams params, String conversationId) {
+    return handler.evaluate(params, conversationId, true);
   }
 
   private static InvokeClientToolConfirmationParams buildParams(

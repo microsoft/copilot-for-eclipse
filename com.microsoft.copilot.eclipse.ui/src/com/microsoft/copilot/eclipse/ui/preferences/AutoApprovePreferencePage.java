@@ -10,9 +10,13 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
+import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
@@ -39,6 +43,14 @@ public class AutoApprovePreferencePage extends PreferencePage
 
   @Override
   protected Control createContents(Composite parent) {
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if (flags != null && !flags.isAutoApprovalEnabled()) {
+      return WrappableIconLink.createWithSharedImage(parent,
+          PlatformUI.getWorkbench().getSharedImages()
+              .getImage(ISharedImages.IMG_OBJS_INFO_TSK),
+          Messages.preferences_page_auto_approve_disabled_by_organization);
+    }
+
     Composite root = new Composite(parent, SWT.NONE);
     root.setLayout(new GridLayout(1, false));
     root.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -51,13 +63,20 @@ public class AutoApprovePreferencePage extends PreferencePage
     fileOperationSection.loadFromPreferences(store);
 
     mcpSection = new McpAutoApproveSection(root, SWT.NONE);
+    mcpSection.loadFromPreferences(store);
     bindMcpConfigService();
+
     globalSection = new GlobalAutoApproveSection(root, SWT.NONE);
+    globalSection.loadFromPreferences(store);
+
     return root;
   }
 
   @Override
   public boolean performOk() {
+    if (terminalSection == null) {
+      return true;
+    }
     IPreferenceStore store = getPreferenceStore();
     terminalSection.saveToPreferences(store);
     fileOperationSection.saveToPreferences(store);

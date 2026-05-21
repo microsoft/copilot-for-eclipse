@@ -112,6 +112,20 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
   }
 
   /**
+   * When the auto-approval feature is disabled, terminal commands always prompt
+   * with Allow Once / Skip only — no session or global approval buttons.
+   * This matches IntelliJ's behavior where terminal ignores all rules when disabled.
+   */
+  @Override
+  public ConfirmationResult evaluate(InvokeClientToolConfirmationParams params,
+      String sessionConversationId, boolean isAutoApprovalEnabled) {
+    if (!isAutoApprovalEnabled) {
+      return evaluateAutoApprovalDisabled(params);
+    }
+    return evaluateAutoApprovalEnabled(params, sessionConversationId);
+  }
+
+  /**
    * Evaluates a terminal confirmation request. Check order follows IntelliJ:
    * 1. Session "allow all" flag
    * 2. Session exact commandLine match
@@ -120,8 +134,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
    * 5. Global per-subCommand regex/prefix match against rules
    * 6. Unmatched fallback (auto-approve if preference enabled)
    */
-  @Override
-  public ConfirmationResult evaluate(
+  private ConfirmationResult evaluateAutoApprovalEnabled(
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     String convId = sessionConversationId;
@@ -196,6 +209,17 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
         return ConfirmationResult.needsConfirmation(
             buildContent(params, items));
     }
+  }
+
+  private ConfirmationResult evaluateAutoApprovalDisabled(
+      InvokeClientToolConfirmationParams params) {
+    String title = params.getTitle() != null
+        ? params.getTitle() : Messages.confirmation_title_terminal;
+    return ConfirmationResult.needsConfirmation(
+        new ConfirmationContent(title, params.getMessage(),
+            List.of(
+                ConfirmationAction.allowOnce(Messages.confirmation_action_allowOnce),
+                ConfirmationAction.skip(Messages.confirmation_action_skip))));
   }
 
   /**
@@ -454,7 +478,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
     switch (type) {
       case ACCEPT_NAMES_SESSION:
         if (cmdNames != null) {
-          evictOldestIfNeeded(allowedCommandNames);
+          ConfirmationHandler.evictOldestIfNeeded(allowedCommandNames);
           Set<String> nameSet = allowedCommandNames.computeIfAbsent(
               convId, k -> ConcurrentHashMap.newKeySet());
           Collections.addAll(nameSet, cmdNames);
@@ -462,7 +486,7 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
         break;
       case ACCEPT_EXACT_SESSION:
         if (commandLine != null && !commandLine.isBlank()) {
-          evictOldestIfNeeded(allowedExactCommands);
+          ConfirmationHandler.evictOldestIfNeeded(allowedExactCommands);
           allowedExactCommands.computeIfAbsent(
               convId, k -> ConcurrentHashMap.newKeySet())
               .add(commandLine.trim());
@@ -487,22 +511,6 @@ public class TerminalConfirmationHandler implements ConfirmationHandler {
         break;
       default:
         break;
-    }
-  }
-
-  /**
-   * Evicts the oldest entry from a LinkedHashMap when it reaches the
-   * maximum number of tracked conversations.
-   */
-  private static <V> void evictOldestIfNeeded(Map<String, V> map) {
-    synchronized (map) {
-      while (map.size() >= MAX_SESSION_CONVERSATIONS) {
-        var it = map.entrySet().iterator();
-        if (it.hasNext()) {
-          it.next();
-          it.remove();
-        }
-      }
     }
   }
 

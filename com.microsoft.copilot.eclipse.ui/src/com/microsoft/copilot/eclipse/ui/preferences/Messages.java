@@ -159,6 +159,7 @@ public class Messages extends NLS {
   public static String setting_disabled_by_organization;
 
   // Shared Auto-Approve strings
+  public static String preferences_page_auto_approve_disabled_by_organization;
   public static String preferences_page_auto_approve_column_status;
   public static String preferences_page_auto_approve_add;
   public static String preferences_page_auto_approve_remove;

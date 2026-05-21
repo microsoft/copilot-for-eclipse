@@ -62,7 +62,7 @@ class FileOperationConfirmationHandlerTests {
         new FileOperationAutoApproveRule("C:/Users/test.java", "", true)));
     stubUnmatched(false);
 
-    assertTrue(handler.evaluate(
+    assertTrue(evaluate(
         buildParams("C:\\Users\\test.java", false), CONV_ID).isAutoApproved());
   }
 
@@ -72,7 +72,7 @@ class FileOperationConfirmationHandlerTests {
         new FileOperationAutoApproveRule("**/*.java", "", true)));
     stubUnmatched(false);
 
-    assertTrue(handler.evaluate(
+    assertTrue(evaluate(
         buildParams("/workspace/src/Main.java", false), CONV_ID).isAutoApproved());
   }
 
@@ -82,7 +82,7 @@ class FileOperationConfirmationHandlerTests {
         new FileOperationAutoApproveRule("**/*.py", "", true)));
     stubUnmatched(false);
 
-    assertFalse(handler.evaluate(
+    assertFalse(evaluate(
         buildParams("/workspace/src/Main.java", false), CONV_ID).isAutoApproved());
   }
 
@@ -93,7 +93,7 @@ class FileOperationConfirmationHandlerTests {
         new FileOperationAutoApproveRule("**/.github/instructions/*", "", true)));
     stubUnmatched(false);
 
-    assertTrue(handler.evaluate(
+    assertTrue(evaluate(
         buildParams("C:\\project\\.github\\instructions\\file.md", false),
         CONV_ID).isAutoApproved());
   }
@@ -105,7 +105,7 @@ class FileOperationConfirmationHandlerTests {
         new FileOperationAutoApproveRule("[invalid", "", true)));
     stubUnmatched(true);
 
-    assertTrue(handler.evaluate(
+    assertTrue(evaluate(
         buildParams("/a/b.java", false), CONV_ID).isAutoApproved());
   }
 
@@ -117,7 +117,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -127,7 +127,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -139,7 +139,7 @@ class FileOperationConfirmationHandlerTests {
     // Evaluate with forward slashes + lowercase
     InvokeClientToolConfirmationParams params =
         buildParams("c:/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- evaluate: session overrides ---
@@ -155,7 +155,7 @@ class FileOperationConfirmationHandlerTests {
         buildParams("/workspace/src/Main.java", false);
     handler.cacheDecision(action, params, CONV_ID);
 
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -171,7 +171,7 @@ class FileOperationConfirmationHandlerTests {
     // Evaluate with forward slash + lowercase
     InvokeClientToolConfirmationParams params =
         buildParams("c:/workspace/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -185,7 +185,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/home/user/external/data.csv", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -203,7 +203,7 @@ class FileOperationConfirmationHandlerTests {
     // File in a different folder (prefix but not under the folder)
     InvokeClientToolConfirmationParams params =
         buildParams("/home/user/external-other/file.txt", false);
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -220,7 +220,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertFalse(handler.evaluate(params, "other-conv").isAutoApproved());
+    assertFalse(evaluate(params, "other-conv").isAutoApproved());
   }
 
   // --- evaluate: outside workspace ---
@@ -229,7 +229,7 @@ class FileOperationConfirmationHandlerTests {
   void evaluate_outsideWorkspaceAlwaysRequiresConfirmation() {
     InvokeClientToolConfirmationParams params =
         buildParams("/tmp/secret.txt", true);
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -244,7 +244,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/tmp/other.txt", true);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- evaluate: rule matching ---
@@ -257,7 +257,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -267,7 +267,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/.github/instructions/rules.md", false);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     assertFalse(result.isAutoApproved());
     assertNotNull(result.getContent());
@@ -283,7 +283,7 @@ class FileOperationConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
     // The first rule (deny .java) should win
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- evaluate: unmatched fallback ---
@@ -296,7 +296,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -307,7 +307,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -317,7 +317,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- evaluate: blank file path ---
@@ -329,7 +329,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams(null, false);
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- evaluate: file path extraction ---
@@ -343,7 +343,7 @@ class FileOperationConfirmationHandlerTests {
     // Path set via sensitiveFileData (toolMetadata), not input map
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -361,7 +361,7 @@ class FileOperationConfirmationHandlerTests {
     input.put("toolType", "file_write");
     params.setInput(input);
 
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -378,7 +378,7 @@ class FileOperationConfirmationHandlerTests {
     input.put("toolType", "file_write");
     params.setInput(input);
 
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- cacheDecision: global rule ---
@@ -465,7 +465,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -484,7 +484,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -499,7 +499,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertFalse(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertFalse(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- buildContent: in-workspace actions ---
@@ -511,7 +511,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     ConfirmationContent content = result.getContent();
     assertNotNull(content);
@@ -529,7 +529,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     ConfirmationAction last = actions.get(actions.size() - 1);
@@ -543,7 +543,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasFileSession = actions.stream().anyMatch(a ->
@@ -563,7 +563,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasFolderSession = actions.stream().anyMatch(a ->
@@ -581,7 +581,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/tmp/data/file.txt", true);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasFolderSession = actions.stream().anyMatch(a ->
@@ -597,7 +597,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/tmp/data/file.txt", true);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
     boolean hasFileGlobal = actions.stream().anyMatch(a ->
@@ -615,7 +615,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    ConfirmationResult result = handler.evaluate(params, CONV_ID);
+    ConfirmationResult result = evaluate(params, CONV_ID);
 
     List<ConfirmationAction> actions = result.getContent().getActions();
 
@@ -644,7 +644,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -659,7 +659,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/workspace/src/Main.java", false);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   @Test
@@ -674,7 +674,7 @@ class FileOperationConfirmationHandlerTests {
 
     InvokeClientToolConfirmationParams params =
         buildParams("/external/dir/another.txt", true);
-    assertTrue(handler.evaluate(params, CONV_ID).isAutoApproved());
+    assertTrue(evaluate(params, CONV_ID).isAutoApproved());
   }
 
   // --- Helpers ---
@@ -687,6 +687,11 @@ class FileOperationConfirmationHandlerTests {
   private void stubUnmatched(boolean value) {
     when(preferenceStore.getBoolean(
         Constants.AUTO_APPROVE_UNMATCHED_FILE_OP)).thenReturn(value);
+  }
+
+  private ConfirmationResult evaluate(
+      InvokeClientToolConfirmationParams params, String conversationId) {
+    return handler.evaluate(params, conversationId, true);
   }
 
   private static InvokeClientToolConfirmationParams buildParams(

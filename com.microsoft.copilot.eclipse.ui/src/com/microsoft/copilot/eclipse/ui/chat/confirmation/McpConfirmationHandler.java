@@ -74,6 +74,20 @@ public class McpConfirmationHandler implements ConfirmationHandler {
   }
 
   /**
+   * When the auto-approval feature is disabled, MCP tools always prompt with
+   * Allow Once / Skip only — no session or global approval buttons.
+   * This matches IntelliJ's behavior where MCP ignores all rules when disabled.
+   */
+  @Override
+  public ConfirmationResult evaluate(InvokeClientToolConfirmationParams params,
+      String sessionConversationId, boolean isAutoApprovalEnabled) {
+    if (!isAutoApprovalEnabled) {
+      return evaluateAutoApprovalDisabled(params);
+    }
+    return evaluateAutoApprovalEnabled(params, sessionConversationId);
+  }
+
+  /**
    * Evaluates an MCP tool confirmation request. Check order:
    * 1. Session approved servers (by conversationId)
    * 2. Session approved tools (by conversationId, key = "server::tool")
@@ -82,8 +96,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
    * 5. Trust annotations (readOnlyHint=true AND openWorldHint=false)
    * 6. Otherwise: needs confirmation
    */
-  @Override
-  public ConfirmationResult evaluate(
+  private ConfirmationResult evaluateAutoApprovalEnabled(
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     String serverName = extractServerName(params);
@@ -149,6 +162,14 @@ public class McpConfirmationHandler implements ConfirmationHandler {
         buildContent(params, serverName, toolName));
   }
 
+  private ConfirmationResult evaluateAutoApprovalDisabled(
+      InvokeClientToolConfirmationParams params) {
+    String serverName = extractServerName(params);
+    String toolName = extractToolName(params);
+    return ConfirmationResult.needsConfirmation(
+        buildContent(params, serverName, toolName, /* simplifiedOnly= */ true));
+  }
+
   @Override
   public void cacheDecision(ConfirmationAction confirmAction,
       InvokeClientToolConfirmationParams params,
@@ -173,7 +194,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       case ACCEPT_TOOL_SESSION:
         if (toolKey != null) {
           synchronized (approvedTools) {
-            evictOldestIfNeeded(approvedTools);
+            ConfirmationHandler.evictOldestIfNeeded(approvedTools);
             approvedTools.computeIfAbsent(
                 sessionConversationId,
                 k -> ConcurrentHashMap.newKeySet())
@@ -184,7 +205,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       case ACCEPT_SERVER_SESSION:
         if (serverName != null) {
           synchronized (approvedServers) {
-            evictOldestIfNeeded(approvedServers);
+            ConfirmationHandler.evictOldestIfNeeded(approvedServers);
             approvedServers.computeIfAbsent(
                 sessionConversationId,
                 k -> ConcurrentHashMap.newKeySet())
@@ -216,6 +237,12 @@ public class McpConfirmationHandler implements ConfirmationHandler {
   private ConfirmationContent buildContent(
       InvokeClientToolConfirmationParams params,
       String serverName, String toolName) {
+    return buildContent(params, serverName, toolName, false);
+  }
+
+  private ConfirmationContent buildContent(
+      InvokeClientToolConfirmationParams params,
+      String serverName, String toolName, boolean simplifiedOnly) {
     String toolKey = buildToolKey(
         serverName != null ? serverName.toLowerCase(Locale.ROOT) : null,
         toolName);
@@ -224,30 +251,32 @@ public class McpConfirmationHandler implements ConfirmationHandler {
     actions.add(ConfirmationAction.allowOnce(
         Messages.confirmation_action_allowOnce));
 
-    if (toolName != null && toolKey != null) {
-      actions.add(action(Action.ACCEPT_TOOL_SESSION,
-          NLS.bind(Messages.confirmation_action_allowNamesSession,
-              "'" + toolName + "'"),
-          ConfirmationActionScope.SESSION,
-          Map.of(META_TOOL_KEY, toolKey)));
-      actions.add(action(Action.ACCEPT_TOOL_GLOBAL,
-          NLS.bind(Messages.confirmation_action_alwaysAllowNames,
-              "'" + toolName + "'"),
-          ConfirmationActionScope.GLOBAL,
-          Map.of(META_TOOL_KEY, toolKey)));
-    }
+    if (!simplifiedOnly) {
+      if (toolName != null && toolKey != null) {
+        actions.add(action(Action.ACCEPT_TOOL_SESSION,
+            NLS.bind(Messages.confirmation_action_allowNamesSession,
+                "'" + toolName + "'"),
+            ConfirmationActionScope.SESSION,
+            Map.of(META_TOOL_KEY, toolKey)));
+        actions.add(action(Action.ACCEPT_TOOL_GLOBAL,
+            NLS.bind(Messages.confirmation_action_alwaysAllowNames,
+                "'" + toolName + "'"),
+            ConfirmationActionScope.GLOBAL,
+            Map.of(META_TOOL_KEY, toolKey)));
+      }
 
-    if (serverName != null) {
-      actions.add(action(Action.ACCEPT_SERVER_SESSION,
-          NLS.bind(Messages.confirmation_action_allowServerSession,
-              "'" + serverName + "'"),
-          ConfirmationActionScope.SESSION,
-          Map.of(META_SERVER_NAME, serverName)));
-      actions.add(action(Action.ACCEPT_SERVER_GLOBAL,
-          NLS.bind(Messages.confirmation_action_alwaysAllowServer,
-              "'" + serverName + "'"),
-          ConfirmationActionScope.GLOBAL,
-          Map.of(META_SERVER_NAME, serverName)));
+      if (serverName != null) {
+        actions.add(action(Action.ACCEPT_SERVER_SESSION,
+            NLS.bind(Messages.confirmation_action_allowServerSession,
+                "'" + serverName + "'"),
+            ConfirmationActionScope.SESSION,
+            Map.of(META_SERVER_NAME, serverName)));
+        actions.add(action(Action.ACCEPT_SERVER_GLOBAL,
+            NLS.bind(Messages.confirmation_action_alwaysAllowServer,
+                "'" + serverName + "'"),
+            ConfirmationActionScope.GLOBAL,
+            Map.of(META_SERVER_NAME, serverName)));
+      }
     }
 
     actions.add(ConfirmationAction.skip(
@@ -332,19 +361,4 @@ public class McpConfirmationHandler implements ConfirmationHandler {
     preferenceStore.setValue(preferenceKey, new Gson().toJson(current));
   }
 
-  /**
-   * Evicts the oldest entry when the map reaches the maximum number of
-   * tracked conversations. Caller must hold the map's monitor.
-   */
-  private static <V> void evictOldestIfNeeded(Map<String, V> map) {
-    while (map.size() >= MAX_SESSION_CONVERSATIONS) {
-      var it = map.entrySet().iterator();
-      if (it.hasNext()) {
-        it.next();
-        it.remove();
-      } else {
-        break;
-      }
-    }
-  }
 }
