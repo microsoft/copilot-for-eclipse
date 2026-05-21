@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,6 +53,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public abstract class FileToolBase extends BaseTool {
   protected static Map<IFile, CompareEditorInput> compareEditorInputMap = new ConcurrentHashMap<>();
   protected static Map<IFile, String> fileContentCache = new ConcurrentHashMap<>();
+  protected static Map<Path, CompareEditorInput> localCompareEditorInputMap = new ConcurrentHashMap<>();
+  protected static Map<Path, String> localFileContentCache = new ConcurrentHashMap<>();
 
   @Override
   public abstract CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView);
@@ -62,8 +66,13 @@ public abstract class FileToolBase extends BaseTool {
     for (IFile file : compareEditorInputMap.keySet()) {
       closeCompareEditor(file);
     }
+    for (Path file : localCompareEditorInputMap.keySet()) {
+      closeCompareEditor(file);
+    }
     compareEditorInputMap.clear();
     fileContentCache.clear();
+    localCompareEditorInputMap.clear();
+    localFileContentCache.clear();
   }
 
   /**
@@ -83,6 +92,43 @@ public abstract class FileToolBase extends BaseTool {
     } catch (IOException | CoreException e) {
       CopilotCore.LOGGER.error("Error caching original file content", e);
     }
+  }
+
+  /**
+   * Caches the original content for a workspace file if no baseline exists yet.
+   *
+   * @param file The file whose original content is to be cached.
+   * @param content The content to use as the original baseline.
+   */
+  protected void cacheTheOriginalFileContent(IFile file, String content) {
+    fileContentCache.putIfAbsent(file, content);
+  }
+
+  /**
+   * Caches the original content of a local file to be compared with the proposed changes.
+   *
+   * @param file The local file whose original content is to be cached.
+   */
+  protected void cacheTheOriginalFileContent(Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    if (localFileContentCache.containsKey(normalizedPath)) {
+      return;
+    }
+    try {
+      localFileContentCache.put(normalizedPath, Files.readString(normalizedPath, StandardCharsets.UTF_8));
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error("Error caching original local file content", e);
+    }
+  }
+
+  /**
+   * Caches the original content for a local file if no baseline exists yet.
+   *
+   * @param file The local file whose original content is to be cached.
+   * @param content The content to use as the original baseline.
+   */
+  protected void cacheTheOriginalFileContent(Path file, String content) {
+    localFileContentCache.putIfAbsent(normalizeLocalPath(file), content);
   }
 
   /**
@@ -126,6 +172,29 @@ public abstract class FileToolBase extends BaseTool {
       });
     } catch (InvocationTargetException | InterruptedException e) {
       CopilotCore.LOGGER.error("Error opening compare editor", e);
+    }
+  }
+
+  /**
+   * Compares the given string with the content of the given local file in a compare editor.
+   *
+   * @param originalFileContent The original string content of the file to compare with.
+   * @param file The local file with the proposed changes applied.
+   */
+  protected void compareStringWithFile(String originalFileContent, Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    try {
+      CompareEditorInput input = createCompareEditorInput(originalFileContent, normalizedPath);
+      input.run(new NullProgressMonitor());
+      localCompareEditorInputMap.put(normalizedPath, input);
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        CompareEditorInput compareEditorInput = localCompareEditorInputMap.get(normalizedPath);
+        if (compareEditorInput != null) {
+          CompareUI.openCompareEditor(compareEditorInput);
+        }
+      });
+    } catch (InvocationTargetException | InterruptedException e) {
+      CopilotCore.LOGGER.error("Error opening local file compare editor", e);
     }
   }
 
@@ -186,6 +255,37 @@ public abstract class FileToolBase extends BaseTool {
           return;
         } else {
           CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
+          if (compareEditorInput != null) {
+            CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) editor);
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Refreshes the compare editor for the given local file only if it is already open. Does not open a new editor or
+   * steal focus.
+   *
+   * @param fileContent The original file content to compare against.
+   * @param file The local file whose compare editor should be refreshed.
+   */
+  protected void refreshCompareEditorIfOpen(String fileContent, Path file) {
+    if (fileContent == null) {
+      return;
+    }
+    Path normalizedPath = normalizeLocalPath(file);
+    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
+    if (input != null) {
+      CompareEditorInput newInput = createCompareEditorInput(fileContent, normalizedPath);
+      localCompareEditorInputMap.put(normalizedPath, newInput);
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        IEditorPart editor = getCompareEditor(input);
+        if (editor == null) {
+          localCompareEditorInputMap.remove(normalizedPath);
+          return;
+        } else {
+          CompareEditorInput compareEditorInput = localCompareEditorInputMap.get(normalizedPath);
           if (compareEditorInput != null) {
             CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) editor);
           }
@@ -262,6 +362,58 @@ public abstract class FileToolBase extends BaseTool {
     compareEditorInputMap.remove(file);
   }
 
+  /**
+   * Close the compare editor for the given local file if it is open.
+   *
+   * @param file The local file to check.
+   */
+  protected void closeCompareEditor(Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
+    if (input != null) {
+      SwtUtils.invokeOnDisplayThread(() -> {
+        IWorkbenchPage page = UiUtils.getActivePage();
+        if (page == null) {
+          return;
+        }
+        IEditorReference[] editorRefs = page.getEditorReferences();
+        for (IEditorReference ref : editorRefs) {
+          IEditorPart editor = ref.getEditor(false);
+          if (editor != null && editor.getEditorInput() == input) {
+            page.closeEditor(editor, false);
+            break;
+          }
+        }
+      });
+    }
+    localCompareEditorInputMap.remove(normalizedPath);
+  }
+
+  /**
+   * Normalizes a local path for cache and map lookups.
+   *
+   * @param file the local file path
+   * @return the normalized absolute path
+   */
+  protected Path normalizeLocalPath(Path file) {
+    return file.toAbsolutePath().normalize();
+  }
+
+  /**
+   * Gets the file extension for a local path.
+   *
+   * @param file the local file path
+   * @return the extension without the dot, or an empty string if none exists
+   */
+  private String getLocalFileExtension(Path file) {
+    String name = file.getFileName() == null ? file.toString() : file.getFileName().toString();
+    int index = name.lastIndexOf('.');
+    if (index < 0 || index == name.length() - 1) {
+      return "";
+    }
+    return name.substring(index + 1);
+  }
+
   private CompareEditorInput createCompareEditorInput(String comparedContent, IFile file) {
     // Create a new CompareConfiguration
     CompareConfiguration config = new CompareConfiguration();
@@ -326,6 +478,55 @@ public abstract class FileToolBase extends BaseTool {
     };
   }
 
+  private CompareEditorInput createCompareEditorInput(String comparedContent, Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    String fileName = normalizedPath.getFileName() == null ? normalizedPath.toString()
+        : normalizedPath.getFileName().toString();
+    CompareConfiguration config = new CompareConfiguration();
+    config.setLeftLabel(Messages.agent_tool_compareEditor_proposedChangesTitle.replaceAll("\"", ""));
+    config.setRightLabel(fileName);
+    config.setLeftEditable(true);
+    config.setRightEditable(false);
+    config.setProperty(CompareConfiguration.USE_OUTLINE_VIEW, Boolean.TRUE);
+    config.setProperty(CompareConfiguration.SHOW_PSEUDO_CONFLICTS, Boolean.TRUE);
+    config.setProperty(CompareConfiguration.IGNORE_WHITESPACE, Boolean.FALSE);
+
+    return new CompareEditorInput(config) {
+      @Override
+      protected Object prepareInput(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+        monitor.beginTask("Calculating differences", 10);
+        setTitle(Messages.agent_tool_compareEditor_titlePrefix + fileName);
+        EditableStringCompareInput proposedChanges = new EditableStringCompareInput(comparedContent, fileName,
+            getLocalFileExtension(normalizedPath), StandardCharsets.UTF_8.name());
+        EditableLocalFileCompareInput originalFile = new EditableLocalFileCompareInput(normalizedPath);
+        DiffNode diffNode = new DiffNode(null, Differencer.CHANGE, null, originalFile, proposedChanges);
+        monitor.done();
+        return diffNode;
+      }
+
+      @Override
+      public void saveChanges(IProgressMonitor monitor) throws CoreException {
+        if (isDirty()) {
+          config.setRightEditable(true);
+          super.saveChanges(monitor);
+
+          DiffNode diffNode = (DiffNode) getCompareResult();
+          if (diffNode != null) {
+            EditableLocalFileCompareInput inputToBeApplied = (EditableLocalFileCompareInput) diffNode.getLeft();
+            try (InputStream inputStream = inputToBeApplied.getContents()) {
+              Files.write(normalizedPath, inputStream.readAllBytes());
+            } catch (IOException e) {
+              CopilotCore.LOGGER.error("Error saving compare editor changes to local file", e);
+            }
+          }
+
+          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(normalizedPath);
+          localFileContentCache.remove(normalizedPath);
+        }
+      }
+    };
+  }
+
   /**
    * Dispose the file change summary bar and related resources.
    */
@@ -336,6 +537,12 @@ public abstract class FileToolBase extends BaseTool {
 
     if (fileContentCache != null) {
       fileContentCache.clear();
+    }
+    if (localCompareEditorInputMap != null) {
+      localCompareEditorInputMap.clear();
+    }
+    if (localFileContentCache != null) {
+      localFileContentCache.clear();
     }
   }
 

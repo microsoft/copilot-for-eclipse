@@ -5,13 +5,21 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
@@ -19,6 +27,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.lsp4j.FileChangeType;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
@@ -90,34 +99,49 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
+    String content = StringUtils.isBlank((String) input.get("content")) ? "" : (String) input.get("content");
+    result = createFile(filePath, content);
+
+    return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+  }
+
+  private LanguageModelToolResult createFile(String filePath, String content) {
+    IFile file = FileUtils.getFileFromPath(filePath, false);
+
+    if (file != null && file.getProject().exists()) {
+      return createWorkspaceFile(file, filePath, content);
+    }
+
+    Path localPath = getLocalFilePath(filePath);
+    if (localPath != null) {
+      return createLocalFile(localPath, content);
+    }
+
+    LanguageModelToolResult result = new LanguageModelToolResult();
+    result.setStatus(ToolInvocationStatus.error);
+    result.addContent("Invalid file path: " + filePath + " does not exist in the workspace.");
+    return result;
+  }
+
+  private LanguageModelToolResult createWorkspaceFile(IFile file, String filePath, String content) {
+    LanguageModelToolResult result = new LanguageModelToolResult();
+
     try {
-      // Resolve file in workspace
-      IFile file = FileUtils.getFileFromPath(filePath, false);
-
-      if (file == null) {
-        result.setStatus(ToolInvocationStatus.error);
-        result.addContent("Invalid file path: " + filePath + " does not exist in the workspace.");
-        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
-      }
-
-      // Check if file already exists
       if (file.exists()) {
         result.setStatus(ToolInvocationStatus.error);
         result.addContent("Failed: file already exists: " + filePath + ". Please use edit file tool to update.");
-        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+        return result;
       }
 
-      // Create parent folders if needed
       createParentFolders(file.getParent());
 
-      // Create file with content
-      String content = StringUtils.isBlank((String) input.get("content")) ? "" : (String) input.get("content");
       try (ByteArrayInputStream contentStream = new ByteArrayInputStream(
           content.getBytes(PlatformUtils.getFileCharset(file)))) {
         file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
-        cacheTheOriginalFileContent(file);
+        cacheTheOriginalFileContent(file, StringUtils.EMPTY);
       }
-      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Created);
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(ChangedFile.workspace(file),
+          FileChangeType.Created);
       file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
 
       result.addContent("File created at: " + file.getFullPath().toOSString());
@@ -130,7 +154,49 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       result.addContent("Error handling file stream: " + e.getMessage());
     }
 
-    return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+    return result;
+  }
+
+  private LanguageModelToolResult createLocalFile(Path filePath, String content) {
+    LanguageModelToolResult result = new LanguageModelToolResult();
+    Path normalizedPath = normalizeLocalPath(filePath);
+    if (Files.exists(normalizedPath, LinkOption.NOFOLLOW_LINKS)) {
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Failed: file already exists: " + normalizedPath + ". Please use edit file tool to update.");
+      return result;
+    }
+
+    try {
+      Path parent = normalizedPath.getParent();
+      if (parent != null) {
+        Files.createDirectories(parent);
+      }
+      Files.writeString(normalizedPath, content, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+      cacheTheOriginalFileContent(normalizedPath, StringUtils.EMPTY);
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(
+          ChangedFile.local(normalizedPath), FileChangeType.Created);
+      result.addContent("File created at: " + normalizedPath);
+      result.setStatus(ToolInvocationStatus.success);
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error("Error creating local file", e);
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Error creating file: " + e.getMessage());
+    }
+
+    return result;
+  }
+
+  private Path getLocalFilePath(String filePath) {
+    try {
+      if (filePath.startsWith("file:")) {
+        return Paths.get(new URI(filePath));
+      }
+      Path path = Paths.get(filePath);
+      return path.isAbsolute() ? path : null;
+    } catch (IllegalArgumentException | URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
+      return null;
+    }
   }
 
   /**
@@ -152,20 +218,18 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
   }
 
   @Override
-  public void onKeepAllChanges(List<IFile> files) {
-    files.forEach(this::onKeepChange);
-  }
-
-  @Override
   public void onKeepChange(IFile file) {
     closeCompareEditor(file);
   }
 
+  /**
+   * Handles the action of keeping changes to a local file.
+   *
+   * @param file the local file to keep changes for
+   */
   @Override
-  public void onUndoAllChanges(List<IFile> files) throws CoreException {
-    for (IFile file : files) {
-      onUndoChange(file);
-    }
+  public void onKeepChange(Path file) {
+    closeCompareEditor(file);
   }
 
   @Override
@@ -176,9 +240,41 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
     closeCompareEditor(file);
   }
 
+  /**
+   * Handles the action of undoing creation of a local file.
+   *
+   * @param file the local file to delete
+   * @throws IOException if an error occurs while deleting the file
+   */
+  @Override
+  public void onUndoChange(Path file) throws IOException {
+    Path normalizedPath = normalizeLocalPath(file);
+    Files.deleteIfExists(normalizedPath);
+    closeCompareEditor(normalizedPath);
+  }
+
   @Override
   public void onViewDiff(IFile file) {
     SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file));
+  }
+
+  /**
+   * Handles the action of viewing the diff of a created local file.
+   *
+   * @param file the local file to view
+   */
+  @Override
+  public void onViewDiff(Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
+    if (input != null) {
+      if (isCompareEditorOpen(input)) {
+        bringCompareEditorToTop(input);
+        return;
+      }
+      localCompareEditorInputMap.remove(normalizedPath);
+    }
+    compareStringWithFile("", normalizedPath);
   }
 
   @Override

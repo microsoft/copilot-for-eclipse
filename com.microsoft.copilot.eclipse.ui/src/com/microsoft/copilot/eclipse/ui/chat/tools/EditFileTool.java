@@ -6,10 +6,15 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -122,30 +127,8 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
   public CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView) {
     CompletableFuture<LanguageModelToolResult[]> resultFuture = new CompletableFuture<>();
     if (input.get("filePath") instanceof String filePath) {
-      IFile file = FileUtils.getFileFromPath(filePath, true);
-
-      if (file == null || !file.exists()) {
-        resultFuture.complete(new LanguageModelToolResult[] {
-            new LanguageModelToolResult("The file path provided does not exist. Please check the path and try again.",
-                ToolInvocationStatus.error) });
-        return resultFuture;
-      }
-
       if (input.get("code") instanceof String code) {
-        CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Changed);
-        cacheTheOriginalFileContent(file);
-        try {
-          applyChangesToFile(code, file);
-        } catch (CoreException | IOException e) {
-          CopilotCore.LOGGER.error("Error replacing file content", e);
-          resultFuture.complete(new LanguageModelToolResult[] { new LanguageModelToolResult(
-              "Failed to apply changes to the file: " + e.getMessage(), ToolInvocationStatus.error) });
-          return resultFuture;
-        }
-        refreshCompareEditorIfOpen(fileContentCache.get(file), file);
-        // Must return the updated content as a result to the CLS.
-        resultFuture.complete(
-            new LanguageModelToolResult[] { new LanguageModelToolResult(code, ToolInvocationStatus.success) });
+        resultFuture.complete(editFile(filePath, code));
       } else {
         resultFuture.complete(new LanguageModelToolResult[] {
             new LanguageModelToolResult("The code provided is not a valid string. Please check the code and try again.",
@@ -158,6 +141,67 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
           ToolInvocationStatus.error) });
     }
     return resultFuture;
+  }
+
+  private LanguageModelToolResult[] editFile(String filePath, String code) {
+    IFile file = FileUtils.getFileFromPath(filePath, true);
+
+    if (file != null && file.exists()) {
+      return editWorkspaceFile(file, code);
+    }
+
+    Path localPath = getLocalFilePath(filePath);
+    if (localPath != null && Files.isRegularFile(localPath, LinkOption.NOFOLLOW_LINKS)) {
+      return editLocalFile(localPath, code);
+    }
+
+    return new LanguageModelToolResult[] {
+        new LanguageModelToolResult("The file path provided does not exist. Please check the path and try again.",
+            ToolInvocationStatus.error) };
+  }
+
+  private LanguageModelToolResult[] editWorkspaceFile(IFile file, String code) {
+    CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(ChangedFile.workspace(file),
+        FileChangeType.Changed);
+    cacheTheOriginalFileContent(file);
+    try {
+      applyChangesToFile(code, file);
+    } catch (CoreException | IOException e) {
+      CopilotCore.LOGGER.error("Error replacing file content", e);
+      return new LanguageModelToolResult[] { new LanguageModelToolResult(
+          "Failed to apply changes to the file: " + e.getMessage(), ToolInvocationStatus.error) };
+    }
+    refreshCompareEditorIfOpen(fileContentCache.get(file), file);
+    return new LanguageModelToolResult[] { new LanguageModelToolResult(code, ToolInvocationStatus.success) };
+  }
+
+  private LanguageModelToolResult[] editLocalFile(Path filePath, String code) {
+    Path normalizedPath = normalizeLocalPath(filePath);
+    try {
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(
+          ChangedFile.local(normalizedPath), FileChangeType.Changed);
+      cacheTheOriginalFileContent(normalizedPath);
+      Files.writeString(normalizedPath, code, StandardCharsets.UTF_8);
+      refreshCompareEditorIfOpen(localFileContentCache.get(normalizedPath), normalizedPath);
+      return new LanguageModelToolResult[] { new LanguageModelToolResult(code, ToolInvocationStatus.success) };
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error("Error replacing local file content", e);
+      return new LanguageModelToolResult[] { new LanguageModelToolResult(
+          "Failed to apply changes to the file: " + e.getMessage(), ToolInvocationStatus.error) };
+    }
+  }
+
+  private Path getLocalFilePath(String filePath) {
+    try {
+      if (filePath.startsWith("file:")) {
+        return Paths.get(new URI(filePath));
+      }
+      Path path = Paths.get(filePath);
+      return path.isAbsolute() ? path : null;
+    } catch (IllegalArgumentException | URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
+      return null;
+    }
   }
 
   private void applyChangesToFile(String changedContent, IFile file) throws CoreException, IOException {
@@ -194,11 +238,16 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     closeCompareEditor(file);
   }
 
+  /**
+   * Handles the action of keeping changes to a local file.
+   *
+   * @param file the local file to keep changes for
+   */
   @Override
-  public void onKeepAllChanges(List<IFile> files) {
-    for (IFile file : files) {
-      onKeepChange(file);
-    }
+  public void onKeepChange(Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    localFileContentCache.remove(normalizedPath);
+    closeCompareEditor(normalizedPath);
   }
 
   @Override
@@ -207,11 +256,16 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     closeCompareEditor(file);
   }
 
+  /**
+   * Handles the action of undoing changes to a local file.
+   *
+   * @param file the local file to undo changes for
+   * @throws IOException if an error occurs while writing to the file
+   */
   @Override
-  public void onUndoAllChanges(List<IFile> files) throws CoreException, IOException {
-    for (IFile file : files) {
-      onUndoChange(file);
-    }
+  public void onUndoChange(Path file) throws IOException {
+    undoChangesToFile(file);
+    closeCompareEditor(file);
   }
 
   @Override
@@ -228,6 +282,25 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     compareStringWithFile(fileContentCache.get(file), file);
   }
 
+  /**
+   * Handles the action of viewing the diff of a local file.
+   *
+   * @param file the local file to view the diff for
+   */
+  @Override
+  public void onViewDiff(Path file) {
+    Path normalizedPath = normalizeLocalPath(file);
+    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
+    if (input != null) {
+      if (isCompareEditorOpen(input)) {
+        bringCompareEditorToTop(input);
+        return;
+      }
+      localCompareEditorInputMap.remove(normalizedPath);
+    }
+    compareStringWithFile(localFileContentCache.get(normalizedPath), normalizedPath);
+  }
+
   @Override
   public void onResolveAllChanges() {
     cleanupChangedFiles();
@@ -239,5 +312,14 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
       applyChangesToFile(fileCache, file);
     }
     fileContentCache.remove(file);
+  }
+
+  private void undoChangesToFile(Path file) throws IOException {
+    Path normalizedPath = normalizeLocalPath(file);
+    String fileCache = localFileContentCache.get(normalizedPath);
+    if (fileCache != null) {
+      Files.writeString(normalizedPath, fileCache, StandardCharsets.UTF_8);
+    }
+    localFileContentCache.remove(normalizedPath);
   }
 }

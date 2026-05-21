@@ -7,8 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -19,12 +22,14 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,6 +56,9 @@ class CreateFileToolTest {
   private ChatServiceManager mockChatServiceManager;
   @Mock
   private FileToolService mockFileToolService;
+
+  @TempDir
+  private Path tempDir;
 
   private MockedStatic<CopilotUi> mockedCopilotUi;
 
@@ -252,10 +260,56 @@ class CreateFileToolTest {
   }
 
   @Test
+  void testInvokeWithExternalLocalFilePathCreatesFile() throws Exception {
+    setupMocks();
+    Path newFile = tempDir.resolve("external-file.txt");
+
+    Map<String, Object> input = new HashMap<>();
+    input.put("filePath", newFile.toString());
+    input.put("content", "test content");
+
+    CompletableFuture<LanguageModelToolResult[]> future = createFileTool.invoke(input, null);
+    LanguageModelToolResult[] results = future.get();
+
+    assertSuccessResult(results, "File created at");
+    assertTrue(Files.exists(newFile));
+    assertEquals("test content", Files.readString(newFile));
+    verify(mockFileToolService).addChangedFile(ChangedFile.local(newFile), FileChangeType.Created);
+  }
+
+  @Test
+  void testInvokeWithExternalLocalFileUriCreatesFile() throws Exception {
+    setupMocks();
+    Path newFile = tempDir.resolve("external-file-uri.txt");
+
+    Map<String, Object> input = new HashMap<>();
+    input.put("filePath", newFile.toUri().toString());
+    input.put("content", "test content");
+
+    CompletableFuture<LanguageModelToolResult[]> future = createFileTool.invoke(input, null);
+    LanguageModelToolResult[] results = future.get();
+
+    assertSuccessResult(results, "File created at");
+    assertTrue(Files.exists(newFile));
+    assertEquals("test content", Files.readString(newFile));
+    verify(mockFileToolService).addChangedFile(ChangedFile.local(newFile), FileChangeType.Created);
+  }
+
+  @Test
+  void testOnUndoChangeWithExternalLocalFileDeletesFile() throws Exception {
+    Path newFile = tempDir.resolve("external-file-to-undo.txt");
+    Files.writeString(newFile, "test content");
+
+    createFileTool.onUndoChange(newFile);
+
+    assertTrue(Files.notExists(newFile));
+  }
+
+  @Test
   void testInvokeWithInvalidPathReturnsErrorStatus() throws InterruptedException, ExecutionException {
     // Arrange
     Map<String, Object> input = new HashMap<>();
-    input.put("filePath", "/invalid/path/that/does/not/exist.txt");
+    input.put("filePath", "relative/path/that/does/not/exist.txt");
     input.put("content", "test content");
 
     // Act
@@ -263,7 +317,7 @@ class CreateFileToolTest {
     LanguageModelToolResult[] results = future.get();
 
     // Assert
-    assertErrorResult(results, "Error creating file");
+    assertErrorResult(results, "does not exist in the workspace");
   }
 
   @Test
