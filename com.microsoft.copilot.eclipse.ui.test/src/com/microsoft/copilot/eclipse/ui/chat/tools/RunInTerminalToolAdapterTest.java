@@ -6,12 +6,18 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.jupiter.api.AfterEach;
@@ -77,7 +83,8 @@ class RunInTerminalToolAdapterTest {
     assertNotNull(results);
     assertEquals(1, results.length);
     assertEquals(ToolInvocationStatus.error, results[0].getStatus());
-    assertTrue(results[0].getContent().get(0).getValue().equals("No terminal implementation available. Terminal service not yet loaded or failed to load."));
+    assertEquals("No terminal implementation available. Terminal service not yet loaded or failed to load.",
+      results[0].getContent().get(0).getValue());
   }
 
   @Test
@@ -111,6 +118,19 @@ class RunInTerminalToolAdapterTest {
   void testToolName() {
     // Act & Assert
     assertEquals("run_in_terminal", runInTerminalToolAdapter.getToolName());
+  }
+
+  @Test
+  void testResolveWorkingDirectoryFromResources_usesFirstReferencedProjectLocation() {
+    IProject mockProject = mock(IProject.class);
+    when(mockProject.isAccessible()).thenReturn(true);
+    when(mockProject.getLocation()).thenReturn(Path.fromOSString("C:\\workspace\\project-a"));
+    IResource resource = mock(IResource.class);
+    when(resource.getProject()).thenReturn(mockProject);
+
+    String result = RunInTerminalToolAdapter.resolveWorkingDirectoryFromResources(List.of(resource));
+
+    assertEquals("C:\\workspace\\project-a", result);
   }
 
 

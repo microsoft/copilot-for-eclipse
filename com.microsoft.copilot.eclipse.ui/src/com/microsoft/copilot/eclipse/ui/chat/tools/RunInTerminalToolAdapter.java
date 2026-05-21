@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.IPath;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConfirmationMessages;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -18,8 +21,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
+import com.microsoft.copilot.eclipse.terminal.api.TerminalCommandProcessor;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -38,18 +45,22 @@ public class RunInTerminalToolAdapter extends BaseTool {
   private String buildToolDescription() {
     if (PlatformUtils.isWindows()) {
       return """
-          Shell: cmd.exe
+          Shell: powershell.exe
 
-          This tool allows you to execute Windows Command Prompt commands in a persistent terminal session, \
+          This tool allows you to execute PowerShell commands in a persistent terminal session, \
           preserving environment variables, working directory, and other context across multiple commands.
           Use this tool instead of printing a shell codeblock and asking the user to run it.
 
           Command Execution:
-          - Use & to chain commands on one line (or && for conditional execution on success)
-          - Never create a sub-shell (e.g., cmd /c "command") unless explicitly asked
-          - Use pipelines | for data flow
+          - Use ; to chain commands on one line
+          - Never create a sub-shell (e.g., powershell -c "command") unless explicitly asked
+          - Prefer pipelines | for object-based data flow
+          - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands, \
+          unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
+          then run it
           - Must use absolute paths to avoid navigation issues
           - If a command may use a pager, disable it with command flags (e.g., `git --no-pager`)
+          - Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow
 
           Background Processes:
           - For long-running tasks (e.g., servers), set isBackground=true
@@ -58,19 +69,23 @@ public class RunInTerminalToolAdapter extends BaseTool {
     }
     if (PlatformUtils.isLinux()) {
       return """
-          Shell: /bin/sh (POSIX shell)
+          Shell: /bin/bash
 
-          This tool allows you to execute POSIX shell commands in a persistent terminal session, \
+          This tool allows you to execute Bash commands in a persistent terminal session, \
           preserving environment variables, working directory, and other context across multiple commands.
           Use this tool instead of printing a shell codeblock and asking the user to run it.
 
           Command Execution:
-          - Use ; to chain commands on one line (or && for conditional execution on success)
-          - Never create a sub-shell (e.g., sh -c "command") unless explicitly asked
+          - Use && to chain commands on one line
+          - Never create a sub-shell (e.g., bash -c "command") unless explicitly asked
           - Prefer pipelines | for data flow
+          - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands, \
+          unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
+          then run it
           - Must use absolute paths to avoid navigation issues
           - If a command may use a pager, disable it (e.g., `git --no-pager` or add `| cat`)
-          - Use POSIX-compliant syntax (avoid bash-specific features like arrays or [[ ]])
+          - Bash syntax is supported, including arrays and [[ ]]
+          - Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow
 
           Background Processes:
           - For long-running tasks (e.g., servers), set isBackground=true
@@ -87,8 +102,12 @@ public class RunInTerminalToolAdapter extends BaseTool {
         - Use && to chain commands on one line
         - Never create a sub-shell (e.g., bash -c "command") unless explicitly asked
         - Prefer pipelines | for data flow
+        - Multi-line commands must be complete and non-interactive. Do not run REPLs, continuation-prompt commands, \
+        unmatched quotes or brackets, or commands that wait for stdin. For Python/Node scripts, create a file first,
+        then run it
         - Must use absolute paths to avoid navigation issues
         - If a command may use a pager, disable it (e.g., `git --no-pager` or add `| cat`)
+        - Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow
 
         Background Processes:
         - For long-running tasks (e.g., servers), set isBackground=true
@@ -178,11 +197,61 @@ public class RunInTerminalToolAdapter extends BaseTool {
     }
 
     impl.setTerminalIconDescriptor(UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png"));
+    String workingDirectory = resolveWorkingDirectory();
 
-    return impl.executeCommand(command, isBackground).thenApply(
-        result -> new LanguageModelToolResult[] { new LanguageModelToolResult(result, ToolInvocationStatus.success) })
+    return impl.executeCommand(command, isBackground, workingDirectory)
+        .thenApply(result -> new LanguageModelToolResult[] { new LanguageModelToolResult(
+        TerminalCommandProcessor.prepareOutputForModel(result), ToolInvocationStatus.success) })
         .exceptionally(throwable -> new LanguageModelToolResult[] { new LanguageModelToolResult(
             "Terminal execution failed: " + throwable.getMessage(), ToolInvocationStatus.error) });
+  }
+
+  static String resolveWorkingDirectoryFromResources(List<IResource> resources) {
+    if (resources == null) {
+      return "";
+    }
+    for (IResource resource : resources) {
+      String location = resolveProjectLocation(resource);
+      if (StringUtils.isNotBlank(location)) {
+        return location;
+      }
+    }
+    return "";
+  }
+
+  private static String resolveWorkingDirectory() {
+    ChatServiceManager manager = CopilotUi.getPlugin() != null ? CopilotUi.getPlugin().getChatServiceManager() : null;
+    if (manager != null) {
+      ReferencedFileService fileService = manager.getReferencedFileService();
+      if (fileService != null) {
+        String currentFileLocation = resolveProjectLocation(fileService.getCurrentFile());
+        if (StringUtils.isNotBlank(currentFileLocation)) {
+          return currentFileLocation;
+        }
+
+        String referencedLocation = resolveWorkingDirectoryFromResources(fileService.getReferencedFiles());
+        if (StringUtils.isNotBlank(referencedLocation)) {
+          return referencedLocation;
+        }
+      }
+    }
+
+    return "";
+  }
+
+  private static String resolveProjectLocation(IResource resource) {
+    if (resource == null) {
+      return "";
+    }
+    return resolveProjectLocation(resource.getProject());
+  }
+
+  private static String resolveProjectLocation(IProject project) {
+    if (project == null || !project.isAccessible()) {
+      return "";
+    }
+    IPath location = project.getLocation();
+    return location != null ? location.toOSString() : "";
   }
 
   /**
@@ -204,7 +273,10 @@ public class RunInTerminalToolAdapter extends BaseTool {
 
       // Set the name and description of the tool
       toolInfo.setName(TOOL_NAME);
-      toolInfo.setDescription("Get the output of a terminal command previous started with run_in_terminal.");
+      toolInfo.setDescription("""
+          Get the output of a terminal command previous started with run_in_terminal.
+          Output returned to the model is automatically truncated to the last 1000 lines to prevent context overflow.
+          """);
 
       // Define the input schema for the tool
       InputSchema inputSchema = new InputSchema();
@@ -247,7 +319,7 @@ public class RunInTerminalToolAdapter extends BaseTool {
           toolResult.addContent("Invalid terminal ID " + id);
         } else {
           toolResult.setStatus(ToolInvocationStatus.success);
-          toolResult.addContent(output.toString());
+          toolResult.addContent(TerminalCommandProcessor.prepareOutputForModel(output.toString()));
         }
       }
       resultFuture.complete(new LanguageModelToolResult[] { toolResult });
