@@ -343,7 +343,7 @@ public class ModelService extends ChatBaseService {
 
     for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
       CopilotModel candidate = entry.getValue();
-      if (ModelUtils.getPickerId(candidate).equals(modelName) || candidate.getModelName().equals(modelName)) {
+      if (candidate.getModelKey().equals(modelName) || candidate.getModelName().equals(modelName)) {
         compositeKey = entry.getKey();
         foundModel = candidate;
         break;
@@ -397,7 +397,7 @@ public class ModelService extends ChatBaseService {
    */
   public void setFallBackModelAsActiveModel() {
     if (fallbackModel != null) {
-      setActiveModel(ModelUtils.getPickerId(fallbackModel));
+      setActiveModel(fallbackModel.getModelKey());
     }
   }
 
@@ -552,7 +552,7 @@ public class ModelService extends ChatBaseService {
             if (activeModel == null || picker.isDisposed()) {
               return;
             }
-            picker.setSelectedItemId(ModelUtils.getPickerId(activeModel));
+            picker.setSelectedItemId(activeModel.getModelKey());
             String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
                 ? " - " + activeModel.getDegradationReason() : "";
             picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));

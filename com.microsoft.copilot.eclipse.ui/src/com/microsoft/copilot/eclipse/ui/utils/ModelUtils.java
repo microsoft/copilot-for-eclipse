@@ -29,15 +29,6 @@ public class ModelUtils {
   }
 
   /**
-   * Returns a unique picker ID for the given model. Uses the model's existing composite key
-   * (providerName_id for BYOK, id for native) to avoid collisions when a BYOK model shares
-   * the same display name as a Copilot-native model.
-   */
-  public static String getPickerId(CopilotModel model) {
-    return model.getModelKey();
-  }
-
-  /**
    * Convert ByokModel to CopilotModel format for unified handling.
    */
   public static CopilotModel convertByokModelToCopilotModel(ByokModel byokModel) {

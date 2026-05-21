@@ -130,7 +130,7 @@ public final class ModelPickerGroupsBuilder {
       String selectedLabel = StringUtils.isNotBlank(effortLevel) && StringUtils.isNotBlank(name)
           ? name + " - " + effortLevel : null;
 
-      items.add(new DropdownItem.Builder().id(ModelUtils.getPickerId(model)).label(name).selectedLabel(selectedLabel).suffix(suffix)
+      items.add(new DropdownItem.Builder().id(model.getModelKey()).label(name).selectedLabel(selectedLabel).suffix(suffix)
           .icon(resolveModelIcon(model)).hoverProvider(new ModelHoverContentProvider(model)).build());
     }
     return items;
