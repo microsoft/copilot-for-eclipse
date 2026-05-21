@@ -151,6 +151,10 @@ public class Messages extends NLS {
   public static String preferences_page_skills_enabled;
   public static String preferences_page_skills_enabled_note_content;
 
+  // Auto Compress
+  public static String preferences_page_auto_compress;
+  public static String preferences_page_auto_compress_desc;
+
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 

@@ -17,6 +17,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -25,6 +26,10 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  * A custom widget that displays a turn for the copilot.
  */
 public class CopilotTurnWidget extends ThinkingTurnWidget {
+
+  private Composite compactingComposite;
+  private SpinnerAnimator compactingSpinner;
+
   /**
    * Create the widget.
    */
@@ -104,6 +109,50 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
         }
       }, this);
     }
+  }
+
+  /**
+   * Shows a "Compacting conversation..." spinner below the last message in this turn.
+   * Must be called on the UI thread.
+   */
+  public void showCompactingStatus() {
+    if (isDisposed() || compactingComposite != null) {
+      return;
+    }
+    compactingComposite = new Composite(this, SWT.NONE);
+    GridLayout layout = new GridLayout(2, false);
+    layout.marginWidth = 0;
+    layout.marginHeight = 4;
+    compactingComposite.setLayout(layout);
+    compactingComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+    Label spinnerLabel = new Label(compactingComposite, SWT.NONE);
+    spinnerLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+    compactingSpinner = new SpinnerAnimator(spinnerLabel);
+    compactingSpinner.start();
+
+    Label statusLabel = new Label(compactingComposite, SWT.NONE);
+    statusLabel.setText(Messages.chat_compacting_conversation);
+    statusLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
+
+    ensureFooterAtBottom();
+    requestLayout();
+  }
+
+  /**
+   * Hides the "Compacting conversation..." spinner.
+   * Must be called on the UI thread.
+   */
+  public void hideCompactingStatus() {
+    if (compactingSpinner != null) {
+      compactingSpinner.stop();
+      compactingSpinner = null;
+    }
+    if (compactingComposite != null && !compactingComposite.isDisposed()) {
+      compactingComposite.dispose();
+      compactingComposite = null;
+    }
+    requestLayout();
   }
 
   @Override

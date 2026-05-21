@@ -380,6 +380,15 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
+   * Returns the most-recent Copilot turn widget, or {@code null} if none exists or it has been disposed.
+   *
+   * @return the latest {@link CopilotTurnWidget}, or {@code null}
+   */
+  public CopilotTurnWidget getLatestCopilotTurn() {
+    return latestCopilotTurn instanceof CopilotTurnWidget ctt && !ctt.isDisposed() ? ctt : null;
+  }
+
+  /**
    * Get an existed turn widget by turn ID.
    */
   public BaseTurnWidget getTurnWidget(String turnId) {

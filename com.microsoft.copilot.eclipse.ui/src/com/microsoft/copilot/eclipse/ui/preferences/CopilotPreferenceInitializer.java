@@ -31,6 +31,7 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.SUB_AGENT_ENABLED, true);
     pref.setDefault(Constants.AGENT_MAX_REQUESTS, 25);
     pref.setDefault(Constants.ENABLE_SKILLS, true);
+    pref.setDefault(Constants.AUTO_COMPRESS, true);
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED, false);
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE, "");
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE,
