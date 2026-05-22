@@ -309,7 +309,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       flags.setMcpEnabled(params.isMcpEnabled());
       flags.setByokEnabled(params.isByokEnabled());
       flags.setClientPreviewFeatureEnabled(params.isClientPreviewFeaturesEnabled());
-      flags.setAutoApprovalTokenEnabled(params.isAutoApprovalTokenEnabled());
+      flags.setAutoApprovalTokenEnabled(params.isAutoApprovalEnabled());
     }
 
     if (eventBroker != null) {
