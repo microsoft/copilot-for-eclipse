@@ -46,10 +46,7 @@ public class McpAutoApproveSection extends Composite {
 
   private Button trustAnnotationsCheckbox;
   private CheckboxTreeViewer treeViewer;
-  private WrappableIconLink emptyRow;
-  private Label loadingLabel;
   private Group group;
-  private boolean isInitialized = false;
 
   private List<McpServerToolsCollection> serverCollections =
       new ArrayList<>();
@@ -89,7 +86,6 @@ public class McpAutoApproveSection extends Composite {
     serverToolsLabel.setText(
         Messages.preferences_page_mcp_auto_approve_server_tools_label);
     GridData labelData = new GridData(SWT.FILL, SWT.TOP, true, false);
-    labelData.verticalIndent = 10;
     serverToolsLabel.setLayoutData(labelData);
 
     // Tree viewer for server/tool approval
@@ -102,19 +98,7 @@ public class McpAutoApproveSection extends Composite {
     treeViewer.setContentProvider(new McpTreeContentProvider());
     treeViewer.setLabelProvider(new McpTreeLabelProvider());
     treeViewer.addCheckStateListener(new McpCheckStateListener());
-
-    // Loading label shown while server collections are being fetched
-    loadingLabel = new Label(group, SWT.NONE);
-    loadingLabel.setText(Messages.preferences_page_mcp_auto_approve_loading);
-    loadingLabel.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-
-    // Empty state row (icon + text) shown when no servers are configured
-    emptyRow = WrappableIconLink.createWithCustomizedImage(group,
-        "/icons/information.png",
-        Messages.preferences_page_mcp_auto_approve_no_servers);
-    emptyRow.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-
-    updateTreeVisibility();
+    treeViewer.setInput(serverCollections);
   }
 
   /** Loads MCP auto-approve settings from the preference store. */
@@ -164,32 +148,12 @@ public class McpAutoApproveSection extends Composite {
       if (isDisposed()) {
         return;
       }
-      this.isInitialized = true;
       this.serverCollections = collections != null
           ? collections : Collections.emptyList();
       treeViewer.setInput(serverCollections);
       refreshTreeCheckState();
-      updateTreeVisibility();
       requestLayout();
     }, this);
-  }
-
-  private void updateTreeVisibility() {
-    boolean loading = !isInitialized;
-    boolean hasServers = !loading && !serverCollections.isEmpty();
-
-    // Loading state
-    loadingLabel.setVisible(loading);
-    ((GridData) loadingLabel.getLayoutData()).exclude = !loading;
-
-    // Tree state
-    treeViewer.getTree().setVisible(hasServers);
-    ((GridData) treeViewer.getTree().getLayoutData()).exclude = !hasServers;
-
-    // Empty state
-    boolean showEmpty = !loading && !hasServers;
-    emptyRow.setVisible(showEmpty);
-    ((GridData) emptyRow.getLayoutData()).exclude = !showEmpty;
   }
 
   private void refreshTreeCheckState() {

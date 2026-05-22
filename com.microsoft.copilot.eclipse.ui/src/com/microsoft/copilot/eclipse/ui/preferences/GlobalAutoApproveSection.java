@@ -13,6 +13,9 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.ISharedImages;
+import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 
@@ -21,6 +24,8 @@ import com.microsoft.copilot.eclipse.core.Constants;
  * that bypasses all confirmation dialogs when enabled.
  */
 public class GlobalAutoApproveSection extends Composite {
+
+  private static final int TOOLTIP_LINE_LENGTH = 90;
 
   private Button yoloCheckbox;
 
@@ -39,11 +44,18 @@ public class GlobalAutoApproveSection extends Composite {
     group.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     group.setBackgroundMode(SWT.INHERIT_FORCE);
 
-    yoloCheckbox = new Button(group, SWT.CHECK);
+    Composite yoloRow = new Composite(group, SWT.NONE);
+    GridLayout yoloRowLayout = new GridLayout(2, false);
+    yoloRowLayout.marginWidth = 0;
+    yoloRowLayout.marginHeight = 0;
+    yoloRow.setLayout(yoloRowLayout);
+    yoloRow.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+
+    yoloCheckbox = new Button(yoloRow, SWT.CHECK);
     yoloCheckbox.setText(
         Messages.preferences_page_global_auto_approve_label);
     yoloCheckbox.setLayoutData(
-        new GridData(SWT.FILL, SWT.TOP, true, false));
+        new GridData(SWT.LEFT, SWT.CENTER, false, false));
     yoloCheckbox.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
@@ -67,9 +79,16 @@ public class GlobalAutoApproveSection extends Composite {
       }
     });
 
+    Label warningIcon = new Label(yoloRow, SWT.NONE);
+    warningIcon.setImage(PlatformUI.getWorkbench().getSharedImages()
+        .getImage(ISharedImages.IMG_OBJS_WARN_TSK));
+    warningIcon.setToolTipText(wrapTooltip(
+        Messages.preferences_page_global_auto_approve_confirm_message));
+    warningIcon.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
+
     new WrappableNoteLabel(group,
-        Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_global_auto_approve_confirm_message);
+      Messages.preferences_page_note_prefix + " ",
+      Messages.preferences_page_global_auto_approve_confirm_message);
   }
 
   /** Loads global auto-approve settings from the preference store. */
@@ -82,5 +101,22 @@ public class GlobalAutoApproveSection extends Composite {
   public void saveToPreferences(IPreferenceStore store) {
     store.setValue(Constants.AUTO_APPROVE_YOLO_MODE,
         yoloCheckbox.getSelection());
+  }
+
+  private static String wrapTooltip(String text) {
+    StringBuilder wrapped = new StringBuilder(text.length());
+    int lineLength = 0;
+    for (String word : text.split(" ")) {
+      if (lineLength > 0 && lineLength + word.length() + 1 > TOOLTIP_LINE_LENGTH) {
+        wrapped.append('\n');
+        lineLength = 0;
+      } else if (lineLength > 0) {
+        wrapped.append(' ');
+        lineLength++;
+      }
+      wrapped.append(word);
+      lineLength += word.length();
+    }
+    return wrapped.toString();
   }
 }

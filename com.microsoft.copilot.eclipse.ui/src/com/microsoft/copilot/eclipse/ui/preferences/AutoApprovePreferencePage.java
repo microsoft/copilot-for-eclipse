@@ -52,8 +52,11 @@ public class AutoApprovePreferencePage extends PreferencePage
     }
 
     Composite root = new Composite(parent, SWT.NONE);
-    root.setLayout(new GridLayout(1, false));
-    root.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    GridLayout layout = new GridLayout(1, false);
+    layout.marginWidth = 0;
+    layout.marginHeight = 0;
+    root.setLayout(layout);
+    root.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 
     IPreferenceStore store = getPreferenceStore();
     terminalSection = new TerminalAutoApproveSection(root, SWT.NONE);

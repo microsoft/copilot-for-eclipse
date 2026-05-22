@@ -203,8 +203,6 @@ public class Messages extends NLS {
   public static String preferences_page_mcp_auto_approve_trust_annotations;
   public static String preferences_page_mcp_auto_approve_trust_annotations_note;
   public static String preferences_page_mcp_auto_approve_server_tools_label;
-  public static String preferences_page_mcp_auto_approve_no_servers;
-  public static String preferences_page_mcp_auto_approve_loading;
 
   // Global Auto-Approve
   public static String preferences_page_global_auto_approve_title;
