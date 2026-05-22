@@ -156,6 +156,12 @@ class DropdownPopup {
     populateGroups(container, groups);
 
     Point contentSize = container.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    int scrollBarWidth = 0;
+    if (scrolledComposite.getVerticalBar() != null) {
+      scrollBarWidth = scrolledComposite.getVerticalBar().getSize().x;
+    }
+    // Reserve space for the vertical scrollbar to avoid cropping suffix text on GTK/Linux
+    contentSize.x += scrollBarWidth;
     container.setSize(contentSize);
     scrolledComposite.setMinSize(contentSize);
 
