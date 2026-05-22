@@ -146,8 +146,11 @@ public class ModelService extends ChatBaseService {
         currentChatMode = ChatMode.Agent;
         updateModelsForChatMode(ChatMode.Agent);
 
-        // Then switch to the specified model (setActiveModel will be called after models are loaded)
-        setActiveModel(modelName);
+        // Resolve name to key, then activate
+        String modelKey = findModelKeyByName(modelName);
+        if (modelKey != null) {
+          setActiveModel(modelKey);
+        }
       }
     };
   }
@@ -328,26 +331,31 @@ public class ModelService extends ChatBaseService {
     }
   }
 
+  private String findModelKeyByName(String modelName) {
+    Map<String, CopilotModel> currentModels = modelObservable.getValue();
+    for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
+      if (entry.getValue().getModelName().equals(modelName)) {
+        return entry.getKey();
+      }
+    }
+    return null;
+  }
+
   /**
-   * Set the active model by name.
+   * Set the active model by its composite key.
    *
-   * @param modelName the name of the model
+   * @param modelKey the composite key of the model
    */
-  public void setActiveModel(String modelName) {
+  public void setActiveModel(String modelKey) {
     Map<String, CopilotModel> currentModels = modelObservable.getValue();
 
-    // Find model by model name and get its composite key
     String compositeKey = null;
     final CopilotModel model;
     CopilotModel foundModel = null;
 
-    for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
-      CopilotModel candidate = entry.getValue();
-      if (candidate.getModelKey().equals(modelName) || candidate.getModelName().equals(modelName)) {
-        compositeKey = entry.getKey();
-        foundModel = candidate;
-        break;
-      }
+    if (currentModels.containsKey(modelKey)) {
+      compositeKey = modelKey;
+      foundModel = currentModels.get(modelKey);
     }
     model = foundModel;
     if (model != null && compositeKey != null) {
