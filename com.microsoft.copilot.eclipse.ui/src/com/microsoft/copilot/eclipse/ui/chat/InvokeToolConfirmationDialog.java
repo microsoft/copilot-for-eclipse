@@ -68,6 +68,7 @@ public class InvokeToolConfirmationDialog extends Composite {
   private Runnable titleFontChangeCallback;
   private ConfirmationContent confirmationContent;
   private ConfirmationAction selectedAction;
+  private final Runnable onCancelCallback;
 
   /**
    * Create a new confirmation dialog driven by {@link ConfirmationContent}.
@@ -75,12 +76,14 @@ public class InvokeToolConfirmationDialog extends Composite {
    * @param parent the parent composite
    * @param content confirmation content with title, message, and action buttons
    * @param input the input object to pass to the tool
+   * @param onCancelCallback invoked after the dialog is disposed on cancellation, for layout refresh
    */
   public InvokeToolConfirmationDialog(Composite parent,
-      ConfirmationContent content, Object input) {
+      ConfirmationContent content, Object input, Runnable onCancelCallback) {
     super(parent, SWT.BORDER | SWT.WRAP);
     this.setLayout(new GridLayout(1, false));
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    this.onCancelCallback = onCancelCallback;
 
     this.confirmationContent = content;
     createDialogContent(content.getTitle(), content.getMessage(), input);
@@ -120,8 +123,8 @@ public class InvokeToolConfirmationDialog extends Composite {
           new AgentToolCancelLabel(parent, SWT.NONE, this.cancelMessage);
         }
         this.dispose();
-        if (parent != null && !parent.isDisposed()) {
-          parent.requestLayout();
+        if (onCancelCallback != null) {
+          onCancelCallback.run();
         }
       }, this);
     }
