@@ -245,6 +245,17 @@ public class InvokeToolConfirmationDialog extends Composite {
         // Check if parent is still valid before using it
         if (parent != null && !parent.isDisposed()) {
           parent.layout();
+          // Walk up to refresh the scroll container's minimum size; without this the panel
+          // stays expanded at its pre-cancel height because ScrolledComposite.setMinHeight()
+          // is never updated when no further messages arrive after cancellation.
+          Composite ancestor = parent.getParent();
+          while (ancestor != null && !ancestor.isDisposed()) {
+            if (ancestor instanceof ChatContentViewer) {
+              ((ChatContentViewer) ancestor).refreshScrollerLayout();
+              break;
+            }
+            ancestor = ancestor.getParent();
+          }
         }
       }, this);
     }
