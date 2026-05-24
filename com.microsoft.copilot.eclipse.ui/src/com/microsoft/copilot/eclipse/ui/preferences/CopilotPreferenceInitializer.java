@@ -70,6 +70,10 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.AUTO_APPROVE_FILE_OP_RULES,
         new Gson().toJson(FileOperationConfirmationHandler.FALLBACK_DEFAULT_RULES));
     pref.setDefault(Constants.AUTO_APPROVE_UNMATCHED_FILE_OP, true);
+    pref.setDefault(Constants.AUTO_APPROVE_MCP_SERVERS, "[]");
+    pref.setDefault(Constants.AUTO_APPROVE_MCP_TOOLS, "[]");
+    pref.setDefault(Constants.AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS, false);
+    pref.setDefault(Constants.AUTO_APPROVE_YOLO_MODE, false);
 
     IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());

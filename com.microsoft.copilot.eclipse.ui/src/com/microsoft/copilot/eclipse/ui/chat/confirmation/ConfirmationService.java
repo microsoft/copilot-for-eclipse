@@ -8,6 +8,9 @@ import java.util.Map;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 
+import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
@@ -79,10 +82,16 @@ public class ConfirmationService {
     handlers.put(ToolCategory.FILE_READ, fileHandler);
     handlers.put(ToolCategory.FILE_WRITE, fileHandler);
     handlers.put(ToolCategory.FILE_OPERATION, fileHandler);
+    handlers.put(ToolCategory.MCP_TOOL,
+        new McpConfirmationHandler(preferenceStore));
   }
 
   /**
    * Evaluates whether a tool confirmation request should be auto-approved.
+   *
+   * <p>When the auto-approval feature is disabled by token or organization policy, all
+   * auto-approve rules (YOLO, session, global) are bypassed and the user is always prompted
+   * with a simple Allow-Once / Skip dialog.
    *
    * @param params the confirmation request parameters
    * @param sessionConversationId the conversation ID for session-scoped lookups
@@ -90,16 +99,20 @@ public class ConfirmationService {
   public ConfirmationResult evaluate(
       InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean autoApprovalEnabled = flags == null || flags.isAutoApprovalEnabled();
+
+    if (autoApprovalEnabled && preferenceStore.getBoolean(Constants.AUTO_APPROVE_YOLO_MODE)) {
+      return ConfirmationResult.AUTO_APPROVED;
+    }
+
     ToolCategory category = classify(params);
     if (category == ToolCategory.SAFE_TOOL) {
       return ConfirmationResult.AUTO_APPROVED;
     }
 
-    ConfirmationHandler handler = handlers.get(category);
-    if (handler == null) {
-      handler = fallbackHandler;
-    }
-    return handler.evaluate(params, sessionConversationId);
+    ConfirmationHandler handler = handlers.getOrDefault(category, fallbackHandler);
+    return handler.evaluate(params, sessionConversationId, autoApprovalEnabled);
   }
 
   /**

@@ -133,6 +133,15 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
 
   @Override
   public ConfirmationResult evaluate(InvokeClientToolConfirmationParams params,
+      String sessionConversationId, boolean isAutoApprovalEnabled) {
+    if (!isAutoApprovalEnabled) {
+      return evaluateAutoApprovalDisabled(params, sessionConversationId);
+    }
+    return evaluateAutoApprovalEnabled(params, sessionConversationId);
+  }
+
+  private ConfirmationResult evaluateAutoApprovalEnabled(
+      InvokeClientToolConfirmationParams params,
       String sessionConversationId) {
     String filePath = extractFilePath(params);
     if (StringUtils.isBlank(filePath)) {
@@ -178,6 +187,36 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
     }
 
     return evaluateUnmatched(params);
+  }
+
+  private ConfirmationResult evaluateAutoApprovalDisabled(
+      InvokeClientToolConfirmationParams params, String sessionConversationId) {
+    String filePath = extractFilePath(params);
+    if (StringUtils.isBlank(filePath)) {
+      return ConfirmationResult.DISMISSED;
+    }
+
+    // Still honor files explicitly attached by the user (intentional context)
+    if (attachedFileRegistry.isAttachedFile(sessionConversationId, filePath)) {
+      return ConfirmationResult.AUTO_APPROVED;
+    }
+
+    // Outside workspace always requires confirmation (simplified dialog only)
+    if (isOutsideWorkspace(params)) {
+      return ConfirmationResult.needsConfirmation(buildSimplifiedContent(params));
+    }
+
+    // Only check default rules; ignore user-configured rules
+    for (FileOperationAutoApproveRule rule : FALLBACK_DEFAULT_RULES) {
+      if (matchesGlob(filePath, rule.getPattern())) {
+        return rule.isAutoApprove()
+            ? ConfirmationResult.AUTO_APPROVED
+            : ConfirmationResult.needsConfirmation(buildSimplifiedContent(params));
+      }
+    }
+
+    // Unmatched workspace file: auto-approve
+    return ConfirmationResult.AUTO_APPROVED;
   }
 
   private ConfirmationResult evaluateUnmatched(
@@ -238,6 +277,31 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
     }
     String message = NLS.bind(fileType.getMessageTemplate(), fileName);
     return new ConfirmationContent(title, message, actions);
+  }
+
+  /**
+   * Builds a simplified confirmation dialog with only Allow Once and Skip actions.
+   * Used when the auto-approval feature is disabled by token/policy.
+   */
+  private ConfirmationContent buildSimplifiedContent(
+      InvokeClientToolConfirmationParams params) {
+    String filePath = extractFilePath(params);
+    final FileToolType fileType =
+        FileToolType.fromValue(ConfirmationHandler.extractToolType(params));
+    String fileName = "";
+    try {
+      if (filePath != null) {
+        fileName = Path.of(filePath).getFileName().toString();
+      }
+    } catch (Exception ignored) {
+      // use empty
+    }
+    String title = params.getTitle() != null ? params.getTitle() : fileType.getDefaultTitle();
+    String message = NLS.bind(fileType.getMessageTemplate(), fileName);
+    return new ConfirmationContent(title, message,
+        List.of(
+            ConfirmationAction.allowOnce(Messages.confirmation_action_allowOnce),
+            ConfirmationAction.skip(Messages.confirmation_action_skip)));
   }
 
   private static ConfirmationAction action(Action type, String label,
@@ -342,7 +406,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
       case ACCEPT_FILE_SESSION:
         String fp = meta.getOrDefault(META_FILE_PATH, "");
         if (!fp.isEmpty()) {
-          evictOldestIfNeeded(sessionApprovedFiles);
+          ConfirmationHandler.evictOldestIfNeeded(sessionApprovedFiles);
           sessionApprovedFiles.computeIfAbsent(
               convId, k -> ConcurrentHashMap.newKeySet())
               .add(normalizePath(fp));
@@ -351,7 +415,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
       case ACCEPT_FOLDER_SESSION:
         String folder = meta.getOrDefault(META_FOLDER_PATH, "");
         if (!folder.isEmpty()) {
-          evictOldestIfNeeded(sessionApprovedFolders);
+          ConfirmationHandler.evictOldestIfNeeded(sessionApprovedFolders);
           sessionApprovedFolders.computeIfAbsent(
               convId, k -> ConcurrentHashMap.newKeySet())
               .add(normalizePath(folder));
@@ -381,22 +445,6 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
         break;
       default:
         break;
-    }
-  }
-
-  /**
-   * Evicts the oldest entry from a LinkedHashMap when it reaches the
-   * maximum number of tracked conversations.
-   */
-  private static <V> void evictOldestIfNeeded(Map<String, V> map) {
-    synchronized (map) {
-      while (map.size() >= MAX_SESSION_CONVERSATIONS) {
-        var it = map.entrySet().iterator();
-        if (it.hasNext()) {
-          it.next();
-          it.remove();
-        }
-      }
     }
   }
 

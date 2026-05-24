@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.chat.confirmation;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
@@ -49,17 +50,18 @@ public interface ConfirmationHandler {
   }
 
   /**
-   * Evaluates whether the given confirmation request should be auto-approved.
-   * Implementations should check both global rules and session memory.
+   * Evaluates whether the given confirmation request should be auto-approved,
+   * taking into account whether the auto-approval feature is enabled by token/policy.
    *
    * @param params the confirmation request parameters from CLS
    * @param sessionConversationId the conversation ID to use for session-scoped
    *     lookups (may differ from params.getConversationId() when called from a
    *     subagent context)
+   * @param isAutoApprovalEnabled whether the auto-approval feature is currently enabled
    * @return the confirmation result
    */
   ConfirmationResult evaluate(InvokeClientToolConfirmationParams params,
-      String sessionConversationId);
+      String sessionConversationId, boolean isAutoApprovalEnabled);
 
   /**
    * Caches a user's decision based on the action scope.
@@ -79,5 +81,22 @@ public interface ConfirmationHandler {
   /** Clears session-scoped approvals for the given conversation. */
   default void clearSession(String conversationId) {
     // no-op by default
+  }
+
+  /**
+   * Evicts the oldest entry from a {@link java.util.LinkedHashMap}-backed map when it reaches
+   * {@link #MAX_SESSION_CONVERSATIONS}. Thread-safe via {@code synchronized(map)}.
+   *
+   * @param <V> value type
+   * @param map the map to evict from (must be a {@code Collections.synchronizedMap} wrapping a
+   *     {@code LinkedHashMap} for correct eviction order)
+   */
+  static <V> void evictOldestIfNeeded(Map<String, V> map) {
+    synchronized (map) {
+      while (map.size() >= MAX_SESSION_CONVERSATIONS) {
+        Entry<String, V> oldest = map.entrySet().iterator().next();
+        map.remove(oldest.getKey());
+      }
+    }
   }
 }

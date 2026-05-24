@@ -59,6 +59,10 @@ public class Constants {
   public static final String AUTO_APPROVE_UNMATCHED_TERMINAL = "autoApproveUnmatchedTerminal";
   public static final String AUTO_APPROVE_FILE_OP_RULES = "autoApproveEditRules";
   public static final String AUTO_APPROVE_UNMATCHED_FILE_OP = "autoApproveUnmatchedFileOp";
+  public static final String AUTO_APPROVE_MCP_SERVERS = "autoApproveMcpServers";
+  public static final String AUTO_APPROVE_MCP_TOOLS = "autoApproveMcpTools";
+  public static final String AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS = "autoApproveTrustToolAnnotations";
+  public static final String AUTO_APPROVE_YOLO_MODE = "autoApproveYoloMode";
 
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list

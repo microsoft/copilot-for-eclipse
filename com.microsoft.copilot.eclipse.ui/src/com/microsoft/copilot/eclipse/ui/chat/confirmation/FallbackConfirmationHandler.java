@@ -22,7 +22,7 @@ public class FallbackConfirmationHandler implements ConfirmationHandler {
   @Override
   public ConfirmationResult evaluate(
       InvokeClientToolConfirmationParams params,
-      String sessionConversationId) {
+      String sessionConversationId, boolean isAutoApprovalEnabled) {
     String title = params.getTitle() != null
         ? params.getTitle()
         : NLS.bind(Messages.confirmation_title_fallback, params.getName());
