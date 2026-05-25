@@ -115,8 +115,9 @@ public class InvokeToolConfirmationDialog extends Composite {
 
       Composite parent = this.getParent();
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        if (StringUtils.isNotEmpty(this.cancelMessage)) {
-          new AgentToolCancelLabel(this.getParent(), SWT.NONE, this.cancelMessage);
+        if (parent != null && !parent.isDisposed()
+            && StringUtils.isNotEmpty(this.cancelMessage)) {
+          new AgentToolCancelLabel(parent, SWT.NONE, this.cancelMessage);
         }
         this.dispose();
         if (parent != null && !parent.isDisposed()) {
@@ -153,7 +154,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     Label messageLbl = new Label(this, SWT.LEFT | SWT.WRAP);
     messageLbl.setLayoutData(
         new GridData(SWT.FILL, SWT.FILL, true, false));
-    messageLbl.setText(message);
+    messageLbl.setText(message != null ? message : "");
     registerControlForFontUpdates(messageLbl);
 
     createInputContent(input);

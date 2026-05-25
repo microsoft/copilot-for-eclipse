@@ -122,7 +122,10 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
     });
   }
 
-  private void unbindWithAutoApproveSection() {
+  /**
+   * Unbind the McpAutoApproveSection side-effect.
+   */
+  public void unbindWithAutoApproveSection() {
     if (mcpAutoApproveSideEffect != null) {
       mcpAutoApproveSideEffect.dispose();
       mcpAutoApproveSideEffect = null;

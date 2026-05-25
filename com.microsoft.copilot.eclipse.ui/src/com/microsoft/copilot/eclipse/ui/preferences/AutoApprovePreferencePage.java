@@ -72,6 +72,8 @@ public class AutoApprovePreferencePage extends PreferencePage
     globalSection = new GlobalAutoApproveSection(root, SWT.NONE);
     globalSection.loadFromPreferences(store);
 
+    root.addDisposeListener(e -> unbindMcpConfigService());
+
     return root;
   }
 
@@ -96,6 +98,18 @@ public class AutoApprovePreferencePage extends PreferencePage
           chatServiceManager.getMcpConfigService();
       if (mcpConfigService != null) {
         mcpConfigService.bindWithAutoApproveSection(mcpSection);
+      }
+    }
+  }
+
+  private void unbindMcpConfigService() {
+    ChatServiceManager chatServiceManager =
+        CopilotUi.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null) {
+      McpConfigService mcpConfigService =
+          chatServiceManager.getMcpConfigService();
+      if (mcpConfigService != null) {
+        mcpConfigService.unbindWithAutoApproveSection();
       }
     }
   }
