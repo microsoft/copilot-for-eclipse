@@ -22,6 +22,9 @@ public class DidChangePolicyParams {
   @SerializedName("customAgent.enabled")
   private boolean customAgentEnabled = true;
 
+  @SerializedName("agentMode.autoApproval.enabled")
+  private boolean autoApprovalPolicyEnabled = true;
+
   public boolean isMcpContributionPointEnabled() {
     return mcpContributionPointEnabled;
   }
@@ -46,9 +49,18 @@ public class DidChangePolicyParams {
     this.customAgentEnabled = customAgentEnabled;
   }
 
+  public boolean isAutoApprovalPolicyEnabled() {
+    return autoApprovalPolicyEnabled;
+  }
+
+  public void setAutoApprovalPolicyEnabled(boolean autoApprovalPolicyEnabled) {
+    this.autoApprovalPolicyEnabled = autoApprovalPolicyEnabled;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(mcpContributionPointEnabled, subAgentEnabled, customAgentEnabled);
+    return Objects.hash(mcpContributionPointEnabled, subAgentEnabled, customAgentEnabled,
+        autoApprovalPolicyEnabled);
   }
 
   @Override
@@ -65,7 +77,8 @@ public class DidChangePolicyParams {
     DidChangePolicyParams other = (DidChangePolicyParams) obj;
     return mcpContributionPointEnabled == other.mcpContributionPointEnabled
         && subAgentEnabled == other.subAgentEnabled
-        && customAgentEnabled == other.customAgentEnabled;
+        && customAgentEnabled == other.customAgentEnabled
+        && autoApprovalPolicyEnabled == other.autoApprovalPolicyEnabled;
   }
 
   @Override
@@ -74,6 +87,7 @@ public class DidChangePolicyParams {
     builder.append("mcpContributionPointEnabled", mcpContributionPointEnabled);
     builder.append("subAgentEnabled", subAgentEnabled);
     builder.append("customAgentEnabled", customAgentEnabled);
+    builder.append("autoApprovalPolicyEnabled", autoApprovalPolicyEnabled);
     return builder.toString();
   }
 }

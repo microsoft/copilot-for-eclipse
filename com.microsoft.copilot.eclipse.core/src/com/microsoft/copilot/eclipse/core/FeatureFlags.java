@@ -25,6 +25,10 @@ public class FeatureFlags {
 
   private boolean customAgentPolicyEnabled = true;
 
+  private boolean autoApprovalTokenEnabled = true;
+
+  private boolean autoApprovalPolicyEnabled = true;
+
   public boolean isAgentModeEnabled() {
     return agentModeEnabled;
   }
@@ -82,6 +86,25 @@ public class FeatureFlags {
 
   public void setCustomAgentPolicyEnabled(boolean customAgentPolicyEnabled) {
     this.customAgentPolicyEnabled = customAgentPolicyEnabled;
+  }
+
+  /**
+   * Returns true if the auto-approval feature is available.
+   * Requires both the server token ({@code agent_mode_auto_approval}) and
+   * the organization policy ({@code agentMode.autoApproval.enabled}) to permit it.
+   *
+   * @return true if auto-approval is permitted
+   */
+  public boolean isAutoApprovalEnabled() {
+    return autoApprovalTokenEnabled && autoApprovalPolicyEnabled;
+  }
+
+  public void setAutoApprovalTokenEnabled(boolean autoApprovalTokenEnabled) {
+    this.autoApprovalTokenEnabled = autoApprovalTokenEnabled;
+  }
+
+  public void setAutoApprovalPolicyEnabled(boolean autoApprovalPolicyEnabled) {
+    this.autoApprovalPolicyEnabled = autoApprovalPolicyEnabled;
   }
 
   public boolean isClientPreviewFeatureEnabled() {

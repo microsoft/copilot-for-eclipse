@@ -3,6 +3,8 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -13,23 +15,34 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult.ToolConfirmationResult;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.swt.SplitDropdownButton;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
- * Dialog to confirm tool execution.
+ * Dialog to confirm tool execution. Renders a title, message, optional command
+ * block, and action buttons driven by {@link ConfirmationContent}. The primary
+ * action is shown as a {@link SplitDropdownButton} with secondary actions in
+ * the dropdown menu.
  */
 public class InvokeToolConfirmationDialog extends Composite {
 
@@ -47,32 +60,77 @@ public class InvokeToolConfirmationDialog extends Composite {
    * The key for the action in the input map (used by debugger tool).
    */
   private static final String ACTION_KEY = "action";
+
   private CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture;
   private String cancelMessage;
   private Label titleLbl;
   private Font boldFont;
   private Runnable titleFontChangeCallback;
+  private ConfirmationContent confirmationContent;
+  private ConfirmationAction selectedAction;
 
   /**
-   * Create a new confirmation dialog for tool execution.
+   * Create a new confirmation dialog driven by {@link ConfirmationContent}.
    *
-   * @param parent The parent composite
-   * @param title The title of the confirmation dialog
-   * @param message The message to display
-   * @param input The input object to pass to the tool
+   * @param parent the parent composite
+   * @param content confirmation content with title, message, and action buttons
+   * @param input the input object to pass to the tool
    */
-  public InvokeToolConfirmationDialog(Composite parent, String title, String message, Object input) {
+  public InvokeToolConfirmationDialog(Composite parent,
+      ConfirmationContent content, Object input) {
     super(parent, SWT.BORDER | SWT.WRAP);
     this.setLayout(new GridLayout(1, false));
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
-    createDialogContent(title, message, input);
+    this.confirmationContent = content;
+    createDialogContent(content.getTitle(), content.getMessage(), input);
 
     this.toolConfirmationFuture = new CompletableFuture<>();
   }
 
-  private void createDialogContent(String title, String message, Object input) {
-    // Title of the confirmation dialog
+  /**
+   * Returns the action the user selected, or {@code null} if dismissed.
+   */
+  public ConfirmationAction getSelectedAction() {
+    return selectedAction;
+  }
+
+  /**
+   * Get the future that will be completed when the user makes a choice.
+   *
+   * @return CompletableFuture containing the result of user's choice
+   */
+  public CompletableFuture<LanguageModelToolConfirmationResult> getConfirmationFuture() {
+    return toolConfirmationFuture;
+  }
+
+  /**
+   * Cancels the current tool confirmation dialog programmatically. This has
+   * the same effect as clicking the Cancel / Skip button.
+   */
+  public void cancelConfirmation() {
+    if (toolConfirmationFuture != null && !toolConfirmationFuture.isDone()) {
+      toolConfirmationFuture.complete(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
+
+      Composite parent = this.getParent();
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (parent != null && !parent.isDisposed()
+            && StringUtils.isNotEmpty(this.cancelMessage)) {
+          new AgentToolCancelLabel(parent, SWT.NONE, this.cancelMessage);
+        }
+        this.dispose();
+        if (parent != null && !parent.isDisposed()) {
+          parent.requestLayout();
+        }
+      }, this);
+    }
+  }
+
+  // --------------- content creation ---------------
+
+  private void createDialogContent(String title, String message,
+      Object input) {
     titleLbl = new Label(this, SWT.LEFT | SWT.WRAP);
     titleLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     titleLbl.setText(title);
@@ -93,160 +151,177 @@ public class InvokeToolConfirmationDialog extends Composite {
       }
     });
 
-    // Confirmation message of the confirmation dialog
     Label messageLbl = new Label(this, SWT.LEFT | SWT.WRAP);
-    GridData messageGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
-    messageLbl.setLayoutData(messageGridData);
-    messageLbl.setText(message);
+    messageLbl.setLayoutData(
+        new GridData(SWT.FILL, SWT.FILL, true, false));
+    messageLbl.setText(message != null ? message : "");
     registerControlForFontUpdates(messageLbl);
 
-    // More information about the tool invocation
-    if (input != null) {
-      Map<String, Object> inputMap = (Map<String, Object>) input;
+    createInputContent(input);
+    createActionButtons();
+  }
 
-      // For debugger tool, show all input parameters
-      if (inputMap.containsKey(ACTION_KEY)) {
-        String displayText = formatDebuggerInput(inputMap);
+  @SuppressWarnings("unchecked")
+  private void createInputContent(Object input) {
+    if (input == null) {
+      return;
+    }
+    Map<String, Object> inputMap = (Map<String, Object>) input;
 
-        // Create a scrollable container for the input text
-        ScrolledComposite commandScroll = new ScrolledComposite(this, SWT.H_SCROLL | SWT.V_SCROLL);
-        commandScroll.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        commandScroll.setExpandHorizontal(true);
-        commandScroll.setExpandVertical(true);
+    if (inputMap.containsKey(ACTION_KEY)) {
+      createScrollableCommand(formatDebuggerInput(inputMap),
+          SWT.H_SCROLL | SWT.V_SCROLL);
+    } else if (inputMap.containsKey(COMMAND_KEY)) {
+      createScrollableCommand((String) inputMap.get(COMMAND_KEY),
+          SWT.H_SCROLL);
+    }
 
-        Label commandLbl = new Label(commandScroll, SWT.LEFT);
-        // Escape & characters that are followed by non-space characters, needed for SWT labels where & is used as a
-        // mnemonic character
-        String escapedCommand = displayText.replace("&", "&&");
-        commandLbl.setText(escapedCommand);
-        commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
-        this.cancelMessage = escapedCommand;
-        registerControlForFontUpdates(commandLbl);
+    if (inputMap.containsKey(EXPLANATION_KEY)) {
+      Label explanationLbl = new Label(this, SWT.LEFT | SWT.WRAP);
+      explanationLbl.setLayoutData(
+          new GridData(SWT.FILL, SWT.FILL, true, false));
+      explanationLbl.setText((String) inputMap.get(EXPLANATION_KEY));
+      registerControlForFontUpdates(explanationLbl);
+    }
+  }
 
-        commandScroll.setContent(commandLbl);
-        commandScroll.addControlListener(new ControlAdapter() {
-          @Override
-          public void controlResized(ControlEvent e) {
-            Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-            commandLbl.setSize(size);
-            commandScroll.setMinSize(size);
-          }
-        });
-        // Initial size computation
-        Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-        commandLbl.setSize(size);
-        commandScroll.setMinSize(size);
-      } else if (inputMap.containsKey(COMMAND_KEY)) {
-        // For terminal tool, show command
-        // Create a scrollable container for the command text
-        ScrolledComposite commandScroll = new ScrolledComposite(this, SWT.H_SCROLL);
-        commandScroll.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        commandScroll.setExpandHorizontal(true);
-        commandScroll.setExpandVertical(true);
+  private void createScrollableCommand(String text, int scrollStyle) {
+    ScrolledComposite commandScroll =
+        new ScrolledComposite(this, scrollStyle);
+    commandScroll.setLayoutData(
+        new GridData(SWT.FILL, SWT.FILL, true, false));
+    commandScroll.setExpandHorizontal(true);
+    commandScroll.setExpandVertical(true);
 
-        Label commandLbl = new Label(commandScroll, SWT.LEFT);
-        String command = (String) inputMap.get(COMMAND_KEY);
-        // Escape & characters that are followed by non-space characters, needed for SWT labels where & is used as a
-        // mnemonic character
-        String escapedCommand = command.replace("&", "&&");
-        commandLbl.setText(escapedCommand);
-        commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
-        this.cancelMessage = escapedCommand;
-        registerControlForFontUpdates(commandLbl);
+    Label commandLbl = new Label(commandScroll, SWT.LEFT);
+    String escapedCommand = text.replace("&", "&&");
+    commandLbl.setText(escapedCommand);
+    commandLbl.setData(CssConstants.CSS_CLASS_NAME_KEY, "bg-command-panel");
+    this.cancelMessage = escapedCommand;
+    registerControlForFontUpdates(commandLbl);
 
-        commandScroll.setContent(commandLbl);
-        commandScroll.addControlListener(new ControlAdapter() {
-          @Override
-          public void controlResized(ControlEvent e) {
-            Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-            commandLbl.setSize(size);
-            commandScroll.setMinSize(size);
-          }
-        });
-        // Initial size computation
+    commandScroll.setContent(commandLbl);
+    commandScroll.addControlListener(new ControlAdapter() {
+      @Override
+      public void controlResized(ControlEvent e) {
         Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
         commandLbl.setSize(size);
         commandScroll.setMinSize(size);
       }
+    });
+    Point size = commandLbl.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    commandLbl.setSize(size);
+    commandScroll.setMinSize(size);
+  }
 
-      if (inputMap.containsKey(EXPLANATION_KEY)) {
-        Label explanationLbl = new Label(this, SWT.LEFT | SWT.WRAP);
-        explanationLbl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        explanationLbl.setText((String) inputMap.get(EXPLANATION_KEY));
-        registerControlForFontUpdates(explanationLbl);
+  // --------------- action buttons with dropdown ---------------
+
+  private void createActionButtons() {
+    List<ConfirmationAction> actions = confirmationContent.getActions();
+
+    ConfirmationAction primaryAction = null;
+    ConfirmationAction dismissAction = null;
+    List<ConfirmationAction> dropdownActions = new ArrayList<>();
+
+    for (ConfirmationAction action : actions) {
+      if (!action.isAccept()) {
+        dismissAction = action;
+      } else if (action.isPrimary()) {
+        primaryAction = action;
+      } else {
+        dropdownActions.add(action);
       }
     }
 
-    createButtons();
-  }
+    if (primaryAction == null) {
+      return;
+    }
 
-  private void createButtons() {
-    GridLayout actionLayout = new GridLayout(2, false);
-    actionLayout.marginLeft = 0;
-    actionLayout.marginRight = 0;
-    actionLayout.marginWidth = 0;
-    actionLayout.horizontalSpacing = 0;
-    actionLayout.marginHeight = 0;
-    Composite actionArea = new Composite(this, SWT.NONE);
-    actionArea.setLayout(actionLayout);
-    actionArea.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    // Column count: primary dropdown button + dismiss
+    Composite actionArea = newButtonArea(2);
 
-    Button continueButton = new Button(actionArea, SWT.PUSH);
-    continueButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
-    continueButton.setText("Continue");
-    continueButton.addListener(SWT.Selection, e -> {
-      this.toolConfirmationFuture.complete(new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
+    // --- primary dropdown button ---
+    SplitDropdownButton primaryDropdown =
+        new SplitDropdownButton(actionArea, SWT.PUSH);
+    primaryDropdown.setText(primaryAction.getLabel());
+    primaryDropdown.setShowArrow(!dropdownActions.isEmpty());
+    primaryDropdown.setSeparatorColor(
+        getDisplay().getSystemColor(SWT.COLOR_WHITE));
 
-      // Store parent reference before disposal
-      Composite parent = this.getParent();
-      this.dispose();
-      // Check if parent is still valid before using it
-      if (parent != null && !parent.isDisposed()) {
-        parent.layout();
+    Button primaryBtn = primaryDropdown.getButton();
+    primaryBtn.setData(CssConstants.CSS_CLASS_NAME_KEY, "btn-primary");
+    primaryBtn.setLayoutData(
+        new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+    registerControlForFontUpdates(primaryBtn);
+
+    final ConfirmationAction primaryRef = primaryAction;
+    primaryDropdown.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        if (e.detail == SWT.ARROW && !dropdownActions.isEmpty()) {
+          Menu menu = new Menu(primaryBtn.getShell(), SWT.POP_UP);
+          for (ConfirmationAction action : dropdownActions) {
+            MenuItem item = new MenuItem(menu, SWT.PUSH);
+            item.setText(action.getLabel());
+            item.addListener(SWT.Selection,
+                ev -> acceptAndDispose(action));
+          }
+          menu.addListener(SWT.Hide, ev -> {
+            ev.display.asyncExec(menu::dispose);
+          });
+          Rectangle bounds = primaryBtn.getBounds();
+          Point loc = primaryBtn.getParent()
+              .toDisplay(bounds.x, bounds.y + bounds.height);
+          menu.setLocation(loc);
+          menu.setVisible(true);
+        } else {
+          acceptAndDispose(primaryRef);
+        }
       }
     });
-    continueButton.setData(CssConstants.CSS_CLASS_NAME_KEY, "btn-primary");
-    registerControlForFontUpdates(continueButton);
 
-    Button cancelButton = new Button(actionArea, SWT.PUSH);
-    cancelButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
-    cancelButton.setText("Cancel");
-    cancelButton.addListener(SWT.Selection, e -> {
+    // --- dismiss (skip) button ---
+    Button dismissBtn = new Button(actionArea, SWT.PUSH);
+    dismissBtn.setLayoutData(
+        new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+    dismissBtn.setText(
+        dismissAction != null ? dismissAction.getLabel()
+            : Messages.confirmation_action_skip);
+    registerControlForFontUpdates(dismissBtn);
+
+    final ConfirmationAction dismissRef = dismissAction;
+    dismissBtn.addListener(SWT.Selection, e -> {
+      this.selectedAction = dismissRef;
       cancelConfirmation();
     });
-    registerControlForFontUpdates(cancelButton);
   }
 
-  /**
-   * Get the future that will be completed when the user makes a choice.
-   *
-   * @return CompletableFuture containing the result of user's choice
-   */
-  public CompletableFuture<LanguageModelToolConfirmationResult> getConfirmationFuture() {
-    return toolConfirmationFuture;
+  // --------------- helpers ---------------
+
+  private Composite newButtonArea(int columns) {
+    GridLayout layout = new GridLayout(columns, false);
+    layout.marginLeft = 0;
+    layout.marginRight = 0;
+    layout.marginWidth = 0;
+    layout.horizontalSpacing = 0;
+    layout.marginHeight = 0;
+
+    Composite area = new Composite(this, SWT.NONE);
+    area.setLayout(layout);
+    area.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    return area;
   }
 
-  /**
-   * Cancels the current tool confirmation dialog programmatically. This has the same effect as clicking the Cancel
-   * button in the confirmation dialog.
-   */
-  public void cancelConfirmation() {
-    if (toolConfirmationFuture != null && !toolConfirmationFuture.isDone()) {
-      toolConfirmationFuture.complete(new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
+  private void acceptAndDispose(ConfirmationAction action) {
+    this.selectedAction = action;
+    this.toolConfirmationFuture.complete(
+        new LanguageModelToolConfirmationResult(
+            ToolConfirmationResult.ACCEPT));
 
-      // Store parent reference before disposal
-      Composite parent = this.getParent();
-      SwtUtils.invokeOnDisplayThread(() -> {
-        // Only show the cancel widget for special cases when the tool has a parameter "command" in the input map
-        if (StringUtils.isNotEmpty(this.cancelMessage)) {
-          new AgentToolCancelLabel(this.getParent(), SWT.NONE, this.cancelMessage);
-        }
-        this.dispose();
-        // Check if parent is still valid before using it
-        if (parent != null && !parent.isDisposed()) {
-          parent.layout();
-        }
-      }, this);
+    Composite parent = this.getParent();
+    this.dispose();
+    if (parent != null && !parent.isDisposed()) {
+      parent.requestLayout();
     }
   }
 

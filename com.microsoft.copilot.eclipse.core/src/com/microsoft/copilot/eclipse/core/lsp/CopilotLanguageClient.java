@@ -310,6 +310,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       flags.setMcpEnabled(params.isMcpEnabled());
       flags.setByokEnabled(params.isByokEnabled());
       flags.setClientPreviewFeatureEnabled(params.isClientPreviewFeaturesEnabled());
+      flags.setAutoApprovalTokenEnabled(params.isAutoApprovalEnabled());
     }
 
     if (eventBroker != null) {
@@ -337,6 +338,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
         flags.setCustomAgentPolicyEnabled(params.isCustomAgentEnabled());
         eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY, params.isCustomAgentEnabled());
       }
+      flags.setAutoApprovalPolicyEnabled(params.isAutoApprovalPolicyEnabled());
     }
   }
 

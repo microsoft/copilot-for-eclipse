@@ -154,6 +154,60 @@ public class Messages extends NLS {
   public static String setting_managed_by_organization;
   public static String setting_disabled_by_organization;
 
+  // Shared Auto-Approve strings
+  public static String preferences_page_auto_approve_disabled_by_organization;
+  public static String preferences_page_auto_approve_column_status;
+  public static String preferences_page_auto_approve_add;
+  public static String preferences_page_auto_approve_remove;
+  public static String preferences_page_auto_approve_reset;
+  public static String preferences_page_auto_approve_reset_message;
+  public static String preferences_page_auto_approve_allow;
+  public static String preferences_page_auto_approve_deny;
+  public static String preferences_page_auto_approve_add_dialog_approve;
+
+  // Terminal Auto-Approve
+  public static String preferences_page_terminal_auto_approve_title;
+  public static String preferences_page_terminal_auto_approve_description;
+  public static String preferences_page_terminal_auto_approve_column_command;
+  public static String preferences_page_terminal_auto_approve_reset_title;
+  public static String preferences_page_terminal_auto_approve_unmatched;
+  public static String preferences_page_terminal_auto_approve_unmatched_note;
+  public static String preferences_page_terminal_auto_approve_add_dialog_title;
+  public static String preferences_page_terminal_auto_approve_add_dialog_message;
+  public static String preferences_page_terminal_auto_approve_add_dialog_command;
+  public static String preferences_page_terminal_auto_approve_add_dialog_placeholder;
+
+  // File Operations Auto Approve
+  public static String preferences_page_file_op_auto_approve_title;
+  public static String preferences_page_file_op_auto_approve_description;
+  public static String preferences_page_file_op_auto_approve_column_pattern;
+  public static String preferences_page_file_op_auto_approve_column_description;
+  public static String preferences_page_file_op_auto_approve_reset_title;
+  public static String preferences_page_file_op_auto_approve_unmatched;
+  public static String preferences_page_file_op_auto_approve_unmatched_note;
+  public static String preferences_page_file_op_auto_approve_add_dialog_title;
+  public static String preferences_page_file_op_auto_approve_add_dialog_message;
+  public static String preferences_page_file_op_auto_approve_add_dialog_pattern;
+  public static String preferences_page_file_op_auto_approve_add_dialog_description;
+  public static String preferences_page_file_op_auto_approve_add_dialog_pattern_hint;
+  public static String preferences_page_file_op_auto_approve_add_dialog_description_hint;
+  public static String preferences_page_file_op_auto_approve_duplicate_title;
+  public static String preferences_page_file_op_auto_approve_duplicate_message;
+
+  // MCP Auto-Approve
+  public static String preferences_page_mcp_auto_approve_title;
+  public static String preferences_page_mcp_auto_approve_trust_annotations;
+  public static String preferences_page_mcp_auto_approve_trust_annotations_note;
+  public static String preferences_page_mcp_auto_approve_server_tools_label;
+
+  // Global Auto-Approve
+  public static String preferences_page_global_auto_approve_title;
+  public static String preferences_page_global_auto_approve_label;
+  public static String preferences_page_global_auto_approve_confirm_title;
+  public static String preferences_page_global_auto_approve_confirm_message;
+  public static String preferences_page_global_auto_approve_confirm_button;
+  public static String preferences_page_global_auto_approve_cancel_button;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);
