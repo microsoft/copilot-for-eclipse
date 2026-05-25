@@ -158,14 +158,14 @@ class EditFileToolTest {
     assertEquals(expectedContent, results[0].getContent().get(0).getValue());
   }
 
-  private static final class FileToolCacheAccessor {
+  private static final class FileToolCacheAccessor extends EditFileTool {
     private static void clearCaches() {
-      FileToolBase.fileContentCache.clear();
-      FileToolBase.localFileContentCache.clear();
+      fileContentCache.clear();
+      localFileContentCache.clear();
     }
 
     private static String getLocalFileContentCache(Path file) {
-      return FileToolBase.localFileContentCache.get(file.toAbsolutePath().normalize());
+      return localFileContentCache.get(file.toAbsolutePath().normalize());
     }
   }
 }

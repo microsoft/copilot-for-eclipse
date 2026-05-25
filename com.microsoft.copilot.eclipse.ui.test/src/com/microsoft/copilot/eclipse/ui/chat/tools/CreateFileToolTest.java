@@ -379,26 +379,26 @@ class CreateFileToolTest {
    * without complex mocking and would be better covered by integration tests.
    */
 
-  private static final class FileToolCacheAccessor {
+  private static final class FileToolCacheAccessor extends CreateFileTool {
     private static void clearCaches() {
-      FileToolBase.fileContentCache.clear();
-      FileToolBase.localFileContentCache.clear();
+      fileContentCache.clear();
+      localFileContentCache.clear();
     }
 
     private static void putWorkspaceFileContentCache(IFile file, String content) {
-      FileToolBase.fileContentCache.put(file, content);
+      fileContentCache.put(file, content);
     }
 
     private static String getWorkspaceFileContentCache(IFile file) {
-      return FileToolBase.fileContentCache.get(file);
+      return fileContentCache.get(file);
     }
 
     private static void putLocalFileContentCache(Path file, String content) {
-      FileToolBase.localFileContentCache.put(file.toAbsolutePath().normalize(), content);
+      localFileContentCache.put(file.toAbsolutePath().normalize(), content);
     }
 
     private static String getLocalFileContentCache(Path file) {
-      return FileToolBase.localFileContentCache.get(file.toAbsolutePath().normalize());
+      return localFileContentCache.get(file.toAbsolutePath().normalize());
     }
   }
 }
