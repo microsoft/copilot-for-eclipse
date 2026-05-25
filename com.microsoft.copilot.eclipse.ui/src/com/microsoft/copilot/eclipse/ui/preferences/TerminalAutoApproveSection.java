@@ -18,6 +18,7 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -30,6 +31,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.TerminalConfirmationHandler;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Terminal auto-approve section with a rule table, action buttons, and
@@ -90,13 +92,14 @@ public class TerminalAutoApproveSection extends Composite {
 
   private void createTable(Composite parent) {
     tableViewer = new TableViewer(parent,
-        SWT.BORDER | SWT.FULL_SELECTION | SWT.SINGLE);
+        SWT.BORDER | SWT.FULL_SELECTION | SWT.SINGLE | SWT.V_SCROLL);
     Table table = tableViewer.getTable();
     GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, false);
     tableData.heightHint = TABLE_HEIGHT_HINT;
     table.setLayoutData(tableData);
     table.setHeaderVisible(true);
     table.setLinesVisible(true);
+    SwtUtils.forwardVerticalMouseWheelToParentScrollerAtBoundary(table);
 
     TableViewerColumn commandCol =
         new TableViewerColumn(tableViewer, SWT.NONE);
@@ -121,6 +124,16 @@ public class TerminalAutoApproveSection extends Composite {
         return ((TerminalAutoApproveRule) element).isAutoApprove()
             ? Messages.preferences_page_auto_approve_allow
             : Messages.preferences_page_auto_approve_deny;
+      }
+    });
+    table.addControlListener(new ControlAdapter() {
+      @Override
+      public void controlResized(org.eclipse.swt.events.ControlEvent e) {
+        int remainingWidth = table.getClientArea().width
+            - commandCol.getColumn().getWidth();
+        if (remainingWidth > 100) {
+          statusCol.getColumn().setWidth(remainingWidth);
+        }
       }
     });
 
