@@ -302,6 +302,7 @@ public class WorkingSetBar extends Composite {
     private static final int MAX_VISIBLE_FILES = 5;
     private final Composite contentArea;
     private final ScrolledComposite scrolledComposite;
+    private final WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
     private List<FileRow> fileRows; // List to keep track of file rows
 
     public ChangedFiles(Composite parent, int style, Map<ChangedFile, FileChangeProperty> filesMap) {
@@ -313,6 +314,7 @@ public class WorkingSetBar extends Composite {
       layout.marginHeight = 0;
       setLayout(layout);
       setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+      addDisposeListener(e -> labelProvider.dispose());
 
       // Count files
       long fileCount = filesMap.size();
@@ -345,8 +347,6 @@ public class WorkingSetBar extends Composite {
         contentArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
       }
 
-      // TODO: Should share a same instance with ReferencedFile
-      WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
       fileRows = new LinkedList<>();
       for (ChangedFile file : filesMap.keySet()) {
         if (file == null) {

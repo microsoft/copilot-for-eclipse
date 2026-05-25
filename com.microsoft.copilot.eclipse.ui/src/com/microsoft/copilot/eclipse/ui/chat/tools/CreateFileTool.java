@@ -66,7 +66,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDescription("""
-        This is a tool for creating a new file in the workspace.
+        This is a tool for creating a new workspace file or a new file at an absolute local filesystem path.
         The file will be created with the specified content.
         """);
 
@@ -219,6 +219,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
 
   @Override
   public void onKeepChange(IFile file) {
+    fileContentCache.remove(file);
     closeCompareEditor(file);
   }
 
@@ -229,7 +230,9 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
    */
   @Override
   public void onKeepChange(Path file) {
-    closeCompareEditor(file);
+    Path normalizedPath = normalizeLocalPath(file);
+    localFileContentCache.remove(normalizedPath);
+    closeCompareEditor(normalizedPath);
   }
 
   @Override
@@ -237,6 +240,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
     if (file != null && file.exists()) {
       file.delete(true, new NullProgressMonitor());
     }
+    fileContentCache.remove(file);
     closeCompareEditor(file);
   }
 
@@ -250,6 +254,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
   public void onUndoChange(Path file) throws IOException {
     Path normalizedPath = normalizeLocalPath(file);
     Files.deleteIfExists(normalizedPath);
+    localFileContentCache.remove(normalizedPath);
     closeCompareEditor(normalizedPath);
   }
 

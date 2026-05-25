@@ -104,7 +104,7 @@ class WorkingSetBarTest {
   void testNoScrollForFewFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -123,7 +123,7 @@ class WorkingSetBarTest {
   void testNoScrollForExactlyMaxFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(5, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(5);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -142,7 +142,7 @@ class WorkingSetBarTest {
   void testScrollCreatedForManyFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(10, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(10);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -165,7 +165,7 @@ class WorkingSetBarTest {
   void testScrollHeightHintForManyFiles() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(8, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(8);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -191,7 +191,7 @@ class WorkingSetBarTest {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
       int fileCount = 7;
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(fileCount, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(fileCount);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -216,7 +216,7 @@ class WorkingSetBarTest {
   void testContentAreaSetInScrolledComposite() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(8, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(8);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -243,7 +243,7 @@ class WorkingSetBarTest {
   void testMinHeightSetForScrolledComposite() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(10, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(10);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -267,7 +267,7 @@ class WorkingSetBarTest {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
 
       // First build with few files (no scroll)
-      Map<ChangedFile, FileChangeProperty> fewFiles = createMockFilesMap(3, false);
+      Map<ChangedFile, FileChangeProperty> fewFiles = createMockFilesMap(3);
       workingSetBar.buildSummaryBarFor(fewFiles);
 
       Object changedFiles1 = getFieldValue(workingSetBar, "changedFiles");
@@ -276,7 +276,7 @@ class WorkingSetBarTest {
       assertNull(scroll1, "No scroll should exist for 3 files");
 
       // Rebuild with many files (should have scroll)
-      Map<ChangedFile, FileChangeProperty> manyFiles = createMockFilesMap(10, false);
+      Map<ChangedFile, FileChangeProperty> manyFiles = createMockFilesMap(10);
       workingSetBar.buildSummaryBarFor(manyFiles);
 
       Object changedFiles2 = getFieldValue(workingSetBar, "changedFiles");
@@ -295,7 +295,7 @@ class WorkingSetBarTest {
   void testExpandIconImageWhenExpanded() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -323,7 +323,7 @@ class WorkingSetBarTest {
   void testExpandIconImageWhenCollapsed() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -355,7 +355,7 @@ class WorkingSetBarTest {
   void testTooltipTextWhenExpanded() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(3);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -396,7 +396,7 @@ class WorkingSetBarTest {
   void testTooltipTextWhenCollapsed() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(5, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(5);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -437,7 +437,7 @@ class WorkingSetBarTest {
   void testTooltipAndImageToggleBehavior() {
     SwtUtils.invokeOnDisplayThread(() -> {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
-      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(4, false);
+      Map<ChangedFile, FileChangeProperty> filesMap = createMockFilesMap(4);
 
       workingSetBar.buildSummaryBarFor(filesMap);
 
@@ -477,7 +477,7 @@ class WorkingSetBarTest {
       workingSetBar = new WorkingSetBar(parent, SWT.NONE);
 
       // Test with 1 file
-      Map<ChangedFile, FileChangeProperty> oneFile = createMockFilesMap(1, false);
+      Map<ChangedFile, FileChangeProperty> oneFile = createMockFilesMap(1);
       workingSetBar.buildSummaryBarFor(oneFile);
 
       Object titleBar = getFieldValue(workingSetBar, "titleBar");
@@ -489,7 +489,7 @@ class WorkingSetBarTest {
           "Tooltip should contain 'file' (singular)");
 
       // Test with 10 files
-      Map<ChangedFile, FileChangeProperty> tenFiles = createMockFilesMap(10, false);
+      Map<ChangedFile, FileChangeProperty> tenFiles = createMockFilesMap(10);
       workingSetBar.buildSummaryBarFor(tenFiles);
 
       titleBar = getFieldValue(workingSetBar, "titleBar");
@@ -525,7 +525,7 @@ class WorkingSetBarTest {
   /**
    * Creates a map of mock files with the specified count.
    */
-  private Map<ChangedFile, FileChangeProperty> createMockFilesMap(int count, boolean isHandled) {
+  private Map<ChangedFile, FileChangeProperty> createMockFilesMap(int count) {
     Map<ChangedFile, FileChangeProperty> filesMap = new LinkedHashMap<>();
     for (int i = 0; i < count; i++) {
       IFile mockFile = createMockFile("TestFile" + i + ".java");

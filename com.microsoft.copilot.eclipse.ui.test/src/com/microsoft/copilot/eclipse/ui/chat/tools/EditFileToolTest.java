@@ -129,11 +129,6 @@ class EditFileToolTest {
   }
 
   private LanguageModelToolResult[] invokeEdit(String filePath, String code) throws Exception {
-    Map<String, Object> input = new HashMap<>();
-    input.put("filePath", filePath);
-    input.put("code", code);
-    input.put("explanation", "test edit");
-
     return invokeEdit(new EditFileTool(), filePath, code);
   }
 
@@ -163,16 +158,14 @@ class EditFileToolTest {
     assertEquals(expectedContent, results[0].getContent().get(0).getValue());
   }
 
-  private static final class FileToolCacheAccessor extends EditFileTool {
+  private static final class FileToolCacheAccessor {
     private static void clearCaches() {
-      compareEditorInputMap.clear();
-      fileContentCache.clear();
-      localCompareEditorInputMap.clear();
-      localFileContentCache.clear();
+      FileToolBase.fileContentCache.clear();
+      FileToolBase.localFileContentCache.clear();
     }
 
     private static String getLocalFileContentCache(Path file) {
-      return localFileContentCache.get(file.toAbsolutePath().normalize());
+      return FileToolBase.localFileContentCache.get(file.toAbsolutePath().normalize());
     }
   }
 }

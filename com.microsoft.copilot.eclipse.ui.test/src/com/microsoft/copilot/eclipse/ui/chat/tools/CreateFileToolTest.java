@@ -5,7 +5,9 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -86,6 +88,7 @@ class CreateFileToolTest {
     
     // Clean up test project
     cleanupTestProject();
+    FileToolCacheAccessor.clearCaches();
   }
 
   private IProject setupTestProject() throws Exception {
@@ -296,13 +299,48 @@ class CreateFileToolTest {
   }
 
   @Test
+  void testOnKeepChangeWithWorkspaceFileClearsOriginalContentCache() {
+    IFile newFile = mock(IFile.class);
+    FileToolCacheAccessor.putWorkspaceFileContentCache(newFile, "");
+
+    createFileTool.onKeepChange(newFile);
+
+    assertNull(FileToolCacheAccessor.getWorkspaceFileContentCache(newFile));
+  }
+
+  @Test
+  void testOnUndoChangeWithWorkspaceFileDeletesFileAndClearsOriginalContentCache() throws Exception {
+    IProject project = setupTestProject();
+    IFile newFile = project.getFile("workspace-file-to-undo.txt");
+    newFile.create(new java.io.ByteArrayInputStream("test content".getBytes()), true, null);
+    FileToolCacheAccessor.putWorkspaceFileContentCache(newFile, "");
+
+    createFileTool.onUndoChange(newFile);
+
+    assertTrue(!newFile.exists());
+    assertNull(FileToolCacheAccessor.getWorkspaceFileContentCache(newFile));
+  }
+
+  @Test
+  void testOnKeepChangeWithExternalLocalFileClearsOriginalContentCache() {
+    Path newFile = tempDir.resolve("external-file-to-keep.txt");
+    FileToolCacheAccessor.putLocalFileContentCache(newFile, "");
+
+    createFileTool.onKeepChange(newFile);
+
+    assertNull(FileToolCacheAccessor.getLocalFileContentCache(newFile));
+  }
+
+  @Test
   void testOnUndoChangeWithExternalLocalFileDeletesFile() throws Exception {
     Path newFile = tempDir.resolve("external-file-to-undo.txt");
     Files.writeString(newFile, "test content");
+    FileToolCacheAccessor.putLocalFileContentCache(newFile, "");
 
     createFileTool.onUndoChange(newFile);
 
     assertTrue(Files.notExists(newFile));
+    assertNull(FileToolCacheAccessor.getLocalFileContentCache(newFile));
   }
 
   @Test
@@ -340,4 +378,27 @@ class CreateFileToolTest {
    * Note: CoreException and IOException scenarios are difficult to test in unit tests
    * without complex mocking and would be better covered by integration tests.
    */
+
+  private static final class FileToolCacheAccessor {
+    private static void clearCaches() {
+      FileToolBase.fileContentCache.clear();
+      FileToolBase.localFileContentCache.clear();
+    }
+
+    private static void putWorkspaceFileContentCache(IFile file, String content) {
+      FileToolBase.fileContentCache.put(file, content);
+    }
+
+    private static String getWorkspaceFileContentCache(IFile file) {
+      return FileToolBase.fileContentCache.get(file);
+    }
+
+    private static void putLocalFileContentCache(Path file, String content) {
+      FileToolBase.localFileContentCache.put(file.toAbsolutePath().normalize(), content);
+    }
+
+    private static String getLocalFileContentCache(Path file) {
+      return FileToolBase.localFileContentCache.get(file.toAbsolutePath().normalize());
+    }
+  }
 }

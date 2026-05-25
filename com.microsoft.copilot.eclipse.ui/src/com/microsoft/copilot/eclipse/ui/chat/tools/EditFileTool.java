@@ -57,7 +57,7 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDescription("""
-        Insert new code into an existing file in the workspace.
+        Insert new code into an existing workspace file or local filesystem file.
         Use this tool once per file that needs to be modified, even if there are multiple changes for a file.
         Generate the "explanation" property first.
         The system is very smart and can understand how to apply your edits to the files,
