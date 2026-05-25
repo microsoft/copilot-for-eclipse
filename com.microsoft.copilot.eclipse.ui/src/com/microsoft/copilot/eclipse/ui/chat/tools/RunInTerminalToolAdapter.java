@@ -3,15 +3,17 @@
 
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
+import java.io.File;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.IPath;
+import org.eclipse.lsp4j.WorkspaceFolder;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConfirmationMessages;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -27,6 +29,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
+import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -207,16 +210,10 @@ public class RunInTerminalToolAdapter extends BaseTool {
   }
 
   static String resolveWorkingDirectoryFromResources(List<IResource> resources) {
-    if (resources == null) {
-      return "";
-    }
-    for (IResource resource : resources) {
-      String location = resolveProjectLocation(resource);
-      if (StringUtils.isNotBlank(location)) {
-        return location;
-      }
-    }
-    return "";
+    return ResourceUtils.deriveWorkspaceFoldersFrom(resources).stream()
+        .findFirst()
+        .map(RunInTerminalToolAdapter::toLocalPath)
+        .orElse("");
   }
 
   private static String resolveWorkingDirectory() {
@@ -224,12 +221,14 @@ public class RunInTerminalToolAdapter extends BaseTool {
     if (manager != null) {
       ReferencedFileService fileService = manager.getReferencedFileService();
       if (fileService != null) {
-        String currentFileLocation = resolveProjectLocation(fileService.getCurrentFile());
-        if (StringUtils.isNotBlank(currentFileLocation)) {
-          return currentFileLocation;
+        List<IResource> resources = new ArrayList<>();
+        if (fileService.getCurrentFile() != null) {
+          resources.add(fileService.getCurrentFile());
         }
-
-        String referencedLocation = resolveWorkingDirectoryFromResources(fileService.getReferencedFiles());
+        if (fileService.getReferencedFiles() != null) {
+          resources.addAll(fileService.getReferencedFiles());
+        }
+        String referencedLocation = resolveWorkingDirectoryFromResources(resources);
         if (StringUtils.isNotBlank(referencedLocation)) {
           return referencedLocation;
         }
@@ -239,19 +238,15 @@ public class RunInTerminalToolAdapter extends BaseTool {
     return "";
   }
 
-  private static String resolveProjectLocation(IResource resource) {
-    if (resource == null) {
+  private static String toLocalPath(WorkspaceFolder workspaceFolder) {
+    if (workspaceFolder == null || StringUtils.isBlank(workspaceFolder.getUri())) {
       return "";
     }
-    return resolveProjectLocation(resource.getProject());
-  }
-
-  private static String resolveProjectLocation(IProject project) {
-    if (project == null || !project.isAccessible()) {
+    try {
+      return new File(URI.create(workspaceFolder.getUri())).getPath();
+    } catch (IllegalArgumentException e) {
       return "";
     }
-    IPath location = project.getLocation();
-    return location != null ? location.toOSString() : "";
   }
 
   /**

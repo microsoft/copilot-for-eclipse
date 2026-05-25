@@ -254,6 +254,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   private void sendInterrupt(ITerminalViewControl terminalViewControl) {
     Display display = terminalViewControl.getControl().getDisplay();
+    // Ctrl+C must be delivered before the next foreground command is pasted into the reused terminal.
     display.syncExec(() -> {
       if (!terminalViewControl.isDisposed()) {
         terminalViewControl.sendKey(INTERRUPT_CHARACTER);
