@@ -23,7 +23,6 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -179,17 +178,8 @@ public class FileOperationAutoApproveSection extends Composite {
             ? Display.getDefault().getSystemColor(SWT.COLOR_DARK_GRAY) : null;
       }
     });
-    table.addControlListener(new ControlAdapter() {
-      @Override
-      public void controlResized(org.eclipse.swt.events.ControlEvent e) {
-        int remainingWidth = table.getClientArea().width
-            - patternCol.getColumn().getWidth()
-            - descCol.getColumn().getWidth();
-        if (remainingWidth > 100) {
-          statusCol.getColumn().setWidth(remainingWidth);
-        }
-      }
-    });
+    SwtUtils.resizeColumnToFillTable(table, statusCol.getColumn(), 100,
+        patternCol.getColumn(), descCol.getColumn());
 
     tableViewer.setContentProvider(ArrayContentProvider.getInstance());
     tableViewer.addSelectionChangedListener(e -> updateButtonState());

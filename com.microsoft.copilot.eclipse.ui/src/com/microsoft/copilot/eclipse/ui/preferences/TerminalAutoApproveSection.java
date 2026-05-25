@@ -18,7 +18,6 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -126,16 +125,8 @@ public class TerminalAutoApproveSection extends Composite {
             : Messages.preferences_page_auto_approve_deny;
       }
     });
-    table.addControlListener(new ControlAdapter() {
-      @Override
-      public void controlResized(org.eclipse.swt.events.ControlEvent e) {
-        int remainingWidth = table.getClientArea().width
-            - commandCol.getColumn().getWidth();
-        if (remainingWidth > 100) {
-          statusCol.getColumn().setWidth(remainingWidth);
-        }
-      }
-    });
+    SwtUtils.resizeColumnToFillTable(table, statusCol.getColumn(), 100,
+        commandCol.getColumn());
 
     tableViewer.setContentProvider(ArrayContentProvider.getInstance());
     tableViewer.addSelectionChangedListener(e -> updateButtonState());

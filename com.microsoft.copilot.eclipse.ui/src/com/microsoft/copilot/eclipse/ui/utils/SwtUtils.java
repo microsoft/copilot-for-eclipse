@@ -18,6 +18,8 @@ import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
@@ -27,6 +29,8 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.swt.widgets.Scrollable;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
@@ -339,6 +343,25 @@ public class SwtUtils {
       return selection > minimum;
     }
     return selection < maximum;
+  }
+
+  /**
+   * Resizes a table column to fill the table client area not occupied by the fixed-width columns.
+   */
+  public static void resizeColumnToFillTable(Table table, TableColumn fillColumn,
+      int minWidth, TableColumn... fixedColumns) {
+    table.addControlListener(new ControlAdapter() {
+      @Override
+      public void controlResized(ControlEvent e) {
+        int remainingWidth = table.getClientArea().width;
+        for (TableColumn fixedColumn : fixedColumns) {
+          remainingWidth -= fixedColumn.getWidth();
+        }
+        if (remainingWidth > minWidth) {
+          fillColumn.setWidth(remainingWidth);
+        }
+      }
+    });
   }
 
   /**
