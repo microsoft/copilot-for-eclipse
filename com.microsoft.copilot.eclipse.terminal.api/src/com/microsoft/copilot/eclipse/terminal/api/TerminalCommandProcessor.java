@@ -125,16 +125,15 @@ public final class TerminalCommandProcessor {
       return CompletionCheckResult.incomplete();
     }
 
-    if (skipCompletion) {
+    // Keep command output plus the next prompt, but remove the command-finished marker itself, including exit code.
+    String completedOutput = output.substring(0, commandFinishMarkerRange.startIndex)
+        + output.substring(commandFinishMarkerRange.endIndex, promptEndMarkerRange.endIndex);
+    if (shouldSkipCompletion(completedOutput, activeCommand, skipCompletion)) {
       // This region belongs to a command that was interrupted by Ctrl+C. Drop it so it cannot complete the next
       // foreground command that may already be listening on the same terminal output buffer.
       output.delete(0, promptEndMarkerRange.endIndex);
       return CompletionCheckResult.skipped();
     }
-
-    // Keep command output plus the next prompt, but remove the command-finished marker itself, including exit code.
-    String completedOutput = output.substring(0, commandFinishMarkerRange.startIndex)
-        + output.substring(commandFinishMarkerRange.endIndex, promptEndMarkerRange.endIndex);
     return CompletionCheckResult.completed(cleanCommandOutput(completedOutput, activeCommand));
   }
 
@@ -142,10 +141,12 @@ public final class TerminalCommandProcessor {
    * Attempts to complete a command by detecting a shell prompt.
    *
    * @param output terminal output buffer
+   * @param activeCommand command currently being executed
    * @param skipCompletion whether to skip the next completed command region
    * @return the completion check result
    */
-  public static CompletionCheckResult tryCompleteWithPrompt(StringBuilder output, boolean skipCompletion) {
+  public static CompletionCheckResult tryCompleteWithPrompt(StringBuilder output, String activeCommand,
+      boolean skipCompletion) {
     String terminalOutput = output.toString().trim();
     int lastNewLineIndex = terminalOutput.lastIndexOf('\n');
     if (lastNewLineIndex <= 0) {
@@ -163,7 +164,7 @@ public final class TerminalCommandProcessor {
       return CompletionCheckResult.incomplete();
     }
 
-    if (skipCompletion) {
+    if (shouldSkipCompletion(terminalOutput, activeCommand, skipCompletion)) {
       output.setLength(0);
       return CompletionCheckResult.skipped();
     }
@@ -180,6 +181,17 @@ public final class TerminalCommandProcessor {
       return CompletionCheckResult.incomplete();
     }
     return CompletionCheckResult.completed(contentWithoutLastPrompt.substring(promptStartIndex).trim());
+  }
+
+  private static boolean shouldSkipCompletion(String completedRegion, String activeCommand, boolean skipCompletion) {
+    if (!skipCompletion) {
+      return false;
+    }
+    String normalizedCommand = normalizeLineEndings(activeCommand == null ? "" : activeCommand).trim();
+    if (normalizedCommand.isBlank()) {
+      return true;
+    }
+    return !normalizeLineEndings(completedRegion).contains(normalizedCommand);
   }
 
   private static String removeBracketedPasteMarkers(String output) {

@@ -67,9 +67,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   // Output and command state
   private StringBuilder sb;
-  private CompletableFuture<String> resultFuture;
-  private volatile String activeCommand;
-  private volatile boolean useMarker;
+  private volatile ForegroundCommand foregroundCommand;
   private volatile boolean skipNextCompletionAfterInterrupt;
 
   /**
@@ -91,23 +89,24 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       interruptCurrentCommand(COMMAND_INTERRUPTED_MESSAGE, true);
     }
 
-    resultFuture = new CompletableFuture<>();
-    CompletableFuture<String> commandFuture = resultFuture;
+    CompletableFuture<String> commandFuture = new CompletableFuture<>();
+    ForegroundCommand commandState = isBackground ? null
+        : new ForegroundCommand(commandFuture, command, hasShellIntegrationMarker());
 
-    useMarker = hasShellIntegrationMarker();
-    activeCommand = isBackground ? null : command;
-
-    if (!useMarker) {
-      // Retain only the last line (prompt) in the output buffer
-      if (!sb.isEmpty()) {
-        int lastLineStart = sb.lastIndexOf(StringUtils.LF);
-        if (lastLineStart > 0) {
-          sb.delete(0, lastLineStart);
+    if (commandState != null) {
+      foregroundCommand = commandState;
+      if (!commandState.useMarker()) {
+        // Retain only the last line (prompt) in the output buffer
+        if (!sb.isEmpty()) {
+          int lastLineStart = sb.lastIndexOf(StringUtils.LF);
+          if (lastLineStart > 0) {
+            sb.delete(0, lastLineStart);
+          }
         }
+      } else {
+        // For marker-based detection, clear the buffer
+        sb.setLength(0);
       }
-    } else {
-      // For marker-based detection, clear the buffer
-      sb.setLength(0);
     }
 
     String executionId = UUID.randomUUID().toString();
@@ -122,7 +121,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
       ITerminalService service = CoreBundleActivator.getTerminalService();
       if (service == null) {
-        activeCommand = null;
+        clearForegroundCommand(commandState);
         return CompletableFuture.completedFuture("Failed to open terminal console due to terminal service is null.");
       }
 
@@ -133,7 +132,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
           }
           ITerminalViewControl terminalViewControl = finalizeTerminalSetup(executionId, isBackground);
           if (terminalViewControl == null) {
-            activeCommand = null;
+            clearForegroundCommand(commandState);
             commandFuture.complete("Terminal view control cannot be setup for RunInTerminalTool.");
             return null;
           }
@@ -144,7 +143,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
           }
           sendCommand(terminalViewControl, finalCommand);
         } else {
-          activeCommand = null;
+          clearForegroundCommand(commandState);
           commandFuture.complete("Failed to open terminal console: " + e.getMessage());
         }
         return null;
@@ -226,7 +225,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   private void interruptCurrentCommand(String completionMessage, boolean skipInterruptedCompletion) {
     ITerminalViewControl terminalViewControl = null;
-    CompletableFuture<String> commandFuture = null;
+    ForegroundCommand commandState = null;
     synchronized (lock) {
       if (!hasRunningForegroundCommand()) {
         if (!skipInterruptedCompletion) {
@@ -234,22 +233,29 @@ public class RunInTerminalTool implements IRunInTerminalTool {
         }
         return;
       }
-      activeCommand = null;
+      commandState = foregroundCommand;
+      foregroundCommand = null;
       skipNextCompletionAfterInterrupt = skipInterruptedCompletion;
       terminalViewControl = persistentTerminalViewControl;
-      commandFuture = resultFuture;
     }
 
     if (terminalViewControl != null) {
       sendInterrupt(terminalViewControl);
     }
-    if (commandFuture != null && !commandFuture.isDone()) {
-      commandFuture.complete(completionMessage);
+    if (commandState != null && !commandState.future().isDone()) {
+      commandState.future().complete(completionMessage);
     }
   }
 
   private boolean hasRunningForegroundCommand() {
-    return StringUtils.isNotBlank(activeCommand) && resultFuture != null && !resultFuture.isDone();
+    ForegroundCommand commandState = foregroundCommand;
+    return commandState != null && !commandState.future().isDone();
+  }
+
+  private void clearForegroundCommand(ForegroundCommand commandState) {
+    if (commandState != null && foregroundCommand == commandState) {
+      foregroundCommand = null;
+    }
   }
 
   private void sendInterrupt(ITerminalViewControl terminalViewControl) {
@@ -354,20 +360,23 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       output.append(content);
 
       // Detect completion based on platform strategy
-      if (!isBackground && resultFuture != null && !resultFuture.isDone()) {
+      ForegroundCommand commandState = foregroundCommand;
+      if (!isBackground && commandState != null && !commandState.future().isDone()) {
         CompletionCheckResult completionResult;
         do {
-          completionResult = useMarker
-              ? TerminalCommandProcessor.tryCompleteWithMarker(output, activeCommand, skipNextCompletionAfterInterrupt)
-              : TerminalCommandProcessor.tryCompleteWithPrompt(output, skipNextCompletionAfterInterrupt);
-          handleCompletionResult(completionResult);
+          completionResult = commandState.useMarker()
+              ? TerminalCommandProcessor.tryCompleteWithMarker(output, commandState.command(),
+                  skipNextCompletionAfterInterrupt)
+              : TerminalCommandProcessor.tryCompleteWithPrompt(output, commandState.command(),
+                  skipNextCompletionAfterInterrupt);
+          handleCompletionResult(commandState, completionResult);
         } while (completionResult.state() == CompletionCheckState.SKIPPED
-            && resultFuture != null && !resultFuture.isDone());
+            && foregroundCommand == commandState && !commandState.future().isDone());
       }
     };
   }
 
-  private void handleCompletionResult(CompletionCheckResult completionResult) {
+  private void handleCompletionResult(ForegroundCommand commandState, CompletionCheckResult completionResult) {
     if (completionResult.state() == CompletionCheckState.INCOMPLETE) {
       return;
     }
@@ -375,9 +384,11 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       skipNextCompletionAfterInterrupt = false;
       return;
     }
-    activeCommand = null;
-    if (resultFuture != null && !resultFuture.isDone()) {
-      resultFuture.complete(completionResult.output());
+    if (foregroundCommand == commandState) {
+      foregroundCommand = null;
+    }
+    if (!commandState.future().isDone()) {
+      commandState.future().complete(completionResult.output());
     }
   }
 
@@ -422,6 +433,9 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   private String buildBackgroundTerminalTitle(String executionId) {
     return BACKGROUND_TERMINAL_PREFIX + executionId;
+  }
+
+  private record ForegroundCommand(CompletableFuture<String> future, String command, boolean useMarker) {
   }
 
   /**

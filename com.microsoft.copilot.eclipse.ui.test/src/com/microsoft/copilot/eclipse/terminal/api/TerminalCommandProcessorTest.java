@@ -126,10 +126,34 @@ class TerminalCommandProcessorTest {
   }
 
   @Test
+  void testTryCompleteWithMarker_skipCompletionDoesNotDiscardActiveCommandRegion() {
+    StringBuilder output = new StringBuilder("echo hi\r\nhi\r\n")
+        .append(ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX).append("0\u0007")
+        .append(ShellIntegrationScripts.PROMPT_START_MARKER)
+        .append("$ ")
+        .append(ShellIntegrationScripts.PROMPT_END_MARKER);
+
+    var result = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", true);
+
+    assertEquals(CompletionCheckState.COMPLETED, result.state());
+    assertEquals("hi\n$", result.output());
+  }
+
+  @Test
   void testTryCompleteWithPrompt_completed_extractsOutputBetweenPrompts() {
     StringBuilder output = new StringBuilder("PS C:\\repo> echo hi\nhi\nPS C:\\repo> ");
 
-    var result = TerminalCommandProcessor.tryCompleteWithPrompt(output, false);
+    var result = TerminalCommandProcessor.tryCompleteWithPrompt(output, "echo hi", false);
+
+    assertEquals(CompletionCheckState.COMPLETED, result.state());
+    assertEquals("echo hi\nhi", result.output());
+  }
+
+  @Test
+  void testTryCompleteWithPrompt_skipCompletionDoesNotDiscardActiveCommandRegion() {
+    StringBuilder output = new StringBuilder("PS C:\\repo> echo hi\nhi\nPS C:\\repo> ");
+
+    var result = TerminalCommandProcessor.tryCompleteWithPrompt(output, "echo hi", true);
 
     assertEquals(CompletionCheckState.COMPLETED, result.state());
     assertEquals("echo hi\nhi", result.output());
