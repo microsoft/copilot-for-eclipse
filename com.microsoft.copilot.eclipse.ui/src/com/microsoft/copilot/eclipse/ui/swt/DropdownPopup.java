@@ -156,9 +156,23 @@ class DropdownPopup {
     populateGroups(container, groups);
 
     Point contentSize = container.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-    // Keep sizing simple here. If the popup becomes scrollable we reserve
-    // scrollbar width in constrainHeightIfNeeded(), avoiding double-reserving
-    // the width when the scrollbar is detected in both places.
+    // If the popup will be scrollable, reserve space now for the vertical
+    // scrollbar so suffix text is not cropped. We detect the likely scrollable
+    // case by checking the item count against MAX_VISIBLE_ITEMS and reserve
+    // the scrollbar width here (so constrainHeightIfNeeded() does not need to
+    // also add it and double-count).
+    if (items.size() > MAX_VISIBLE_ITEMS && scrolledComposite.getVerticalBar() != null) {
+      int scrollBarWidth = scrolledComposite.getVerticalBar().getSize().x;
+      if (scrollBarWidth == 0) {
+        // computeSize may return a value even if getSize is not yet populated
+        scrollBarWidth = scrolledComposite.getVerticalBar().computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
+      }
+      if (scrollBarWidth == 0) {
+        // Fallback to a conservative default if the widget can't report size yet
+        scrollBarWidth = 16;
+      }
+      contentSize.x += scrollBarWidth;
+    }
     container.setSize(contentSize);
     scrolledComposite.setMinSize(contentSize);
 
@@ -236,15 +250,11 @@ class DropdownPopup {
     Composite lastVisible = items.get(lastIdx).composite();
     Rectangle lastBounds = lastVisible.getBounds();
     int maxContentHeight = lastBounds.y + lastBounds.height;
-
-    int scrollBarWidth = 0;
-    if (scrolledComposite.getVerticalBar() != null) {
-      scrollBarWidth = scrolledComposite.getVerticalBar().getSize().x;
-    }
-
     Point shellSize = shell.getSize();
     int newHeight = maxContentHeight + 2 * POPUP_MARGIN;
-    shell.setSize(shellSize.x + scrollBarWidth, newHeight);
+    // Width already reserved when we detected the popup would be scrollable
+    // during initial sizing in open(). Only adjust the height here.
+    shell.setSize(shellSize.x, newHeight);
   }
 
   private void adjustBounds(Point location, int anchorHeight) {
