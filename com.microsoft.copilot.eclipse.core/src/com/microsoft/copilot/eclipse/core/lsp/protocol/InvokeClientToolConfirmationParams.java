@@ -52,6 +52,16 @@ public class InvokeClientToolConfirmationParams {
    */
   private String toolCallId;
 
+  /**
+   * The MCP tool annotations describing tool behavior hints.
+   */
+  private ToolAnnotations annotations;
+
+  /**
+   * Additional metadata associated with the tool invocation.
+   */
+  private ToolMetadata toolMetadata;
+
   public String getName() {
     return name;
   }
@@ -116,9 +126,26 @@ public class InvokeClientToolConfirmationParams {
     this.toolCallId = toolCallId;
   }
 
+  public ToolAnnotations getAnnotations() {
+    return annotations;
+  }
+
+  public void setAnnotations(ToolAnnotations annotations) {
+    this.annotations = annotations;
+  }
+
+  public ToolMetadata getToolMetadata() {
+    return toolMetadata;
+  }
+
+  public void setToolMetadata(ToolMetadata toolMetadata) {
+    this.toolMetadata = toolMetadata;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(conversationId, input, message, name, roundId, title, toolCallId, turnId);
+    return Objects.hash(annotations, conversationId, input, message, name, roundId, title, toolCallId, toolMetadata,
+        turnId);
   }
 
   @Override
@@ -133,10 +160,11 @@ public class InvokeClientToolConfirmationParams {
       return false;
     }
     InvokeClientToolConfirmationParams other = (InvokeClientToolConfirmationParams) obj;
-    return Objects.equals(conversationId, other.conversationId) && Objects.equals(input, other.input)
+    return Objects.equals(annotations, other.annotations)
+        && Objects.equals(conversationId, other.conversationId) && Objects.equals(input, other.input)
         && Objects.equals(message, other.message) && Objects.equals(name, other.name) && roundId == other.roundId
         && Objects.equals(title, other.title) && Objects.equals(toolCallId, other.toolCallId)
-        && Objects.equals(turnId, other.turnId);
+        && Objects.equals(toolMetadata, other.toolMetadata) && Objects.equals(turnId, other.turnId);
   }
 
   @Override
@@ -150,6 +178,8 @@ public class InvokeClientToolConfirmationParams {
     builder.append("turnId", turnId);
     builder.append("roundId", roundId);
     builder.append("toolCallId", toolCallId);
+    builder.append("annotations", annotations);
+    builder.append("toolMetadata", toolMetadata);
     return builder.toString();
   }
 }

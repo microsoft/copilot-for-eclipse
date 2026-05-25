@@ -41,6 +41,39 @@ public final class Messages extends NLS {
   public static String thinking_expandTooltip;
   public static String thinking_collapseTooltip;
 
+  // Confirmation dialog action labels
+  public static String confirmation_action_allowOnce;
+  public static String confirmation_action_skip;
+  public static String confirmation_action_allowAllCommands;
+  public static String confirmation_action_allowNamesSession;
+  public static String confirmation_action_alwaysAllowNames;
+  public static String confirmation_action_allowExactSession;
+  public static String confirmation_action_alwaysAllowExact;
+  public static String confirmation_action_alwaysAllow;
+  public static String confirmation_action_allowFileSession;
+  public static String confirmation_action_allowFolderSession;
+
+  // MCP confirmation dialog action labels
+  public static String confirmation_title_mcpTool;
+  public static String confirmation_title_mcpToolDefault;
+  public static String confirmation_action_allowServerSession;
+  public static String confirmation_action_alwaysAllowServer;
+
+  // Confirmation dialog titles
+  public static String confirmation_title_terminal;
+  public static String confirmation_title_fallback;
+  public static String confirmation_title_fileRead;
+  public static String confirmation_title_fileWrite;
+  public static String confirmation_title_fileOperation;
+
+  // Confirmation dialog messages
+  public static String confirmation_message_fileRead;
+  public static String confirmation_message_fileWrite;
+  public static String confirmation_message_fileOperation;
+
+  // Misc
+  public static String confirmation_autoApprovedDescription;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);

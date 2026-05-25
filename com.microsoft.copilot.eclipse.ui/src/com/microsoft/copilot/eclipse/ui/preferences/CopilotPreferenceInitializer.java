@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import com.google.gson.Gson;
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -11,6 +12,8 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.FileOperationConfirmationHandler;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.TerminalConfirmationHandler;
 
 /**
  * A class to initialize the default preferences for the plugin.
@@ -59,6 +62,18 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
         }
          """);
     pref.setDefault(Constants.MCP_TOOLS_STATUS, "{}");
+
+    // Auto-approve defaults
+    pref.setDefault(Constants.AUTO_APPROVE_TERMINAL_RULES,
+        new Gson().toJson(TerminalConfirmationHandler.DEFAULT_RULES));
+    pref.setDefault(Constants.AUTO_APPROVE_UNMATCHED_TERMINAL, false);
+    pref.setDefault(Constants.AUTO_APPROVE_FILE_OP_RULES,
+        new Gson().toJson(FileOperationConfirmationHandler.FALLBACK_DEFAULT_RULES));
+    pref.setDefault(Constants.AUTO_APPROVE_UNMATCHED_FILE_OP, true);
+    pref.setDefault(Constants.AUTO_APPROVE_MCP_SERVERS, "[]");
+    pref.setDefault(Constants.AUTO_APPROVE_MCP_TOOLS, "[]");
+    pref.setDefault(Constants.AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS, false);
+    pref.setDefault(Constants.AUTO_APPROVE_YOLO_MODE, false);
 
     IEclipsePreferences configPrefs = ConfigurationScope.INSTANCE
         .getNode(CopilotUi.getPlugin().getBundle().getSymbolicName());

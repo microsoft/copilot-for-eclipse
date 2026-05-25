@@ -24,6 +24,7 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
@@ -69,6 +70,11 @@ public abstract class BaseTurnWidget extends Composite {
   protected Image icon = null;
   protected Font boldFont = null;
   protected InvokeToolConfirmationDialog confirmDialog;
+
+  /** Returns the current confirmation dialog, or {@code null} if none active. */
+  public InvokeToolConfirmationDialog getConfirmDialog() {
+    return confirmDialog;
+  }
 
   // Footer
   protected Composite footer;
@@ -636,20 +642,18 @@ public abstract class BaseTurnWidget extends Composite {
   /**
    * Prompts the user to confirm or deny a tool execution.
    *
-   * @param title The title of the confirmation dialog.
-   * @param message The message to display in the confirmation dialog.
+   * @param content The confirmation content with title, message, and action buttons.
    * @param input The input object to be passed to the tool.
    */
-  public CompletableFuture<LanguageModelToolConfirmationResult> requestToolExecutionConfirmation(String title,
-      String message, Object input) {
-    // process all the messages before showing the confirmation dialog
+  public CompletableFuture<LanguageModelToolConfirmationResult> requestToolExecutionConfirmation(
+      ConfirmationContent content, Object input) {
     reset();
 
-    this.confirmDialog = new InvokeToolConfirmationDialog(this, title, message, input);
+    this.confirmDialog = new InvokeToolConfirmationDialog(this, content, input);
     CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture = this.confirmDialog
         .getConfirmationFuture();
 
-    this.getParent().layout();
+    this.getParent().requestLayout();
 
     return toolConfirmationFuture;
   }
