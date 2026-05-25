@@ -405,6 +405,14 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
+   * Schedules a single async {@link #refreshScrollerLayout()} call so that multiple dispose/layout
+   * events that arrive in the same event-loop tick are coalesced into one pass.
+   */
+  public void requestRefreshScrollerLayout() {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> refreshScrollerLayout(), this);
+  }
+
+  /**
    * Update the size of scrolled composite when there are content updates.
    */
   public void refreshScrollerLayout() {
