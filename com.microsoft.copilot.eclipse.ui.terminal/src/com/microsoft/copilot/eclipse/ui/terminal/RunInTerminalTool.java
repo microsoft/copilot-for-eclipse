@@ -51,7 +51,6 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   private static final Map<String, StringBuilder> backgroundCommandOutputs = new HashMap<>();
   private static final String BACKGROUND_TERMINAL_PREFIX = "Copilot-";
   private static final String POWERSHELL_SCRIPT_ENV = "COPILOT_POWERSHELL_INTEGRATION_SCRIPT";
-  private static final char INTERRUPT_CHARACTER = '\u0003';
   private static final String COMMAND_CANCELLED_MESSAGE = "Terminal command cancelled.";
   private static final String COMMAND_INTERRUPTED_MESSAGE = "Terminal command interrupted by a new command.";
 
@@ -68,7 +67,6 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   // Output and command state
   private StringBuilder sb;
   private volatile ForegroundCommand foregroundCommand;
-  private volatile boolean skipNextCompletionAfterInterrupt;
 
   /**
    * Constructor for RunInTerminalTool.
@@ -84,14 +82,12 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     }
 
     if (!isBackground) {
-      // A new foreground command immediately installs a new future after Ctrl+C, so the interrupted command's
-      // next prompt-completion marker must be skipped if it arrives after the new command starts listening.
-      interruptCurrentCommand(COMMAND_INTERRUPTED_MESSAGE, true);
+      closeRunningForegroundTerminal(COMMAND_INTERRUPTED_MESSAGE);
     }
 
     CompletableFuture<String> commandFuture = new CompletableFuture<>();
     ForegroundCommand commandState = isBackground ? null
-        : new ForegroundCommand(commandFuture, command, hasShellIntegrationMarker());
+        : new ForegroundCommand(commandFuture, hasShellIntegrationMarker());
 
     if (commandState != null) {
       foregroundCommand = commandState;
@@ -218,54 +214,46 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   @Override
   public void cancelCurrentCommand() {
-    // User cancel completes the current future without starting a replacement command. Do not reserve a skip here,
-    // otherwise a later command could incorrectly skip its own completion if the interrupted prompt was already idle.
-    interruptCurrentCommand(COMMAND_CANCELLED_MESSAGE, false);
+    closeRunningForegroundTerminal(COMMAND_CANCELLED_MESSAGE);
   }
 
-  private void interruptCurrentCommand(String completionMessage, boolean skipInterruptedCompletion) {
-    ITerminalViewControl terminalViewControl = null;
+  private void closeRunningForegroundTerminal(String completionMessage) {
+    ForegroundCommand commandState = foregroundCommand;
+    if (commandState != null && !commandState.future().isDone()) {
+      closeCurrentForegroundTerminal(completionMessage);
+    }
+  }
+
+  private void closeCurrentForegroundTerminal(String completionMessage) {
     ForegroundCommand commandState = null;
+    CTabItem tabItem = null;
     synchronized (lock) {
-      if (!hasRunningForegroundCommand()) {
-        if (!skipInterruptedCompletion) {
-          skipNextCompletionAfterInterrupt = false;
-        }
-        return;
-      }
       commandState = foregroundCommand;
       foregroundCommand = null;
-      skipNextCompletionAfterInterrupt = skipInterruptedCompletion;
-      terminalViewControl = persistentTerminalViewControl;
+      persistentTerminalViewControl = null;
+      tabItem = copilotTabItem;
+      copilotTabItem = null;
+      sb.setLength(0);
     }
 
-    if (terminalViewControl != null) {
-      sendInterrupt(terminalViewControl);
+    if (tabItem != null) {
+      final CTabItem tabItemToDispose = tabItem;
+      // Keep this synchronous so a new foreground command cannot open before the old terminal tab is disposed.
+      Display.getDefault().syncExec(() -> {
+        if (!tabItemToDispose.isDisposed()) {
+          tabItemToDispose.dispose();
+        }
+      });
     }
     if (commandState != null && !commandState.future().isDone()) {
       commandState.future().complete(completionMessage);
     }
   }
 
-  private boolean hasRunningForegroundCommand() {
-    ForegroundCommand commandState = foregroundCommand;
-    return commandState != null && !commandState.future().isDone();
-  }
-
   private void clearForegroundCommand(ForegroundCommand commandState) {
     if (commandState != null && foregroundCommand == commandState) {
       foregroundCommand = null;
     }
-  }
-
-  private void sendInterrupt(ITerminalViewControl terminalViewControl) {
-    Display display = terminalViewControl.getControl().getDisplay();
-    // Ctrl+C must be delivered before the next foreground command is pasted into the reused terminal.
-    display.syncExec(() -> {
-      if (!terminalViewControl.isDisposed()) {
-        terminalViewControl.sendKey(INTERRUPT_CHARACTER);
-      }
-    });
   }
 
   private void sendCommand(ITerminalViewControl terminalViewControl, String command) {
@@ -362,26 +350,16 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       // Detect completion based on platform strategy
       ForegroundCommand commandState = foregroundCommand;
       if (!isBackground && commandState != null && !commandState.future().isDone()) {
-        CompletionCheckResult completionResult;
-        do {
-          completionResult = commandState.useMarker()
-              ? TerminalCommandProcessor.tryCompleteWithMarker(output, commandState.command(),
-                  skipNextCompletionAfterInterrupt)
-              : TerminalCommandProcessor.tryCompleteWithPrompt(output, commandState.command(),
-                  skipNextCompletionAfterInterrupt);
-          handleCompletionResult(commandState, completionResult);
-        } while (completionResult.state() == CompletionCheckState.SKIPPED
-            && foregroundCommand == commandState && !commandState.future().isDone());
+        CompletionCheckResult completionResult = commandState.useMarker()
+            ? TerminalCommandProcessor.tryCompleteWithMarker(output)
+            : TerminalCommandProcessor.tryCompleteWithPrompt(output);
+        handleCompletionResult(commandState, completionResult);
       }
     };
   }
 
   private void handleCompletionResult(ForegroundCommand commandState, CompletionCheckResult completionResult) {
     if (completionResult.state() == CompletionCheckState.INCOMPLETE) {
-      return;
-    }
-    if (completionResult.state() == CompletionCheckState.SKIPPED) {
-      skipNextCompletionAfterInterrupt = false;
       return;
     }
     if (foregroundCommand == commandState) {
@@ -435,7 +413,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     return BACKGROUND_TERMINAL_PREFIX + executionId;
   }
 
-  private record ForegroundCommand(CompletableFuture<String> future, String command, boolean useMarker) {
+  private record ForegroundCommand(CompletableFuture<String> future, boolean useMarker) {
   }
 
   /**

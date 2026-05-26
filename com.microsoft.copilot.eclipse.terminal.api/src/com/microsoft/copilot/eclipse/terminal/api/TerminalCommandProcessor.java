@@ -104,13 +104,10 @@ public final class TerminalCommandProcessor {
    * Attempts to complete a command using shell integration markers.
    *
    * @param output terminal output buffer
-   * @param activeCommand command currently being executed
-   * @param skipCompletion whether to skip the next completed command region
    * @return the completion check result
    */
-  public static CompletionCheckResult tryCompleteWithMarker(StringBuilder output, String activeCommand,
-      boolean skipCompletion) {
-    MarkerRange commandFinishMarkerRange = findCommandFinishMarker(output);
+  public static CompletionCheckResult tryCompleteWithMarker(StringBuilder output) {
+    MarkerRange commandFinishMarkerRange = findMarker(output, COMMAND_FINISH_MARKER_PATTERN, 0);
     if (commandFinishMarkerRange == null) {
       // Startup or idle prompts can arrive before a command runs. Keep the visible prompt text, but remove marker
       // bytes so later command output cleanup does not have to handle stale prompt boundaries.
@@ -118,35 +115,26 @@ public final class TerminalCommandProcessor {
       return CompletionCheckResult.incomplete();
     }
 
-    // The command-finished marker is emitted before the next prompt. Wait for prompt end so the returned output keeps
-    // the prompt line, which gives the language model the terminal's current working directory.
+    // A complete marker command is the command finish marker followed by the next prompt end. Waiting for B keeps the
+    // prompt line in the returned output, which gives the language model the terminal's current working directory.
     MarkerRange promptEndMarkerRange = findMarker(output, PROMPT_END_MARKER_PATTERN, commandFinishMarkerRange.endIndex);
     if (promptEndMarkerRange == null) {
       return CompletionCheckResult.incomplete();
     }
 
-    // Keep command output plus the next prompt, but remove the command-finished marker itself, including exit code.
+    // Keep terminal output plus the next prompt, but exclude command finish markers.
     String completedOutput = output.substring(0, commandFinishMarkerRange.startIndex)
         + output.substring(commandFinishMarkerRange.endIndex, promptEndMarkerRange.endIndex);
-    if (shouldSkipCompletion(completedOutput, activeCommand, skipCompletion)) {
-      // This region belongs to a command that was interrupted by Ctrl+C. Drop it so it cannot complete the next
-      // foreground command that may already be listening on the same terminal output buffer.
-      output.delete(0, promptEndMarkerRange.endIndex);
-      return CompletionCheckResult.skipped();
-    }
-    return CompletionCheckResult.completed(cleanCommandOutput(completedOutput, activeCommand));
+    return CompletionCheckResult.completed(cleanCommandOutput(completedOutput));
   }
 
   /**
    * Attempts to complete a command by detecting a shell prompt.
    *
    * @param output terminal output buffer
-   * @param activeCommand command currently being executed
-   * @param skipCompletion whether to skip the next completed command region
    * @return the completion check result
    */
-  public static CompletionCheckResult tryCompleteWithPrompt(StringBuilder output, String activeCommand,
-      boolean skipCompletion) {
+  public static CompletionCheckResult tryCompleteWithPrompt(StringBuilder output) {
     String terminalOutput = output.toString().trim();
     int lastNewLineIndex = terminalOutput.lastIndexOf('\n');
     if (lastNewLineIndex <= 0) {
@@ -164,11 +152,6 @@ public final class TerminalCommandProcessor {
       return CompletionCheckResult.incomplete();
     }
 
-    if (shouldSkipCompletion(terminalOutput, activeCommand, skipCompletion)) {
-      output.setLength(0);
-      return CompletionCheckResult.skipped();
-    }
-
     String contentWithoutLastPrompt = terminalOutput.substring(0, lastNewLineIndex);
     int promptStartIndex = contentWithoutLastPrompt.indexOf(lastLine);
     if (promptStartIndex == -1) {
@@ -181,17 +164,6 @@ public final class TerminalCommandProcessor {
       return CompletionCheckResult.incomplete();
     }
     return CompletionCheckResult.completed(contentWithoutLastPrompt.substring(promptStartIndex).trim());
-  }
-
-  private static boolean shouldSkipCompletion(String completedRegion, String activeCommand, boolean skipCompletion) {
-    if (!skipCompletion) {
-      return false;
-    }
-    String normalizedCommand = normalizeLineEndings(activeCommand == null ? "" : activeCommand).trim();
-    if (normalizedCommand.isBlank()) {
-      return true;
-    }
-    return !normalizeLineEndings(completedRegion).contains(normalizedCommand);
   }
 
   private static String removeBracketedPasteMarkers(String output) {
@@ -215,10 +187,6 @@ public final class TerminalCommandProcessor {
       endIndex--;
     }
     return value.substring(0, endIndex);
-  }
-
-  private static MarkerRange findCommandFinishMarker(StringBuilder output) {
-    return findMarker(output, COMMAND_FINISH_MARKER_PATTERN, 0);
   }
 
   private static MarkerRange findMarker(StringBuilder output, Pattern markerPattern, int startIndex) {
@@ -248,18 +216,10 @@ public final class TerminalCommandProcessor {
         + exitCodePattern + "(?:\u0007|\u001B\\\\)?");
   }
 
-  private static String cleanCommandOutput(String output, String activeCommand) {
+  private static String cleanCommandOutput(String output) {
     String normalizedOutput = normalizeLineEndings(output);
     normalizedOutput = removeShellIntegrationMarkers(normalizedOutput);
     normalizedOutput = removeBracketedPasteMarkers(normalizedOutput);
-    String normalizedCommand = normalizeLineEndings(activeCommand == null ? "" : activeCommand).trim();
-    if (normalizedCommand.isBlank()) {
-      return normalizedOutput.trim();
-    }
-    int commandIndex = normalizedOutput.lastIndexOf(normalizedCommand);
-    if (commandIndex >= 0) {
-      normalizedOutput = normalizedOutput.substring(commandIndex + normalizedCommand.length());
-    }
     return normalizedOutput.trim();
   }
 
@@ -294,10 +254,6 @@ public final class TerminalCommandProcessor {
       return new CompletionCheckResult(CompletionCheckState.INCOMPLETE, "");
     }
 
-    private static CompletionCheckResult skipped() {
-      return new CompletionCheckResult(CompletionCheckState.SKIPPED, "");
-    }
-
     private static CompletionCheckResult completed(String output) {
       return new CompletionCheckResult(CompletionCheckState.COMPLETED, output);
     }
@@ -308,7 +264,6 @@ public final class TerminalCommandProcessor {
    */
   public enum CompletionCheckState {
     INCOMPLETE,
-    SKIPPED,
     COMPLETED
   }
 }

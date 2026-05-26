@@ -54,26 +54,27 @@ class TerminalCommandProcessorTest {
 
   @Test
   void testTryCompleteWithMarker_completed_keepsNextPrompt() {
-    StringBuilder output = new StringBuilder("echo hi\r\nhi\r\n")
+    StringBuilder output = new StringBuilder("echo hi\r\n")
+        .append("hi\r\n")
         .append(ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX).append("0\u0007")
         .append(ShellIntegrationScripts.PROMPT_START_MARKER)
         .append("PS C:\\projects\\copilot-eclipse> ")
         .append(ShellIntegrationScripts.PROMPT_END_MARKER);
 
-    var result = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", false);
+    var result = TerminalCommandProcessor.tryCompleteWithMarker(output);
 
     assertEquals(CompletionCheckState.COMPLETED, result.state());
-    assertEquals("hi\nPS C:\\projects\\copilot-eclipse>", result.output());
+    assertEquals("echo hi\nhi\nPS C:\\projects\\copilot-eclipse>", result.output());
   }
 
   @Test
   void testTryCompleteWithMarker_completedWithBareMarker() {
     StringBuilder output = new StringBuilder("echo hi\r\nhi\r\n]7775;C;0]7775;A$ ]7775;B");
 
-    var result = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", false);
+    var result = TerminalCommandProcessor.tryCompleteWithMarker(output);
 
     assertEquals(CompletionCheckState.COMPLETED, result.state());
-    assertEquals("hi\n$", result.output());
+    assertEquals("echo hi\nhi\n$", result.output());
   }
 
   @Test
@@ -83,77 +84,32 @@ class TerminalCommandProcessorTest {
         .append("PS C:\\projects\\copilot-eclipse> ")
         .append(ShellIntegrationScripts.PROMPT_END_MARKER);
 
-    var result = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", false);
+    var result = TerminalCommandProcessor.tryCompleteWithMarker(output);
 
     assertEquals(CompletionCheckState.INCOMPLETE, result.state());
     assertEquals("PS C:\\projects\\copilot-eclipse> ", output.toString());
   }
 
   @Test
-  void testTryCompleteWithMarker_skipCompletion_discardsInterruptedCommandRegion() {
-    StringBuilder output = new StringBuilder("old output\n")
-        .append(ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX).append("1\u0007")
-        .append(ShellIntegrationScripts.PROMPT_START_MARKER)
-        .append("PS C:\\projects\\copilot-eclipse> ")
-        .append(ShellIntegrationScripts.PROMPT_END_MARKER)
-        .append("new output");
-
-    var result = TerminalCommandProcessor.tryCompleteWithMarker(output, "new command", true);
-
-    assertEquals(CompletionCheckState.SKIPPED, result.state());
-    assertEquals("new output", output.toString());
-  }
-
-  @Test
-  void testTryCompleteWithMarker_skipInterruptedMarkerThenCompletesCommandRegion() {
-    StringBuilder output = new StringBuilder()
-        .append(ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX).append("0\u0007")
-        .append(ShellIntegrationScripts.PROMPT_START_MARKER)
-        .append("$ ")
-        .append(ShellIntegrationScripts.PROMPT_END_MARKER)
-        .append("echo hi\r\nhi\r\n")
+  void testTryCompleteWithMarker_completedPreservesOutputContainingCommandText() {
+    StringBuilder output = new StringBuilder("echo hi\r\n")
+        .append("before\r\necho hi\r\nafter\r\n")
         .append(ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX).append("0\u0007")
         .append(ShellIntegrationScripts.PROMPT_START_MARKER)
         .append("$ ")
         .append(ShellIntegrationScripts.PROMPT_END_MARKER);
 
-    var skipped = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", true);
-    var completed = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", false);
-
-    assertEquals(CompletionCheckState.SKIPPED, skipped.state());
-    assertEquals(CompletionCheckState.COMPLETED, completed.state());
-    assertEquals("hi\n$", completed.output());
-  }
-
-  @Test
-  void testTryCompleteWithMarker_skipCompletionDoesNotDiscardActiveCommandRegion() {
-    StringBuilder output = new StringBuilder("echo hi\r\nhi\r\n")
-        .append(ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX).append("0\u0007")
-        .append(ShellIntegrationScripts.PROMPT_START_MARKER)
-        .append("$ ")
-        .append(ShellIntegrationScripts.PROMPT_END_MARKER);
-
-    var result = TerminalCommandProcessor.tryCompleteWithMarker(output, "echo hi", true);
+    var result = TerminalCommandProcessor.tryCompleteWithMarker(output);
 
     assertEquals(CompletionCheckState.COMPLETED, result.state());
-    assertEquals("hi\n$", result.output());
+    assertEquals("echo hi\nbefore\necho hi\nafter\n$", result.output());
   }
 
   @Test
   void testTryCompleteWithPrompt_completed_extractsOutputBetweenPrompts() {
     StringBuilder output = new StringBuilder("PS C:\\repo> echo hi\nhi\nPS C:\\repo> ");
 
-    var result = TerminalCommandProcessor.tryCompleteWithPrompt(output, "echo hi", false);
-
-    assertEquals(CompletionCheckState.COMPLETED, result.state());
-    assertEquals("echo hi\nhi", result.output());
-  }
-
-  @Test
-  void testTryCompleteWithPrompt_skipCompletionDoesNotDiscardActiveCommandRegion() {
-    StringBuilder output = new StringBuilder("PS C:\\repo> echo hi\nhi\nPS C:\\repo> ");
-
-    var result = TerminalCommandProcessor.tryCompleteWithPrompt(output, "echo hi", true);
+    var result = TerminalCommandProcessor.tryCompleteWithPrompt(output);
 
     assertEquals(CompletionCheckState.COMPLETED, result.state());
     assertEquals("echo hi\nhi", result.output());
@@ -184,7 +140,7 @@ class TerminalCommandProcessorTest {
   @Test
   void testPrepareOutputForModel_removesCopilotShellMarkers() {
     String output = "start\n" + ShellIntegrationScripts.PROMPT_START_MARKER
-        + "]7775;B\nbody\n]7775;C;0\nliteral 7775;A remains\n"
+        + "]7775;B\nbody\n]7775;C\nliteral 7775;A remains\n"
         + ShellIntegrationScripts.COMMAND_FINISH_MARKER_PREFIX + "1\u0007end";
 
     String result = TerminalCommandProcessor.prepareOutputForModel(output);
