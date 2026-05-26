@@ -303,7 +303,7 @@ class CreateFileToolTest {
     IFile newFile = mock(IFile.class);
     FileToolCacheAccessor.putWorkspaceFileContentCache(newFile, "");
 
-    createFileTool.onKeepChange(newFile);
+    createFileTool.onKeepChange(ChangedFile.workspace(newFile));
 
     assertNull(FileToolCacheAccessor.getWorkspaceFileContentCache(newFile));
   }
@@ -315,7 +315,7 @@ class CreateFileToolTest {
     newFile.create(new java.io.ByteArrayInputStream("test content".getBytes()), true, null);
     FileToolCacheAccessor.putWorkspaceFileContentCache(newFile, "");
 
-    createFileTool.onUndoChange(newFile);
+    createFileTool.onUndoChange(ChangedFile.workspace(newFile));
 
     assertTrue(!newFile.exists());
     assertNull(FileToolCacheAccessor.getWorkspaceFileContentCache(newFile));
@@ -324,23 +324,23 @@ class CreateFileToolTest {
   @Test
   void testOnKeepChangeWithExternalLocalFileClearsOriginalContentCache() {
     Path newFile = tempDir.resolve("external-file-to-keep.txt");
-    FileToolCacheAccessor.putLocalFileContentCache(newFile, "");
+    FileToolCacheAccessor.putFileContentCache(newFile, "");
 
-    createFileTool.onKeepChange(newFile);
+    createFileTool.onKeepChange(ChangedFile.local(newFile));
 
-    assertNull(FileToolCacheAccessor.getLocalFileContentCache(newFile));
+    assertNull(FileToolCacheAccessor.getFileContentCache(newFile));
   }
 
   @Test
   void testOnUndoChangeWithExternalLocalFileDeletesFile() throws Exception {
     Path newFile = tempDir.resolve("external-file-to-undo.txt");
     Files.writeString(newFile, "test content");
-    FileToolCacheAccessor.putLocalFileContentCache(newFile, "");
+    FileToolCacheAccessor.putFileContentCache(newFile, "");
 
-    createFileTool.onUndoChange(newFile);
+    createFileTool.onUndoChange(ChangedFile.local(newFile));
 
     assertTrue(Files.notExists(newFile));
-    assertNull(FileToolCacheAccessor.getLocalFileContentCache(newFile));
+    assertNull(FileToolCacheAccessor.getFileContentCache(newFile));
   }
 
   @Test
@@ -382,23 +382,22 @@ class CreateFileToolTest {
   private static final class FileToolCacheAccessor extends CreateFileTool {
     private static void clearCaches() {
       fileContentCache.clear();
-      localFileContentCache.clear();
     }
 
     private static void putWorkspaceFileContentCache(IFile file, String content) {
-      fileContentCache.put(file, content);
+      fileContentCache.put(ChangedFile.workspace(file), content);
     }
 
     private static String getWorkspaceFileContentCache(IFile file) {
-      return fileContentCache.get(file);
+      return fileContentCache.get(ChangedFile.workspace(file));
     }
 
-    private static void putLocalFileContentCache(Path file, String content) {
-      localFileContentCache.put(file.toAbsolutePath().normalize(), content);
+    private static void putFileContentCache(Path file, String content) {
+      fileContentCache.put(ChangedFile.local(file), content);
     }
 
-    private static String getLocalFileContentCache(Path file) {
-      return localFileContentCache.get(file.toAbsolutePath().normalize());
+    private static String getFileContentCache(Path file) {
+      return fileContentCache.get(ChangedFile.local(file));
     }
   }
 }

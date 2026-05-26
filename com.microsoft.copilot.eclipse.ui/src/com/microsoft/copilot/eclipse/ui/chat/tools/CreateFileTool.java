@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.compare.CompareEditorInput;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
@@ -138,7 +137,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       try (ByteArrayInputStream contentStream = new ByteArrayInputStream(
           content.getBytes(PlatformUtils.getFileCharset(file)))) {
         file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
-        cacheTheOriginalFileContent(file, StringUtils.EMPTY);
+        cacheTheOriginalFileContent(ChangedFile.workspace(file), StringUtils.EMPTY);
       }
       CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(ChangedFile.workspace(file),
           FileChangeType.Created);
@@ -172,7 +171,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
         Files.createDirectories(parent);
       }
       Files.writeString(normalizedPath, content, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-      cacheTheOriginalFileContent(normalizedPath, StringUtils.EMPTY);
+      cacheTheOriginalFileContent(ChangedFile.local(normalizedPath), StringUtils.EMPTY);
       CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(
           ChangedFile.local(normalizedPath), FileChangeType.Created);
       result.addContent("File created at: " + normalizedPath);
@@ -218,68 +217,39 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
   }
 
   @Override
-  public void onKeepChange(IFile file) {
-    fileContentCache.remove(file);
+  public void onKeepChange(ChangedFile file) {
+    removeCachedFileContent(file);
     closeCompareEditor(file);
   }
 
-  /**
-   * Handles the action of keeping changes to a local file.
-   *
-   * @param file the local file to keep changes for
-   */
   @Override
-  public void onKeepChange(Path file) {
-    Path normalizedPath = normalizeLocalPath(file);
-    localFileContentCache.remove(normalizedPath);
-    closeCompareEditor(normalizedPath);
-  }
-
-  @Override
-  public void onUndoChange(IFile file) throws CoreException {
-    if (file != null && file.exists()) {
-      file.delete(true, new NullProgressMonitor());
-    }
-    fileContentCache.remove(file);
+  public void onUndoChange(ChangedFile file) throws CoreException, IOException {
+    deleteCreatedFile(file);
+    removeCachedFileContent(file);
     closeCompareEditor(file);
   }
 
-  /**
-   * Handles the action of undoing creation of a local file.
-   *
-   * @param file the local file to delete
-   * @throws IOException if an error occurs while deleting the file
-   */
-  @Override
-  public void onUndoChange(Path file) throws IOException {
-    Path normalizedPath = normalizeLocalPath(file);
-    Files.deleteIfExists(normalizedPath);
-    localFileContentCache.remove(normalizedPath);
-    closeCompareEditor(normalizedPath);
-  }
-
-  @Override
-  public void onViewDiff(IFile file) {
-    SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file));
-  }
-
-  /**
-   * Handles the action of viewing the diff of a created local file.
-   *
-   * @param file the local file to view
-   */
-  @Override
-  public void onViewDiff(Path file) {
-    Path normalizedPath = normalizeLocalPath(file);
-    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
-    if (input != null) {
-      if (isCompareEditorOpen(input)) {
-        bringCompareEditorToTop(input);
-        return;
+  private void deleteCreatedFile(ChangedFile file) throws CoreException, IOException {
+    if (file.isWorkspaceFile()) {
+      IFile workspaceFile = file.getWorkspaceFile();
+      if (workspaceFile != null && workspaceFile.exists()) {
+        workspaceFile.delete(true, new NullProgressMonitor());
       }
-      localCompareEditorInputMap.remove(normalizedPath);
+      return;
     }
-    compareStringWithFile("", normalizedPath);
+    Files.deleteIfExists(file.getLocalPath());
+  }
+
+  @Override
+  public void onViewDiff(ChangedFile file) {
+    if (file.isWorkspaceFile()) {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file.getWorkspaceFile()));
+      return;
+    }
+    if (bringCompareEditorToTopIfOpen(file)) {
+      return;
+    }
+    compareStringWithFile("", file);
   }
 
   @Override

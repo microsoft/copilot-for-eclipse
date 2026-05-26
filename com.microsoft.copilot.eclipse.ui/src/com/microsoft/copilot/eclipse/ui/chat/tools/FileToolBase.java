@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareEditorInput;
@@ -32,6 +33,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
@@ -51,10 +53,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Abstract class for handling file change tool related actions.
  */
 public abstract class FileToolBase extends BaseTool {
-  protected static Map<IFile, CompareEditorInput> compareEditorInputMap = new ConcurrentHashMap<>();
-  protected static Map<IFile, String> fileContentCache = new ConcurrentHashMap<>();
-  protected static Map<Path, CompareEditorInput> localCompareEditorInputMap = new ConcurrentHashMap<>();
-  protected static Map<Path, String> localFileContentCache = new ConcurrentHashMap<>();
+  protected static Map<ChangedFile, CompareEditorInput> compareEditorInputMap = new ConcurrentHashMap<>();
+  protected static Map<ChangedFile, String> fileContentCache = new ConcurrentHashMap<>();
 
   @Override
   public abstract CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView);
@@ -63,72 +63,68 @@ public abstract class FileToolBase extends BaseTool {
    * Common method to handle cleanup of file changes.
    */
   protected void cleanupChangedFiles() {
-    for (IFile file : compareEditorInputMap.keySet()) {
-      closeCompareEditor(file);
-    }
-    for (Path file : localCompareEditorInputMap.keySet()) {
+    for (ChangedFile file : compareEditorInputMap.keySet()) {
       closeCompareEditor(file);
     }
     compareEditorInputMap.clear();
     fileContentCache.clear();
-    localCompareEditorInputMap.clear();
-    localFileContentCache.clear();
   }
 
   /**
-   * Caches the original content of the file to be compared with the proposed changes.
+   * Caches the original content of the changed file to be compared with the proposed changes.
    *
-   * @param file The file whose original content is to be cached.
+   * @param file The changed file whose original content is to be cached.
    */
-  protected void cacheTheOriginalFileContent(IFile file) {
+  protected void cacheTheOriginalFileContent(ChangedFile file) {
     if (fileContentCache.containsKey(file)) {
       // We only need to cache the original file content once to keep the initial file content so that we can undo the
       // entire file edit even the file has been modified for multiple rounds.
       return;
     }
-    try (InputStream inputStream = file.getContents()) {
-      String content = new String(inputStream.readAllBytes(), PlatformUtils.getFileCharset(file));
-      fileContentCache.put(file, content);
+    try {
+      fileContentCache.put(file, readCurrentFileContent(file));
     } catch (IOException | CoreException e) {
       CopilotCore.LOGGER.error("Error caching original file content", e);
     }
   }
 
   /**
-   * Caches the original content for a workspace file if no baseline exists yet.
+   * Caches the original content for a changed file if no baseline exists yet.
    *
    * @param file The file whose original content is to be cached.
    * @param content The content to use as the original baseline.
    */
-  protected void cacheTheOriginalFileContent(IFile file, String content) {
+  protected void cacheTheOriginalFileContent(ChangedFile file, String content) {
     fileContentCache.putIfAbsent(file, content);
   }
 
-  /**
-   * Caches the original content of a local file to be compared with the proposed changes.
-   *
-   * @param file The local file whose original content is to be cached.
-   */
-  protected void cacheTheOriginalFileContent(Path file) {
-    Path normalizedPath = normalizeLocalPath(file);
-    if (localFileContentCache.containsKey(normalizedPath)) {
-      return;
+  private String readCurrentFileContent(ChangedFile file) throws IOException, CoreException {
+    if (file.isWorkspaceFile()) {
+      IFile workspaceFile = file.getWorkspaceFile();
+      try (InputStream inputStream = workspaceFile.getContents()) {
+        return new String(inputStream.readAllBytes(), PlatformUtils.getFileCharset(workspaceFile));
+      }
     }
-    try {
-      localFileContentCache.put(normalizedPath, Files.readString(normalizedPath, StandardCharsets.UTF_8));
-    } catch (IOException e) {
-      CopilotCore.LOGGER.error("Error caching original local file content", e);
-    }
+    return Files.readString(file.getLocalPath(), StandardCharsets.UTF_8);
   }
 
   /**
-   * Caches the original content for a local file if no baseline exists yet.
+   * Gets the cached original content for a changed file.
    *
-   * @param file The local file whose original content is to be cached.
-   * @param content The content to use as the original baseline.
+   * @param file The changed file whose cached content should be returned.
+   * @return the cached content, or null if no content is cached.
    */
-  protected void cacheTheOriginalFileContent(Path file, String content) {
-    localFileContentCache.putIfAbsent(normalizeLocalPath(file), content);
+  protected String getCachedFileContent(ChangedFile file) {
+    return fileContentCache.get(file);
+  }
+
+  /**
+   * Removes the cached original content for a changed file.
+   *
+   * @param file The changed file whose cached content should be removed.
+   */
+  protected void removeCachedFileContent(ChangedFile file) {
+    fileContentCache.remove(file);
   }
 
   /**
@@ -151,14 +147,12 @@ public abstract class FileToolBase extends BaseTool {
   }
 
   /**
-   * Compares the given string with the content of the given file in a compare editor.
+   * Compares the given string with the content of a changed file in a compare editor.
    *
    * @param originalFileContent The original string content of the file to compare with.
-   * @param file The user's file with the proposed changes has been applied.
-   * @throws InvocationTargetException If the operation is canceled.
-   * @throws InterruptedException If the operation is canceled.
+   * @param file The changed file with the proposed changes applied.
    */
-  protected void compareStringWithFile(String originalFileContent, IFile file) {
+  protected void compareStringWithFile(String originalFileContent, ChangedFile file) {
     try {
       CompareEditorInput input = createCompareEditorInput(originalFileContent, file);
       input.run(new NullProgressMonitor());
@@ -176,70 +170,12 @@ public abstract class FileToolBase extends BaseTool {
   }
 
   /**
-   * Compares the given string with the content of the given local file in a compare editor.
-   *
-   * @param originalFileContent The original string content of the file to compare with.
-   * @param file The local file with the proposed changes applied.
-   */
-  protected void compareStringWithFile(String originalFileContent, Path file) {
-    Path normalizedPath = normalizeLocalPath(file);
-    try {
-      CompareEditorInput input = createCompareEditorInput(originalFileContent, normalizedPath);
-      input.run(new NullProgressMonitor());
-      localCompareEditorInputMap.put(normalizedPath, input);
-      SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        CompareEditorInput compareEditorInput = localCompareEditorInputMap.get(normalizedPath);
-        if (compareEditorInput != null) {
-          CompareUI.openCompareEditor(compareEditorInput);
-        }
-      });
-    } catch (InvocationTargetException | InterruptedException e) {
-      CopilotCore.LOGGER.error("Error opening local file compare editor", e);
-    }
-  }
-
-  /**
-   * Updates the current or creates a new compare editor with the given file content and file.
-   *
-   * @param originalFileContent The original string content of the file to compare with.
-   * @param file The user's file with the proposed changes has been applied.
-   */
-  protected void updateOrCreateCompareStringWithFile(String fileContent, IFile file) {
-    if (fileContent == null) {
-      return;
-    }
-
-    CompareEditorInput input = compareEditorInputMap.get(file);
-    if (input != null) {
-      if (fileContent.equals(fileContentCache.get(file))) {
-        SwtUtils.invokeOnDisplayThreadAsync(() -> {
-          CompareUI.reuseCompareEditor(input, (IReusableEditor) getCompareEditor(input));
-        });
-      } else {
-        CompareEditorInput newInput = createCompareEditorInput(fileContent, file);
-        compareEditorInputMap.put(file, newInput);
-        SwtUtils.invokeOnDisplayThreadAsync(() -> {
-          CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
-          if (compareEditorInput != null) {
-            CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) getCompareEditor(compareEditorInput));
-          }
-        });
-      }
-      bringCompareEditorToTop(input);
-    } else {
-      // If not, create a new compare editor
-      compareStringWithFile(fileContent, file);
-    }
-  }
-
-  /**
-   * Refreshes the compare editor for the given file only if it is already open. Does not open a new editor or steal
-   * focus.
+   * Refreshes the compare editor for the given changed file only if it is already open.
    *
    * @param fileContent The original file content to compare against.
-   * @param file The file whose compare editor should be refreshed.
+   * @param file The changed file whose compare editor should be refreshed.
    */
-  protected void refreshCompareEditorIfOpen(String fileContent, IFile file) {
+  protected void refreshCompareEditorIfOpen(String fileContent, ChangedFile file) {
     if (fileContent == null) {
       return;
     }
@@ -253,42 +189,10 @@ public abstract class FileToolBase extends BaseTool {
           // If the compare editor is closed, remove the input from the map and skip refreshing.
           compareEditorInputMap.remove(file);
           return;
-        } else {
-          CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
-          if (compareEditorInput != null) {
-            CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) editor);
-          }
         }
-      });
-    }
-  }
-
-  /**
-   * Refreshes the compare editor for the given local file only if it is already open. Does not open a new editor or
-   * steal focus.
-   *
-   * @param fileContent The original file content to compare against.
-   * @param file The local file whose compare editor should be refreshed.
-   */
-  protected void refreshCompareEditorIfOpen(String fileContent, Path file) {
-    if (fileContent == null) {
-      return;
-    }
-    Path normalizedPath = normalizeLocalPath(file);
-    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
-    if (input != null) {
-      CompareEditorInput newInput = createCompareEditorInput(fileContent, normalizedPath);
-      localCompareEditorInputMap.put(normalizedPath, newInput);
-      SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        IEditorPart editor = getCompareEditor(input);
-        if (editor == null) {
-          localCompareEditorInputMap.remove(normalizedPath);
-          return;
-        } else {
-          CompareEditorInput compareEditorInput = localCompareEditorInputMap.get(normalizedPath);
-          if (compareEditorInput != null) {
-            CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) editor);
-          }
+        CompareEditorInput compareEditorInput = compareEditorInputMap.get(file);
+        if (compareEditorInput != null) {
+          CompareUI.reuseCompareEditor(compareEditorInput, (IReusableEditor) editor);
         }
       });
     }
@@ -336,12 +240,11 @@ public abstract class FileToolBase extends BaseTool {
   }
 
   /**
-   * Close the compare editor for the given file if it is open.
+   * Closes the compare editor for the given changed file if it is open.
    *
-   * @param file The file to check.
-   * @return true if the compare editor is open, false otherwise.
+   * @param file The changed file to check.
    */
-  protected void closeCompareEditor(IFile file) {
+  protected void closeCompareEditor(ChangedFile file) {
     CompareEditorInput input = compareEditorInputMap.get(file);
     if (input != null) {
       SwtUtils.invokeOnDisplayThread(() -> {
@@ -363,30 +266,22 @@ public abstract class FileToolBase extends BaseTool {
   }
 
   /**
-   * Close the compare editor for the given local file if it is open.
+   * Brings the compare editor for a changed file to the top if it is open.
    *
-   * @param file The local file to check.
+   * @param file The changed file whose compare editor should be shown.
+   * @return true if an open compare editor was found, false otherwise.
    */
-  protected void closeCompareEditor(Path file) {
-    Path normalizedPath = normalizeLocalPath(file);
-    CompareEditorInput input = localCompareEditorInputMap.get(normalizedPath);
-    if (input != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        IWorkbenchPage page = UiUtils.getActivePage();
-        if (page == null) {
-          return;
-        }
-        IEditorReference[] editorRefs = page.getEditorReferences();
-        for (IEditorReference ref : editorRefs) {
-          IEditorPart editor = ref.getEditor(false);
-          if (editor != null && editor.getEditorInput() == input) {
-            page.closeEditor(editor, false);
-            break;
-          }
-        }
-      });
+  protected boolean bringCompareEditorToTopIfOpen(ChangedFile file) {
+    CompareEditorInput input = compareEditorInputMap.get(file);
+    if (input == null) {
+      return false;
     }
-    localCompareEditorInputMap.remove(normalizedPath);
+    if (isCompareEditorOpen(input)) {
+      bringCompareEditorToTop(input);
+      return true;
+    }
+    compareEditorInputMap.remove(file);
+    return false;
   }
 
   /**
@@ -399,97 +294,51 @@ public abstract class FileToolBase extends BaseTool {
     return file.toAbsolutePath().normalize();
   }
 
-  /**
-   * Gets the file extension for a local path.
-   *
-   * @param file the local file path
-   * @return the extension without the dot, or an empty string if none exists
-   */
-  private String getLocalFileExtension(Path file) {
-    String name = file.getFileName() == null ? file.toString() : file.getFileName().toString();
-    int index = name.lastIndexOf('.');
-    if (index < 0 || index == name.length() - 1) {
-      return "";
-    }
-    return name.substring(index + 1);
-  }
-
-  private CompareEditorInput createCompareEditorInput(String comparedContent, IFile file) {
-    // Create a new CompareConfiguration
-    CompareConfiguration config = new CompareConfiguration();
-    config.setLeftLabel(Messages.agent_tool_compareEditor_proposedChangesTitle.replaceAll("\"", ""));
-    config.setRightLabel(file.getName());
-
-    // Enable editing on the proposed changes side and disable it on the original file side. Eclipse's original side
-    // and
-    // changes side are swapped, so we need to set the left side as editable to edit the proposed changes.
-    config.setLeftEditable(true);
-    config.setRightEditable(false);
-
-    // Set up the configuration to properly show differences
-    config.setProperty(CompareConfiguration.USE_OUTLINE_VIEW, Boolean.TRUE);
-    config.setProperty(CompareConfiguration.SHOW_PSEUDO_CONFLICTS, Boolean.TRUE);
-    config.setProperty(CompareConfiguration.IGNORE_WHITESPACE, Boolean.FALSE);
-
-    return new CompareEditorInput(config) {
-      @Override
-      protected Object prepareInput(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-        monitor.beginTask("Calculating differences", 10);
-        setTitle(Messages.agent_tool_compareEditor_titlePrefix + file.getName());
-        // Keep proposedChanges virtual file's name and type same as the originalFile original file's name and type
-        EditableStringCompareInput proposedChanges = new EditableStringCompareInput(comparedContent, file.getName(),
-            file.getFileExtension(), PlatformUtils.getFileCharset(file));
-        EditableFileCompareInput originalFile = new EditableFileCompareInput(file);
-
-        // Create a diff node with proper configuration for text comparison
-        DiffNode diffNode = new DiffNode(null, Differencer.CHANGE, null, originalFile, proposedChanges);
-
-        monitor.done();
-        return diffNode;
-      }
-
-      @Override
-      public void saveChanges(IProgressMonitor monitor) throws CoreException {
-        // We need to set the right side as editable to save the changes made to the proposed changes. Otherwise, the
-        // changes won't be saved.
-        if (isDirty()) {
-          config.setRightEditable(true);
-          super.saveChanges(monitor);
-
-          // Get the diff node which contains the comparison inputs
-          DiffNode diffNode = (DiffNode) getCompareResult();
-          if (diffNode != null) {
-            // Get the right side input (the original file with any edits made)
-            EditableFileCompareInput inputToBeApplied = (EditableFileCompareInput) diffNode.getLeft();
-
-            // Save the modified content back to the file
-            try (InputStream inputStream = inputToBeApplied.getContents()) {
-              file.setContents(inputStream, true, true, monitor);
-            } catch (IOException e) {
-              CopilotCore.LOGGER.error("Error saving compare editor changes to file", e);
-            }
+  private CompareEditorInput createWorkspaceCompareEditorInput(String comparedContent, IFile file) {
+    ChangedFile changedFile = ChangedFile.workspace(file);
+    EditableFileCompareInput originalFile = new EditableFileCompareInput(file);
+    return createCompareEditorInputForTarget(comparedContent, originalFile.getName(), originalFile.getType(),
+        PlatformUtils.getFileCharset(file), () -> originalFile, (diffNode, monitor) -> {
+          EditableFileCompareInput inputToBeApplied = (EditableFileCompareInput) diffNode.getLeft();
+          try (InputStream inputStream = inputToBeApplied.getContents()) {
+            file.setContents(inputStream, true, true, monitor);
+          } catch (IOException e) {
+            CopilotCore.LOGGER.error("Error saving compare editor changes to file", e);
           }
-
-          // If user keeps the changes with keyboard shortcut, we also need to complete the file.
-          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(file);
-          fileContentCache.remove(file);
-        }
-      }
-    };
+          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(changedFile);
+          removeCachedFileContent(changedFile);
+        });
   }
 
-  private CompareEditorInput createCompareEditorInput(String comparedContent, Path file) {
+  private CompareEditorInput createLocalCompareEditorInput(String comparedContent, Path file) {
     Path normalizedPath = normalizeLocalPath(file);
-    String fileName = normalizedPath.getFileName() == null ? normalizedPath.toString()
-        : normalizedPath.getFileName().toString();
-    CompareConfiguration config = new CompareConfiguration();
-    config.setLeftLabel(Messages.agent_tool_compareEditor_proposedChangesTitle.replaceAll("\"", ""));
-    config.setRightLabel(fileName);
-    config.setLeftEditable(true);
-    config.setRightEditable(false);
-    config.setProperty(CompareConfiguration.USE_OUTLINE_VIEW, Boolean.TRUE);
-    config.setProperty(CompareConfiguration.SHOW_PSEUDO_CONFLICTS, Boolean.TRUE);
-    config.setProperty(CompareConfiguration.IGNORE_WHITESPACE, Boolean.FALSE);
+    ChangedFile changedFile = ChangedFile.local(normalizedPath);
+    EditableFileCompareInput originalFile = new EditableFileCompareInput(normalizedPath);
+    return createCompareEditorInputForTarget(comparedContent, originalFile.getName(), originalFile.getType(),
+        StandardCharsets.UTF_8.name(), () -> originalFile,
+        (diffNode, monitor) -> {
+          EditableFileCompareInput inputToBeApplied = (EditableFileCompareInput) diffNode.getLeft();
+          try (InputStream inputStream = inputToBeApplied.getContents()) {
+            Files.write(normalizedPath, inputStream.readAllBytes());
+          } catch (IOException e) {
+            CopilotCore.LOGGER.error("Error saving compare editor changes to local file", e);
+          }
+          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(changedFile);
+          removeCachedFileContent(changedFile);
+        });
+  }
+
+  private CompareEditorInput createCompareEditorInput(String comparedContent, ChangedFile file) {
+    if (file.isWorkspaceFile()) {
+      return createWorkspaceCompareEditorInput(comparedContent, file.getWorkspaceFile());
+    }
+    return createLocalCompareEditorInput(comparedContent, file.getLocalPath());
+  }
+
+  private CompareEditorInput createCompareEditorInputForTarget(String comparedContent, String fileName,
+      String fileExtension, String charset, Supplier<ITypedElement> originalFileSupplier,
+      CompareContentSaver contentSaver) {
+    CompareConfiguration config = createCompareConfiguration(fileName);
 
     return new CompareEditorInput(config) {
       @Override
@@ -497,9 +346,8 @@ public abstract class FileToolBase extends BaseTool {
         monitor.beginTask("Calculating differences", 10);
         setTitle(Messages.agent_tool_compareEditor_titlePrefix + fileName);
         EditableStringCompareInput proposedChanges = new EditableStringCompareInput(comparedContent, fileName,
-            getLocalFileExtension(normalizedPath), StandardCharsets.UTF_8.name());
-        EditableLocalFileCompareInput originalFile = new EditableLocalFileCompareInput(normalizedPath);
-        DiffNode diffNode = new DiffNode(null, Differencer.CHANGE, null, originalFile, proposedChanges);
+            fileExtension, charset);
+        DiffNode diffNode = new DiffNode(null, Differencer.CHANGE, null, originalFileSupplier.get(), proposedChanges);
         monitor.done();
         return diffNode;
       }
@@ -512,19 +360,38 @@ public abstract class FileToolBase extends BaseTool {
 
           DiffNode diffNode = (DiffNode) getCompareResult();
           if (diffNode != null) {
-            EditableLocalFileCompareInput inputToBeApplied = (EditableLocalFileCompareInput) diffNode.getLeft();
-            try (InputStream inputStream = inputToBeApplied.getContents()) {
-              Files.write(normalizedPath, inputStream.readAllBytes());
-            } catch (IOException e) {
-              CopilotCore.LOGGER.error("Error saving compare editor changes to local file", e);
-            }
+            contentSaver.save(diffNode, monitor);
           }
-
-          CopilotUi.getPlugin().getChatServiceManager().getFileToolService().completeFile(normalizedPath);
-          localFileContentCache.remove(normalizedPath);
         }
       }
     };
+  }
+
+  private CompareConfiguration createCompareConfiguration(String rightLabel) {
+    CompareConfiguration config = new CompareConfiguration();
+    config.setLeftLabel(Messages.agent_tool_compareEditor_proposedChangesTitle.replaceAll("\"", ""));
+    config.setRightLabel(rightLabel);
+    config.setLeftEditable(true);
+    config.setRightEditable(false);
+    config.setProperty(CompareConfiguration.USE_OUTLINE_VIEW, Boolean.TRUE);
+    config.setProperty(CompareConfiguration.SHOW_PSEUDO_CONFLICTS, Boolean.TRUE);
+    config.setProperty(CompareConfiguration.IGNORE_WHITESPACE, Boolean.FALSE);
+    return config;
+  }
+
+  /**
+   * Saves the editable compare content back to the target file type.
+   */
+  @FunctionalInterface
+  private interface CompareContentSaver {
+    /**
+     * Saves the edited content represented by a compare diff node.
+     *
+     * @param diffNode The diff node containing the editable compare inputs.
+     * @param monitor The progress monitor for the save operation.
+     * @throws CoreException if saving through Eclipse APIs fails.
+     */
+    void save(DiffNode diffNode, IProgressMonitor monitor) throws CoreException;
   }
 
   /**
@@ -538,19 +405,15 @@ public abstract class FileToolBase extends BaseTool {
     if (fileContentCache != null) {
       fileContentCache.clear();
     }
-    if (localCompareEditorInputMap != null) {
-      localCompareEditorInputMap.clear();
-    }
-    if (localFileContentCache != null) {
-      localFileContentCache.clear();
-    }
   }
 
   /**
    * Editable file compare input class to handle file content editing on the compare editor.
    */
-  public class EditableFileCompareInput implements ITypedElement, IEncodedStreamContentAccessor, IEditableContent {
-    private IFile file;
+  public static final class EditableFileCompareInput implements ITypedElement, IEncodedStreamContentAccessor,
+      IEditableContent {
+    private final IFile workspaceFile;
+    private final Path localFile;
     private byte[] modifiedContent = null;
 
     /**
@@ -559,12 +422,27 @@ public abstract class FileToolBase extends BaseTool {
      * @param file The file to be edited.
      */
     public EditableFileCompareInput(IFile file) {
-      this.file = file;
+      this.workspaceFile = file;
+      this.localFile = null;
+    }
+
+    /**
+     * Constructor for EditableFileCompareInput.
+     *
+     * @param file The local file to be edited.
+     */
+    EditableFileCompareInput(Path file) {
+      this.workspaceFile = null;
+      this.localFile = file.toAbsolutePath().normalize();
     }
 
     @Override
     public String getName() {
-      return file.getName();
+      if (workspaceFile != null) {
+        return workspaceFile.getName();
+      }
+      Path fileName = localFile.getFileName();
+      return fileName == null ? localFile.toString() : fileName.toString();
     }
 
     @Override
@@ -574,11 +452,19 @@ public abstract class FileToolBase extends BaseTool {
 
     @Override
     public String getType() {
-      return file.getFileExtension();
+      if (workspaceFile != null) {
+        return workspaceFile.getFileExtension();
+      }
+      return getLocalFileExtension(localFile);
     }
 
+    /**
+     * Gets the workspace file represented by this compare input.
+     *
+     * @return the workspace file
+     */
     public IFile getFile() {
-      return file;
+      return workspaceFile;
     }
 
     @Override
@@ -586,12 +472,19 @@ public abstract class FileToolBase extends BaseTool {
       if (modifiedContent != null) {
         return new ByteArrayInputStream(modifiedContent);
       }
-      return file.getContents();
+      if (workspaceFile != null) {
+        return workspaceFile.getContents();
+      }
+      try {
+        return Files.newInputStream(localFile);
+      } catch (IOException e) {
+        throw new CoreException(Status.error("Error reading local file", e));
+      }
     }
 
     @Override
     public String getCharset() throws CoreException {
-      return file.getCharset();
+      return workspaceFile == null ? StandardCharsets.UTF_8.name() : workspaceFile.getCharset();
     }
 
     @Override
@@ -608,13 +501,21 @@ public abstract class FileToolBase extends BaseTool {
     public ITypedElement replace(ITypedElement dest, ITypedElement src) {
       if (src instanceof IStreamContentAccessor sca) {
         try (InputStream is = sca.getContents()) {
-          // Just store changes in memory
           modifiedContent = is.readAllBytes();
         } catch (IOException | CoreException e) {
           CopilotCore.LOGGER.error("Error occurred while replacing file content", e);
         }
       }
       return this;
+    }
+
+    private static String getLocalFileExtension(Path file) {
+      String name = file.getFileName() == null ? file.toString() : file.getFileName().toString();
+      int index = name.lastIndexOf('.');
+      if (index < 0 || index == name.length() - 1) {
+        return "";
+      }
+      return name.substring(index + 1);
     }
   }
 

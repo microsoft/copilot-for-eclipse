@@ -4,7 +4,6 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,7 +11,6 @@ import java.util.Map;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.FileChangeType;
@@ -199,25 +197,7 @@ public class FileToolService extends ChatBaseService {
    *
    * @param file the file to complete
    */
-  public void completeFile(IFile file) {
-    completeFileInternal(ChangedFile.workspace(file));
-  }
-
-  /**
-   * Complete a changed local file action and remove it from the working set bar.
-   *
-   * @param file the local file to complete
-   */
-  public void completeFile(Path file) {
-    completeFileInternal(ChangedFile.local(file));
-  }
-
-  /**
-   * Complete a changed file action and remove it from the working set bar.
-   *
-   * @param file the file to complete
-   */
-  private void completeFileInternal(ChangedFile file) {
+  public void completeFile(ChangedFile file) {
     ensureRealm(() -> {
       Map<ChangedFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
       filesMap.remove(file);
@@ -251,19 +231,11 @@ public class FileToolService extends ChatBaseService {
    */
   public void onKeepChange(ChangedFile file) {
     if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
-      if (file.isWorkspaceFile()) {
-        this.createFileTool.onKeepChange(file.getWorkspaceFile());
-      } else {
-        this.createFileTool.onKeepChange(file.getLocalPath());
-      }
+      this.createFileTool.onKeepChange(file);
     } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
-      if (file.isWorkspaceFile()) {
-        this.editFileTool.onKeepChange(file.getWorkspaceFile());
-      } else {
-        this.editFileTool.onKeepChange(file.getLocalPath());
-      }
+      this.editFileTool.onKeepChange(file);
     }
-    this.completeFileInternal(file);
+    this.completeFile(file);
   }
 
   /**
@@ -272,17 +244,9 @@ public class FileToolService extends ChatBaseService {
   public void onKeepAllChanges() {
     for (ChangedFile file : new ArrayList<>(filesObservable.getValue().keySet())) {
       if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
-        if (file.isWorkspaceFile()) {
-          this.createFileTool.onKeepChange(file.getWorkspaceFile());
-        } else {
-          this.createFileTool.onKeepChange(file.getLocalPath());
-        }
+        this.createFileTool.onKeepChange(file);
       } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
-        if (file.isWorkspaceFile()) {
-          this.editFileTool.onKeepChange(file.getWorkspaceFile());
-        } else {
-          this.editFileTool.onKeepChange(file.getLocalPath());
-        }
+        this.editFileTool.onKeepChange(file);
       }
     }
     onResolveAllChanges();
@@ -296,22 +260,14 @@ public class FileToolService extends ChatBaseService {
   public void onUndoChange(ChangedFile file) {
     try {
       if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
-        if (file.isWorkspaceFile()) {
-          this.createFileTool.onUndoChange(file.getWorkspaceFile());
-        } else {
-          this.createFileTool.onUndoChange(file.getLocalPath());
-        }
+        this.createFileTool.onUndoChange(file);
       } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
-        if (file.isWorkspaceFile()) {
-          this.editFileTool.onUndoChange(file.getWorkspaceFile());
-        } else {
-          this.editFileTool.onUndoChange(file.getLocalPath());
-        }
+        this.editFileTool.onUndoChange(file);
       }
     } catch (CoreException | IOException e) {
       CopilotCore.LOGGER.error("Error undoing changes for the new file", e);
     }
-    this.completeFileInternal(file);
+    this.completeFile(file);
   }
 
   /**
@@ -321,17 +277,9 @@ public class FileToolService extends ChatBaseService {
     try {
       for (ChangedFile file : new ArrayList<>(filesObservable.getValue().keySet())) {
         if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
-          if (file.isWorkspaceFile()) {
-            this.createFileTool.onUndoChange(file.getWorkspaceFile());
-          } else {
-            this.createFileTool.onUndoChange(file.getLocalPath());
-          }
+          this.createFileTool.onUndoChange(file);
         } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
-          if (file.isWorkspaceFile()) {
-            this.editFileTool.onUndoChange(file.getWorkspaceFile());
-          } else {
-            this.editFileTool.onUndoChange(file.getLocalPath());
-          }
+          this.editFileTool.onUndoChange(file);
         }
       }
     } catch (CoreException | IOException e) {
@@ -351,21 +299,13 @@ public class FileToolService extends ChatBaseService {
       return;
     }
     if (property.getChangeType() == FileChangeType.Created) {
-      if (file.isWorkspaceFile()) {
-        if (property.isChangedAfterCreated()) {
-          this.editFileTool.onViewDiff(file.getWorkspaceFile());
-        } else {
-          this.createFileTool.onViewDiff(file.getWorkspaceFile());
-        }
+      if (property.isChangedAfterCreated()) {
+        this.editFileTool.onViewDiff(file);
       } else {
-        this.createFileTool.onViewDiff(file.getLocalPath());
+        this.createFileTool.onViewDiff(file);
       }
     } else if (property.getChangeType() == FileChangeType.Changed) {
-      if (file.isWorkspaceFile()) {
-        this.editFileTool.onViewDiff(file.getWorkspaceFile());
-      } else {
-        this.editFileTool.onViewDiff(file.getLocalPath());
-      }
+      this.editFileTool.onViewDiff(file);
     }
   }
 

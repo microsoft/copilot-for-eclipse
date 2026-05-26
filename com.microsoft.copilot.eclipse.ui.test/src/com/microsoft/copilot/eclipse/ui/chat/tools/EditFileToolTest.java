@@ -95,7 +95,7 @@ class EditFileToolTest {
     LanguageModelToolResult[] results = invokeEdit(editFileTool, file.toString(), "updated");
     assertSuccess(results, "updated");
 
-    editFileTool.onUndoChange(file);
+    editFileTool.onUndoChange(ChangedFile.local(file));
 
     assertEquals("original", Files.readString(file));
   }
@@ -109,14 +109,14 @@ class EditFileToolTest {
     CreateFileTool createFileTool = new CreateFileTool();
     LanguageModelToolResult[] createResults = invokeCreate(createFileTool, file.toString(), "created content");
     assertSuccess(createResults, "File created at: " + normalizedPath);
-    assertEquals("", FileToolCacheAccessor.getLocalFileContentCache(normalizedPath));
+    assertEquals("", FileToolCacheAccessor.getFileContentCache(normalizedPath));
 
     EditFileTool editFileTool = new EditFileTool();
     LanguageModelToolResult[] editResults = invokeEdit(editFileTool, file.toString(), "edited content");
 
     assertSuccess(editResults, "edited content");
     assertEquals("edited content", Files.readString(file));
-    assertEquals("", FileToolCacheAccessor.getLocalFileContentCache(normalizedPath));
+    assertEquals("", FileToolCacheAccessor.getFileContentCache(normalizedPath));
   }
 
   @Test
@@ -161,11 +161,10 @@ class EditFileToolTest {
   private static final class FileToolCacheAccessor extends EditFileTool {
     private static void clearCaches() {
       fileContentCache.clear();
-      localFileContentCache.clear();
     }
 
-    private static String getLocalFileContentCache(Path file) {
-      return localFileContentCache.get(file.toAbsolutePath().normalize());
+    private static String getFileContentCache(Path file) {
+      return fileContentCache.get(ChangedFile.local(file));
     }
   }
 }
