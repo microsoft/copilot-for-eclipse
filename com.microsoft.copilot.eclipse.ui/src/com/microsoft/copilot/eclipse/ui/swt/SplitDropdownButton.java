@@ -14,7 +14,7 @@
  *     The Eclipse Foundation - initial API and implementation
  *******************************************************************************/
 
-package com.microsoft.copilot.eclipse.ui.dialogs.mcp;
+package com.microsoft.copilot.eclipse.ui.swt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,11 +36,17 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 
 /**
- * A drop down button from Eclipse Foundation that can show a menu when the arrow is clicked.
+ * A split button that distinguishes between clicking the label area (primary action)
+ * and clicking the arrow area (opens a dropdown menu). Originally from Eclipse Foundation.
+ *
+ * <p>Selection listeners receive {@code e.detail == SWT.ARROW} when the arrow
+ * area is clicked, and {@code e.detail == 0} for the primary area.
  */
-public class DropDownButton {
+public class SplitDropdownButton {
 
   private boolean showArrow;
+
+  private Color separatorColor;
 
   private Rectangle arrowBounds;
 
@@ -71,9 +77,10 @@ public class DropDownButton {
       try {
         int inset = 3;
         int lineX = arrowBounds.x;
+        Color lineColor = separatorColor != null ? separatorColor : shadowColor;
         gc.setLineWidth(1);
-        gc.setForeground(shadowColor);
-        gc.setBackground(shadowColor);
+        gc.setForeground(lineColor);
+        gc.setBackground(lineColor);
         gc.drawLine(lineX, arrowBounds.y + inset - 1, lineX, e.y + buttonBounds.height - inset);
 
         Color arrowColor = button.getForeground();
@@ -93,12 +100,12 @@ public class DropDownButton {
   };
 
   /**
-   * Creates a new DropDownButton.
+   * Creates a new SplitButton.
    *
    * @param parent the parent composite
    * @param style the style of button
    */
-  public DropDownButton(Composite parent, int style) {
+  public SplitDropdownButton(Composite parent, int style) {
     button = new Button(parent, SWT.PUSH);
   }
 
@@ -123,6 +130,17 @@ public class DropDownButton {
 
   public boolean isShowArrow() {
     return showArrow;
+  }
+
+  /**
+   * Overrides the separator line color. When {@code null} (default),
+   * the system shadow color is used.
+   *
+   * @param color the color for the separator, or {@code null} for the default
+   */
+  public void setSeparatorColor(Color color) {
+    this.separatorColor = color;
+    button.redraw();
   }
 
   /**
@@ -291,7 +309,8 @@ public class DropDownButton {
    * @param listener the listener to remove
    */
   public void removeSelectionListener(SelectionListener listener) {
-    DropDownSelectionListenerWrapper wrapper = findWrapper(listener);
+    DropDownSelectionListenerWrapper wrapper =
+        findWrapper(listener);
     if (wrapper != null) {
       button.removeSelectionListener(wrapper);
     }

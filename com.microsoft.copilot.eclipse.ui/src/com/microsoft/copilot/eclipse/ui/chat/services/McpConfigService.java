@@ -29,6 +29,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsPara
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.dialogs.DynamicOauthDialog;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.preferences.McpAutoApproveSection;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 
 /**
@@ -50,6 +51,7 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
   private ISideEffect mcpToolButtonEnableSideEffect;
   private ISideEffect mcpToolsButtonRedNoticeSideEffect;
   private ISideEffect mcpPrefencePageExtMcpTitleRedNoticeSideEffect;
+  private ISideEffect mcpAutoApproveSideEffect;
 
   private IEventBroker eventBroker;
 
@@ -106,6 +108,28 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
     };
 
     eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagNotifiedEventHandler);
+  }
+
+  /**
+   * Bind the observable with UI in McpAutoApproveSection.
+   */
+  public void bindWithAutoApproveSection(McpAutoApproveSection section) {
+    ensureRealm(() -> {
+      unbindWithAutoApproveSection();
+      mcpAutoApproveSideEffect = ISideEffect.create(
+          mcpToolsObservableValue::getValue,
+          section::updateServerCollections);
+    });
+  }
+
+  /**
+   * Unbind the McpAutoApproveSection side-effect.
+   */
+  public void unbindWithAutoApproveSection() {
+    if (mcpAutoApproveSideEffect != null) {
+      mcpAutoApproveSideEffect.dispose();
+      mcpAutoApproveSideEffect = null;
+    }
   }
 
   /**

@@ -76,6 +76,15 @@ public class DidChangeFeatureFlagsParams {
     return !disabled;
   }
 
+  /**
+   * Checks if the auto-approval feature is enabled.
+   * Disabled only when the feature flag "agent_mode_auto_approval" is set to "0".
+   */
+  public boolean isAutoApprovalEnabled() {
+    boolean disabled = featureFlags != null && "0".equals(featureFlags.get("agent_mode_auto_approval"));
+    return !disabled;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(activeExps, featureFlags, envelope, byokEnabled);

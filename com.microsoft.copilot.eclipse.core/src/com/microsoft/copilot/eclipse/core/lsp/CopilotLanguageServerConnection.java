@@ -54,6 +54,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFi
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.GetDefaultFileSafetyRulesResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ModelInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NextEditSuggestionsParams;
@@ -150,6 +151,16 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<CheckQuotaResult> checkQuota() {
     Function<LanguageServer, CompletableFuture<CheckQuotaResult>> fn = server -> ((CopilotLanguageServer) server)
         .checkQuota(new NullParams());
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Get the default file safety rules from CLS.
+   */
+  public CompletableFuture<GetDefaultFileSafetyRulesResult> getDefaultFileSafetyRules() {
+    Function<LanguageServer, CompletableFuture<GetDefaultFileSafetyRulesResult>> fn =
+        server -> ((CopilotLanguageServer) server)
+            .getDefaultFileSafetyRules(new NullParams());
     return this.languageServerWrapper.execute(fn);
   }
 
