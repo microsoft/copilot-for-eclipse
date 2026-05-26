@@ -240,32 +240,6 @@ public abstract class BaseTurnWidget extends Composite {
       messageBuffer.delete(0, newlineIndex + 1);
       processMessageLine(line);
     }
-    // Eagerly render any trailing partial line (text without a closing newline) so the user
-    // sees streamed content immediately instead of waiting for the next chunk or a turn-end
-    // flush. The markup viewer is fully overwritten on each setMarkup call, so the next
-    // chunk (which either completes the line or adds more partial text) will overwrite this
-    // tentative render with the committed content. Skip when inside a code block, because
-    // partial text must be routed to the source viewer, and when the partial could be the
-    // start of a code-block fence, because fence detection requires a complete line.
-    renderPartialBuffer();
-  }
-
-  private void renderPartialBuffer() {
-    if (messageBuffer.length() == 0 || inCodeBlock) {
-      return;
-    }
-    String partial = messageBuffer.toString();
-    String trimmed = partial.trim();
-    // Defer rendering when the partial could be a code-block fence:
-    //   - "```..." → confirmed fence prefix, wait for the newline before deciding.
-    //   - "`" or "``" with no other content → could grow into a fence on the next chunk.
-    if (trimmed.startsWith(CODE_BLOCK_ANNOTATION)
-        || (trimmed.length() <= 2 && trimmed.chars().allMatch(c -> c == '`'))) {
-      return;
-    }
-    SwtUtils.invokeOnDisplayThread(() -> {
-      appendTextToTextViewer(mdContentBuilder.toString() + partial);
-    }, this);
   }
 
   /**

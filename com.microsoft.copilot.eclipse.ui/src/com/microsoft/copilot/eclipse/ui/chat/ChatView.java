@@ -405,7 +405,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (!(data instanceof CompressionStartedParams params)) {
         return;
       }
-      if (!StringUtils.equals(params.conversationId(), this.conversationId)) {
+      if (!isCompressionForActiveConversation(params.conversationId())) {
         return;
       }
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
@@ -427,7 +427,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (!(data instanceof CompressionCompletedParams params)) {
         return;
       }
-      if (!StringUtils.equals(params.conversationId(), this.conversationId)) {
+      if (!isCompressionForActiveConversation(params.conversationId())) {
         return;
       }
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
@@ -1256,6 +1256,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return StringUtils.equals(progressConversationId, this.subagentConversationId);
     }
     return StringUtils.equals(progressConversationId, this.conversationId);
+  }
+
+  /**
+   * Checks whether a compression notification targets either the main conversation or the active subagent
+   * conversation, so the UI can reflect compaction happening at either level.
+   */
+  private boolean isCompressionForActiveConversation(String compressionConversationId) {
+    return StringUtils.equals(compressionConversationId, this.conversationId)
+        || StringUtils.equals(compressionConversationId, this.subagentConversationId);
   }
 
   /**
