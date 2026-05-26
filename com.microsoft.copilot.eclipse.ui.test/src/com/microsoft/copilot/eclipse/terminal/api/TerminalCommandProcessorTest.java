@@ -131,7 +131,7 @@ class TerminalCommandProcessorTest {
 
     String result = TerminalCommandProcessor.truncateOutput(output.toString());
 
-    assertTrue(result.startsWith("[Terminal output truncated: showing last 1000 of 1005 lines.]\n"));
+    assertTrue(result.startsWith("[Terminal output truncated: showing last 1000 lines.]\n"));
     assertFalse(result.contains("line 5\n"));
     assertTrue(result.contains("line 6\n"));
     assertTrue(result.endsWith("line 1005\n"));

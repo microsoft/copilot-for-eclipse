@@ -23,7 +23,7 @@ if (-not $global:COPILOT_SHELL_INTEGRATION) {
         $result = ""
 
         if ($global:__copilot_last_history_id -ne -1) {
-            if ($lastHistoryEntry.Id -eq $global:__copilot_last_history_id) {
+            if ($null -ne $lastHistoryEntry -and $lastHistoryEntry.Id -eq $global:__copilot_last_history_id) {
                 $result += "$esc]7775;C$bel"
             } else {
                 if ($lastSuccess) {
@@ -46,7 +46,11 @@ if (-not $global:COPILOT_SHELL_INTEGRATION) {
         }
 
         $result += "$esc]7775;B$bel"
-        $global:__copilot_last_history_id = $lastHistoryEntry.Id
+        if ($null -ne $lastHistoryEntry) {
+            $global:__copilot_last_history_id = $lastHistoryEntry.Id
+        } else {
+            $global:__copilot_last_history_id = 0
+        }
         $result
     }
 }

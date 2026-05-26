@@ -6,6 +6,8 @@ package com.microsoft.copilot.eclipse.terminal.api;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Processes terminal command input and output buffers.
  */
@@ -41,7 +43,7 @@ public final class TerminalCommandProcessor {
    * @return command text formatted for terminal input
    */
   public static String formatForExecution(String command, boolean useBracketedPaste) {
-    String normalizedCommand = removeTrailingLineEndings(normalizeLineEndings(command));
+    String normalizedCommand = StringUtils.stripEnd(normalizeLineEndings(command), "\n");
     String terminalInput = useBracketedPaste && isMultilineCommand(normalizedCommand)
         ? BRACKETED_PASTE_START + normalizedCommand + BRACKETED_PASTE_END
         : normalizedCommand;
@@ -64,30 +66,24 @@ public final class TerminalCommandProcessor {
     }
 
     String normalizedOutput = normalizeLineEndings(output);
-    boolean endsWithNewline = normalizedOutput.endsWith("\n");
-    String[] lines = normalizedOutput.split("\n", -1);
-    int lineCount = endsWithNewline ? lines.length - 1 : lines.length;
-    if (lineCount <= MAX_OUTPUT_LINE_COUNT) {
-      return output;
+    int scanIndex = normalizedOutput.endsWith("\n") ? normalizedOutput.length() - 2 : normalizedOutput.length() - 1;
+    int keptLineCount = 1;
+    while (scanIndex >= 0) {
+      if (normalizedOutput.charAt(scanIndex) == '\n') {
+        if (keptLineCount == MAX_OUTPUT_LINE_COUNT) {
+          StringBuilder truncatedOutput = new StringBuilder();
+          truncatedOutput.append("[Terminal output truncated: showing last ")
+              .append(MAX_OUTPUT_LINE_COUNT)
+              .append(" lines.]\n");
+          truncatedOutput.append(normalizedOutput.substring(scanIndex + 1));
+          return truncatedOutput.toString();
+        }
+        keptLineCount++;
+      }
+      scanIndex--;
     }
 
-    int firstLineToKeep = lineCount - MAX_OUTPUT_LINE_COUNT;
-    StringBuilder truncatedOutput = new StringBuilder();
-    truncatedOutput.append("[Terminal output truncated: showing last ")
-        .append(MAX_OUTPUT_LINE_COUNT)
-        .append(" of ")
-        .append(lineCount)
-        .append(" lines.]\n");
-    for (int lineIndex = firstLineToKeep; lineIndex < lineCount; lineIndex++) {
-      if (lineIndex > firstLineToKeep) {
-        truncatedOutput.append('\n');
-      }
-      truncatedOutput.append(lines[lineIndex]);
-    }
-    if (endsWithNewline) {
-      truncatedOutput.append('\n');
-    }
-    return truncatedOutput.toString();
+    return output;
   }
 
   /**
@@ -181,14 +177,6 @@ public final class TerminalCommandProcessor {
     return false;
   }
 
-  private static String removeTrailingLineEndings(String value) {
-    int endIndex = value.length();
-    while (endIndex > 0 && value.charAt(endIndex - 1) == '\n') {
-      endIndex--;
-    }
-    return value.substring(0, endIndex);
-  }
-
   private static MarkerRange findMarker(StringBuilder output, Pattern markerPattern, int startIndex) {
     Matcher matcher = markerPattern.matcher(output);
     if (!matcher.find(startIndex)) {
@@ -224,10 +212,7 @@ public final class TerminalCommandProcessor {
   }
 
   private static String removeShellIntegrationMarkers(String output) {
-    return output.replaceAll(ShellIntegrationScripts.OSC_MARKER_PATTERN, "")
-        .replace(ShellIntegrationScripts.PROMPT_START_MARKER, "")
-        .replace(ShellIntegrationScripts.PROMPT_END_MARKER, "")
-        .replace(ShellIntegrationScripts.COMMAND_FINISH_MARKER, "");
+    return output.replaceAll(ShellIntegrationScripts.OSC_MARKER_PATTERN, "");
   }
 
   private static String cleanTerminalControlSequences(String output) {
