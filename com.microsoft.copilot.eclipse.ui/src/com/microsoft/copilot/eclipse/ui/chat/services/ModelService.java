@@ -331,6 +331,9 @@ public class ModelService extends ChatBaseService {
     }
   }
 
+  // TODO(#261): if a BYOK model and a native model share the same modelName this returns the first
+  // match regardless of provider. Fix by extending the custom-mode event protocol to carry the
+  // composite key so the lookup can be unambiguous.
   private String findModelKeyByName(String modelName) {
     Map<String, CopilotModel> currentModels = modelObservable.getValue();
     for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
@@ -347,30 +350,18 @@ public class ModelService extends ChatBaseService {
    * @param modelKey the composite key of the model
    */
   public void setActiveModel(String modelKey) {
-    Map<String, CopilotModel> currentModels = modelObservable.getValue();
-
-    String compositeKey = null;
-    final CopilotModel model;
-    CopilotModel foundModel = null;
-
-    if (currentModels.containsKey(modelKey)) {
-      compositeKey = modelKey;
-      foundModel = currentModels.get(modelKey);
+    CopilotModel model = modelObservable.getValue().get(modelKey);
+    if (model == null) {
+      return;
     }
-    model = foundModel;
-    if (model != null && compositeKey != null) {
-      // Persist using the composite key for proper identification
-      UserPreference preference = getUserPreference();
-      preference.setChatModel(compositeKey);
-      // Persist asynchronously to avoid deadlock: persistUserPreference() calls
-      // persistence().get() which blocks waiting for the LSP listener thread.
-      // If called on the UI thread while the listener is in syncExec, both threads
-      // deadlock.
-      CompletableFuture.runAsync(this::persistUserPreference);
-
-      // Update observable
-      ensureRealm(() -> activeModelObservable.setValue(model));
-    }
+    UserPreference preference = getUserPreference();
+    preference.setChatModel(modelKey);
+    // Persist asynchronously to avoid deadlock: persistUserPreference() calls
+    // persistence().get() which blocks waiting for the LSP listener thread.
+    // If called on the UI thread while the listener is in syncExec, both threads
+    // deadlock.
+    CompletableFuture.runAsync(this::persistUserPreference);
+    ensureRealm(() -> activeModelObservable.setValue(model));
   }
 
   /**
