@@ -119,10 +119,7 @@ public class InvokeToolConfirmationDialog extends Composite {
             && StringUtils.isNotEmpty(this.cancelMessage)) {
           new AgentToolCancelLabel(parent, SWT.NONE, this.cancelMessage);
         }
-        this.dispose();
-        if (parent != null && !parent.isDisposed()) {
-          parent.requestLayout();
-        }
+        disposeAndRequestParentLayout();
       }, this);
     }
   }
@@ -318,6 +315,10 @@ public class InvokeToolConfirmationDialog extends Composite {
         new LanguageModelToolConfirmationResult(
             ToolConfirmationResult.ACCEPT));
 
+    disposeAndRequestParentLayout();
+  }
+
+  private void disposeAndRequestParentLayout() {
     Composite parent = this.getParent();
     this.dispose();
     if (parent != null && !parent.isDisposed()) {

@@ -79,6 +79,8 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessa
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
+import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
+import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
@@ -1361,6 +1363,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     this.subagentConversationId = null;
     this.lastRunSubagentToolCallId = null;
+    cancelCurrentTerminalCommand();
 
     if (persistenceManager != null && StringUtils.isNotBlank(this.conversationId)) {
       persistenceManager.markRunningToolCallsCancelledAndPersist(this.conversationId);
@@ -1373,6 +1376,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // Reset send button in case the conversation was cancelled while in-progress
     if (this.actionBar != null && !this.actionBar.isDisposed()) {
       this.actionBar.resetSendButton();
+    }
+  }
+
+  private void cancelCurrentTerminalCommand() {
+    try {
+      TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
+      IRunInTerminalTool terminalTool = terminalManager != null ? terminalManager.getCurrentService() : null;
+      if (terminalTool != null) {
+        terminalTool.cancelCurrentCommand();
+      }
+    } catch (RuntimeException e) {
+      CopilotCore.LOGGER.error("Failed to cancel terminal command", e);
     }
   }
 

@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.terminal.tm;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -36,6 +37,9 @@ import org.osgi.service.component.annotations.Component;
 
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.ShellIntegrationScripts;
+import com.microsoft.copilot.eclipse.terminal.api.TerminalCommandProcessor;
+import com.microsoft.copilot.eclipse.terminal.api.TerminalCommandProcessor.CompletionCheckResult;
+import com.microsoft.copilot.eclipse.terminal.api.TerminalCommandProcessor.CompletionCheckState;
 
 /**
  * terminal tool implementation for older Eclipse versions.
@@ -46,6 +50,9 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   private static final Object lock = new Object();
   private static final Map<String, StringBuilder> backgroundCommandOutputs = new HashMap<>();
   private static final String BACKGROUND_TERMINAL_PREFIX = "Copilot-";
+  private static final String POWERSHELL_SCRIPT_ENV = "COPILOT_POWERSHELL_INTEGRATION_SCRIPT";
+  private static final String COMMAND_CANCELLED_MESSAGE = "Terminal command cancelled.";
+  private static final String COMMAND_INTERRUPTED_MESSAGE = "Terminal command interrupted by a new command.";
 
   // Non-background terminal field
   private ITerminalViewControl persistentTerminalViewControl;
@@ -59,9 +66,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   // Output and command state
   private StringBuilder sb;
-  private CompletableFuture<String> resultFuture;
-  private volatile boolean useMarker;
-  private volatile boolean isInitialMarkerHandled;
+  private volatile ForegroundCommand foregroundCommand;
 
   /**
    * Constructor for RunInTerminalTool.
@@ -71,52 +76,60 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   }
 
   @Override
-  public CompletableFuture<String> executeCommand(String command, boolean isBackground) {
+  public CompletableFuture<String> executeCommand(String command, boolean isBackground, String workingDirectory) {
     if (StringUtils.isBlank(command)) {
       return CompletableFuture.completedFuture("The command is null or empty.");
     }
 
-    resultFuture = new CompletableFuture<>();
-    useMarker = Platform.getOS().equals(Platform.OS_LINUX);
+    if (!isBackground) {
+      closeRunningForegroundTerminal(COMMAND_INTERRUPTED_MESSAGE);
+    }
 
-    if (!useMarker) {
-      // Retain only the last line (prompt) in the output buffer
-      if (!sb.isEmpty()) {
-        int lastLineStart = sb.lastIndexOf(StringUtils.LF);
-        if (lastLineStart > 0) {
-          sb.delete(0, lastLineStart);
+    CompletableFuture<String> commandFuture = new CompletableFuture<>();
+    ForegroundCommand commandState = isBackground ? null
+        : new ForegroundCommand(commandFuture, hasShellIntegrationMarker());
+
+    if (commandState != null) {
+      foregroundCommand = commandState;
+      if (!commandState.useMarker()) {
+        // Retain only the last line (prompt) in the output buffer
+        if (!sb.isEmpty()) {
+          int lastLineStart = sb.lastIndexOf(StringUtils.LF);
+          if (lastLineStart > 0) {
+            sb.delete(0, lastLineStart);
+          }
         }
+      } else {
+        // For marker-based detection, clear the buffer
+        sb.setLength(0);
       }
-    } else {
-      // For marker-based detection, clear the buffer
-      sb.setLength(0);
     }
 
     String executionId = UUID.randomUUID().toString();
-    final String finalCommand = command + System.lineSeparator();
+    final String finalCommand = TerminalCommandProcessor.formatForExecution(command, useBracketedPaste());
 
     synchronized (lock) {
       if (!isBackground && this.persistentTerminalViewControl != null) {
         revealTerminal();
-        this.persistentTerminalViewControl.pasteString(finalCommand);
-        return this.resultFuture;
+        sendCommand(this.persistentTerminalViewControl, finalCommand);
+        return commandFuture;
       }
 
       ITerminalService service = TerminalServiceFactory.getService();
       if (service == null) {
+        clearForegroundCommand(commandState);
         return CompletableFuture.completedFuture("Failed to open terminal console due to terminal service is null.");
       }
 
-      // New non-background terminal will have an initial marker from shell startup; need to handle it
-      if (useMarker && !isBackground) {
-        isInitialMarkerHandled = false;
-      }
-
-      service.openConsole(prepareTerminalProperties(isBackground, executionId), status -> {
+      service.openConsole(prepareTerminalProperties(isBackground, executionId, workingDirectory), status -> {
         if (status.isOK()) {
+          if (commandFuture.isDone()) {
+            return;
+          }
           ITerminalViewControl terminalViewControl = finalizeTerminalSetup(executionId, isBackground);
           if (terminalViewControl == null) {
-            resultFuture.complete("Terminal view control cannot be setup for RunInTerminalTool.");
+            clearForegroundCommand(commandState);
+            commandFuture.complete("Terminal view control cannot be setup for RunInTerminalTool.");
             return;
           }
 
@@ -124,9 +137,10 @@ public class RunInTerminalTool implements IRunInTerminalTool {
             this.persistentTerminalViewControl = terminalViewControl;
             revealTerminal();
           }
-          terminalViewControl.pasteString(finalCommand);
+          sendCommand(terminalViewControl, finalCommand);
         } else {
-          resultFuture.complete("Failed to open terminal console: " + status.getException());
+          clearForegroundCommand(commandState);
+          commandFuture.complete("Failed to open terminal console: " + status.getException());
         }
       });
     }
@@ -135,25 +149,35 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       return CompletableFuture.completedFuture("Command is running in terminal with ID=" + executionId);
     }
 
-    return resultFuture;
+    return commandFuture;
   }
 
   @Override
-  public Map<String, Object> prepareTerminalProperties(boolean runInBackground, String executionId) {
+  public Map<String, Object> prepareTerminalProperties(boolean runInBackground, String executionId,
+      String workingDirectory) {
     Map<String, Object> properties = new HashMap<>();
 
     properties.put(ITerminalsConnectorConstants.PROP_ENCODING, "UTF-8");
     properties.put(ITerminalsConnectorConstants.PROP_TITLE_DISABLE_ANSI_TITLE, true);
+    if (StringUtils.isNotBlank(workingDirectory)) {
+      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_WORKING_DIR, workingDirectory);
+    }
 
     if (Platform.getOS().equals(Platform.OS_WIN32)) {
-      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "cmd.exe");
-    } else if (Platform.getOS().equals(Platform.OS_LINUX)) {
-      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "/bin/sh");
-      // Use ENV to load shell integration script at startup
-      String scriptPath = ShellIntegrationScripts.getShScriptPath();
+      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "powershell.exe");
+      String scriptPath = ShellIntegrationScripts.getPowerShellScriptPath();
       if (scriptPath != null) {
-        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_ENVIRONMENT, new String[] { "ENV=" + scriptPath });
+        String[] environment = new String[] { POWERSHELL_SCRIPT_ENV + "=" + scriptPath };
+        String args = "-NoExit -ExecutionPolicy Bypass -Command \". $env:" + POWERSHELL_SCRIPT_ENV + "\"";
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_ENVIRONMENT, environment);
         properties.put(ITerminalsConnectorConstants.PROP_PROCESS_MERGE_ENVIRONMENT, true);
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_ARGS, args);
+      }
+    } else if (Platform.getOS().equals(Platform.OS_LINUX)) {
+      properties.put(ITerminalsConnectorConstants.PROP_PROCESS_PATH, "/bin/bash");
+      String scriptPath = ShellIntegrationScripts.getBashScriptPath();
+      if (scriptPath != null) {
+        properties.put(ITerminalsConnectorConstants.PROP_PROCESS_ARGS, "--init-file \"" + scriptPath + "\" -i");
       }
     } else {
       // macOS or other Unix-like: keep existing behavior, only set args if empty
@@ -185,6 +209,69 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   public StringBuilder getBackgroundCommandOutput(String executionId) {
     StringBuilder output = backgroundCommandOutputs.get(executionId);
     return output;
+  }
+
+  @Override
+  public void cancelCurrentCommand() {
+    closeRunningForegroundTerminal(COMMAND_CANCELLED_MESSAGE);
+  }
+
+  private void closeRunningForegroundTerminal(String completionMessage) {
+    ForegroundCommand commandState = foregroundCommand;
+    if (commandState != null && !commandState.future().isDone()) {
+      closeCurrentForegroundTerminal(completionMessage);
+    }
+  }
+
+  private void closeCurrentForegroundTerminal(String completionMessage) {
+    ForegroundCommand commandState = null;
+    CTabItem tabItem = null;
+    synchronized (lock) {
+      commandState = foregroundCommand;
+      foregroundCommand = null;
+      persistentTerminalViewControl = null;
+      tabItem = copilotTabItem;
+      copilotTabItem = null;
+      sb.setLength(0);
+    }
+
+    if (tabItem != null) {
+      final CTabItem tabItemToDispose = tabItem;
+      // Keep this synchronous so a new foreground command cannot open before the old terminal tab is disposed.
+      Display.getDefault().syncExec(() -> {
+        if (!tabItemToDispose.isDisposed()) {
+          tabItemToDispose.dispose();
+        }
+      });
+    }
+    if (commandState != null && !commandState.future().isDone()) {
+      commandState.future().complete(completionMessage);
+    }
+  }
+
+  private void clearForegroundCommand(ForegroundCommand commandState) {
+    if (commandState != null && foregroundCommand == commandState) {
+      foregroundCommand = null;
+    }
+  }
+
+  private void sendCommand(ITerminalViewControl terminalViewControl, String command) {
+    terminalViewControl.pasteString(command);
+  }
+
+  private boolean hasShellIntegrationMarker() {
+    if (Platform.getOS().equals(Platform.OS_WIN32)) {
+      return ShellIntegrationScripts.getPowerShellScriptPath() != null;
+    }
+    if (Platform.getOS().equals(Platform.OS_LINUX)) {
+      return ShellIntegrationScripts.getBashScriptPath() != null;
+    }
+    return false;
+  }
+
+  private boolean useBracketedPaste() {
+    // macOS terminal multiline handling differs from PowerShell/Bash integration, so keep its existing plain input.
+    return Platform.getOS().equals(Platform.OS_WIN32) || Platform.getOS().equals(Platform.OS_LINUX);
   }
 
   private ITerminalViewControl finalizeTerminalSetup(String executionId, boolean isBackground) {
@@ -246,12 +333,9 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     }
 
     return (byteBuffer, bytesRead) -> {
-      String content = new String(byteBuffer, 0, bytesRead);
-      // Remove ANSI escape sequences
-      // Sometimes it also removes the linebreaks. But we need the last prompt line to
-      // be a separate line later. So we
-      // add line separator back to the content.
-      content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", StringUtils.LF);
+      String content = new String(byteBuffer, 0, bytesRead, StandardCharsets.UTF_8);
+      // Remove ANSI escape sequences while preserving only real line breaks from the terminal output.
+      content = content.replaceAll("\u001B\\[(\\?)?[\\d;]*[a-zA-Z]", "");
 
       // Handle Windows terminal title sequences - using Platform instead of
       // PlatformUtils
@@ -265,80 +349,25 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       output.append(content);
 
       // Detect completion based on platform strategy
-      if (!isBackground && resultFuture != null && !resultFuture.isDone()) {
-        if (useMarker) {
-          tryCompleteWithMarker(output);
-        } else {
-          tryCompleteWithPrompt(output);
-        }
+      ForegroundCommand commandState = foregroundCommand;
+      if (!isBackground && commandState != null && !commandState.future().isDone()) {
+        CompletionCheckResult completionResult = commandState.useMarker()
+            ? TerminalCommandProcessor.tryCompleteWithMarker(output)
+            : TerminalCommandProcessor.tryCompleteWithPrompt(output);
+        handleCompletionResult(commandState, completionResult);
       }
     };
   }
 
-  /**
-   * Attempts to complete the command by detecting the shell marker in output.
-   * Used on Linux where shell integration script outputs a marker after each command.
-   */
-  private void tryCompleteWithMarker(StringBuilder output) {
-    int markerIndex = output.indexOf(ShellIntegrationScripts.SHELL_MARKER);
-    if (markerIndex < 0) {
+  private void handleCompletionResult(ForegroundCommand commandState, CompletionCheckResult completionResult) {
+    if (completionResult.state() == CompletionCheckState.INCOMPLETE) {
       return;
     }
-
-    // Remove marker from output
-    output.delete(markerIndex, markerIndex + ShellIntegrationScripts.SHELL_MARKER.length());
-
-    // Skip the initial marker that appears when terminal starts (before any command is run)
-    if (!isInitialMarkerHandled) {
-      isInitialMarkerHandled = true;
-      return;
+    if (foregroundCommand == commandState) {
+      foregroundCommand = null;
     }
-
-    String cleaned = output.toString().trim();
-    resultFuture.complete(cleaned);
-  }
-
-  /**
-   * Attempts to complete the command by detecting a shell prompt in output.
-   * Used on Windows and macOS where prompt characters indicate command completion.
-   */
-  private void tryCompleteWithPrompt(StringBuilder output) {
-    String terminalOutput = output.toString().trim();
-    int lastNewLineIndex = terminalOutput.lastIndexOf(StringUtils.LF);
-    if (lastNewLineIndex <= 0) {
-      return;
-    }
-
-    String lastLine = terminalOutput.substring(lastNewLineIndex).trim();
-
-    // Check if last line is a prompt line
-    // Mac always has single '%' as last line, that's not what we want.
-    if (StringUtils.isBlank(lastLine) || lastLine.length() == 1) {
-      return;
-    }
-
-    char lastChar = lastLine.charAt(lastLine.length() - 1);
-    boolean isPromptChar = lastChar == '>' || lastChar == '#' || lastChar == '$' || lastChar == '%';
-    if (!isPromptChar) {
-      return;
-    }
-
-    // Extract result text between prompts
-    String contentWithoutLastPrompt = terminalOutput.substring(0, lastNewLineIndex);
-    int promptStartIndex = contentWithoutLastPrompt.indexOf(lastLine);
-    // If the prompt line is not found, set start index to 0. Sometimes it starts
-    // with the commandResult.
-    if (promptStartIndex == -1) {
-      promptStartIndex = 0;
-    } else {
-      promptStartIndex += lastLine.length();
-    }
-
-    if (!contentWithoutLastPrompt.isBlank()) {
-      String commandResult = contentWithoutLastPrompt.substring(promptStartIndex).trim();
-      if (resultFuture != null && !resultFuture.isDone()) {
-        resultFuture.complete(commandResult);
-      }
+    if (!commandState.future().isDone()) {
+      commandState.future().complete(completionResult.output());
     }
   }
 
@@ -383,6 +412,9 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
   private String buildBackgroundTerminalTitle(String executionId) {
     return BACKGROUND_TERMINAL_PREFIX + executionId;
+  }
+
+  private record ForegroundCommand(CompletableFuture<String> future, boolean useMarker) {
   }
 
   /**

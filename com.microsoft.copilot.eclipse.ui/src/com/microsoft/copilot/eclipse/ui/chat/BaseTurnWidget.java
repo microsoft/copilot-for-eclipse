@@ -650,6 +650,16 @@ public abstract class BaseTurnWidget extends Composite {
     reset();
 
     this.confirmDialog = new InvokeToolConfirmationDialog(this, content, input);
+    this.confirmDialog.addDisposeListener(e -> {
+      Composite ancestor = this.getParent();
+      while (ancestor != null && !ancestor.isDisposed()) {
+        if (ancestor instanceof ChatContentViewer) {
+          ((ChatContentViewer) ancestor).requestRefreshScrollerLayout();
+          break;
+        }
+        ancestor = ancestor.getParent();
+      }
+    });
     CompletableFuture<LanguageModelToolConfirmationResult> toolConfirmationFuture = this.confirmDialog
         .getConfirmationFuture();
 

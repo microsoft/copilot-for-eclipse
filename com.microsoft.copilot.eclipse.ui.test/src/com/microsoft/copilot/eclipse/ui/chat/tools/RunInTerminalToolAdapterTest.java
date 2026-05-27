@@ -77,7 +77,8 @@ class RunInTerminalToolAdapterTest {
     assertNotNull(results);
     assertEquals(1, results.length);
     assertEquals(ToolInvocationStatus.error, results[0].getStatus());
-    assertTrue(results[0].getContent().get(0).getValue().equals("No terminal implementation available. Terminal service not yet loaded or failed to load."));
+    assertEquals("No terminal implementation available. Terminal service not yet loaded or failed to load.",
+      results[0].getContent().get(0).getValue());
   }
 
   @Test
@@ -112,7 +113,6 @@ class RunInTerminalToolAdapterTest {
     // Act & Assert
     assertEquals("run_in_terminal", runInTerminalToolAdapter.getToolName());
   }
-
 
   @Test
   void testGetTerminalOutputToolWithNoTerminalServiceReturnsErrorStatus()
