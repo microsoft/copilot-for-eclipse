@@ -128,7 +128,7 @@ public class SourceViewerComposite extends Composite {
 
       @Override
       public void focusLost(FocusEvent e) {
-        hideActionButtons(null);
+        hideActionButtons();
       }
     });
 
@@ -144,7 +144,7 @@ public class SourceViewerComposite extends Composite {
 
       @Override
       public void mouseExit(MouseEvent e) {
-        hideActionButtons(new Point(e.x, e.y));
+        hideActionButtons();
       }
     });
 
@@ -229,7 +229,7 @@ public class SourceViewerComposite extends Composite {
     actionsComposite.setVisible(true);
   }
 
-  private void hideActionButtons(Point cursorLocation) {
+  private void hideActionButtons() {
     if (this.actionsComposite == null || this.actionsComposite.isDisposed()) {
       return;
     }
@@ -237,15 +237,19 @@ public class SourceViewerComposite extends Composite {
       if (actionsComposite == null || actionsComposite.isDisposed()) {
         return;
       }
-      if (!isCursorWithinCodeBlockActions(cursorLocation) && !isFocusWithinCodeBlockActions()) {
+      if (!isCursorWithinCodeBlockActions() && !isFocusWithinCodeBlockActions()) {
         actionsComposite.moveBelow(sourceViewer.getTextWidget());
         actionsComposite.setVisible(false);
       }
     }, this);
   }
 
-  private boolean isCursorWithinCodeBlockActions(Point cursorLocation) {
-    return cursorLocation != null && actionsComposite.getBounds().contains(cursorLocation);
+  private boolean isCursorWithinCodeBlockActions() {
+    Point cursorLocation = actionsComposite.getDisplay().getCursorLocation();
+    Point actionsLocation = actionsComposite.toDisplay(0, 0);
+    Point actionsSize = actionsComposite.getSize();
+    Rectangle actionsBounds = new Rectangle(actionsLocation.x, actionsLocation.y, actionsSize.x, actionsSize.y);
+    return actionsBounds.contains(cursorLocation);
   }
 
   private boolean isFocusWithinCodeBlockActions() {
