@@ -414,6 +414,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
         CopilotTurnWidget turn = this.chatContentViewer.getLatestCopilotTurn();
         if (turn != null) {
+          // Flush any buffered reply text from the previous round so it is rendered
+          // above the compacting spinner; otherwise it would be concatenated with
+          // the next round's reply and produce a single garbled line.
+          turn.notifyTurnEnd();
           turn.showCompactingStatus();
           this.chatContentViewer.refreshScrollerLayout();
         }
