@@ -412,15 +412,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
           return;
         }
-        CopilotTurnWidget turn = this.chatContentViewer.getLatestCopilotTurn();
-        if (turn != null) {
-          // Flush any buffered reply text from the previous round so it is rendered
-          // above the compacting spinner; otherwise it would be concatenated with
-          // the next round's reply and produce a single garbled line.
-          turn.notifyTurnEnd();
-          turn.showCompactingStatus();
-          this.chatContentViewer.refreshScrollerLayout();
-        }
+        this.chatContentViewer.showCompactingStatusOnLatestCopilotTurn();
       }, parent);
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_STARTED,
@@ -438,11 +430,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
           return;
         }
-        CopilotTurnWidget turn = this.chatContentViewer.getLatestCopilotTurn();
-        if (turn != null) {
-          turn.hideCompactingStatus();
-          this.chatContentViewer.refreshScrollerLayout();
-        }
+        this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn(false);
         if (params.contextInfo() != null) {
           this.chatServiceManager.getContextWindowService().updateContextSize(params.contextInfo());
         }
@@ -1439,19 +1427,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.actionBar.resetSendButton();
     }
     if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
-      CopilotTurnWidget turn = this.chatContentViewer.getLatestCopilotTurn();
-      if (turn != null) {
-        // Flush any buffered reply text (e.g. a final line that arrived without a trailing
-        // newline) so it is rendered before we hide the compacting banner. Any subsequent
-        // end progress event from the language server is dropped because the action bar has
-        // already been reset to the send state, so this is the only chance to render it.
-        turn.notifyTurnEnd();
-        turn.hideCompactingStatus();
-        // Refresh the scroll layout so the ScrolledComposite picks up the new content size
-        // produced by notifyTurnEnd/hideCompactingStatus; otherwise the just-flushed reply
-        // can be clipped or invisible until the next layout pass.
-        this.chatContentViewer.refreshScrollerLayout();
-      }
+      this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn(true);
     }
   }
 

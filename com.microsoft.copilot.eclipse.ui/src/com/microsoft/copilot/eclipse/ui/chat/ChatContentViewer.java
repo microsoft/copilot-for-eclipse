@@ -380,11 +380,41 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Returns the most-recent Copilot turn widget, or {@code null} if none exists or it has been disposed.
-   *
-   * @return the latest {@link CopilotTurnWidget}, or {@code null}
+   * Shows the compacting status on the latest Copilot turn after flushing any buffered reply text.
    */
-  public CopilotTurnWidget getLatestCopilotTurn() {
+  public void showCompactingStatusOnLatestCopilotTurn() {
+    CopilotTurnWidget turn = getLatestCopilotTurn();
+    if (turn == null) {
+      return;
+    }
+    // Flush any buffered reply text from the previous round so it is rendered
+    // above the compacting spinner; otherwise it would be concatenated with
+    // the next round's reply and produce a single garbled line.
+    turn.notifyTurnEnd();
+    turn.showCompactingStatus();
+    refreshScrollerLayout();
+  }
+
+  /**
+   * Hides the compacting status on the latest Copilot turn.
+   *
+   * @param flushBufferedReply whether to flush buffered reply text before hiding the status
+   */
+  public void hideCompactingStatusOnLatestCopilotTurn(boolean flushBufferedReply) {
+    CopilotTurnWidget turn = getLatestCopilotTurn();
+    if (turn == null) {
+      return;
+    }
+    if (flushBufferedReply) {
+      // Flush any buffered reply text before hiding the compacting banner; callers that
+      // cancel a turn may not receive a later end progress event to do this for them.
+      turn.notifyTurnEnd();
+    }
+    turn.hideCompactingStatus();
+    refreshScrollerLayout();
+  }
+
+  private CopilotTurnWidget getLatestCopilotTurn() {
     return latestCopilotTurn instanceof CopilotTurnWidget ctt && !ctt.isDisposed() ? ctt : null;
   }
 
