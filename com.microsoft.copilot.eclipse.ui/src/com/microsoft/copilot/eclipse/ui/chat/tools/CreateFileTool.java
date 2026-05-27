@@ -5,13 +5,10 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -183,19 +180,6 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
     }
 
     return result;
-  }
-
-  private Path getLocalFilePath(String filePath) {
-    try {
-      if (filePath.startsWith("file:")) {
-        return Paths.get(new URI(filePath));
-      }
-      Path path = Paths.get(filePath);
-      return path.isAbsolute() ? path : null;
-    } catch (IllegalArgumentException | URISyntaxException e) {
-      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
-      return null;
-    }
   }
 
   /**

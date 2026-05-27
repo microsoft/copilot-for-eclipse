@@ -6,13 +6,10 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -179,29 +176,20 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     Path normalizedPath = normalizeLocalPath(filePath);
     ChangedFile changedFile = ChangedFile.local(normalizedPath);
     try {
+      String originalContent = getCachedFileContent(changedFile);
+      if (originalContent == null) {
+        originalContent = Files.readString(normalizedPath, StandardCharsets.UTF_8);
+      }
+      Files.writeString(normalizedPath, code, StandardCharsets.UTF_8);
+      cacheTheOriginalFileContent(changedFile, originalContent);
       CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(changedFile,
           FileChangeType.Changed);
-      cacheTheOriginalFileContent(changedFile);
-      Files.writeString(normalizedPath, code, StandardCharsets.UTF_8);
       refreshCompareEditorIfOpen(getCachedFileContent(changedFile), changedFile);
       return new LanguageModelToolResult[] { new LanguageModelToolResult(code, ToolInvocationStatus.success) };
     } catch (IOException e) {
       CopilotCore.LOGGER.error("Error replacing local file content", e);
       return new LanguageModelToolResult[] { new LanguageModelToolResult(
           "Failed to apply changes to the file: " + e.getMessage(), ToolInvocationStatus.error) };
-    }
-  }
-
-  private Path getLocalFilePath(String filePath) {
-    try {
-      if (filePath.startsWith("file:")) {
-        return Paths.get(new URI(filePath));
-      }
-      Path path = Paths.get(filePath);
-      return path.isAbsolute() ? path : null;
-    } catch (IllegalArgumentException | URISyntaxException e) {
-      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
-      return null;
     }
   }
 
