@@ -17,6 +17,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.graphics.Image;
@@ -25,6 +27,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.IEditorPart;
@@ -117,6 +120,17 @@ public class SourceViewerComposite extends Composite {
 
     StyledText styledText = viewer.getTextWidget();
     styledText.setAlwaysShowScrollBars(false);
+    styledText.addFocusListener(new FocusAdapter() {
+      @Override
+      public void focusGained(FocusEvent e) {
+        showActionButtons();
+      }
+
+      @Override
+      public void focusLost(FocusEvent e) {
+        hideActionButtons(null);
+      }
+    });
 
     // TODO: Add VerifyKeyListener to listen for copy events
     // See: https://github.com/microsoft/copilot-eclipse/issues/372
@@ -125,23 +139,12 @@ public class SourceViewerComposite extends Composite {
     styledText.addMouseTrackListener(new MouseTrackAdapter() {
       @Override
       public void mouseEnter(MouseEvent e) {
-        Rectangle textBounds = styledText.getBounds();
-        Rectangle actionsBounds = actionsComposite.getBounds();
-        actionsComposite.setLocation(textBounds.width - ACTIONS_PADDING_RIGHT - actionsBounds.width,
-            ACTIONS_PADDING_TOP);
-        actionsComposite.moveAbove(styledText);
-        actionsComposite.setVisible(true);
+        showActionButtons();
       }
 
       @Override
       public void mouseExit(MouseEvent e) {
-        // if mouse move to copy button, it will also trigger mouse exit, check this case here
-        Rectangle buttonBounds = actionsComposite.getBounds();
-        Point cursorLocation = new Point(e.x, e.y);
-        if (!buttonBounds.contains(cursorLocation)) {
-          actionsComposite.moveBelow(styledText);
-          actionsComposite.setVisible(false);
-        }
+        hideActionButtons(new Point(e.x, e.y));
       }
     });
 
@@ -198,6 +201,7 @@ public class SourceViewerComposite extends Composite {
   private Button createActionButton(Composite parent, int style, Image image, String text, String tooltip) {
     Button result = new Button(parent, style);
     result.setToolTipText(tooltip);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(result, tooltip);
     result.setVisible(true);
     if (image == null) {
       result.setText(text);
@@ -211,6 +215,57 @@ public class SourceViewerComposite extends Composite {
         .orElseGet(() -> result.computeSize(SWT.DEFAULT, SWT.DEFAULT));
     result.setSize(size);
     return result;
+  }
+
+  private void showActionButtons() {
+    if (this.actionsComposite == null || this.actionsComposite.isDisposed()) {
+      return;
+    }
+    StyledText styledText = this.sourceViewer.getTextWidget();
+    Rectangle textBounds = styledText.getBounds();
+    Rectangle actionsBounds = actionsComposite.getBounds();
+    actionsComposite.setLocation(textBounds.width - ACTIONS_PADDING_RIGHT - actionsBounds.width, ACTIONS_PADDING_TOP);
+    actionsComposite.moveAbove(styledText);
+    actionsComposite.setVisible(true);
+  }
+
+  private void hideActionButtons(Point cursorLocation) {
+    if (this.actionsComposite == null || this.actionsComposite.isDisposed()) {
+      return;
+    }
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (actionsComposite == null || actionsComposite.isDisposed()) {
+        return;
+      }
+      if (!isCursorWithinCodeBlockActions(cursorLocation) && !isFocusWithinCodeBlockActions()) {
+        actionsComposite.moveBelow(sourceViewer.getTextWidget());
+        actionsComposite.setVisible(false);
+      }
+    }, this);
+  }
+
+  private boolean isCursorWithinCodeBlockActions(Point cursorLocation) {
+    return cursorLocation != null && actionsComposite.getBounds().contains(cursorLocation);
+  }
+
+  private boolean isFocusWithinCodeBlockActions() {
+    if (this.actionsComposite == null || this.actionsComposite.isDisposed()) {
+      return false;
+    }
+    Control focusControl = getDisplay().getFocusControl();
+    if (focusControl == null || focusControl.isDisposed()) {
+      return false;
+    }
+    if (this.sourceViewer != null && focusControl == this.sourceViewer.getTextWidget()) {
+      return true;
+    }
+    while (focusControl != null) {
+      if (focusControl == this.actionsComposite) {
+        return true;
+      }
+      focusControl = focusControl.getParent();
+    }
+    return false;
   }
 
   private void refreshScrollerLayout() {

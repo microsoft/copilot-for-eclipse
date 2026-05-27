@@ -54,6 +54,7 @@ public class AddContextButton extends Composite {
     btnAttachIcon.setImage(attachImage);
     String attachTooltip = Messages.chat_addContext_tooltip;
     btnAttachIcon.setToolTipText(attachTooltip);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this, attachTooltip);
     AccessibilityUtils.addAccessibilityNameForUiComponent(btnAttachIcon, attachTooltip);
     btnAttachIcon.addSelectionListener(new SelectionAdapter() {
       @Override

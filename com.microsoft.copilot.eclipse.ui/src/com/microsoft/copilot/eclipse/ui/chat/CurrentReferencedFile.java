@@ -92,6 +92,12 @@ public class CurrentReferencedFile extends ReferencedFile {
     super.setFile(file);
   }
 
+  @Override
+  protected @Nullable String getAccessibilityName() {
+    IResource file = getFile();
+    return file == null ? null : Messages.chat_currentReferencedFile_description + " " + file.getName();
+  }
+
   /**
    * Set the current selection to display.
    */
