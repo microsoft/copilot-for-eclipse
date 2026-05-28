@@ -60,7 +60,6 @@ public class ModelService extends ChatBaseService {
   private Map<String, CopilotModel> copilotModels = new HashMap<>();
   private Map<String, CopilotModel> registeredByokModels = new HashMap<>();
   private CopilotModel defaultModel;
-  private CopilotModel fallbackModel;
 
   private ChatMode currentChatMode = ChatMode.Agent;
 
@@ -210,9 +209,6 @@ public class ModelService extends ChatBaseService {
       }
       if (model.isChatDefault()) {
         defaultModel = model;
-      }
-      if (model.isChatFallback()) {
-        fallbackModel = model;
       }
     }
 
@@ -380,24 +376,6 @@ public class ModelService extends ChatBaseService {
    */
   public Map<String, CopilotModel> getModels() {
     return modelObservable.getValue();
-  }
-
-  /**
-   * Get the fallback model.
-   *
-   * @return the fallback model
-   */
-  public CopilotModel getFallbackModel() {
-    return fallbackModel;
-  }
-
-  /**
-   * Set the fallback model as the active model.
-   */
-  public void setFallBackModelAsActiveModel() {
-    if (fallbackModel != null) {
-      setActiveModel(fallbackModel.getModelKey());
-    }
   }
 
   /**
