@@ -230,10 +230,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file.getWorkspaceFile()));
       return;
     }
-    if (bringCompareEditorToTopIfOpen(file)) {
-      return;
-    }
-    compareStringWithFile("", file);
+    SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openLocalFileInEditor(file.getLocalPath()));
   }
 
   @Override

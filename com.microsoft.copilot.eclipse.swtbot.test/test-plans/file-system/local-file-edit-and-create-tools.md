@@ -137,7 +137,7 @@ Not exercised:
 
 ## 2. Create a new local file outside the workspace
 
-### TC-004: Agent creates a local file and shows an empty-baseline diff
+### TC-004: Agent creates a local file and opens it from the summary bar
 
 **Type:** `Happy Path`
 **Priority:** `P0`
@@ -154,18 +154,18 @@ Not exercised:
 4. Verify `created-local-file.txt` exists on disk and contains `created local content`.
 5. Verify the file change summary bar lists `created-local-file.txt`.
 6. Click **View Diff** for `created-local-file.txt`.
-7. Verify the Compare editor shows an empty original side and `created local content` on the modified side.
+7. Verify Eclipse opens `created-local-file.txt` in an editor and shows `created local content`.
 
 #### Expected Result
 - Copilot creates the local file without requiring it to be inside an Eclipse workspace project.
 - The created file is listed in the summary bar.
-- The diff baseline for the created file is empty.
-- No error dialog is shown and the Eclipse error log has no local file create or Compare UI exception.
+- The created local file can be opened from the summary bar.
+- No error dialog is shown and the Eclipse error log has no local file create or editor-open exception.
 
 #### Key Screenshots
 - [ ] **Agent create prompt** -- Copilot Chat in Agent mode with the absolute create path visible.
 - [ ] **Summary bar after local create** -- The created local file appears in the file change summary bar.
-- [ ] **Created file diff** -- The Compare editor shows empty original content vs. the created content.
+- [ ] **Created local file editor** -- The external local file opens in an editor with the created content.
 
 ### TC-005: Undo removes a created local file
 

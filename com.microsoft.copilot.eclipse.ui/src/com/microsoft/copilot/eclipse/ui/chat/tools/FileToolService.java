@@ -179,11 +179,6 @@ public class FileToolService extends ChatBaseService {
     ensureRealm(() -> {
       Map<ChangedFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
       if (filesMap.containsKey(file)) {
-        FileChangeProperty property = filesMap.get(file);
-        if (property.getChangeType() == FileChangeType.Created && fileChangeType == FileChangeType.Changed) {
-          property.setChangedAfterCreated(true);
-          filesObservable.setValue(filesMap);
-        }
         return;
       }
       filesMap.put(file, new FileChangeProperty(fileChangeType));
@@ -299,11 +294,7 @@ public class FileToolService extends ChatBaseService {
       return;
     }
     if (property.getChangeType() == FileChangeType.Created) {
-      if (property.isChangedAfterCreated()) {
-        this.editFileTool.onViewDiff(file);
-      } else {
-        this.createFileTool.onViewDiff(file);
-      }
+      this.createFileTool.onViewDiff(file);
     } else if (property.getChangeType() == FileChangeType.Changed) {
       this.editFileTool.onViewDiff(file);
     }
@@ -335,12 +326,10 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
-   * Class for file change properties. changeType - The type of file change (new or edited). changedAfterCreated -
-   * Whether a created file has received subsequent edits.
+   * Class for file change properties.
    */
   public static class FileChangeProperty {
     private FileChangeType changeType;
-    private boolean changedAfterCreated;
 
     /**
      * Constructor for FileChangeProperty.
@@ -353,14 +342,6 @@ public class FileToolService extends ChatBaseService {
 
     public FileChangeType getChangeType() {
       return changeType;
-    }
-
-    public boolean isChangedAfterCreated() {
-      return changedAfterCreated;
-    }
-
-    public void setChangedAfterCreated(boolean changedAfterCreated) {
-      this.changedAfterCreated = changedAfterCreated;
     }
   }
 }
