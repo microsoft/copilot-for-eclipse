@@ -9,7 +9,10 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.lsp4j.FormattingOptions;
+import org.osgi.service.prefs.Preferences;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 
@@ -26,6 +29,9 @@ public class FormatOptionProvider {
   private static final String CPP_LANGUAGE_ID = "cpp";
   private static final String[] CPP_LANGUAGE_EXTENSIONS = new String[] { "cpp", "c++", "cc", "cp", "cxx", "h", "h++",
       "hh", ".hpp", ".hxx", ".inc", ".inl", ".ipp", ".tcc", ".tpp" };
+  private static final String EDITOR_PREF_NODE = "org.eclipse.ui.editors";
+  private static final String TAB_WIDTH_KEY = "tabWidth";
+  private static final String SPACES_FOR_TABS_KEY = "spacesForTabs";
   private static final boolean DEFAULT_USE_SPACE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_CHAR.equals("space");
   private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_SIZE;
 
@@ -110,13 +116,48 @@ public class FormatOptionProvider {
     if (languageFormatReaderForProject == null) {
       languageFormatReaderForProject = loadFormatReaderForTheProject(languageId, project);
       if (languageFormatReaderForProject == null) {
-        return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
+        return getEclipseTextEditorFormattingOptions();
       }
       projectToLanguageFormatReaderMap.put(project, languageFormatReaderForProject);
     }
 
     return languageFormatReaderForProject.getFormattingOptions();
   }
+
+  /**
+   * Attempts to read the Eclipse default text editor preferences for tab size and spaces-for-tabs.
+   * Falls back to hardcoded defaults if the preferences cannot be read.
+   */
+  private FormattingOptions getEclipseTextEditorFormattingOptions() {
+    try {
+      Preferences instancePrefs = InstanceScope.INSTANCE.getNode(EDITOR_PREF_NODE);
+      Preferences defaultPrefs = DefaultScope.INSTANCE.getNode(EDITOR_PREF_NODE);
+
+      int tabSize;
+      String instanceTabWidth = instancePrefs.get(TAB_WIDTH_KEY, null);
+      if (instanceTabWidth != null) {
+        tabSize = instancePrefs.getInt(TAB_WIDTH_KEY, DEFAULT_TAB_SIZE);
+      } else {
+        tabSize = defaultPrefs.getInt(TAB_WIDTH_KEY, DEFAULT_TAB_SIZE);
+      }
+
+      boolean useSpaces;
+      String instanceSpaces = instancePrefs.get(SPACES_FOR_TABS_KEY, null);
+      if (instanceSpaces != null) {
+        useSpaces = instancePrefs.getBoolean(SPACES_FOR_TABS_KEY, DEFAULT_USE_SPACE);
+      } else {
+        useSpaces = defaultPrefs.getBoolean(SPACES_FOR_TABS_KEY, DEFAULT_USE_SPACE);
+      }
+
+      return new FormattingOptions(tabSize, useSpaces);
+    } catch (Exception e) {
+      CopilotCore.LOGGER.info(
+            "Failed to read Eclipse text editor preferences, using defaults");
+      return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
+    }
+  }
+
+
 
   private LanguageFormatReader loadFormatReaderForTheProject(String languageId, IProject project) {
     switch (languageId) {
