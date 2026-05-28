@@ -142,6 +142,7 @@ public class AgentStatusLabel extends Composite {
       AccessibilityUtils.addFocusBorderToComposite(styledText);
     }
     textLabel.setMarkup(text);
+    this.requestLayout();
   }
 
   private enum Status {
