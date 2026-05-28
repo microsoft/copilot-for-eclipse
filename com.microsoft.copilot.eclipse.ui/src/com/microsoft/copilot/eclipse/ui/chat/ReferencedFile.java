@@ -9,6 +9,8 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.e4.ui.css.swt.CSSSWTConstants;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.accessibility.AccessibleAdapter;
+import org.eclipse.swt.accessibility.AccessibleEvent;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseAdapter;
@@ -19,6 +21,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
@@ -100,6 +103,7 @@ public class ReferencedFile extends Composite {
     });
 
     AccessibilityUtils.addFocusBorderToComposite(this);
+    addAccessibilityName(this);
   }
 
   /**
@@ -168,6 +172,22 @@ public class ReferencedFile extends Composite {
     if (chatView != null) {
       chatView.layout(true, true);
     }
+  }
+
+  /**
+   * Returns the accessible name for this referenced file widget.
+   */
+  protected @Nullable String getAccessibilityName() {
+    return file == null ? null : file.getName();
+  }
+
+  private void addAccessibilityName(Control control) {
+    control.getAccessible().addAccessibleListener(new AccessibleAdapter() {
+      @Override
+      public void getName(AccessibleEvent event) {
+        event.result = getAccessibilityName();
+      }
+    });
   }
 
   /**
