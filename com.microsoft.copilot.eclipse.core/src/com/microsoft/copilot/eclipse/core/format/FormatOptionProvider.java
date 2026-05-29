@@ -9,10 +9,9 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.runtime.preferences.DefaultScope;
-import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.eclipse.lsp4j.FormattingOptions;
-import org.osgi.service.prefs.Preferences;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 
@@ -130,24 +129,21 @@ public class FormatOptionProvider {
    */
   private FormattingOptions getEclipseTextEditorFormattingOptions() {
     try {
-      Preferences instancePrefs = InstanceScope.INSTANCE.getNode(EDITOR_PREF_NODE);
-      Preferences defaultPrefs = DefaultScope.INSTANCE.getNode(EDITOR_PREF_NODE);
+      IPreferencesService service = Platform.getPreferencesService();
 
-      int tabSize;
-      String instanceTabWidth = instancePrefs.get(TAB_WIDTH_KEY, null);
-      if (instanceTabWidth != null) {
-        tabSize = instancePrefs.getInt(TAB_WIDTH_KEY, DEFAULT_TAB_SIZE);
-      } else {
-        tabSize = defaultPrefs.getInt(TAB_WIDTH_KEY, DEFAULT_TAB_SIZE);
-      }
+      boolean useSpaces = service.getBoolean(
+          EDITOR_PREF_NODE,
+          SPACES_FOR_TABS_KEY,
+          DEFAULT_USE_SPACE,
+          null
+      );
 
-      boolean useSpaces;
-      String instanceSpaces = instancePrefs.get(SPACES_FOR_TABS_KEY, null);
-      if (instanceSpaces != null) {
-        useSpaces = instancePrefs.getBoolean(SPACES_FOR_TABS_KEY, DEFAULT_USE_SPACE);
-      } else {
-        useSpaces = defaultPrefs.getBoolean(SPACES_FOR_TABS_KEY, DEFAULT_USE_SPACE);
-      }
+      int tabSize = service.getInt(
+          EDITOR_PREF_NODE,
+          TAB_WIDTH_KEY,
+          DEFAULT_TAB_SIZE,
+          null
+      );
 
       return new FormattingOptions(tabSize, useSpaces);
     } catch (Exception e) {
