@@ -5,9 +5,13 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,6 +23,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.lsp4j.FileChangeType;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchemaPropertyValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
@@ -57,7 +62,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDescription("""
-        This is a tool for creating a new file in the workspace.
+        This is a tool for creating a new workspace file or a new file at an absolute local filesystem path.
         The file will be created with the specified content.
         """);
 
@@ -90,34 +95,49 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
     }
 
+    String content = StringUtils.isBlank((String) input.get("content")) ? "" : (String) input.get("content");
+    result = createFile(filePath, content);
+
+    return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+  }
+
+  private LanguageModelToolResult createFile(String filePath, String content) {
+    IFile file = FileUtils.getFileFromPath(filePath, false);
+
+    if (file != null && file.getProject().exists()) {
+      return createWorkspaceFile(file, filePath, content);
+    }
+
+    Path localPath = getLocalFilePath(filePath);
+    if (localPath != null) {
+      return createLocalFile(localPath, content);
+    }
+
+    LanguageModelToolResult result = new LanguageModelToolResult();
+    result.setStatus(ToolInvocationStatus.error);
+    result.addContent("Invalid file path: " + filePath + " does not exist in the workspace.");
+    return result;
+  }
+
+  private LanguageModelToolResult createWorkspaceFile(IFile file, String filePath, String content) {
+    LanguageModelToolResult result = new LanguageModelToolResult();
+
     try {
-      // Resolve file in workspace
-      IFile file = FileUtils.getFileFromPath(filePath, false);
-
-      if (file == null) {
-        result.setStatus(ToolInvocationStatus.error);
-        result.addContent("Invalid file path: " + filePath + " does not exist in the workspace.");
-        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
-      }
-
-      // Check if file already exists
       if (file.exists()) {
         result.setStatus(ToolInvocationStatus.error);
         result.addContent("Failed: file already exists: " + filePath + ". Please use edit file tool to update.");
-        return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+        return result;
       }
 
-      // Create parent folders if needed
       createParentFolders(file.getParent());
 
-      // Create file with content
-      String content = StringUtils.isBlank((String) input.get("content")) ? "" : (String) input.get("content");
       try (ByteArrayInputStream contentStream = new ByteArrayInputStream(
           content.getBytes(PlatformUtils.getFileCharset(file)))) {
         file.create(contentStream, IResource.FORCE, new NullProgressMonitor());
-        cacheTheOriginalFileContent(file);
+        cacheTheOriginalFileContent(ChangedFile.workspace(file), StringUtils.EMPTY);
       }
-      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(file, FileChangeType.Created);
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(ChangedFile.workspace(file),
+          FileChangeType.Created);
       file.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
 
       result.addContent("File created at: " + file.getFullPath().toOSString());
@@ -130,7 +150,36 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       result.addContent("Error handling file stream: " + e.getMessage());
     }
 
-    return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
+    return result;
+  }
+
+  private LanguageModelToolResult createLocalFile(Path filePath, String content) {
+    LanguageModelToolResult result = new LanguageModelToolResult();
+    Path normalizedPath = normalizeLocalPath(filePath);
+    if (Files.exists(normalizedPath, LinkOption.NOFOLLOW_LINKS)) {
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Failed: file already exists: " + normalizedPath + ". Please use edit file tool to update.");
+      return result;
+    }
+
+    try {
+      Path parent = normalizedPath.getParent();
+      if (parent != null) {
+        Files.createDirectories(parent);
+      }
+      Files.writeString(normalizedPath, content, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+      cacheTheOriginalFileContent(ChangedFile.local(normalizedPath), StringUtils.EMPTY);
+      CopilotUi.getPlugin().getChatServiceManager().getFileToolService().addChangedFile(
+          ChangedFile.local(normalizedPath), FileChangeType.Created);
+      result.addContent("File created at: " + normalizedPath);
+      result.setStatus(ToolInvocationStatus.success);
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error("Error creating local file", e);
+      result.setStatus(ToolInvocationStatus.error);
+      result.addContent("Error creating file: " + e.getMessage());
+    }
+
+    return result;
   }
 
   /**
@@ -152,33 +201,36 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
   }
 
   @Override
-  public void onKeepAllChanges(List<IFile> files) {
-    files.forEach(this::onKeepChange);
-  }
-
-  @Override
-  public void onKeepChange(IFile file) {
+  public void onKeepChange(ChangedFile file) {
+    removeCachedFileContent(file);
     closeCompareEditor(file);
   }
 
   @Override
-  public void onUndoAllChanges(List<IFile> files) throws CoreException {
-    for (IFile file : files) {
-      onUndoChange(file);
-    }
-  }
-
-  @Override
-  public void onUndoChange(IFile file) throws CoreException {
-    if (file != null && file.exists()) {
-      file.delete(true, new NullProgressMonitor());
-    }
+  public void onUndoChange(ChangedFile file) throws CoreException, IOException {
+    deleteCreatedFile(file);
+    removeCachedFileContent(file);
     closeCompareEditor(file);
   }
 
+  private void deleteCreatedFile(ChangedFile file) throws CoreException, IOException {
+    if (file.isWorkspaceFile()) {
+      IFile workspaceFile = file.getWorkspaceFile();
+      if (workspaceFile != null && workspaceFile.exists()) {
+        workspaceFile.delete(true, new NullProgressMonitor());
+      }
+      return;
+    }
+    Files.deleteIfExists(file.getLocalPath());
+  }
+
   @Override
-  public void onViewDiff(IFile file) {
-    SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file));
+  public void onViewDiff(ChangedFile file) {
+    if (file.isWorkspaceFile()) {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openInEditor(file.getWorkspaceFile()));
+      return;
+    }
+    SwtUtils.invokeOnDisplayThreadAsync(() -> UiUtils.openLocalFileInEditor(file.getLocalPath()));
   }
 
   @Override

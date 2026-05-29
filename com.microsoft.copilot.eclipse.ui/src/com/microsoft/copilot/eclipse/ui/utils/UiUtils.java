@@ -8,6 +8,8 @@ import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +31,8 @@ import org.eclipse.core.commands.NotEnabledException;
 import org.eclipse.core.commands.NotHandledException;
 import org.eclipse.core.commands.ParameterizedCommand;
 import org.eclipse.core.commands.common.NotDefinedException;
+import org.eclipse.core.filesystem.EFS;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -214,6 +218,27 @@ public class UiUtils {
       IWorkbenchPage page = getActivePage();
       if (page != null) {
         return IDE.openEditor(page, file);
+      }
+    } catch (PartInitException e) {
+      CopilotCore.LOGGER.error(e);
+    }
+    return null;
+  }
+
+  /**
+   * Opens the given local filesystem file in an editor.
+   */
+  public static IEditorPart openLocalFileInEditor(Path file) {
+    if (file == null || !Files.exists(file)) {
+      CopilotCore.LOGGER.error(new IllegalArgumentException("Cannot open editor: local file is null or doesn't exist"));
+      return null;
+    }
+
+    try {
+      IWorkbenchPage page = getActivePage();
+      if (page != null) {
+        IFileStore fileStore = EFS.getLocalFileSystem().getStore(file.toUri());
+        return IDE.openEditorOnFileStore(page, fileStore);
       }
     } catch (PartInitException e) {
       CopilotCore.LOGGER.error(e);

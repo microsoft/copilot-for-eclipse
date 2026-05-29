@@ -6,13 +6,11 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.FileChangeType;
@@ -35,7 +33,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
  * the files to be created or edited and the enable state of the button.
  */
 public class FileToolService extends ChatBaseService {
-  private IObservableValue<Map<IFile, FileChangeProperty>> filesObservable;
+  private IObservableValue<Map<ChangedFile, FileChangeProperty>> filesObservable;
   private IObservableValue<Boolean> buttonEnableObservable;
 
   private WorkingSetBar workingSetBar;
@@ -78,7 +76,7 @@ public class FileToolService extends ChatBaseService {
     ensureRealm(() -> {
       unbindWorkingSetBar();
       filesSideEffect = ISideEffect.create(() -> filesObservable.getValue(),
-          (Map<IFile, FileChangeProperty> filesMap) -> {
+          (Map<ChangedFile, FileChangeProperty> filesMap) -> {
             if (filesMap.isEmpty()) {
               disposeWorkingSetBar();
             } else {
@@ -154,7 +152,7 @@ public class FileToolService extends ChatBaseService {
   /**
    * Set the changed files for the working set bar.
    */
-  public void setChangedFiles(Map<IFile, FileChangeProperty> files) {
+  public void setChangedFiles(Map<ChangedFile, FileChangeProperty> files) {
     ensureRealm(() -> {
       filesObservable.setValue(files);
     });
@@ -163,7 +161,7 @@ public class FileToolService extends ChatBaseService {
   /**
    * Get the changed files for the working set bar.
    */
-  public Map<IFile, FileChangeProperty> getChangedFiles() {
+  public Map<ChangedFile, FileChangeProperty> getChangedFiles() {
     return filesObservable.getValue();
   }
 
@@ -175,11 +173,11 @@ public class FileToolService extends ChatBaseService {
   }
 
   /**
-   * Add a newly created file to the working set bar.
+   * Add a changed file to the working set bar.
    */
-  public void addChangedFile(IFile file, FileChangeType fileChangeType) {
+  public void addChangedFile(ChangedFile file, FileChangeType fileChangeType) {
     ensureRealm(() -> {
-      Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
+      Map<ChangedFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
       if (filesMap.containsKey(file)) {
         return;
       }
@@ -194,9 +192,9 @@ public class FileToolService extends ChatBaseService {
    *
    * @param file the file to complete
    */
-  public void completeFile(IFile file) {
+  public void completeFile(ChangedFile file) {
     ensureRealm(() -> {
-      Map<IFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
+      Map<ChangedFile, FileChangeProperty> filesMap = new LinkedHashMap<>(filesObservable.getValue());
       filesMap.remove(file);
       filesObservable.setValue(filesMap);
 
@@ -212,7 +210,7 @@ public class FileToolService extends ChatBaseService {
    * @param file the file to get the change type for
    * @return the file change type, or null if the file is not in the list
    */
-  public FileChangeType getFileChangeTypeOf(IFile file) {
+  private FileChangeType getFileChangeTypeInternal(ChangedFile file) {
     FileChangeProperty property = filesObservable.getValue().get(file);
     if (property != null) {
       return property.getChangeType();
@@ -226,10 +224,10 @@ public class FileToolService extends ChatBaseService {
    *
    * @param file the file to keep changes for
    */
-  public void onKeepChange(IFile file) {
-    if (getFileChangeTypeOf(file) == FileChangeType.Created) {
+  public void onKeepChange(ChangedFile file) {
+    if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
       this.createFileTool.onKeepChange(file);
-    } else if (getFileChangeTypeOf(file) == FileChangeType.Changed) {
+    } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
       this.editFileTool.onKeepChange(file);
     }
     this.completeFile(file);
@@ -239,8 +237,13 @@ public class FileToolService extends ChatBaseService {
    * Handles the action of keeping all changes to files.
    */
   public void onKeepAllChanges() {
-    this.createFileTool.onKeepAllChanges(getCreatedFiles());
-    this.editFileTool.onKeepAllChanges(getEditedFiles());
+    for (ChangedFile file : new ArrayList<>(filesObservable.getValue().keySet())) {
+      if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
+        this.createFileTool.onKeepChange(file);
+      } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
+        this.editFileTool.onKeepChange(file);
+      }
+    }
     onResolveAllChanges();
   }
 
@@ -249,11 +252,11 @@ public class FileToolService extends ChatBaseService {
    *
    * @param file the file to undo changes for
    */
-  public void onUndoChange(IFile file) {
+  public void onUndoChange(ChangedFile file) {
     try {
-      if (getFileChangeTypeOf(file) == FileChangeType.Created) {
+      if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
         this.createFileTool.onUndoChange(file);
-      } else if (getFileChangeTypeOf(file) == FileChangeType.Changed) {
+      } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
         this.editFileTool.onUndoChange(file);
       }
     } catch (CoreException | IOException e) {
@@ -267,8 +270,13 @@ public class FileToolService extends ChatBaseService {
    */
   public void onUndoAllChanges() {
     try {
-      this.createFileTool.onUndoAllChanges(getCreatedFiles());
-      this.editFileTool.onUndoAllChanges(getEditedFiles());
+      for (ChangedFile file : new ArrayList<>(filesObservable.getValue().keySet())) {
+        if (getFileChangeTypeInternal(file) == FileChangeType.Created) {
+          this.createFileTool.onUndoChange(file);
+        } else if (getFileChangeTypeInternal(file) == FileChangeType.Changed) {
+          this.editFileTool.onUndoChange(file);
+        }
+      }
     } catch (CoreException | IOException e) {
       CopilotCore.LOGGER.error("Error undoing all changes for the files", e);
     }
@@ -280,10 +288,14 @@ public class FileToolService extends ChatBaseService {
    *
    * @param file the file to view the diff for
    */
-  public void onViewDiff(IFile file) {
-    if (getFileChangeTypeOf(file) == FileChangeType.Created) {
+  public void onViewDiff(ChangedFile file) {
+    FileChangeProperty property = filesObservable.getValue().get(file);
+    if (property == null) {
+      return;
+    }
+    if (property.getChangeType() == FileChangeType.Created) {
       this.createFileTool.onViewDiff(file);
-    } else if (getFileChangeTypeOf(file) == FileChangeType.Changed) {
+    } else if (property.getChangeType() == FileChangeType.Changed) {
       this.editFileTool.onViewDiff(file);
     }
   }
@@ -313,29 +325,8 @@ public class FileToolService extends ChatBaseService {
     }
   }
 
-  private List<IFile> getCreatedFiles() {
-    List<IFile> createdFiles = new ArrayList<>();
-    for (Map.Entry<IFile, FileChangeProperty> entry : this.filesObservable.getValue().entrySet()) {
-      if (entry.getValue().getChangeType() == FileChangeType.Created) {
-        createdFiles.add(entry.getKey());
-      }
-    }
-    return createdFiles;
-  }
-
-  private List<IFile> getEditedFiles() {
-    List<IFile> editedFiles = new ArrayList<>();
-    for (Map.Entry<IFile, FileChangeProperty> entry : this.filesObservable.getValue().entrySet()) {
-      if (entry.getValue().getChangeType() == FileChangeType.Changed) {
-        editedFiles.add(entry.getKey());
-      }
-    }
-    return editedFiles;
-  }
-
   /**
-   * Class for file change properties. changeType - The type of file change (new or edited). isCompleted - Whether the
-   * file change is completed or not.
+   * Class for file change properties.
    */
   public static class FileChangeProperty {
     private FileChangeType changeType;

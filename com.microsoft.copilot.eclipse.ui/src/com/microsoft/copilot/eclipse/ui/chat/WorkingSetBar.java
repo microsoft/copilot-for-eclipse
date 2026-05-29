@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -31,6 +30,7 @@ import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
+import com.microsoft.copilot.eclipse.ui.chat.tools.ChangedFile;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.FileToolService.FileChangeProperty;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -70,7 +70,7 @@ public class WorkingSetBar extends Composite {
    *
    * @param filesMap a map of files and their change status
    */
-  public void buildSummaryBarFor(Map<IFile, FileChangeProperty> filesMap) {
+  public void buildSummaryBarFor(Map<ChangedFile, FileChangeProperty> filesMap) {
     if (filesMap == null || isDisposed()) {
       return;
     }
@@ -167,7 +167,7 @@ public class WorkingSetBar extends Composite {
     private Button undoButton;
     private String changeFilesTitle;
 
-    public WorkingSetTitleBar(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
+    public WorkingSetTitleBar(Composite parent, int style, Map<ChangedFile, FileChangeProperty> filesMap) {
       super(parent, style);
       GridLayout gl = new GridLayout(3, false);
       gl.marginWidth = 0;
@@ -302,9 +302,10 @@ public class WorkingSetBar extends Composite {
     private static final int MAX_VISIBLE_FILES = 5;
     private final Composite contentArea;
     private final ScrolledComposite scrolledComposite;
+    private final WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
     private List<FileRow> fileRows; // List to keep track of file rows
 
-    public ChangedFiles(Composite parent, int style, Map<IFile, FileChangeProperty> filesMap) {
+    public ChangedFiles(Composite parent, int style, Map<ChangedFile, FileChangeProperty> filesMap) {
       super(parent, style);
 
       // Main layout
@@ -313,6 +314,7 @@ public class WorkingSetBar extends Composite {
       layout.marginHeight = 0;
       setLayout(layout);
       setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+      addDisposeListener(e -> labelProvider.dispose());
 
       // Count files
       long fileCount = filesMap.size();
@@ -345,15 +347,14 @@ public class WorkingSetBar extends Composite {
         contentArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
       }
 
-      // TODO: Should share a same instance with ReferencedFile
-      WorkbenchLabelProvider labelProvider = new WorkbenchLabelProvider();
       fileRows = new LinkedList<>();
-      for (IFile file : filesMap.keySet()) {
+      for (ChangedFile file : filesMap.keySet()) {
         if (file == null) {
           continue;
         }
 
-        Image image = labelProvider.getImage(file);
+        Image image = file.isWorkspaceFile() ? labelProvider.getImage(file.getWorkspaceFile())
+            : PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_FILE);
         fileRows.add(new FileRow(contentArea, SWT.NONE, image, file));
       }
 
@@ -396,7 +397,7 @@ public class WorkingSetBar extends Composite {
     /**
      * Constructs a new FileRow.
      */
-    public FileRow(Composite parent, int style, Image fileImage, IFile file) {
+    public FileRow(Composite parent, int style, Image fileImage, ChangedFile file) {
       super(parent, style);
 
       GridLayout layout = new GridLayout(2, false);
@@ -434,7 +435,7 @@ public class WorkingSetBar extends Composite {
       // File name (bold)
       Label nameLabel = new Label(fileInfo, SWT.NONE);
       nameLabel.setText(file.getName());
-      nameLabel.setToolTipText(file.getFullPath().toString());
+      nameLabel.setToolTipText(file.getDisplayPath());
       nameLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
       nameLabel.addMouseListener(new MouseAdapter() {
         @Override
@@ -466,7 +467,7 @@ public class WorkingSetBar extends Composite {
 
       // File path
       CLabel pathLabel = new CLabel(fileInfo, SWT.NONE);
-      pathLabel.setText(file.getFullPath().toString());
+      pathLabel.setText(file.getDisplayPath());
       pathLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, true, false));
       pathLabel.addMouseListener(new MouseAdapter() {
         @Override
