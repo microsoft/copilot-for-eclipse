@@ -4,9 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.io.IOException;
-import java.util.List;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 
 /**
@@ -18,12 +16,7 @@ public interface WorkingSetHandler {
    *
    * @param file the file to keep changes for
    */
-  void onKeepChange(IFile file) throws IOException, CoreException;
-
-  /**
-   * Handles the action of keeping all changes to files.
-   */
-  void onKeepAllChanges(List<IFile> files) throws IOException, CoreException;
+  void onKeepChange(ChangedFile file) throws IOException, CoreException;
 
   /**
    * Handles the action of undoing changes to a file.
@@ -33,22 +26,14 @@ public interface WorkingSetHandler {
    * @throws CoreException if an error occurs during the undo operation, such as a failure to delete a file
    * @throws IOException if an error occurs while writing to the file
    */
-  void onUndoChange(IFile file) throws CoreException, IOException;
-
-  /**
-   * Handles the action of undoing all changes to files.
-   *
-   * @throws CoreException if error occurs during the undo all operation, such as a failure to delete a file
-   * @throws IOException if an error occurs while writing to the file
-   */
-  void onUndoAllChanges(List<IFile> files) throws CoreException, IOException;
+  void onUndoChange(ChangedFile file) throws CoreException, IOException;
 
   /**
    * Handles the action of viewing the diff of a file.
    *
    * @param file the file to view the diff for
    */
-  void onViewDiff(IFile file);
+  void onViewDiff(ChangedFile file);
 
   /**
    * Handles the action of click done button to resolve all changes.
