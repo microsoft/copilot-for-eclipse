@@ -92,6 +92,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         .setAgentMaxRequests(preferenceStore.getInt(Constants.AGENT_MAX_REQUESTS));
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled());
+    getSettings().getGithubSettings().getCopilotSettings().getAgent()
+        .setAutoCompress(true);
 
     // Set transcript directory for CLS session persistence and restoration
     getSettings().getGithubSettings().getCopilotSettings().getAgent()

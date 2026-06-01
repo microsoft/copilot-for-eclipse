@@ -176,4 +176,14 @@ public class CopilotEventConstants {
    * conversation templates on receipt.
    */
   public static final String TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES = TOPIC_CHAT + "DID_CHANGE_CUSTOMIZATION_FILES";
+
+  /**
+   * Event when automatic conversation compression starts.
+   */
+  public static final String TOPIC_CHAT_COMPRESSION_STARTED = TOPIC_CHAT + "COMPRESSION_STARTED";
+
+  /**
+   * Event when automatic conversation compression completes.
+   */
+  public static final String TOPIC_CHAT_COMPRESSION_COMPLETED = TOPIC_CHAT + "COMPRESSION_COMPLETED";
 }

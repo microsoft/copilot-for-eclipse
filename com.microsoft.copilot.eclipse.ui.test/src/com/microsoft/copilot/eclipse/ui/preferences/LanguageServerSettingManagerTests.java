@@ -58,6 +58,7 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent().setAutoCompress(true);
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
     settings.getGithubSettings().getCopilotSettings().getAgent()
@@ -92,6 +93,7 @@ class LanguageServerSettingManagerTests {
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    settings.getGithubSettings().getCopilotSettings().getAgent().setAutoCompress(true);
     settings.getGithubSettings().getCopilotSettings().getAgent()
         .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
     settings.getGithubSettings().getCopilotSettings().getAgent()
@@ -130,6 +132,7 @@ class LanguageServerSettingManagerTests {
     CopilotSettings copilotSettings = new CopilotSettings();
     copilotSettings.setWorkspaceCopilotInstructions("Test instructions");
     copilotSettings.getAgent().setEnableSkills(PreferencesUtils.isSkillsEnabled());
+    copilotSettings.getAgent().setAutoCompress(true);
     CopilotLanguageServerSettings settings = new CopilotLanguageServerSettings();
     settings.getGithubSettings().setCopilotSettings(copilotSettings);
     settings.getGithubSettings().getCopilotSettings().getAgent()
@@ -169,6 +172,7 @@ class LanguageServerSettingManagerTests {
     expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
         .setEnableSkills(PreferencesUtils.isSkillsEnabled())
         .setTranscriptDirectory(PlatformUtils.getTranscriptDirectory());
+    expectedSettings.getGithubSettings().getCopilotSettings().getAgent().setAutoCompress(true);
     expectedSettings.getGithubSettings().getCopilotSettings().getAgent()
         .getTools().getTerminal().setAutoApprove(new LinkedHashMap<>());
     expectedSettings.getGithubSettings().getCopilotSettings().getAgent()

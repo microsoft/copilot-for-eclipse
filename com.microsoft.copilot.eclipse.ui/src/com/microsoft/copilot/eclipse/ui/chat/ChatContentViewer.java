@@ -68,7 +68,7 @@ public class ChatContentViewer extends ScrolledComposite {
   private Composite errorWidget;
 
   private BaseTurnWidget latestUserTurn;
-  private BaseTurnWidget latestCopilotTurn;
+  private CopilotTurnWidget latestCopilotTurn;
   private BaseTurnWidget latestTurnWidget;
   // Auto-scroll state management
   private boolean autoScrollEnabled;
@@ -133,7 +133,7 @@ public class ChatContentViewer extends ScrolledComposite {
   public void startNewTurn(String workDoneToken, String message) {
     BaseTurnWidget turnWidget = getLatestOrCreateNewTurnWidget(workDoneToken, false, true);
     turnWidget.appendMessage(message);
-    turnWidget.notifyTurnEnd();
+    turnWidget.flushMessageBuffer();
 
     refreshScrollerLayout();
     scrollToLatestUserTurn();
@@ -158,9 +158,11 @@ public class ChatContentViewer extends ScrolledComposite {
         turnWidget = latestTurnWidget;
       } else if (isCopilot) {
         // Create new Copilot turn widget
-        turnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, serviceManager, workDoneToken);
-        latestCopilotTurn = turnWidget;
-        latestTurnWidget = turnWidget;
+        CopilotTurnWidget copilotTurnWidget = new CopilotTurnWidget(cmpContent, SWT.NONE, serviceManager,
+            workDoneToken);
+        latestCopilotTurn = copilotTurnWidget;
+        latestTurnWidget = copilotTurnWidget;
+        turnWidget = copilotTurnWidget;
       } else {
         // Create new User turn widget
         turnWidget = new UserTurnWidget(cmpContent, SWT.NONE, serviceManager, workDoneToken);
@@ -235,7 +237,7 @@ public class ChatContentViewer extends ScrolledComposite {
           thinkingTurn.sealThinking();
           updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
         }
-        turnWidget.notifyTurnEnd();
+        turnWidget.flushMessageBuffer();
       }
       refreshScrollerLayout();
 
@@ -377,6 +379,36 @@ public class ChatContentViewer extends ScrolledComposite {
     if (todos != null) {
       todoListService.setTodoList(new ArrayList<>(todos));
     }
+  }
+
+  /**
+   * Shows the compacting status on the latest Copilot turn after flushing any buffered reply text.
+   */
+  public void showCompactingStatusOnLatestCopilotTurn() {
+    if (latestCopilotTurn == null || latestCopilotTurn.isDisposed()) {
+      return;
+    }
+    // Flush any buffered reply text from the previous round so it is rendered
+    // above the compacting spinner; otherwise it would be concatenated with
+    // the next round's reply and produce a single garbled line.
+    latestCopilotTurn.flushMessageBuffer();
+    latestCopilotTurn.showCompactingStatus();
+    refreshScrollerLayout();
+  }
+
+  /**
+   * Hides the compacting status on the latest Copilot turn, flushing any buffered reply text
+   * first as a guard against buffered content that was not flushed by an end progress event.
+   */
+  public void hideCompactingStatusOnLatestCopilotTurn() {
+    if (latestCopilotTurn == null || latestCopilotTurn.isDisposed()) {
+      return;
+    }
+    // Always flush before hiding; the buffer should be empty at this point, but flush as a guard
+    // in case a cancel path did not receive an end progress event to flush it.
+    latestCopilotTurn.flushMessageBuffer();
+    latestCopilotTurn.hideCompactingStatus();
+    refreshScrollerLayout();
   }
 
   /**
