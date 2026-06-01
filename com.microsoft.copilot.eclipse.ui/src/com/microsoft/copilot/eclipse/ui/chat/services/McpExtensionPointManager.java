@@ -106,13 +106,18 @@ public class McpExtensionPointManager {
     String approvedServersToPublish = null;
     boolean shouldPublish = false;
     try {
+      FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+      if (flags != null && !flags.isMcpEnabled()) {
+        return;
+      }
+      // Perform the slow extension-point scan and diff work outside the lock so that
+      // UI-thread callers (e.g. approveExtMcpRegistration) are not blocked.
+      Map<String, McpRegistrationInfo> scannedMap = loadMcpRegistrationExtensionPoint();
+      detectChangesInMcpContribs(scannedMap, persistedMcpContribs);
       synchronized (this) {
-        FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-        if (flags != null && !flags.isMcpEnabled()) {
-          return;
-        }
-        loadMcpRegistrationExtensionPoint();
-        detectChangesInMcpContribs(persistedMcpContribs);
+        extMcpInfoMap = scannedMap;
+        updateApprovedMcpServerString(extMcpInfoMap);
+        persistExtMcpInfo(extMcpInfoMap);
         approvedServersToPublish = approvedExtMcpServers;
         shouldPublish = true;
       }
@@ -181,11 +186,12 @@ public class McpExtensionPointManager {
   /**
    * Load MCP registration from extension point.
    */
-  private void loadMcpRegistrationExtensionPoint() {
+  private Map<String, McpRegistrationInfo> loadMcpRegistrationExtensionPoint() {
+    Map<String, McpRegistrationInfo> result = new HashMap<>();
     IExtensionRegistry registry = Platform.getExtensionRegistry();
     IExtensionPoint extensionPoint = registry.getExtensionPoint(EXTENSION_POINT_ID);
     if (extensionPoint == null) {
-      return;
+      return result;
     }
 
     // Traverse all extensions/bundles.
@@ -251,9 +257,10 @@ public class McpExtensionPointManager {
 
       // Update registration info
       if (!mergedServers.isEmpty()) {
-        extMcpInfoMap.put(bundleName, new McpRegistrationInfo(isTrusted, isApproved, pluginDisplayName, mergedServers));
+        result.put(bundleName, new McpRegistrationInfo(isTrusted, isApproved, pluginDisplayName, mergedServers));
       }
     }
+    return result;
   }
 
   /**
@@ -298,14 +305,16 @@ public class McpExtensionPointManager {
   /**
    * Detect changes in MCP registration from extension point compared to the existing record.
    */
-  private void detectChangesInMcpContribs(Map<String, McpRegistrationInfo> existingExtMcpInfoMap) {
+  private void detectChangesInMcpContribs(
+      Map<String, McpRegistrationInfo> scannedMap,
+      Map<String, McpRegistrationInfo> existingExtMcpInfoMap) {
     boolean newExtMcpRegFound = false;
     if (existingExtMcpInfoMap == null) {
       existingExtMcpInfoMap = Collections.emptyMap();
     }
 
     // Compare each plugin's current MCP servers with the stored record
-    for (Map.Entry<String, McpRegistrationInfo> entry : extMcpInfoMap.entrySet()) {
+    for (Map.Entry<String, McpRegistrationInfo> entry : scannedMap.entrySet()) {
       String contributorName = entry.getKey();
       McpRegistrationInfo mcpRegistrationInfo = entry.getValue();
       McpRegistrationInfo storedInfo = existingExtMcpInfoMap.get(contributorName);
@@ -326,9 +335,6 @@ public class McpExtensionPointManager {
     if (newExtMcpRegFound) {
       mcpConfigService.setNewExtMcpRegFound(true);
     }
-
-    updateApprovedMcpServerString(extMcpInfoMap);
-    persistExtMcpInfo(extMcpInfoMap);
   }
 
   /**

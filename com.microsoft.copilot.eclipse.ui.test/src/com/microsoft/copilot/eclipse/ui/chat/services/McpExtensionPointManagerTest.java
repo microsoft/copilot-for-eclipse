@@ -335,8 +335,26 @@ class McpExtensionPointManagerTest {
   }
 
   private void invokeDetectChanges(Map<String, McpRegistrationInfo> persisted) throws Exception {
-    Method detectMethod = McpExtensionPointManager.class.getDeclaredMethod("detectChangesInMcpContribs", Map.class);
+    // Get the scanned map that was previously set via setExtMcpInfoMap
+    Field field = McpExtensionPointManager.class.getDeclaredField("extMcpInfoMap");
+    field.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    Map<String, McpRegistrationInfo> scannedMap = (Map<String, McpRegistrationInfo>) field.get(manager);
+
+    // detectChangesInMcpContribs now takes (scannedMap, persistedMap) and no longer
+    // calls updateApprovedMcpServerString / persistExtMcpInfo (those moved to doRegistration).
+    Method detectMethod = McpExtensionPointManager.class.getDeclaredMethod("detectChangesInMcpContribs", Map.class,
+        Map.class);
     detectMethod.setAccessible(true);
-    detectMethod.invoke(manager, persisted);
+    detectMethod.invoke(manager, scannedMap, persisted);
+
+    // Mirror what doRegistration() does after detectChanges: swap the field and update/persist.
+    field.set(manager, scannedMap);
+    Method updateMethod = McpExtensionPointManager.class.getDeclaredMethod("updateApprovedMcpServerString", Map.class);
+    updateMethod.setAccessible(true);
+    updateMethod.invoke(manager, scannedMap);
+    Method persistMethod = McpExtensionPointManager.class.getDeclaredMethod("persistExtMcpInfo", Map.class);
+    persistMethod.setAccessible(true);
+    persistMethod.invoke(manager, scannedMap);
   }
 }
