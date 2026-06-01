@@ -8,12 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -297,24 +294,7 @@ public abstract class FileToolBase extends BaseTool {
     return file.toAbsolutePath().normalize();
   }
 
-  /**
-   * Resolves an absolute local filesystem path from a path or file URI.
-   *
-   * @param filePath the path or URI to resolve
-   * @return the local filesystem path, or null if the input is not an absolute local path
-   */
-  protected Path getLocalFilePath(String filePath) {
-    try {
-      if (filePath.startsWith("file:")) {
-        return Paths.get(new URI(filePath));
-      }
-      Path path = Paths.get(filePath);
-      return path.isAbsolute() ? path : null;
-    } catch (IllegalArgumentException | URISyntaxException e) {
-      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
-      return null;
-    }
-  }
+
 
   private CompareEditorInput createWorkspaceCompareEditorInput(String comparedContent, IFile file) {
     ChangedFile changedFile = ChangedFile.workspace(file);

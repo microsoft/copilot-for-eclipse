@@ -146,7 +146,7 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
       return editWorkspaceFile(file, code);
     }
 
-    Path localPath = getLocalFilePath(filePath);
+    Path localPath = FileUtils.getLocalFilePath(filePath);
     if (localPath != null && Files.isRegularFile(localPath, LinkOption.NOFOLLOW_LINKS)) {
       return editLocalFile(localPath, code);
     }

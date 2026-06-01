@@ -182,6 +182,40 @@ public class FileUtils {
   }
 
   /**
+   * Resolves an absolute local filesystem path from a path or file URI.
+   *
+   * @param filePath the path or URI to resolve
+   * @return the local filesystem path, or null if the input is not an absolute local path
+   */
+  @Nullable
+  public static Path getLocalFilePath(String filePath) {
+    if (StringUtils.isBlank(filePath)) {
+      return null;
+    }
+
+    try {
+      String pathWithoutFragment = stripFragment(filePath);
+      if (pathWithoutFragment.startsWith("file:")) {
+        return Paths.get(new URI(pathWithoutFragment)).toAbsolutePath().normalize();
+      }
+      if (URI_SCHEME_PATTERN.matcher(pathWithoutFragment).find() && !hasDriveLetter(pathWithoutFragment)) {
+        return null;
+      }
+
+      Path path = Paths.get(pathWithoutFragment);
+      return path.isAbsolute() ? path.toAbsolutePath().normalize() : null;
+    } catch (IllegalArgumentException | URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
+      return null;
+    }
+  }
+
+  private static String stripFragment(String pathOrUri) {
+    int fragmentIndex = pathOrUri.indexOf('#');
+    return fragmentIndex > 0 ? pathOrUri.substring(0, fragmentIndex) : pathOrUri;
+  }
+
+  /**
    * Normalizes a file path or URI string to a proper file URI string. Handles Windows absolute paths, POSIX absolute
    * paths, and existing URI strings. Line number fragments (e.g., #L123) are preserved.
    *

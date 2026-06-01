@@ -108,7 +108,7 @@ public class CreateFileTool extends FileToolBase implements WorkingSetHandler {
       return createWorkspaceFile(file, filePath, content);
     }
 
-    Path localPath = getLocalFilePath(filePath);
+    Path localPath = FileUtils.getLocalFilePath(filePath);
     if (localPath != null) {
       return createLocalFile(localPath, content);
     }
