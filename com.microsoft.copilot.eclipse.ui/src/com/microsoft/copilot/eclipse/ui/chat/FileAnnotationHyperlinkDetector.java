@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 
 import org.eclipse.core.resources.IFile;
@@ -75,7 +76,7 @@ public class FileAnnotationHyperlinkDetector extends AnnotationHyperlinkDetector
           }
         }
         Path localPath = FileUtils.getLocalFilePath(urlString);
-        if (localPath != null && Files.isRegularFile(localPath)) {
+        if (localPath != null && Files.isRegularFile(localPath, LinkOption.NOFOLLOW_LINKS)) {
           UiUtils.openLocalFileInEditor(localPath);
           return;
         }
