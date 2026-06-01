@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.eclipse.lsp4j.FormattingOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +27,11 @@ class FormatOptionProviderTests {
   private IFile mockFile;
   private IProject mockProject;
 
+  private static final String EDITOR_PREF_NODE = "org.eclipse.ui.editors";
+  private static final String TAB_WIDTH_KEY = "tabWidth";
+  private static final String SPACES_FOR_TABS_KEY = "spacesForTabs";
   private static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
+  private static final boolean PREFERENCE_DEFAULT_USE_SPACE = true;
 
   @BeforeEach
   void setUp() {
@@ -56,16 +62,38 @@ class FormatOptionProviderTests {
   void testGetCopilotDefaultTabCharAndSizeForUnknownLanguage() {
     when(mockFile.getFileExtension()).thenReturn("js");
 
-    assertTrue(formatOptionProvider.useSpace(mockFile));
-    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+    FormattingOptions expectedFormattingOptions = getEclipseTextEditorFormattingOptions();
+    assertEquals(expectedFormattingOptions.isInsertSpaces(), formatOptionProvider.useSpace(mockFile));
+    assertEquals(expectedFormattingOptions.getTabSize(), formatOptionProvider.getTabSize(mockFile));
   }
 
   @Test
   void testGetCopilotDefaultTabCharAndSizeForNoExtensionFile() {
     when(mockFile.getFileExtension()).thenReturn(null);
 
-    assertTrue(formatOptionProvider.useSpace(mockFile));
-    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+    FormattingOptions expectedFormattingOptions = getEclipseTextEditorFormattingOptions();
+    assertEquals(expectedFormattingOptions.isInsertSpaces(), formatOptionProvider.useSpace(mockFile));
+    assertEquals(expectedFormattingOptions.getTabSize(), formatOptionProvider.getTabSize(mockFile));
   }
 
+  private FormattingOptions getEclipseTextEditorFormattingOptions() {
+    try {
+      IPreferencesService service = Platform.getPreferencesService();
+      boolean useSpaces = service.getBoolean(
+          EDITOR_PREF_NODE,
+          SPACES_FOR_TABS_KEY,
+          PREFERENCE_DEFAULT_USE_SPACE,
+          null
+      );
+      int tabSize = service.getInt(
+          EDITOR_PREF_NODE,
+          TAB_WIDTH_KEY,
+          PREFERENCE_DEFAULT_TAB_SIZE,
+          null
+      );
+      return new FormattingOptions(tabSize, useSpaces);
+    } catch (Exception e) {
+      return new FormattingOptions(PREFERENCE_DEFAULT_TAB_SIZE, PREFERENCE_DEFAULT_USE_SPACE);
+    }
+  }
 }
