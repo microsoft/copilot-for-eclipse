@@ -430,7 +430,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
           return;
         }
-        this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn(false);
+        this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
         if (params.contextInfo() != null) {
           this.chatServiceManager.getContextWindowService().updateContextSize(params.contextInfo());
         }
@@ -1427,7 +1427,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.actionBar.resetSendButton();
     }
     if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
-      this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn(true);
+      this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
     }
   }
 
@@ -1869,17 +1869,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (userTurn.getMessage() == null || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
         BaseTurnWidget userTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
         userTurnWidget.appendMessage(userTurn.getMessage().getText());
-        userTurnWidget.notifyTurnEnd();
+        userTurnWidget.flushMessageBuffer();
         return;
       }
     } else if (turn instanceof CopilotTurnData copilotTurn) {
       BaseTurnWidget copilotTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), true, true);
       restoreCopilotTurnContent(copilotTurn, copilotTurnWidget);
 
-      copilotTurnWidget.notifyTurnEnd();
+      copilotTurnWidget.flushMessageBuffer();
 
       // Restore model info footer if model name is present
-      // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
+      // This must be done AFTER flushMessageBuffer() to ensure footer appears at the bottom
       ReplyData replyData = copilotTurn.getReply();
       if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
         // Reasoning effort was captured and persisted at send time so the footer reflects what was actually used
