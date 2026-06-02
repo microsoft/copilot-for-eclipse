@@ -224,6 +224,7 @@ public final class Messages extends NLS {
   public static String context_window_messages;
   public static String context_window_files;
   public static String context_window_tool_results;
+  public static String chat_compacting_conversation;
   public static String chat_rateLimitBanner_getMoreInfo;
   public static String chat_rateLimitBanner_closeTooltip;
 

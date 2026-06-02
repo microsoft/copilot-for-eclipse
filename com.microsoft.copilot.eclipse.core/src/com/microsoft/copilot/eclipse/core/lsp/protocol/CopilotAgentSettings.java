@@ -17,6 +17,7 @@ public class CopilotAgentSettings {
   @SerializedName("maxToolCallingLoop")
   private int agentMaxRequests;
   private boolean enableSkills;
+  private boolean autoCompress;
 
   private String transcriptDirectory;
 
@@ -178,6 +179,14 @@ public class CopilotAgentSettings {
     return transcriptDirectory;
   }
 
+  public boolean isAutoCompress() {
+    return autoCompress;
+  }
+
+  public void setAutoCompress(boolean autoCompress) {
+    this.autoCompress = autoCompress;
+  }
+
   public void setTranscriptDirectory(String transcriptDirectory) {
     this.transcriptDirectory = transcriptDirectory;
   }
@@ -212,7 +221,7 @@ public class CopilotAgentSettings {
 
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests, enableSkills, transcriptDirectory,
+    return Objects.hash(agentMaxRequests, enableSkills, autoCompress, transcriptDirectory,
         editorHandlesAllConfirmation, autoApproveUnmatchedTerminal, autoApproveUnmatchedFileOp, tools);
   }
 
@@ -229,6 +238,7 @@ public class CopilotAgentSettings {
     }
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
     return agentMaxRequests == other.agentMaxRequests && enableSkills == other.enableSkills
+        && autoCompress == other.autoCompress
         && Objects.equals(transcriptDirectory, other.transcriptDirectory)
         && editorHandlesAllConfirmation == other.editorHandlesAllConfirmation
         && autoApproveUnmatchedTerminal == other.autoApproveUnmatchedTerminal
@@ -241,6 +251,7 @@ public class CopilotAgentSettings {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.append("agentMaxRequests", agentMaxRequests);
     builder.append("enableSkills", enableSkills);
+    builder.append("autoCompress", autoCompress);
     builder.append("transcriptDirectory", transcriptDirectory);
     builder.append("editorHandlesAllConfirmation", editorHandlesAllConfirmation);
     builder.append("autoApproveUnmatchedTerminal", autoApproveUnmatchedTerminal);

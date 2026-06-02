@@ -91,9 +91,9 @@ public class SubagentMessageBlock extends Composite {
   /**
    * Notify the end of the subagent turn.
    */
-  public void notifyTurnEnd() {
+  public void flushMessageBuffer() {
     if (currentSubagentTurnWidget != null) {
-      currentSubagentTurnWidget.notifyTurnEnd();
+      currentSubagentTurnWidget.flushMessageBuffer();
     }
   }
 

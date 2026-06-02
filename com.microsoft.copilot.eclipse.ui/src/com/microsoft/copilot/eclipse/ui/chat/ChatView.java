@@ -60,6 +60,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStep;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepTitles;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionCompletedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionStartedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ContextSizeInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -148,6 +150,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler autoBreakpointToggleHandler;
   private EventHandler rateLimitWarningHandler;
   private EventHandler quotaWarningHandler;
+  private EventHandler compressionStartedHandler;
+  private EventHandler compressionCompletedHandler;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
@@ -397,6 +401,45 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_QUOTA_WARNING, this.quotaWarningHandler);
+
+    this.compressionStartedHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (!(data instanceof CompressionStartedParams params)) {
+        return;
+      }
+      if (!isCompressionForActiveConversation(params.conversationId())) {
+        return;
+      }
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
+          return;
+        }
+        this.chatContentViewer.showCompactingStatusOnLatestCopilotTurn();
+      }, parent);
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_STARTED,
+        this.compressionStartedHandler);
+
+    this.compressionCompletedHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (!(data instanceof CompressionCompletedParams params)) {
+        return;
+      }
+      if (!isCompressionForActiveConversation(params.conversationId())) {
+        return;
+      }
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
+          return;
+        }
+        this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
+        if (params.contextInfo() != null) {
+          this.chatServiceManager.getContextWindowService().updateContextSize(params.contextInfo());
+        }
+      }, parent);
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_COMPLETED,
+        this.compressionCompletedHandler);
 
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
@@ -1210,6 +1253,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
+   * Checks whether a compression notification targets either the main conversation or the active subagent
+   * conversation, so the UI can reflect compaction happening at either level.
+   */
+  private boolean isCompressionForActiveConversation(String compressionConversationId) {
+    return StringUtils.equals(compressionConversationId, this.conversationId)
+        || StringUtils.equals(compressionConversationId, this.subagentConversationId);
+  }
+
+  /**
    * Align with @Workspace of vscode, because we are actually indexing the whole workspace, not a single project.
    * (@Project is only for IntelliJ.)
    *
@@ -1376,6 +1428,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // Reset send button in case the conversation was cancelled while in-progress
     if (this.actionBar != null && !this.actionBar.isDisposed()) {
       this.actionBar.resetSendButton();
+    }
+    if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
+      this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
     }
   }
 
@@ -1564,6 +1619,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (quotaWarningHandler != null) {
         this.eventBroker.unsubscribe(this.quotaWarningHandler);
         quotaWarningHandler = null;
+      }
+      if (compressionStartedHandler != null) {
+        this.eventBroker.unsubscribe(this.compressionStartedHandler);
+        compressionStartedHandler = null;
+      }
+      if (compressionCompletedHandler != null) {
+        this.eventBroker.unsubscribe(this.compressionCompletedHandler);
+        compressionCompletedHandler = null;
       }
     }
 
@@ -1821,17 +1884,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (userTurn.getMessage() == null || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
         BaseTurnWidget userTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
         userTurnWidget.appendMessage(userTurn.getMessage().getText());
-        userTurnWidget.notifyTurnEnd();
+        userTurnWidget.flushMessageBuffer();
         return;
       }
     } else if (turn instanceof CopilotTurnData copilotTurn) {
       BaseTurnWidget copilotTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), true, true);
       restoreCopilotTurnContent(copilotTurn, copilotTurnWidget);
 
-      copilotTurnWidget.notifyTurnEnd();
+      copilotTurnWidget.flushMessageBuffer();
 
       // Restore model info footer if model name is present
-      // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
+      // This must be done AFTER flushMessageBuffer() to ensure footer appears at the bottom
       ReplyData replyData = copilotTurn.getReply();
       if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
         // Reasoning effort was captured and persisted at send time so the footer reflects what was actually used

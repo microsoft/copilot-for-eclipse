@@ -43,6 +43,8 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRuntimeLog;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionCompletedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionStartedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
@@ -363,6 +365,26 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public void onQuotaWarning(QuotaWarningParams params) {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_WARNING, params);
+    }
+  }
+
+  /**
+   * Notify when automatic conversation compression starts.
+   */
+  @JsonNotification("$/copilot/compressionStarted")
+  public void onCompressionStarted(CompressionStartedParams params) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_STARTED, params);
+    }
+  }
+
+  /**
+   * Notify when automatic conversation compression completes.
+   */
+  @JsonNotification("$/copilot/compressionCompleted")
+  public void onCompressionCompleted(CompressionCompletedParams params) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_COMPLETED, params);
     }
   }
 

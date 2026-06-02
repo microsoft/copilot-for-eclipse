@@ -1097,10 +1097,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     approvalItem.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        String res = chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
-        if (StringUtils.isNotBlank(res)) {
-          CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
-        }
+        chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
       }
     });
 

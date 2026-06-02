@@ -4,10 +4,13 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -206,5 +209,152 @@ class McpExtensionPointManagerTest {
     Map<String, Object> result = gson.fromJson(approvedServers, Map.class);
     Map<String, Object> resultServers = (Map<String, Object>) result.get("servers");
     assertTrue(resultServers.isEmpty(), "Servers map should be empty when MCP servers are null");
+  }
+
+  @Test
+  void testDetectChangesDropsApprovedServerWhenPluginUninstalled() throws Exception {
+    // Regression test for https://github.com/microsoft/copilot-for-eclipse/issues/153 scenario 1:
+    // a previously approved plugin is no longer providing any MCP server.
+    IPreferenceStore mockPreferenceStore = mock(IPreferenceStore.class);
+    when(mockCopilotUi.getPreferenceStore()).thenReturn(mockPreferenceStore);
+
+    Map<String, Object> previouslyApprovedServers = new HashMap<>();
+    previouslyApprovedServers.put("server-X", Map.of("url", "http://localhost:9000"));
+    McpRegistrationInfo persistedInfo = createMcpRegistrationInfo(true, true, "Test Plugin",
+        previouslyApprovedServers);
+    Map<String, McpRegistrationInfo> persisted = new HashMap<>();
+    persisted.put("com.example.plugin", persistedInfo);
+
+    // Live extension scan returned nothing (plugin uninstalled or no longer provides servers).
+    setExtMcpInfoMap(new HashMap<>());
+
+    invokeDetectChanges(persisted);
+
+    String approvedServers = manager.getApprovedExtMcpServers();
+    assertNotNull(approvedServers, "Approved servers JSON should be non-null after detect");
+    Map<String, Object> result = gson.fromJson(approvedServers, Map.class);
+    Map<String, Object> resultServers = (Map<String, Object>) result.get("servers");
+    assertTrue(resultServers.isEmpty(),
+        "Stale approved server must be dropped when the live extension scan returns nothing");
+
+    // No new approval prompt should be raised because there is no incoming registration to approve.
+    verify(mockMcpConfigService, never()).setNewExtMcpRegFound(true);
+
+    // The verified state must be persisted so subsequent startups do not resurrect the stale entry.
+    ArgumentCaptor<String> persistedJson = ArgumentCaptor.forClass(String.class);
+    verify(mockPreferenceStore, atLeastOnce()).setValue(eq(Constants.MCP_EXTENSION_POINT_CONTRIB),
+        persistedJson.capture());
+    assertEquals("{}", persistedJson.getValue(),
+        "Persisted contribution map should be empty after the plugin is gone");
+  }
+
+  @Test
+  void testDetectChangesDropsApprovalAndFlagsRedNoticeWhenConfigChanges() throws Exception {
+    // Regression test for https://github.com/microsoft/copilot-for-eclipse/issues/153 scenario 2:
+    // the contributing plugin returns a different config than what was previously approved.
+    IPreferenceStore mockPreferenceStore = mock(IPreferenceStore.class);
+    when(mockCopilotUi.getPreferenceStore()).thenReturn(mockPreferenceStore);
+
+    Map<String, Object> oldServers = new HashMap<>();
+    oldServers.put("server-X", Map.of("url", "http://localhost:9000"));
+    McpRegistrationInfo persistedInfo = createMcpRegistrationInfo(true, true, "Test Plugin", oldServers);
+    Map<String, McpRegistrationInfo> persisted = new HashMap<>();
+    persisted.put("com.example.plugin", persistedInfo);
+
+    // Live extension scan returned the same plugin but with a different server config (port change).
+    Map<String, Object> newServers = new HashMap<>();
+    newServers.put("server-X", Map.of("url", "http://localhost:9999"));
+    McpRegistrationInfo currentInfo = createMcpRegistrationInfo(true, false, "Test Plugin", newServers);
+    Map<String, McpRegistrationInfo> currentMap = new HashMap<>();
+    currentMap.put("com.example.plugin", currentInfo);
+    setExtMcpInfoMap(currentMap);
+
+    invokeDetectChanges(persisted);
+
+    String approvedServers = manager.getApprovedExtMcpServers();
+    assertNotNull(approvedServers);
+    Map<String, Object> result = gson.fromJson(approvedServers, Map.class);
+    Map<String, Object> resultServers = (Map<String, Object>) result.get("servers");
+    assertTrue(resultServers.isEmpty(),
+        "Changed config must not be auto-applied; LSP must not receive the (now unapproved) entry");
+
+    assertFalse(currentInfo.isApproved(),
+        "Previously approved entry whose config changed must be marked as unapproved until the user re-approves");
+    verify(mockMcpConfigService).setNewExtMcpRegFound(true);
+    verify(mockPreferenceStore, atLeastOnce()).setValue(eq(Constants.MCP_EXTENSION_POINT_CONTRIB),
+        org.mockito.ArgumentMatchers.anyString());
+  }
+
+  @Test
+  void testDetectChangesPreservesApprovalWhenConfigUnchanged() throws Exception {
+    // Companion test: when the live extension scan reports the same config as the persisted cache,
+    // the previous approval must be carried over so the explicit LSP sync at the end of
+    // doRegistration() can push the verified servers to the language server.
+    IPreferenceStore mockPreferenceStore = mock(IPreferenceStore.class);
+    when(mockCopilotUi.getPreferenceStore()).thenReturn(mockPreferenceStore);
+
+    Map<String, Object> approvedServers = new HashMap<>();
+    approvedServers.put("server-X", Map.of("url", "http://localhost:9000"));
+    McpRegistrationInfo persistedInfo = createMcpRegistrationInfo(true, true, "Test Plugin", approvedServers);
+    Map<String, McpRegistrationInfo> persisted = new HashMap<>();
+    persisted.put("com.example.plugin", persistedInfo);
+
+    // Live extension scan returned the same servers; default isApproved=false until carry-over runs.
+    Map<String, Object> sameServers = new HashMap<>();
+    sameServers.put("server-X", Map.of("url", "http://localhost:9000"));
+    McpRegistrationInfo currentInfo = createMcpRegistrationInfo(true, false, "Test Plugin", sameServers);
+    Map<String, McpRegistrationInfo> currentMap = new HashMap<>();
+    currentMap.put("com.example.plugin", currentInfo);
+    setExtMcpInfoMap(currentMap);
+
+    invokeDetectChanges(persisted);
+
+    assertTrue(currentInfo.isApproved(),
+        "When the contributed config matches the persisted JSON, the previous approval must be carried over");
+
+    String approvedJson = manager.getApprovedExtMcpServers();
+    assertNotNull(approvedJson);
+    Map<String, Object> result = gson.fromJson(approvedJson, Map.class);
+    Map<String, Object> resultServers = (Map<String, Object>) result.get("servers");
+    assertEquals(1, resultServers.size(),
+        "Carried-over approved server must be present in the approved servers JSON for the LSP sync");
+
+    // No red-notice should be raised because nothing has changed for the user to re-review.
+    verify(mockMcpConfigService, never()).setNewExtMcpRegFound(true);
+  }
+
+  /**
+   * Reflectively replace the manager's private {@code extMcpInfoMap} so tests can simulate the
+   * outcome of {@code loadMcpRegistrationExtensionPoint()} without requiring a live OSGi
+   * extension registry.
+   */
+  private void setExtMcpInfoMap(Map<String, McpRegistrationInfo> map) throws Exception {
+    Field field = McpExtensionPointManager.class.getDeclaredField("extMcpInfoMap");
+    field.setAccessible(true);
+    field.set(manager, map);
+  }
+
+  private void invokeDetectChanges(Map<String, McpRegistrationInfo> persisted) throws Exception {
+    // Get the scanned map that was previously set via setExtMcpInfoMap
+    Field field = McpExtensionPointManager.class.getDeclaredField("extMcpInfoMap");
+    field.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    Map<String, McpRegistrationInfo> scannedMap = (Map<String, McpRegistrationInfo>) field.get(manager);
+
+    // detectChangesInMcpContribs now takes (scannedMap, persistedMap) and no longer
+    // calls updateApprovedMcpServerString / persistExtMcpInfo (those moved to doRegistration).
+    Method detectMethod = McpExtensionPointManager.class.getDeclaredMethod("detectChangesInMcpContribs", Map.class,
+        Map.class);
+    detectMethod.setAccessible(true);
+    detectMethod.invoke(manager, scannedMap, persisted);
+
+    // Mirror what doRegistration() does after detectChanges: swap the field and update/persist.
+    field.set(manager, scannedMap);
+    Method updateMethod = McpExtensionPointManager.class.getDeclaredMethod("updateApprovedMcpServerString", Map.class);
+    updateMethod.setAccessible(true);
+    updateMethod.invoke(manager, scannedMap);
+    Method persistMethod = McpExtensionPointManager.class.getDeclaredMethod("persistExtMcpInfo", Map.class);
+    persistMethod.setAccessible(true);
+    persistMethod.invoke(manager, scannedMap);
   }
 }

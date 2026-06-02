@@ -331,7 +331,7 @@ public abstract class BaseTurnWidget extends Composite {
       case "completed":
         // End of subagent block
         if (currentSubagentBlock != null) {
-          currentSubagentBlock.notifyTurnEnd();
+          currentSubagentBlock.flushMessageBuffer();
           inSubagentBlock = false;
           currentSubagentBlock = null;
           requestLayout();
@@ -349,7 +349,7 @@ public abstract class BaseTurnWidget extends Composite {
       case "error":
         // Handle errors in subagent
         if (currentSubagentBlock != null) {
-          currentSubagentBlock.notifyTurnEnd();
+          currentSubagentBlock.flushMessageBuffer();
           inSubagentBlock = false;
           currentSubagentBlock = null;
         }
@@ -443,7 +443,7 @@ public abstract class BaseTurnWidget extends Composite {
       }
     }
 
-    block.notifyTurnEnd();
+    block.flushMessageBuffer();
   }
 
   /**
@@ -521,9 +521,10 @@ public abstract class BaseTurnWidget extends Composite {
   }
 
   /**
-   * Notify the end of the turn.
+   * Flushes any buffered, not-yet-newline-terminated message text by processing it as a final
+   * line and clearing the buffer.
    */
-  public void notifyTurnEnd() {
+  public void flushMessageBuffer() {
     if (messageBuffer.length() > 0) {
       this.processMessageLine(messageBuffer.toString());
       messageBuffer.setLength(0);
