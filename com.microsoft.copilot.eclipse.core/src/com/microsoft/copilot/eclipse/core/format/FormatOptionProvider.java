@@ -9,6 +9,8 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.eclipse.lsp4j.FormattingOptions;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -26,6 +28,9 @@ public class FormatOptionProvider {
   private static final String CPP_LANGUAGE_ID = "cpp";
   private static final String[] CPP_LANGUAGE_EXTENSIONS = new String[] { "cpp", "c++", "cc", "cp", "cxx", "h", "h++",
       "hh", ".hpp", ".hxx", ".inc", ".inl", ".ipp", ".tcc", ".tpp" };
+  private static final String EDITOR_PREF_NODE = "org.eclipse.ui.editors";
+  private static final String TAB_WIDTH_KEY = "tabWidth";
+  private static final String SPACES_FOR_TABS_KEY = "spacesForTabs";
   private static final boolean DEFAULT_USE_SPACE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_CHAR.equals("space");
   private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_SIZE;
 
@@ -91,7 +96,7 @@ public class FormatOptionProvider {
     String fileExtension = file.getFileExtension();
     if (StringUtils.isEmpty(fileExtension)) {
       CopilotCore.LOGGER.info("File extension is null or empty for file: " + file.getName());
-      return null;
+      return getEclipseTextEditorFormattingOptions();
     } else {
       fileExtension = fileExtension.toLowerCase();
     }
@@ -110,7 +115,7 @@ public class FormatOptionProvider {
     if (languageFormatReaderForProject == null) {
       languageFormatReaderForProject = loadFormatReaderForTheProject(languageId, project);
       if (languageFormatReaderForProject == null) {
-        return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
+        return getEclipseTextEditorFormattingOptions();
       }
       projectToLanguageFormatReaderMap.put(project, languageFormatReaderForProject);
     }
@@ -127,6 +132,17 @@ public class FormatOptionProvider {
         return new CdtFormatReader(project);
       default:
         return null;
+    }
+  }
+
+  private FormattingOptions getEclipseTextEditorFormattingOptions() {
+    try {
+      IPreferencesService service = Platform.getPreferencesService();
+      boolean useSpaces = service.getBoolean(EDITOR_PREF_NODE, SPACES_FOR_TABS_KEY, DEFAULT_USE_SPACE, null);
+      int tabSize = service.getInt(EDITOR_PREF_NODE, TAB_WIDTH_KEY, DEFAULT_TAB_SIZE, null);
+      return new FormattingOptions(tabSize, useSpaces);
+    } catch (Exception e) {
+      return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
     }
   }
 }
