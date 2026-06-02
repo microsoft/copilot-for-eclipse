@@ -90,13 +90,13 @@ public class FormatOptionProvider {
     IProject project = file.getProject();
     if (project == null) {
       CopilotCore.LOGGER.info("Project is null for file: " + file.getName() + "default format will be applied.");
-      return null;
+      return getEclipseTextEditorFormattingOptions();
     }
 
     String fileExtension = file.getFileExtension();
     if (StringUtils.isEmpty(fileExtension)) {
       CopilotCore.LOGGER.info("File extension is null or empty for file: " + file.getName());
-      return null;
+      return getEclipseTextEditorFormattingOptions();
     } else {
       fileExtension = fileExtension.toLowerCase();
     }
