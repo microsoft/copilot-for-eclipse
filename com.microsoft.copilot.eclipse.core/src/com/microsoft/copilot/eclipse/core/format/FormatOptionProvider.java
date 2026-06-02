@@ -142,6 +142,7 @@ public class FormatOptionProvider {
       int tabSize = service.getInt(EDITOR_PREF_NODE, TAB_WIDTH_KEY, DEFAULT_TAB_SIZE, null);
       return new FormattingOptions(tabSize, useSpaces);
     } catch (Exception e) {
+      CopilotCore.LOGGER.error(e);
       return new FormattingOptions(DEFAULT_TAB_SIZE, DEFAULT_USE_SPACE);
     }
   }
