@@ -194,16 +194,29 @@ public class FileUtils {
     }
 
     try {
-      String pathWithoutFragment = stripFragment(filePath);
-      if (pathWithoutFragment.startsWith("file:")) {
-        return Paths.get(new URI(pathWithoutFragment)).toAbsolutePath().normalize();
+      // For file URIs, '#' is always a fragment delimiter (literal '#' in filenames is encoded as %23).
+      if (filePath.startsWith("file:")) {
+        String uriWithoutFragment = stripFragment(filePath);
+        return Paths.get(new URI(uriWithoutFragment)).toAbsolutePath().normalize();
       }
+
+      String pathWithoutFragment = stripFragment(filePath);
       if (URI_SCHEME_PATTERN.matcher(pathWithoutFragment).find() && !hasDriveLetter(pathWithoutFragment)) {
         return null;
       }
 
-      Path path = Paths.get(pathWithoutFragment);
-      return path.isAbsolute() ? path.toAbsolutePath().normalize() : null;
+      // For raw paths, try the full string first since '#' is a valid filename character on Unix/Linux.
+      // Only fall back to stripping the fragment if the full path doesn't exist.
+      Path fullPath = Paths.get(filePath);
+      if (fullPath.isAbsolute()) {
+        if (Files.exists(fullPath)) {
+          return fullPath.toAbsolutePath().normalize();
+        }
+        // Fall back: treat '#...' as a line-number fragment
+        Path strippedPath = Paths.get(pathWithoutFragment);
+        return strippedPath.isAbsolute() ? strippedPath.toAbsolutePath().normalize() : null;
+      }
+      return null;
     } catch (IllegalArgumentException | URISyntaxException e) {
       CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
       return null;
