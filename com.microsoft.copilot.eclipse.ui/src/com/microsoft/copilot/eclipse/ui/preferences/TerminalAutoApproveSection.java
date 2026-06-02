@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.TerminalConfirmationHandler;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Terminal auto-approve section with a rule table, action buttons, and
@@ -90,13 +91,14 @@ public class TerminalAutoApproveSection extends Composite {
 
   private void createTable(Composite parent) {
     tableViewer = new TableViewer(parent,
-        SWT.BORDER | SWT.FULL_SELECTION | SWT.SINGLE);
+        SWT.BORDER | SWT.FULL_SELECTION | SWT.SINGLE | SWT.V_SCROLL);
     Table table = tableViewer.getTable();
     GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, false);
     tableData.heightHint = TABLE_HEIGHT_HINT;
     table.setLayoutData(tableData);
     table.setHeaderVisible(true);
     table.setLinesVisible(true);
+    SwtUtils.forwardVerticalMouseWheelToParentScrollerAtBoundary(table);
 
     TableViewerColumn commandCol =
         new TableViewerColumn(tableViewer, SWT.NONE);
@@ -123,6 +125,8 @@ public class TerminalAutoApproveSection extends Composite {
             : Messages.preferences_page_auto_approve_deny;
       }
     });
+    SwtUtils.resizeColumnToFillTable(table, statusCol.getColumn(), 100,
+        commandCol.getColumn());
 
     tableViewer.setContentProvider(ArrayContentProvider.getInstance());
     tableViewer.addSelectionChangedListener(e -> updateButtonState());

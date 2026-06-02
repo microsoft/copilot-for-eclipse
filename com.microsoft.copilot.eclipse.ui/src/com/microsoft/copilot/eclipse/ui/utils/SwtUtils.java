@@ -12,15 +12,25 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.ScrollBar;
+import org.eclipse.swt.widgets.Scrollable;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
@@ -270,6 +280,88 @@ public class SwtUtils {
    */
   public static Color getDefaultGhostTextColor(Display display) {
     return new Color(display, new RGB(DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE));
+  }
+
+  /**
+   * Forwards vertical mouse wheel scrolling from a nested scrollable to its nearest parent scroller when the nested
+   * control is already at the scroll boundary.
+   */
+  public static void forwardVerticalMouseWheelToParentScrollerAtBoundary(Scrollable scrollable) {
+    scrollable.addListener(SWT.MouseWheel, event -> {
+      if (event.count == 0 || scrollable.isDisposed()
+          || canScrollVertically(scrollable.getVerticalBar(), event.count)) {
+        return;
+      }
+
+      ScrolledComposite parentScroller = findParentScroller(scrollable);
+      if (parentScroller != null
+          && canScrollVertically(parentScroller.getVerticalBar(), event.count)) {
+        event.doit = false;
+        scrollParentVertically(parentScroller, event.count);
+      }
+    });
+  }
+
+  private static ScrolledComposite findParentScroller(Scrollable scrollable) {
+    Composite parent = scrollable.getParent();
+    while (parent != null) {
+      if (parent instanceof ScrolledComposite scrolledComposite) {
+        return scrolledComposite;
+      }
+      parent = parent.getParent();
+    }
+    return null;
+  }
+
+  private static void scrollParentVertically(ScrolledComposite scrolledComposite, int wheelCount) {
+    ScrollBar verticalBar = scrolledComposite.getVerticalBar();
+    if (verticalBar == null || verticalBar.isDisposed()) {
+      return;
+    }
+
+    Point origin = scrolledComposite.getOrigin();
+    int minimum = verticalBar.getMinimum();
+    int maximum = Math.max(minimum,
+        verticalBar.getMaximum() - verticalBar.getThumb());
+    int delta = -wheelCount * Math.max(1, verticalBar.getIncrement());
+    int nextY = Math.max(minimum, Math.min(maximum, origin.y + delta));
+    scrolledComposite.setOrigin(origin.x, nextY);
+  }
+
+  private static boolean canScrollVertically(ScrollBar verticalBar, int wheelCount) {
+    if (verticalBar == null || verticalBar.isDisposed()
+        || !verticalBar.getEnabled()) {
+      return false;
+    }
+
+    int minimum = verticalBar.getMinimum();
+    int maximum = Math.max(minimum,
+        verticalBar.getMaximum() - verticalBar.getThumb());
+    int selection = Math.max(minimum,
+        Math.min(maximum, verticalBar.getSelection()));
+    if (wheelCount > 0) {
+      return selection > minimum;
+    }
+    return selection < maximum;
+  }
+
+  /**
+   * Resizes a table column to fill the table client area not occupied by the fixed-width columns.
+   */
+  public static void resizeColumnToFillTable(Table table, TableColumn fillColumn,
+      int minWidth, TableColumn... fixedColumns) {
+    table.addControlListener(new ControlAdapter() {
+      @Override
+      public void controlResized(ControlEvent e) {
+        int remainingWidth = table.getClientArea().width;
+        for (TableColumn fixedColumn : fixedColumns) {
+          remainingWidth -= fixedColumn.getWidth();
+        }
+        if (remainingWidth > minWidth) {
+          fillColumn.setWidth(remainingWidth);
+        }
+      }
+    });
   }
 
   /**

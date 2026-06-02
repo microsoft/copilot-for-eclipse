@@ -127,6 +127,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         syncMcpRegistrationConfiguration();
       }
     });
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_MCP_EXTENSION_POINT_REGISTRATION_COMPLETED,
+        event -> syncMcpRegistrationConfiguration((String) event.getProperty(IEventBroker.DATA)));
   }
 
   /**
@@ -164,7 +166,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         settings.getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
         singleSetting = new CopilotLanguageServerSettings(null, null, settings.getGithubEnterprise(), null);
         break;
-      case Constants.MCP, Constants.MCP_EXTENSION_POINT_CONTRIB:
+      case Constants.MCP:
         syncMcpRegistrationConfiguration();
         return;
       case Constants.MCP_TOOLS_STATUS:
@@ -255,13 +257,40 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * Sync MCP registration from both extension points and preference store.
    */
   public void syncMcpRegistrationConfiguration() {
+    String approvedExtMcpServers = null;
+    if (CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
+      // Defensive null-chain: callers from very early startup paths (e.g. CopilotUi.start()) may
+      // run before the ChatServiceManager singleton field is assigned. The extension-point flow
+      // delivers its own state via TOPIC_MCP_EXTENSION_POINT_REGISTRATION_COMPLETED, so missing it
+      // here just means the LSP gets the manual MCP state for now and the verified state arrives
+      // shortly after via that subscription.
+      var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+      if (chatServiceManager != null) {
+        McpExtensionPointManager mgr = chatServiceManager.getMcpExtensionPointManager();
+        if (mgr != null) {
+          approvedExtMcpServers = mgr.getApprovedExtMcpServers();
+        }
+      }
+    }
+    syncMcpRegistrationConfiguration(approvedExtMcpServers);
+  }
+
+  /**
+   * Sync MCP registration to the language server using the supplied extension-contributed approved
+   * servers JSON. Used by callers that already have the approved JSON in hand - notably the
+   * subscriber to {@link CopilotEventConstants#TOPIC_MCP_EXTENSION_POINT_REGISTRATION_COMPLETED} -
+   * so they do not need to traverse {@code CopilotUi.getChatServiceManager()} to look it up.
+   *
+   * @param approvedExtMcpServers JSON for the approved extension-contributed MCP servers, or
+   *     {@code null} when none are approved or the contribution point is disabled.
+   */
+  public void syncMcpRegistrationConfiguration(String approvedExtMcpServers) {
     // From manual configuration
     settings.setMcpServers(preferenceStore.getString(Constants.MCP));
 
     // From McpRegistration extension point
     if (CopilotCore.getPlugin().getFeatureFlags().isMcpContributionPointEnabled()) {
-      McpExtensionPointManager mgr = CopilotUi.getPlugin().getChatServiceManager().getMcpExtensionPointManager();
-      settings.addMcpServers(mgr.getApprovedExtMcpServers());
+      settings.addMcpServers(approvedExtMcpServers);
     }
 
     syncSingleConfiguration(new CopilotLanguageServerSettings(null, null, null, settings.getGithubSettings()));

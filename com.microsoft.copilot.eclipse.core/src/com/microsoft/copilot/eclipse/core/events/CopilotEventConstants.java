@@ -152,6 +152,17 @@ public class CopilotEventConstants {
   public static final String TOPIC_MCP_SERVER_STATE_CHANGE = TOPIC_MCP + "SERVER_STATE_CHANGE";
 
   /**
+   * Event when the MCP registration extension-point manager has finished detecting and verifying
+   * the contributed servers (either at startup or after a policy toggle / user approval) and the
+   * approved-servers JSON for the language server is ready to be pushed.
+   *
+   * <p>Payload (via {@code IEventBroker.DATA}): the approved-servers JSON {@code String}, or
+   * {@code null} when no extension-contributed servers are approved.
+   */
+  public static final String TOPIC_MCP_EXTENSION_POINT_REGISTRATION_COMPLETED = TOPIC_MCP
+      + "EXTENSION_POINT_REGISTRATION_COMPLETED";
+
+  /**
    * Event when NES suggestion is accepted.
    */
   public static final String TOPIC_NES_ACCEPT_SUGGESTION = TOPIC_NES + "ACCEPT_SUGGESTION";

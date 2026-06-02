@@ -192,3 +192,30 @@ Not exercised:
 #### Key Screenshots
 - [ ] **Before created-file Undo** -- The summary bar lists `created-local-file.txt`.
 - [ ] **After created-file Undo** -- The summary bar is clear and the file is absent from disk.
+
+---
+
+## 3. Navigate to local files from tool links
+
+### TC-006: Tool result links open local files outside the workspace
+
+**Type:** `Happy Path`
+**Priority:** `P0`
+
+#### Preconditions
+- The Eclipse workbench is open.
+- Copilot Chat is open in Agent mode.
+- The local test directory outside the workspace exists and contains `existing-local-file.txt`.
+
+#### Steps
+1. Send a prompt that causes Agent mode to reference or edit `existing-local-file.txt` by absolute path.
+2. When the tool call appears in the Chat view, click the file path link for `existing-local-file.txt`.
+3. Verify Eclipse opens `existing-local-file.txt` in an editor.
+
+#### Expected Result
+- File links for paths outside the Eclipse workspace open the local file in an Eclipse editor.
+- No error dialog is shown and the Eclipse error log has no local file navigation exception.
+
+#### Key Screenshots
+- [ ] **Local file tool link** -- The tool result shows a clickable absolute path outside the workspace.
+- [ ] **External local file editor** -- The external local file opens in an Eclipse editor.
