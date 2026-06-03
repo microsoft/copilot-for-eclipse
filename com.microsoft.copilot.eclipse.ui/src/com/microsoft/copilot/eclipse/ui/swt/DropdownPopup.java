@@ -135,6 +135,7 @@ class DropdownPopup {
     scrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     scrolledComposite.setExpandHorizontal(true);
     scrolledComposite.setExpandVertical(true);
+    scrolledComposite.setAlwaysShowScrollBars(false);
     scrolledComposite.setData(CssConstants.CSS_ID_KEY, "dropdown-popup");
     scrolledComposite.setBackground(popupBg);
     styleControl(scrolledComposite);
