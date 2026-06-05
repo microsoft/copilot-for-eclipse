@@ -105,12 +105,10 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
       @Override
       public void partClosed(IWorkbenchPartReference partRef) {
-        IWorkbenchPage page = UiUtils.getActivePage();
-        if (page == null || page.getEditorReferences().length == 0) {
-          ensureRealm(() -> {
-            currentFileObservable.setValue(null);
-            currentSelectionObservable.setValue(null);
-          });
+        boolean closedCurrentFile = isCurrentReferencedFile(partRef);
+        boolean noOpenEditors = hasNoOpenEditors();
+        if (closedCurrentFile || noOpenEditors) {
+          clearCurrentReferencedFile();
         }
         untrackSelectionInEditor(partRef);
       }
@@ -477,6 +475,34 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     if (part instanceof IEditorPart editorPart) {
       updateCurrentReferencedFile(editorPart);
     }
+  }
+
+  private boolean isCurrentReferencedFile(IWorkbenchPartReference partRef) {
+    IWorkbenchPart part = partRef.getPart(false);
+    if (!(part instanceof IEditorPart editorPart)) {
+      return false;
+    }
+
+    IFile closedFile = UiUtils.getFileFromEditorPart(editorPart);
+    if (closedFile == null) {
+      return false;
+    }
+
+    AtomicReference<IFile> currentFile = new AtomicReference<>();
+    ensureRealm(() -> currentFile.set(currentFileObservable.getValue()));
+    return closedFile.equals(currentFile.get());
+  }
+
+  private boolean hasNoOpenEditors() {
+    IWorkbenchPage page = UiUtils.getActivePage();
+    return page == null || page.getEditorReferences().length == 0;
+  }
+
+  private void clearCurrentReferencedFile() {
+    ensureRealm(() -> {
+      currentFileObservable.setValue(null);
+      currentSelectionObservable.setValue(null);
+    });
   }
 
   private void updateCurrentReferencedFile(IEditorPart editorPart) {
