@@ -90,10 +90,11 @@ public class McpAutoApproveSection extends Composite {
 
     // Tree viewer for server/tool approval
     treeViewer = new CheckboxTreeViewer(group,
-        SWT.BORDER | SWT.FULL_SELECTION);
+        SWT.BORDER | SWT.FULL_SELECTION | SWT.V_SCROLL);
     GridData treeData = new GridData(SWT.FILL, SWT.FILL, true, false);
     treeData.heightHint = TREE_HEIGHT_HINT;
     treeViewer.getTree().setLayoutData(treeData);
+    SwtUtils.forwardVerticalMouseWheelToParentScrollerAtBoundary(treeViewer.getTree());
 
     treeViewer.setContentProvider(new McpTreeContentProvider());
     treeViewer.setLabelProvider(new McpTreeLabelProvider());
