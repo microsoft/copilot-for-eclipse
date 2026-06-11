@@ -28,6 +28,7 @@ import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -219,6 +220,7 @@ class DropdownPopup {
 
     shell.pack();
     constrainHeightIfNeeded();
+    reserveScrollbarSpaceIfNeeded(contentSize);
     adjustBounds(location, anchorHeight);
     scrollToFocusedItem();
     shell.setVisible(true);
@@ -234,14 +236,71 @@ class DropdownPopup {
     Rectangle lastBounds = lastVisible.getBounds();
     int maxContentHeight = lastBounds.y + lastBounds.height;
 
-    int scrollBarWidth = 0;
-    if (scrolledComposite.getVerticalBar() != null) {
-      scrollBarWidth = scrolledComposite.getVerticalBar().getSize().x;
-    }
-
     Point shellSize = shell.getSize();
     int newHeight = maxContentHeight + 2 * POPUP_MARGIN;
-    shell.setSize(shellSize.x + scrollBarWidth, newHeight);
+    shell.setSize(shellSize.x, newHeight);
+  }
+
+  /**
+   * Ensures the vertical scrollbar never hides item content, which manifests differently across platforms.
+   *
+   * <ul>
+   *   <li><b>Classic (space-reserving) scrollbars</b> (typical on Windows and many GTK themes) shrink the
+   *       {@link ScrolledComposite} client area. With {@link ScrolledComposite#setExpandHorizontal(boolean)} the
+   *       content is stretched to that reduced width, so the shell must be widened by the reserved trough width to
+   *       restore the full natural content width.</li>
+   *   <li><b>Overlay scrollbars</b> (the default on modern GNOME, e.g. RHEL 9) do <em>not</em> reduce the client
+   *       area; the scrollbar is painted on top of the right edge of the content, covering the right-aligned suffix
+   *       labels. Widening the shell alone does not help because the suffix stays pinned to the (new) right edge,
+   *       still under the overlay. Instead we stop horizontal expansion, keep the content at its natural width, and
+   *       widen the shell so an empty scrollbar-width strip is left on the right for the overlay to paint over.</li>
+   * </ul>
+   *
+   * @param contentSize the natural (unconstrained) size of the item container
+   */
+  private void reserveScrollbarSpaceIfNeeded(Point contentSize) {
+    if (items.size() <= MAX_VISIBLE_ITEMS || items.isEmpty()) {
+      return;
+    }
+
+    if (scrolledComposite == null || scrolledComposite.isDisposed() || scrolledComposite.getVerticalBar() == null) {
+      return;
+    }
+
+    // Fix #113: We adapt the drop-down dialog's size only for Linux (where the issue appeared),
+    // in order to avoid potential regressions,
+    // see https://github.com/microsoft/copilot-for-eclipse/pull/285#issuecomment-4686907980
+    if (PlatformUtils.isLinux()) {
+      // Force a layout so the client area reflects the constrained height before we measure it.
+      // The layout operation doesn't lead to flickering, since it is not user-visible at this point.
+      shell.layout(true, true);
+      int scrollBarWidth = scrolledComposite.getVerticalBar().getSize().x;
+      if (scrollBarWidth <= 0) {
+        return;
+      }
+      Rectangle clientArea = scrolledComposite.getClientArea();
+      Point shellSize = shell.getSize();
+      if (clientArea.width < contentSize.x) {
+        // Classic scrollbar: the trough shrank the client area. Widen the shell to restore full content width.
+        int deficit = contentSize.x - clientArea.width;
+        shell.setSize(shellSize.x + deficit, shellSize.y);
+      } else {
+        // Overlay scrollbar: client area was not reduced, so the bar paints over the content's right edge. Pin the
+        // content to its natural width and reserve just enough room on the right for the overlay.
+        scrolledComposite.setExpandHorizontal(false);
+        Control content = scrolledComposite.getContent();
+        if (content != null && !content.isDisposed()) {
+          content.setSize(contentSize);
+        }
+        int extraWidth = Math.max(0, scrollBarWidth - ITEM_H_PADDING);
+        shell.setSize(shellSize.x + extraWidth, shellSize.y);
+      }
+    } else {
+      // Behavior before fixing #113
+      int scrollBarWidth = scrolledComposite.getVerticalBar().getSize().x;
+      Point shellSize = shell.getSize();
+      shell.setSize(shellSize.x + scrollBarWidth, shellSize.y);
+    }
   }
 
   private void adjustBounds(Point location, int anchorHeight) {
