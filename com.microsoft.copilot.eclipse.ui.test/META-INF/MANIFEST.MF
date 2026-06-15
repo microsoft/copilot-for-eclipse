@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.ui.test
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.test;singleton:=true
-Bundle-Version: 0.18.0.qualifier
+Bundle-Version: 0.19.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.test
@@ -14,8 +14,8 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  junit-jupiter-api;bundle-version="5.10.1",
  junit-jupiter-params;bundle-version="5.10.1",
  org.mockito.junit-jupiter;bundle-version="5.10.2",
- com.microsoft.copilot.eclipse.core;bundle-version="0.15.0",
- com.microsoft.copilot.eclipse.ui;bundle-version="0.15.0",
+ com.microsoft.copilot.eclipse.core;bundle-version="0.19.0",
+ com.microsoft.copilot.eclipse.ui;bundle-version="0.19.0",
  org.eclipse.ui;bundle-version="3.205.0",
  org.eclipse.ui.ide,
  org.eclipse.ui.workbench.texteditor,
@@ -29,4 +29,4 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  org.eclipse.e4.core.services;bundle-version="2.4.200",
  org.osgi.service.event,
  com.google.gson,
- com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.15.0"
+ com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.19.0"
