@@ -19,9 +19,10 @@ Screenshots are diagnostic artifacts only; JSON assertions drive pass/fail.
 
 Default command from the repository root:
 
-```bash
-./mvnw clean verify -Dprobe.script=probe-scripts/<name>.json
-```
+    # macOS / Linux
+    ./mvnw clean verify -Dprobe.script=probe-scripts/<name>.json
+    # Windows (PowerShell)
+    .\mvnw.cmd clean verify -Dprobe.script=probe-scripts/<name>.json
 
 The narrower module command is useful only after a green root build:
 
