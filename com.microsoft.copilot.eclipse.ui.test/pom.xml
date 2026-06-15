@@ -31,8 +31,6 @@
 						<version>${tycho-version}</version>
 						<configuration>
 							<skipTests>true</skipTests>
-							<useUIHarness>true</useUIHarness>
-							<useUIThread>false</useUIThread>
 						</configuration>
 					</plugin>
 				</plugins>
