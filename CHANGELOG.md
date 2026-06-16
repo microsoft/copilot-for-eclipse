@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.19.0
 ### Added
-- Improve terminal command execution across windows and linux. [PR#247](https://github.com/microsoft/copilot-for-eclipse/pull/247)
-- Support edit/create local files outside of workspace. [PR#248](https://github.com/microsoft/copilot-for-eclipse/pull/248)
-- Support auto compression for chat context. [PR#250](https://github.com/microsoft/copilot-for-eclipse/pull/250)
-- Support auto approve. [PR#255](https://github.com/microsoft/copilot-for-eclipse/pull/255)
+- Improve terminal command execution across Windows and Linux. [PR#247](https://github.com/microsoft/copilot-for-eclipse/pull/247)
+- Support editing/creating local files outside the workspace. [PR#248](https://github.com/microsoft/copilot-for-eclipse/pull/248)
+- Support automatic chat context compression. [PR#250](https://github.com/microsoft/copilot-for-eclipse/pull/250)
+- Support tool auto-approve controls. [PR#255](https://github.com/microsoft/copilot-for-eclipse/pull/255)
 
 ### Fixed
 - Copilot reports failure when extension-point contributed MCP server has changed. [#153](https://github.com/microsoft/copilot-for-eclipse/issues/153)
