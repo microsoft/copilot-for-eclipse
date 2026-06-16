@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Copilot reports failure when extension-point contributed MCP server has changed. [#153](https://github.com/microsoft/copilot-for-eclipse/issues/153)
 - Subagent panel size is not updated if conversation is canceled. [#169](https://github.com/microsoft/copilot-for-eclipse/issues/169), contributed by [@rsd-darshan](https://github.com/rsd-darshan)
 - Thinking effort descriptions are truncated in the model picker hover card. [#233](https://github.com/microsoft/copilot-for-eclipse/issues/233)
-- Cancelled terminal tool calling status will become ongoing again after chat history restoration. [#239](https://github.com/microsoft/copilot-for-eclipse/issues/239)
+- Canceled terminal tool calling status will become ongoing again after chat history restoration. [#239](https://github.com/microsoft/copilot-for-eclipse/issues/239)
 - Cannot navigate to the file out of workspace. [#262](https://github.com/microsoft/copilot-for-eclipse/issues/262)
 - Read the default text editor preferences from platform instead of defaulting to spaces. [PR#267](https://github.com/microsoft/copilot-for-eclipse/pull/267), contributed by [@jomillerOpen](https://github.com/jomillerOpen)
 
