@@ -29,7 +29,7 @@
 			</toolbar>
 		</menuContribution>
 		<menuContribution
-			locationURI="menu:org.eclipse.ui.main.menu?endof=additions">
+			locationURI="menu:org.eclipse.ui.main.menu?before=help">
 			<menu
 				id="com.microsoft.copilot.eclipse.ui.menuBar"
 				label="Copilot"
