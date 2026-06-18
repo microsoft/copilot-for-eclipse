@@ -25,6 +25,15 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
  */
 public final class PreferencePageUtils {
 
+  /**
+   * Target content height, in pixels, for Copilot preference pages. JFace grows the shared Preferences dialog to
+   * the tallest page's preferred height and never shrinks it, so each page keeps its scrollable content within
+   * this height to hold the dialog at a stable size while the user navigates. Pages enforce it differently:
+   * {@code McpPreferencePage} divides it across two stacked groups; {@code AutoApprovePreferencePage} caps its
+   * {@code ScrolledComposite} at this height.
+   */
+  public static final int STANDARD_CONTENT_HEIGHT = 520;
+
   // Private constructor to prevent instantiation
   private PreferencePageUtils() {
   }
