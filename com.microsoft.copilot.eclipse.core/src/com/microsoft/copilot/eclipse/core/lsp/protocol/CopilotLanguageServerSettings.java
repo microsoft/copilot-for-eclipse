@@ -9,6 +9,8 @@ import java.util.Objects;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
@@ -507,19 +509,74 @@ public class CopilotLanguageServerSettings {
 
     try {
       Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-      Map<String, Object> jsonMap = gson.fromJson(mcpServersPreference, new TypeToken<Map<String, Object>>() {
-      }.getType());
+      JsonObject jsonObject = gson.fromJson(mcpServersPreference, JsonObject.class);
 
-      if (jsonMap != null && jsonMap.containsKey("servers")) {
-        Object serversObj = jsonMap.get("servers");
+      if (jsonObject != null && jsonObject.has("servers")) {
+        JsonElement serversObj = jsonObject.get("servers");
+        normalizeMcpServerHeaders(serversObj);
         return gson.toJson(serversObj);
       }
 
+      if (normalizeMcpServerHeaders(jsonObject)) {
+        return gson.toJson(jsonObject);
+      }
       return mcpServersPreference;
     } catch (JsonParseException e) {
       CopilotCore.LOGGER.error("Failed to parse MCP servers JSON", e);
       return null;
     }
+  }
+
+  private boolean normalizeMcpServerHeaders(JsonElement serversElement) {
+    if (serversElement == null || !serversElement.isJsonObject()) {
+      return false;
+    }
+
+    boolean changed = false;
+    JsonObject servers = serversElement.getAsJsonObject();
+    for (Map.Entry<String, JsonElement> serverEntry : servers.entrySet()) {
+      JsonElement serverElement = serverEntry.getValue();
+      if (!serverElement.isJsonObject()) {
+        continue;
+      }
+
+      JsonObject server = serverElement.getAsJsonObject();
+      if (!server.has("headers") || !server.get("headers").isJsonObject()) {
+        continue;
+      }
+
+      JsonObject topLevelHeaders = server.getAsJsonObject("headers");
+      if (topLevelHeaders.isEmpty()) {
+        continue;
+      }
+
+      JsonObject requestInit = getOrCreateObject(server, "requestInit");
+      if (requestInit == null) {
+        continue;
+      }
+      JsonObject requestHeaders = getOrCreateObject(requestInit, "headers");
+      if (requestHeaders == null) {
+        continue;
+      }
+      for (Map.Entry<String, JsonElement> headerEntry : topLevelHeaders.entrySet()) {
+        if (!requestHeaders.has(headerEntry.getKey())) {
+          requestHeaders.add(headerEntry.getKey(), headerEntry.getValue());
+          changed = true;
+        }
+      }
+    }
+    return changed;
+  }
+
+  private JsonObject getOrCreateObject(JsonObject parent, String memberName) {
+    JsonElement existing = parent.get(memberName);
+    if (existing != null) {
+      return existing.isJsonObject() ? existing.getAsJsonObject() : null;
+    }
+
+    JsonObject created = new JsonObject();
+    parent.add(memberName, created);
+    return created;
   }
 
   @Override
