@@ -79,3 +79,48 @@ Entry points:
 - Model A still shows **`High`**; Model B still shows **`Low`**.
 - Each model's effort is independent — changing one did not affect the other.
 
+---
+
+## TC-003: Thinking effort descriptions are fully readable in the hover card
+
+**Type:** `Regression`
+**Priority:** `P1`
+
+Regression guard for
+[issue #233](https://github.com/microsoft/copilot-for-eclipse/issues/233) /
+[PR #234](https://github.com/microsoft/copilot-for-eclipse/pull/234). The hover
+card previously clamped its width to a fixed maximum (`LONG_POPUP_WIDTH = 300`),
+which truncated the longer per-level description text in the **Thinking effort**
+section. The fix removes that cap so the hover shell uses its natural packed
+width (only enforcing a `250` px minimum), letting every description wrap and
+render in full.
+
+#### Preconditions
+- A reasoning-capable model (e.g. Claude Sonnet 4.6) advertising multiple
+  effort levels, each with a descriptive sub-label (e.g.
+  `Low — Faster responses, less reasoning`,
+  `Medium — Balanced reasoning and speed`,
+  `High — Deeper reasoning, slower responses`).
+
+#### Steps
+1. Open the Copilot Chat view and click the model picker to open the dropdown.
+2. Hover over the reasoning-capable model to open its hover card.
+3. Locate the **Thinking effort** section and read each effort level's
+   description line in full.
+4. Visually compare the right edge of the longest description against the hover card border.
+
+#### Expected Result
+- The hover card is wide enough to display the full description for every effort
+  level — no text is clipped, cut off, or replaced with an ellipsis at the right
+  edge.
+- Each description ends with its natural last word (or wraps onto a second line)
+  rather than being truncated mid-word against the card border.
+- The hover card width is never narrower than the `250` px minimum, so short
+  content still renders cleanly.
+
+#### 📸 Key Screenshots
+- [ ] **Hover card — full descriptions** — Thinking effort section showing each
+  level's complete, untruncated description text.
+- [ ] **Right-edge close-up** — the longest description's final word fully
+  visible inside the card border (no clipping/ellipsis).
+
