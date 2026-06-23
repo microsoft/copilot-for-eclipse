@@ -69,14 +69,13 @@ working-directory selection in terminal tool calls.
 
 #### Steps
 1. Import a Maven project into the Eclipse workspace if one is not already present.
-2. In Project Explorer, select the Maven project root or attach the project root as chat context.
-3. Start a new Copilot Chat conversation in Agent mode.
-4. Ask the agent to run Maven `verify` for the selected/imported project.
-5. When the `run_in_terminal` confirmation appears, inspect the generated command before allowing it.
-6. Allow the command to run after confirming the tool will execute from the imported Maven project root. Valid evidence
+2. Start a new Copilot Chat conversation in Agent mode.
+3. Ask the agent to run Maven `verify` for the imported project.
+4. When the `run_in_terminal` confirmation appears, inspect the generated command before allowing it.
+5. Allow the command to run after confirming the tool will execute from the imported Maven project root. Valid evidence
    includes either an explicit `cd "<imported-maven-project-root>"` in the command or a terminal prompt/working directory
    that already points at the imported project root.
-7. Wait for the terminal tool call to complete or reach the normal build result for that project.
+6. Wait for the terminal tool call to complete or reach the normal build result for that project.
 
 #### Expected Result
 - The terminal executes Maven `verify` from the imported Maven project root path.
