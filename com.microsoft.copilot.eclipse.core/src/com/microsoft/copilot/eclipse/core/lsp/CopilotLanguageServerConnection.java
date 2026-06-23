@@ -721,6 +721,6 @@ public class CopilotLanguageServerConnection {
     }
     String id = activeModel != null ? activeModel.getId() : null;
     String providerName = activeModel != null ? activeModel.getProviderName() : null;
-    return new ModelInfo(id, providerName, reasoningEffort);
+    return new ModelInfo(id, providerName, reasoningEffort, null);
   }
 }

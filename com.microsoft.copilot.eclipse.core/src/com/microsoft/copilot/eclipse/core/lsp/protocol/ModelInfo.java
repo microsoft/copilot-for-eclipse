@@ -15,6 +15,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
  * @param id model identifier (optional)
  * @param providerName provider name (optional)
  * @param reasoningEffort user-selected reasoning effort (optional)
+ * @param contextSize context size (optional)
  */
-public record ModelInfo(String id, String providerName, String reasoningEffort) {
+public record ModelInfo(String id, String providerName, String reasoningEffort, String contextSize) {
 }
