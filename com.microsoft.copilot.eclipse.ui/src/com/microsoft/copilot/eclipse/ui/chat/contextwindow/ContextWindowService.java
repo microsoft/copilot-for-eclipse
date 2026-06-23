@@ -83,8 +83,10 @@ public class ContextWindowService {
       return 0;
     }
 
-    Integer outputLimit = info.reservedOutputTokens() > 0 ? info.reservedOutputTokens()
-      : getActiveModelOutputLimit();
+    Integer outputLimit = getActiveModelOutputLimit();
+    if (info.reservedOutputTokens() > 0) {
+      outputLimit = info.reservedOutputTokens();
+    }
     if (outputLimit != null && outputLimit > 0) {
       return info.totalTokenLimit() + outputLimit;
     }
