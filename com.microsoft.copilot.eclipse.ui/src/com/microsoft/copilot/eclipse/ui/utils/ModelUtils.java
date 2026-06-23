@@ -163,7 +163,7 @@ public class ModelUtils {
   /**
    * Returns the formatted context window size for the model, or {@code null} if unavailable.
    */
-  private static String getContextWindowText(CopilotModel model) {
+  public static String getContextWindowText(CopilotModel model) {
     Integer contextWindow = resolveContextWindowSize(model);
     if (contextWindow == null || contextWindow <= 0) {
       return null;
@@ -181,7 +181,7 @@ public class ModelUtils {
    * @param model the model
    * @return the context window size in tokens, or {@code null} when it cannot be determined
    */
-  private static Integer resolveContextWindowSize(CopilotModel model) {
+  public static Integer resolveContextWindowSize(CopilotModel model) {
     if (model.getCapabilities() == null || model.getCapabilities().limits() == null) {
       return null;
     }

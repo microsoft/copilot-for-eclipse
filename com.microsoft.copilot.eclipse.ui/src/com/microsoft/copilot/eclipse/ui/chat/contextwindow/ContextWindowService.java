@@ -17,6 +17,9 @@ import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ContextSizeInfo;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
+import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -27,6 +30,7 @@ public class ContextWindowService {
 
   private IObservableValue<ContextSizeInfo> contextSizeObservable;
   private final Map<ContextWindowPopup, ISideEffect> popupSideEffects = new HashMap<>();
+  private ModelService modelService;
 
   /**
    * Creates the service and initializes the observable state on the UI realm.
@@ -56,6 +60,75 @@ public class ContextWindowService {
     AtomicReference<ContextSizeInfo> result = new AtomicReference<>();
     contextSizeObservable.getRealm().exec(() -> result.set(contextSizeObservable.getValue()));
     return result.get();
+  }
+
+  /**
+   * Sets the model service used to resolve the active model's full context window for display.
+   *
+   * @param modelService the model service
+   */
+  public void setModelService(ModelService modelService) {
+    this.modelService = modelService;
+  }
+
+  /**
+   * Returns the context-window limit shown in the donut popup. Prefer the active model's resolved full context window,
+   * falling back to the language-server usage snapshot when the model metadata is unavailable.
+   *
+   * @param info the context usage snapshot
+   * @return the display context-window limit
+   */
+  public int getDisplayTokenLimit(ContextSizeInfo info) {
+    if (info == null) {
+      return 0;
+    }
+
+    Integer outputLimit = info.reservedOutputTokens() > 0 ? info.reservedOutputTokens()
+      : getActiveModelOutputLimit();
+    if (outputLimit != null && outputLimit > 0) {
+      return info.totalTokenLimit() + outputLimit;
+    }
+
+    Integer modelContextWindow = getActiveModelContextWindow();
+    return modelContextWindow != null && modelContextWindow > 0 ? modelContextWindow : info.totalTokenLimit();
+  }
+
+  /**
+   * Returns the utilization percentage against the displayed context window.
+   *
+   * @param info the context usage snapshot
+   * @return the utilization percentage
+   */
+  public double getDisplayUtilizationPercentage(ContextSizeInfo info) {
+    if (info == null) {
+      return 0;
+    }
+    int displayLimit = getDisplayTokenLimit(info);
+    if (displayLimit <= 0) {
+      return info.utilizationPercentage();
+    }
+    return (double) info.totalUsedTokens() / displayLimit * 100;
+  }
+
+  private Integer getActiveModelContextWindow() {
+    CopilotModel activeModel = getActiveModel();
+    if (activeModel == null) {
+      return null;
+    }
+    return ModelUtils.resolveContextWindowSize(activeModel);
+  }
+
+  private Integer getActiveModelOutputLimit() {
+    CopilotModel activeModel = getActiveModel();
+    if (activeModel == null || activeModel.getCapabilities() == null
+        || activeModel.getCapabilities().limits() == null) {
+      return null;
+    }
+    return activeModel.getCapabilities().limits().maxOutputTokens();
+  }
+
+  private CopilotModel getActiveModel() {
+    return modelService == null ? null : modelService.getActiveModel();
   }
 
   /**
