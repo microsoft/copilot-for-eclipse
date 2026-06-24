@@ -18,8 +18,8 @@ extends:
   parameters:
     pool:
       os: linux
-      name: 1ES_JavaTooling_Pool
-      image: 1ES_JavaTooling_Ubuntu-2004
+      name: AzurePipelines-EO
+      image: 1ESPT-Ubuntu24.04
     sdl:
       sourceAnalysisPool:
         name: 1ES_JavaTooling_Pool
