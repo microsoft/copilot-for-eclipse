@@ -194,6 +194,7 @@ public class ModelUtils {
       return defaultTier.maxContext() + output;
     }
 
+    // TODO: Remove this legacy fallback after TBB is officially released.
     if (isTokenBasedBillingEnabled(model)) {
       Integer maxInputTokens = limits.maxInputTokens();
       if (maxInputTokens != null && maxOutputTokens != null) {
@@ -204,6 +205,7 @@ public class ModelUtils {
     return limits.maxContextWindowTokens();
   }
 
+  // TODO: Remove this legacy fallback after TBB is officially released.
   private static boolean isTokenBasedBillingEnabled(CopilotModel model) {
     return model.getBilling() != null && model.getBilling().tokenBasedBillingEnabled();
   }

@@ -30,12 +30,15 @@ public class ContextWindowService {
 
   private IObservableValue<ContextSizeInfo> contextSizeObservable;
   private final Map<ContextWindowPopup, ISideEffect> popupSideEffects = new HashMap<>();
-  private ModelService modelService;
+  private final ModelService modelService;
 
   /**
    * Creates the service and initializes the observable state on the UI realm.
+   *
+   * @param modelService the model service used to resolve the active model's context window
    */
-  public ContextWindowService() {
+  public ContextWindowService(ModelService modelService) {
+    this.modelService = modelService;
     AtomicReference<IObservableValue<ContextSizeInfo>> observableRef = new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
       Realm realm = Realm.getDefault();
@@ -60,15 +63,6 @@ public class ContextWindowService {
     AtomicReference<ContextSizeInfo> result = new AtomicReference<>();
     contextSizeObservable.getRealm().exec(() -> result.set(contextSizeObservable.getValue()));
     return result.get();
-  }
-
-  /**
-   * Sets the model service used to resolve the active model's full context window for display.
-   *
-   * @param modelService the model service
-   */
-  public void setModelService(ModelService modelService) {
-    this.modelService = modelService;
   }
 
   /**

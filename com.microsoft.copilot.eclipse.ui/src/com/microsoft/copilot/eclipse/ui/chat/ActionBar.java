@@ -580,7 +580,6 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void setUpContextSizeDonutInControlBar(Composite parent) {
-    chatServiceManager.getContextWindowService().setModelService(chatServiceManager.getModelService());
     this.contextSizeDonut = new ContextSizeDonut(parent, chatServiceManager.getContextWindowService());
   }
 
