@@ -181,6 +181,34 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 
 ---
 
+### TC-008: Cancelled terminal tool call stays cancelled after restoration
+
+**Type:** `Regression`
+**Priority:** `P0`
+
+#### Preconditions
+- Copilot Chat is open in Agent mode
+- A workspace is open so the `run_in_terminal` tool can execute
+- A model that supports tool calls is selected
+
+#### Steps
+1. Send a message that makes Copilot use the `run_in_terminal` tool to perform a longer-running task (e.g. "run a command that takes a while, such as `ping -n 30 127.0.0.1`")
+2. While the terminal tool call is still running (spinner active on the tool status), click Cancel on the chat response
+3. Verify the terminal tool call status updates to the **cancelled** icon (no longer spinning)
+4. Click "New Chat" to start a fresh conversation
+5. Open chat history and select the original conversation to restore it
+
+#### Expected Result
+- After restoration, the terminal tool call still shows the **cancelled** icon
+- The tool call status does **not** revert to running/spinning (no rotating/ongoing indicator reappears)
+- The cancelled status is consistent between the live cancel and the restored view
+
+#### 📸 Key Screenshots
+- [ ] **After cancel** — Terminal tool call showing the cancelled icon (not spinning)
+- [ ] **After restore** — Same terminal tool call restored with the cancelled icon, not reverted to running
+
+---
+
 ## Screenshots Checklist
 > Consolidated list of all key screenshot moments.
 
@@ -195,3 +223,5 @@ This feature integrates CLS (Copilot Language Server) server-side session persis
 - [ ] `TC-006` Restored history with successful follow-up and no 400 error
 - [ ] `TC-007` Original conversation showing assistant reply
 - [ ] `TC-007` Restored conversation with correctly attributed messages and no duplicates
+- [ ] `TC-008` Cancelled terminal tool call showing cancelled icon after cancel
+- [ ] `TC-008` Restored terminal tool call still cancelled, not reverted to running

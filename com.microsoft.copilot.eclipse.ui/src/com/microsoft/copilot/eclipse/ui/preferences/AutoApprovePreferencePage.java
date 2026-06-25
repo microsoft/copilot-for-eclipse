@@ -6,6 +6,8 @@ package com.microsoft.copilot.eclipse.ui.preferences;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -51,12 +53,28 @@ public class AutoApprovePreferencePage extends PreferencePage
           Messages.preferences_page_auto_approve_disabled_by_organization);
     }
 
-    Composite root = new Composite(parent, SWT.NONE);
+    // Wrap the sections in a height-capped ScrolledComposite. The override on
+    // computeSize bounds the height reported to the dialog's PageLayout so the
+    // Preferences shell stays stable; the real (taller) content scrolls here.
+    // This scroller is also the parent the section tables forward wheel events
+    // to (see forwardVerticalMouseWheelToParentScrollerAtBoundary).
+    ScrolledComposite scrolled = new ScrolledComposite(parent, SWT.V_SCROLL) {
+      @Override
+      public Point computeSize(int widthHint, int heightHint, boolean changed) {
+        Point size = super.computeSize(widthHint, heightHint, changed);
+        size.y = Math.min(size.y, PreferencePageUtils.STANDARD_CONTENT_HEIGHT);
+        return size;
+      }
+    };
+    scrolled.setExpandHorizontal(true);
+    scrolled.setExpandVertical(true);
+    scrolled.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+    Composite root = new Composite(scrolled, SWT.NONE);
     GridLayout layout = new GridLayout(1, false);
     layout.marginWidth = 0;
     layout.marginHeight = 0;
     root.setLayout(layout);
-    root.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 
     IPreferenceStore store = getPreferenceStore();
     terminalSection = new TerminalAutoApproveSection(root, SWT.NONE);
@@ -72,9 +90,17 @@ public class AutoApprovePreferencePage extends PreferencePage
     globalSection = new GlobalAutoApproveSection(root, SWT.NONE);
     globalSection.loadFromPreferences(store);
 
-    root.addDisposeListener(e -> unbindMcpConfigService());
+    scrolled.setContent(root);
+    scrolled.setMinSize(root.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+    // Track width so wrapping labels reflow and only vertical scrolling occurs.
+    scrolled.addListener(SWT.Resize, e -> {
+      int width = scrolled.getClientArea().width;
+      scrolled.setMinSize(root.computeSize(width, SWT.DEFAULT));
+    });
 
-    return root;
+    scrolled.addDisposeListener(e -> unbindMcpConfigService());
+
+    return scrolled;
   }
 
   @Override

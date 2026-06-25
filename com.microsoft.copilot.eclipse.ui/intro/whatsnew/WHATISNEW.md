@@ -1,3 +1,35 @@
+# GitHub Copilot 0.19.0 Release Notes
+
+### Agent Tool Auto-Approve Controls
+Agent Mode now supports auto-approve controls for tool confirmations. Configure rules for terminal commands, file operations, and MCP tools from Copilot preferences, or use the confirmation dialog's **Allow for Session** and **Always Allow** actions to keep trusted workflows moving without repeated prompts.
+
+Default file safety rules, MCP tool annotations, and the global auto-approve toggle are supported, so you can reduce friction while keeping risky actions visible.
+
+![Tool Auto Approve](0.19.0/auto-approve.png)
+
+---
+
+### Automatic Chat Context Compression
+Copilot can now automatically compress chat context as conversations grow. When a session approaches the context limit, older conversation context is summarized so longer agent runs can continue with fewer interruptions.
+
+The chat view also shows compression status while Copilot is compacting the conversation, making long-running sessions easier to follow.
+
+---
+
+### Create and Edit Local Files Outside the Workspace
+Agent Mode can now create and edit local files by absolute path even when they are outside the Eclipse workspace. This helps when your code spans external folders, linked resources, or files that are not loaded as Eclipse projects.
+
+Local file changes are tracked alongside workspace edits in the changed-files bar, with support for **View Diff**, **Keep**, and **Undo** flows, including empty-baseline diffs for newly created files.
+
+---
+
+### More Reliable Terminal Command Execution on Windows and Linux
+Terminal command execution is more reliable across Windows and Linux. Copilot now runs commands through PowerShell on Windows and Bash on Linux, uses shell-integration markers to detect command completion and exit codes, and handles multiline commands with bracketed paste formatting.
+
+Copilot also interrupts previous foreground commands before starting new ones, stops active terminal work when a chat request is canceled, truncates long terminal output before sending it back to the model, and chooses a better working directory from the current file or referenced files.
+
+---
+
 # GitHub Copilot 0.18.0 Release Notes
 
 ### Prepare for the Upcoming Usage-Based Billing
@@ -65,35 +97,3 @@ Bring Your Own Key (BYOK) is now available to GitHub Copilot Business and Enterp
 
 ### Better ABAP Support
 This release brings improved support for ABAP development in Eclipse. Copilot now provides more accurate and context-aware chat responses for ABAP projects, and it can read directories and search within the locally cached files.
-
----
-
-### 
-
-# GitHub Copilot 0.16.0 Release Notes
-
-### Tool Calling in Ask Mode
-
-Ask Mode now supports tool calling. When a question requires additional context, Copilot automatically invokes relevant tools — such as listing directories, searching for files, and reading file contents — to gather the information needed to provide an accurate response. Tools invoked in Ask Mode are read-only and will not modify your codebase.
-
-![Tool Calling in Ask Mode](0.16.0/tool_calling_in_ask_mode.png)
-
----
-
-### Redesigned Selectors and Chat Input Area
-
-- **Mode and Model Selectors**: The chat mode and model selectors have been redesigned to surface more information at a glance. The updated layout includes icons and descriptions, making it easier to identify the capabilities and warnings associated with each option.
-
-![New Selector](0.16.0/new_selector.png)
-
-- **Chat Input Area**: The chat input area has been refined with a cleaner, borderless button design for a more streamlined appearance.
-![New Chat Input](0.16.0/new_chat_input.png)
-
----
-
-### Syntax Highlighting in Chat
-
-Code snippets in Copilot's chat view now render with full syntax highlighting. Code blocks in responses are automatically highlighted based on the detected language, improving readability and making it easier to follow along with code suggestions and explanations.
-
-![Syntax Highlighting](0.16.0/syntax_highlighting.png)
-

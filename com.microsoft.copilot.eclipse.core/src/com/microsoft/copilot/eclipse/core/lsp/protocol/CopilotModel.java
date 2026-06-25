@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
@@ -97,17 +98,46 @@ public class CopilotModel {
   }
 
   /**
-   * Per-token prices for the model, returned in USD.
+   * Per-tier token prices, quoted in USD per {@link CopilotModelBillingTokenPrices#batchSize} tokens and applying up
+   * to {@code maxContext} context tokens. Requests larger than the {@code default} tier's {@code maxContext} are
+   * billed at the {@code longContext} tier. All components are optional ({@code null} when the server does not provide
+   * a value).
+   *
+   * @param cachePrice the price for cached input tokens
+   * @param inputPrice the price for input tokens
+   * @param outputPrice the price for output tokens
+   * @param maxContext the maximum number of context (input) tokens this tier applies to
    */
-  public record CopilotModelBillingTokenPrices(Double cachePrice, Double inputPrice, Double outputPrice,
-      Double tokenUnit) {
+  public record CopilotModelTokenPriceTier(Double cachePrice, Double inputPrice, Double outputPrice,
+      Integer maxContext) {
     @Override
     public String toString() {
       ToStringBuilder builder = new ToStringBuilder(this);
       builder.append("cachePrice", cachePrice);
       builder.append("inputPrice", inputPrice);
       builder.append("outputPrice", outputPrice);
-      builder.append("tokenUnit", tokenUnit);
+      builder.append("maxContext", maxContext);
+      return builder.toString();
+    }
+  }
+
+  /**
+   * Per-tier token prices for the model. When token-based billing is enabled the server returns a {@code default}
+   * tier and, for models that support long context, a {@code longContext} tier.
+   *
+   * @param batchSize the number of tokens each tier price is quoted per
+   * @param defaultTier the {@code default} price tier (deserialized from the {@code default} JSON field)
+   * @param longContext the {@code longContext} price tier, or {@code null} when the model does not support long
+   *     context
+   */
+  public record CopilotModelBillingTokenPrices(Double batchSize,
+      @SerializedName("default") CopilotModelTokenPriceTier defaultTier, CopilotModelTokenPriceTier longContext) {
+    @Override
+    public String toString() {
+      ToStringBuilder builder = new ToStringBuilder(this);
+      builder.append("batchSize", batchSize);
+      builder.append("defaultTier", defaultTier);
+      builder.append("longContext", longContext);
       return builder.toString();
     }
   }

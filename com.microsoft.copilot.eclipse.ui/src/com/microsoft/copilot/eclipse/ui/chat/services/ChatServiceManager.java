@@ -54,7 +54,7 @@ public class ChatServiceManager implements IChatServiceManager {
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
     chatFontService = new ChatFontService();
-    contextWindowService = new ContextWindowService();
+    contextWindowService = new ContextWindowService(modelService);
   }
 
   /**

@@ -219,3 +219,68 @@ Not exercised:
 #### Key Screenshots
 - [ ] **Local file tool link** -- The tool result shows a clickable absolute path outside the workspace.
 - [ ] **External local file editor** -- The external local file opens in an Eclipse editor.
+
+### TC-007: Workspace directory and project links reveal in the Project Explorer
+
+**Type:** `Happy Path`
+**Priority:** `P1`
+
+#### Preconditions
+- The Eclipse workbench is open with at least one project (e.g., `demo`) that contains a sub-folder (e.g., `src`).
+- The **Project Explorer** view is open.
+- Copilot Chat is open in Agent mode.
+
+#### Steps
+1. Send a prompt that causes Agent mode to reference the workspace sub-folder by path (for example, ask it to list the
+   contents of the `src` folder so the tool result renders a directory link).
+2. When the tool call appears in the Chat view, click the directory link for the `src` folder.
+3. Verify the `src` folder is selected and revealed in the **Project Explorer** (no external browser opens).
+4. Send a prompt that causes Agent mode to reference the project root, then click the project link in the tool result.
+5. Verify the project is selected and revealed in the **Project Explorer**.
+
+#### Expected Result
+- Clicking a workspace folder or project link reveals and selects that resource in the Project Explorer.
+- No external browser or web page is opened for directory/project links.
+- No error dialog is shown and the Eclipse error log has no navigation exception.
+
+#### Key Screenshots
+- [ ] **Directory tool link** -- The tool result shows a clickable workspace folder link.
+- [ ] **Folder revealed** -- The `src` folder is selected and revealed in the Project Explorer.
+- [ ] **Project revealed** -- The project root is selected and revealed in the Project Explorer.
+
+#### Notes on failure modes
+- Clicking the directory link opens a browser or does nothing -- the folder/project branch may not route through
+  `UiUtils.revealInExplorer`.
+- The resource is opened in an editor instead of being revealed -- folder/project types may be incorrectly treated as
+  files.
+
+### TC-008: File URI link with a line-number fragment opens the external local file
+
+**Type:** `Edge Case`
+**Priority:** `P2`
+
+#### Preconditions
+- The Eclipse workbench is open.
+- Copilot Chat is open in Agent mode.
+- The local test directory outside the workspace exists and contains `existing-local-file.txt` with multiple lines.
+
+#### Steps
+1. Send a prompt that causes Agent mode to reference `existing-local-file.txt` by absolute path with a line-number
+   fragment (for example, a link ending in `#L10` or a `file:` URI with a `#L10` fragment).
+2. When the tool call appears in the Chat view, click the file path link.
+3. Verify Eclipse opens `existing-local-file.txt` in an editor (the trailing line-number fragment is treated as a
+   fragment, not part of the file name).
+
+#### Expected Result
+- The line-number fragment is stripped when resolving the local path, so the correct external file opens.
+- Eclipse does not report a missing file named `existing-local-file.txt#L10` or a path-resolution error.
+- No error dialog is shown and the Eclipse error log has no local file navigation exception.
+
+#### Key Screenshots
+- [ ] **Fragment file link** -- The tool result shows a clickable local path with a `#L10` fragment.
+- [ ] **External file opened** -- The external local file opens in an Eclipse editor despite the fragment.
+
+#### Notes on failure modes
+- Eclipse reports the file cannot be found -- the `#` fragment may not be stripped before resolving the local path.
+- A relative-path or `https:` link is unexpectedly opened as a local file -- the URI-scheme guard in
+  `FileUtils.getLocalFilePath` may be bypassed.

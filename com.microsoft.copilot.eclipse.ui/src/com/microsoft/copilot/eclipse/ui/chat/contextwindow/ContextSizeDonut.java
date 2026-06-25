@@ -63,7 +63,7 @@ public class ContextSizeDonut {
       e.gc.drawArc(arcOffset, arcOffset, arcSize, arcSize, 0, 360);
 
       // Used portion starting from 12 o'clock (90°) going clockwise (negative angle)
-      double pct = Math.min(info.utilizationPercentage(), 100.0);
+      double pct = Math.min(contextWindowService.getDisplayUtilizationPercentage(info), 100.0);
       int filledAngle = (int) Math.round(pct / 100.0 * 360);
       if (filledAngle > 0) {
         Color filledColor = pct >= 90 ? CssConstants.getDonutWarningColor(e.display)

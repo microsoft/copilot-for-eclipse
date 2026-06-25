@@ -83,7 +83,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class McpPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
   public static final String ID = "com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage";
 
-  private static final int GROUP_HEIGHT_HINT = 260;
+  private static final int GROUP_HEIGHT_HINT = PreferencePageUtils.STANDARD_CONTENT_HEIGHT / 2;
   private static final Gson GSON = new Gson();
 
   private Group toolsGroup;

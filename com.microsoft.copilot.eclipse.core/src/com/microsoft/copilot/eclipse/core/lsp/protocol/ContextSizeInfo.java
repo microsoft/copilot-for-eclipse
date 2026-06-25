@@ -9,6 +9,7 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
  */
 public record ContextSizeInfo(
     int totalTokenLimit,
+    int reservedOutputTokens,
     int systemPromptTokens,
     int toolDefinitionTokens,
     int userMessagesTokens,

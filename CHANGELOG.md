@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.19.0
+### Added
+- Improve terminal command execution across Windows and Linux. [PR#247](https://github.com/microsoft/copilot-for-eclipse/pull/247)
+- Support editing/creating local files outside the workspace. [PR#248](https://github.com/microsoft/copilot-for-eclipse/pull/248)
+- Support automatic chat context compression. [PR#250](https://github.com/microsoft/copilot-for-eclipse/pull/250)
+- Support tool auto-approve controls. [PR#255](https://github.com/microsoft/copilot-for-eclipse/pull/255)
+
+### Fixed
+- Copilot reports failure when extension-point contributed MCP server has changed. [#153](https://github.com/microsoft/copilot-for-eclipse/issues/153)
+- Subagent panel size is not updated if conversation is canceled. [#169](https://github.com/microsoft/copilot-for-eclipse/issues/169), contributed by [@rsd-darshan](https://github.com/rsd-darshan)
+- Thinking effort descriptions are truncated in the model picker hover card. [#233](https://github.com/microsoft/copilot-for-eclipse/issues/233)
+- Canceled terminal tool calling status will become ongoing again after chat history restoration. [#239](https://github.com/microsoft/copilot-for-eclipse/issues/239)
+- Cannot navigate to the file out of workspace. [#262](https://github.com/microsoft/copilot-for-eclipse/issues/262)
+- Read the default text editor preferences from platform instead of defaulting to spaces. [PR#267](https://github.com/microsoft/copilot-for-eclipse/pull/267), contributed by [@jomillerOpen](https://github.com/jomillerOpen)
+
+### Engineering
+- Remove unused message keys and properties across various modules. [PR#208](https://github.com/microsoft/copilot-for-eclipse/pull/208)
+- Add endgame skill. [PR#230](https://github.com/microsoft/copilot-for-eclipse/pull/230)
+- Fix typo in README upgrade recommendation. [PR#251](https://github.com/microsoft/copilot-for-eclipse/pull/251), contributed by [@evanclan](https://github.com/evanclan)
+
 ## 0.18.0
 ### Added
 - ℹ️ Prepare for the [upcoming usage-based billing](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/). We strongly recommend upgrading to this version as soon as possible. [#203](https://github.com/microsoft/copilot-for-eclipse/issues/203)
