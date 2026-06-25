@@ -6,7 +6,9 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +34,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FileStat;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,6 +84,124 @@ class CopilotLanguageClientTests {
       assertEquals(CurrentEditorContext.class, result[0].getClass());
       assertEquals(expectedUri, ((CurrentEditorContext) result[0]).getUri());
       assertNull(result[1]);
+    }
+  }
+
+  @Test
+  void testResolveCurrentEditorSkillWithVisibleEditorUri() throws InterruptedException, ExecutionException {
+    // Arrange
+    ConversationContextParams params = new ConversationContextParams("", "",
+        ConversationCapabilities.CURRENT_EDITOR_SKILL);
+    String expectedUri = "copilot-visible-editor://current/1";
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
+      when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
+      when(fileService.getCurrentFile()).thenReturn(null);
+      when(fileService.getCurrentEditorUri()).thenReturn(expectedUri);
+
+      // Act
+      CompletableFuture<Object[]> future = client.getConversationContext(params);
+      Object[] result = future.get();
+
+      // Assert
+      assertNotNull(result);
+      assertEquals(2, result.length);
+      assertEquals(CurrentEditorContext.class, result[0].getClass());
+      assertEquals(expectedUri, ((CurrentEditorContext) result[0]).getUri());
+      assertNull(result[1]);
+    }
+  }
+
+  @Test
+  void testResolveCurrentEditorSkillWithoutFileOrVisibleEditorUri() throws InterruptedException, ExecutionException {
+    // Arrange
+    ConversationContextParams params = new ConversationContextParams("", "",
+        ConversationCapabilities.CURRENT_EDITOR_SKILL);
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
+      when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
+      when(fileService.getCurrentFile()).thenReturn(null);
+      when(fileService.getCurrentEditorUri()).thenReturn(null);
+
+      // Act
+      CompletableFuture<Object[]> future = client.getConversationContext(params);
+      Object[] result = future.get();
+
+      // Assert
+      assertNotNull(result);
+      assertEquals(2, result.length);
+      assertNull(result[0]);
+      assertNull(result[1]);
+    }
+  }
+
+  @Test
+  void testReadFileFallsBackToCurrentEditorWhenFileNotFound() throws InterruptedException, ExecutionException {
+    // Arrange
+    String uri = "copilot-visible-editor://current/1";
+    ReadFileResult currentEditorResult = new ReadFileResult("class Example {}", null);
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
+      when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
+      when(fileService.readCurrentEditor(uri)).thenReturn(currentEditorResult);
+
+      // Act
+      ReadFileResult result = client.readFile(uri).get();
+
+      // Assert
+      assertSame(currentEditorResult, result);
+    }
+  }
+
+  @Test
+  void testReadFilePreservesFileNotFoundWhenCurrentEditorFallbackMissing()
+      throws InterruptedException, ExecutionException {
+    // Arrange
+    String uri = "copilot-visible-editor://current/1";
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
+      when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
+      when(fileService.readCurrentEditor(uri)).thenReturn(null);
+
+      // Act
+      ReadFileResult result = client.readFile(uri).get();
+
+      // Assert
+      assertEquals("file not found: " + uri, result.getText());
+      assertNull(result.getStat());
+    }
+  }
+
+  @Test
+  void testReadFileDoesNotFallbackToCurrentEditorWhenFileFound()
+      throws InterruptedException, ExecutionException {
+    // Arrange
+    String uri = "file:///path/to/file.txt";
+    FileStat stat = new FileStat();
+    stat.setSize(18);
+    ReadFileResult fileResult = new ReadFileResult("class Example {}", stat);
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class);
+        MockedStatic<FileUtils> fileUtilsMock = Mockito.mockStatic(FileUtils.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
+      when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
+      fileUtilsMock.when(() -> FileUtils.readFileWithStats(uri)).thenReturn(fileResult);
+
+      // Act
+      ReadFileResult result = client.readFile(uri).get();
+
+      // Assert
+      assertSame(fileResult, result);
+      verify(fileService, never()).readCurrentEditor(uri);
     }
   }
 
