@@ -9,19 +9,15 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import org.eclipse.core.resources.IFile;
-import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
+import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IPartService;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.Test;
@@ -49,13 +45,22 @@ class ReferencedFileServiceTest {
   private IWorkbenchPage activePage;
 
   @Mock
+  private IWorkbenchPage otherPage;
+
+  @Mock
+  private IEditorReference closedEditorReference;
+
+  @Mock
   private IEditorReference remainingEditorReference;
 
   @Mock
-  private IWorkbenchPartReference closedPartReference;
+  private IEditorPart closedEditor;
 
   @Mock
-  private IEditorPart closedEditor;
+  private IFileEditorInput closedEditorInput;
+
+  @Mock
+  private IEditorInput nonFileEditorInput;
 
   @Mock
   private IFile currentFile;
@@ -69,20 +74,80 @@ class ReferencedFileServiceTest {
       when(workbench.getWorkbenchWindows()).thenReturn(new IWorkbenchWindow[] { window });
       when(window.getPartService()).thenReturn(partService);
 
-      ReferencedFileService service = new ReferencedFileService();
+      TestReferencedFileService service = new TestReferencedFileService();
       try {
         IPartListener2 listener = getRegisteredPartListener();
-        when(closedPartReference.getPart(false)).thenReturn(closedEditor);
+        when(closedEditorReference.getEditorInput()).thenReturn(nonFileEditorInput);
+        when(closedEditorReference.getPart(false)).thenReturn(closedEditor);
         uiUtils.when(() -> UiUtils.getFileFromEditorPart(closedEditor)).thenReturn(currentFile);
-        uiUtils.when(UiUtils::getActivePage).thenReturn(activePage);
+        when(window.getPages()).thenReturn(new IWorkbenchPage[] { activePage });
         when(activePage.getEditorReferences()).thenReturn(new IEditorReference[] { remainingEditorReference });
 
-        setCurrentFile(service, currentFile);
+        service.setCurrentFile(currentFile);
         assertSame(currentFile, service.getCurrentFile());
 
-        listener.partClosed(closedPartReference);
+        listener.partClosed(closedEditorReference);
 
         assertNull(service.getCurrentFile());
+      } finally {
+        service.dispose();
+      }
+    }
+  }
+
+  @Test
+  void partClosed_WhenEditorPartIsDisposedButReferenceInputIsCurrentFile_ShouldClearCurrentFile()
+      throws Exception {
+    try (MockedStatic<PlatformUI> platformUi = mockStatic(PlatformUI.class)) {
+      platformUi.when(PlatformUI::getWorkbench).thenReturn(workbench);
+      when(workbench.getWorkbenchWindows()).thenReturn(new IWorkbenchWindow[] { window });
+      when(window.getPartService()).thenReturn(partService);
+
+      TestReferencedFileService service = new TestReferencedFileService();
+      try {
+        IPartListener2 listener = getRegisteredPartListener();
+        when(closedEditorReference.getEditorInput()).thenReturn(closedEditorInput);
+        when(closedEditorInput.getFile()).thenReturn(currentFile);
+        when(window.getPages()).thenReturn(new IWorkbenchPage[] { activePage });
+        when(activePage.getEditorReferences()).thenReturn(new IEditorReference[] { remainingEditorReference });
+
+        service.setCurrentFile(currentFile);
+        assertSame(currentFile, service.getCurrentFile());
+
+        listener.partClosed(closedEditorReference);
+
+        assertNull(service.getCurrentFile());
+      } finally {
+        service.dispose();
+      }
+    }
+  }
+
+  @Test
+  void partClosed_WhenActivePageHasNoEditorsButAnotherPageHasEditors_ShouldKeepCurrentFile()
+      throws Exception {
+    try (MockedStatic<PlatformUI> platformUi = mockStatic(PlatformUI.class);
+        MockedStatic<UiUtils> uiUtils = mockStatic(UiUtils.class)) {
+      platformUi.when(PlatformUI::getWorkbench).thenReturn(workbench);
+      when(workbench.getWorkbenchWindows()).thenReturn(new IWorkbenchWindow[] { window });
+      when(window.getPartService()).thenReturn(partService);
+
+      TestReferencedFileService service = new TestReferencedFileService();
+      try {
+        IPartListener2 listener = getRegisteredPartListener();
+        when(closedEditorReference.getEditorInput()).thenReturn(nonFileEditorInput);
+        when(closedEditorReference.getPart(false)).thenReturn(closedEditor);
+        uiUtils.when(() -> UiUtils.getFileFromEditorPart(closedEditor)).thenReturn(null);
+        when(window.getPages()).thenReturn(new IWorkbenchPage[] { activePage, otherPage });
+        when(activePage.getEditorReferences()).thenReturn(new IEditorReference[0]);
+        when(otherPage.getEditorReferences()).thenReturn(new IEditorReference[] { remainingEditorReference });
+
+        service.setCurrentFile(currentFile);
+        assertSame(currentFile, service.getCurrentFile());
+
+        listener.partClosed(closedEditorReference);
+
+        assertSame(currentFile, service.getCurrentFile());
       } finally {
         service.dispose();
       }
@@ -95,32 +160,9 @@ class ReferencedFileServiceTest {
     return listenerCaptor.getValue();
   }
 
-  private static void setCurrentFile(ReferencedFileService service, IFile file) throws Exception {
-    Object currentFileObservable = getField(service, "currentFileObservable");
-    runOnDisplayThread(() -> invokeSetValue(currentFileObservable, file));
-  }
-
-  private static Object getField(Object target, String fieldName) throws NoSuchFieldException,
-      IllegalAccessException {
-    Field field = target.getClass().getDeclaredField(fieldName);
-    field.setAccessible(true);
-    return field.get(target);
-  }
-
-  private static void runOnDisplayThread(Runnable runnable) {
-    if (Display.getCurrent() != null) {
-      runnable.run();
-      return;
-    }
-    Display.getDefault().syncExec(runnable);
-  }
-
-  private static void invokeSetValue(Object observable, Object value) {
-    try {
-      Method setValue = observable.getClass().getMethod("setValue", Object.class);
-      setValue.invoke(observable, value);
-    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-      throw new IllegalStateException("Failed to set observable value", e);
+  private static class TestReferencedFileService extends ReferencedFileService {
+    void setCurrentFile(IFile file) {
+      setCurrentFileForTest(file);
     }
   }
 }
