@@ -557,8 +557,12 @@ public class ReferencedFileService extends ChatBaseService implements IReference
       return;
     }
 
+    clearCurrentFileObservable();
     updateCurrentEditorSnapshot(textEditor, document.get());
-    updateObservable(currentFileObservable, null);
+  }
+
+  private void clearCurrentFileObservable() {
+    ensureRealm(() -> currentFileObservable.setValue(null));
   }
 
   private void updateCurrentEditorSnapshot(ITextEditor textEditor, String text) {

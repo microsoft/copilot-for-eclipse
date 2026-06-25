@@ -140,19 +140,24 @@ class CopilotLanguageClientTests {
   }
 
   @Test
-  void testReadFileFallsBackToCurrentEditorWhenFileNotFound() throws InterruptedException, ExecutionException {
+  void testReadFileFallsBackToCurrentEditorWhenWorkspaceFileMissing()
+      throws InterruptedException, ExecutionException {
     // Arrange
     String uri = "copilot-visible-editor://current/1";
+    ReadFileResult fileResult = new ReadFileResult("workspace read failed", null);
     ReadFileResult currentEditorResult = new ReadFileResult("class Example {}", null);
 
-    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class);
+        MockedStatic<FileUtils> fileUtilsMock = Mockito.mockStatic(FileUtils.class)) {
       copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
       when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
       when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
       when(fileService.readCurrentEditor(uri)).thenReturn(currentEditorResult);
+      fileUtilsMock.when(() -> FileUtils.readFileWithStats(uri)).thenReturn(fileResult);
+      fileUtilsMock.when(() -> FileUtils.getFileFromUri(uri)).thenReturn(null);
 
       // Act
-      ReadFileResult result = client.readFile(uri).get();
+      ReadFileResult result = new CopilotLanguageClient(Runnable::run).readFile(uri).get();
 
       // Assert
       assertSame(currentEditorResult, result);
@@ -160,23 +165,26 @@ class CopilotLanguageClientTests {
   }
 
   @Test
-  void testReadFilePreservesFileNotFoundWhenCurrentEditorFallbackMissing()
+  void testReadFilePreservesFileUtilsResultWhenCurrentEditorFallbackMissing()
       throws InterruptedException, ExecutionException {
     // Arrange
     String uri = "copilot-visible-editor://current/1";
+    ReadFileResult fileResult = new ReadFileResult("workspace read failed", null);
 
-    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class);
+        MockedStatic<FileUtils> fileUtilsMock = Mockito.mockStatic(FileUtils.class)) {
       copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
       when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
       when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
       when(fileService.readCurrentEditor(uri)).thenReturn(null);
+      fileUtilsMock.when(() -> FileUtils.readFileWithStats(uri)).thenReturn(fileResult);
+      fileUtilsMock.when(() -> FileUtils.getFileFromUri(uri)).thenReturn(null);
 
       // Act
-      ReadFileResult result = client.readFile(uri).get();
+      ReadFileResult result = new CopilotLanguageClient(Runnable::run).readFile(uri).get();
 
       // Assert
-      assertEquals("file not found: " + uri, result.getText());
-      assertNull(result.getStat());
+      assertSame(fileResult, result);
     }
   }
 
@@ -187,6 +195,7 @@ class CopilotLanguageClientTests {
     String uri = "file:///path/to/file.txt";
     FileStat stat = new FileStat();
     stat.setSize(18);
+    IFile file = mock(IFile.class);
     ReadFileResult fileResult = new ReadFileResult("class Example {}", stat);
 
     try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class);
@@ -195,9 +204,10 @@ class CopilotLanguageClientTests {
       when(plugin.getChatServiceManager()).thenReturn(chatServiceManager);
       when(chatServiceManager.getReferencedFileService()).thenReturn(fileService);
       fileUtilsMock.when(() -> FileUtils.readFileWithStats(uri)).thenReturn(fileResult);
+      fileUtilsMock.when(() -> FileUtils.getFileFromUri(uri)).thenReturn(file);
 
       // Act
-      ReadFileResult result = client.readFile(uri).get();
+      ReadFileResult result = new CopilotLanguageClient(Runnable::run).readFile(uri).get();
 
       // Assert
       assertSame(fileResult, result);

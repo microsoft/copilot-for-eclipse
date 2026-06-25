@@ -410,7 +410,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     IReferencedFileService fileService = getReferencedFileService();
     return CompletableFuture.supplyAsync(() -> {
       ReadFileResult result = FileUtils.readFileWithStats(uri);
-      if (!isFileNotFoundResult(result, uri)) {
+      if (!shouldFallbackToCurrentEditor(uri)) {
         return result;
       }
 
@@ -419,8 +419,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     }, readFileExecutor);
   }
 
-  private static boolean isFileNotFoundResult(ReadFileResult result, String uri) {
-    return result != null && result.getStat() == null && ("file not found: " + uri).equals(result.getText());
+  private static boolean shouldFallbackToCurrentEditor(String uri) {
+    return FileUtils.getFileFromUri(uri) == null;
   }
 
   private static IReferencedFileService getReferencedFileService() {
