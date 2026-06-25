@@ -655,7 +655,7 @@ public abstract class BaseTurnWidget extends Composite {
       Composite ancestor = this.getParent();
       while (ancestor != null && !ancestor.isDisposed()) {
         if (ancestor instanceof ChatContentViewer) {
-          ((ChatContentViewer) ancestor).requestRefreshScrollerLayout();
+          ((ChatContentViewer) ancestor).scheduleRefresh();
           break;
         }
         ancestor = ancestor.getParent();

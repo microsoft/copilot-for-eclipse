@@ -315,7 +315,6 @@ public class ThinkingBlock extends Composite {
 
     body.requestLayout();
     updateScrollerDuringStreaming();
-    refreshEnclosingScroller();
   }
 
   /** Resize the scroller to fit content (up to max height) and auto-scroll to bottom if enabled. */

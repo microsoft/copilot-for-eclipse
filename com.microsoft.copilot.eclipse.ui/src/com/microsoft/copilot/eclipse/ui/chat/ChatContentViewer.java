@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -23,6 +26,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.PlatformUI;
 
@@ -70,8 +74,26 @@ public class ChatContentViewer extends ScrolledComposite {
   private BaseTurnWidget latestUserTurn;
   private CopilotTurnWidget latestCopilotTurn;
   private BaseTurnWidget latestTurnWidget;
-  // Auto-scroll state management
   private boolean autoScrollEnabled;
+
+  /** Streaming events queued by LSP threads and drained on the UI thread in batches. */
+  private final Queue<ChatProgressValue> pendingEvents = new ConcurrentLinkedQueue<>();
+  private final AtomicBoolean drainScheduled = new AtomicBoolean(false);
+
+  /** Client-area width of the last layout pass; a change forces a full re-measure (text re-wraps). */
+  private int lastLayoutWidth = -1;
+
+  /**
+   * Guards {@link #doRefreshScrollerLayout(boolean)} against synchronous re-entrancy: setting the
+   * scroller min size can toggle the scrollbar, changing the client width and re-firing
+   * {@code controlResized}. The running pass records any nested request here and drains it after
+   * unwinding (a full re-measure wins over an incremental one).
+   */
+  private enum LayoutState {
+    IDLE, RUNNING, RERUN_INCREMENTAL, RERUN_FULL
+  }
+
+  private LayoutState layoutState = LayoutState.IDLE;
 
   /**
    * Create the composite.
@@ -186,123 +208,151 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Process turn event.
+   * Process turn event. Events are queued and drained in batches on the UI thread so the LSP thread
+   * is never blocked and multiple in-flight events coalesce into a single layout pass.
    */
   public void processTurnEvent(ChatProgressValue value) {
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (!turns.containsKey(value.getTurnId())) {
-        CopilotCore.LOGGER.error(new IllegalStateException("turnId not found: " + value.getTurnId()));
-        return;
+    pendingEvents.offer(value);
+    if (drainScheduled.compareAndSet(false, true)) {
+      SwtUtils.invokeOnDisplayThreadAsync(this::drainPendingEvents, this);
+    }
+  }
+
+  private void drainPendingEvents() {
+    drainScheduled.set(false);
+    if (isDisposed()) {
+      pendingEvents.clear();
+      return;
+    }
+    boolean sawTurnEnd = false;
+    ChatProgressValue event;
+    while ((event = pendingEvents.poll()) != null) {
+      final ChatProgressValue e = event;
+      if (e.getKind() == WorkDoneProgressKind.end) {
+        sawTurnEnd = true;
       }
-      BaseTurnWidget turnWidget = turns.get(value.getTurnId());
-      if (turnWidget == null) {
-        appendMessageToTheLatestTurn(value.getReply());
-      }
+      doProcessTurnEvent(e);
+    }
+    // Use a full re-measure on the turn-end batch so minHeight is accurate before scrollToBottom();
+    // the incremental path can accumulate a stale containerSize that leaves phantom space below the
+    // real content. All streaming batches keep the O(1) incremental path.
+    doRefreshScrollerLayout(sawTurnEnd);
+    if (shouldAutoScrollToBottom()) {
+      scrollToBottom();
+    }
+    // Events may have arrived while draining; schedule a follow-up drain if so.
+    if (!pendingEvents.isEmpty() && drainScheduled.compareAndSet(false, true)) {
+      SwtUtils.invokeOnDisplayThreadAsync(this::drainPendingEvents, this);
+    }
+  }
 
-      ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
+  private void doProcessTurnEvent(ChatProgressValue value) {
+    if (!turns.containsKey(value.getTurnId())) {
+      CopilotCore.LOGGER.error(new IllegalStateException("turnId not found: " + value.getTurnId()));
+      return;
+    }
+    BaseTurnWidget turnWidget = turns.get(value.getTurnId());
+    if (turnWidget == null) {
+      appendMessageToTheLatestTurn(value.getReply());
+    }
 
-      if (value.getKind() == WorkDoneProgressKind.report) {
-        if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
-          thinkingTurn.setConversationContext(conversationId, value.getTurnId());
-          thinkingTurn.appendThinking(value.getThinking());
-          updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
-          if (hasRenderableOutput(value)) {
-            // Seal before appending the reply so the spinner stops and the title is fetched.
-            thinkingTurn.sealThinking();
-          }
-        }
+    ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
 
-        if (value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
-          // Handle agent mode responses
-          AgentRound agentRound = value.getAgentRounds().get(0);
-
-          if (agentRound.getReply() != null) {
-            turnWidget.appendMessage(agentRound.getReply());
-          }
-
-          if (agentRound.getToolCalls() != null && !agentRound.getToolCalls().isEmpty()) {
-            AgentToolCall toolCall = agentRound.getToolCalls().get(0);
-            turnWidget.appendToolCallStatus(toolCall);
-
-            // Extract and process todo list from tool result details
-            processTodoListFromToolCall(chatServiceManager, value.getConversationId(), toolCall);
-          }
-        } else {
-          // Handle chat mode responses
-          turnWidget.appendMessage(value.getReply());
-        }
-      } else if (value.getKind() == WorkDoneProgressKind.end) {
-        // Seal any in-progress thinking block before the turn ends.
-        if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+    if (value.getKind() == WorkDoneProgressKind.report) {
+      if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+        thinkingTurn.setConversationContext(conversationId, value.getTurnId());
+        thinkingTurn.appendThinking(value.getThinking());
+        updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
+        if (hasRenderableOutput(value)) {
+          // Seal before appending the reply so the spinner stops and the title is fetched.
           thinkingTurn.sealThinking();
-          updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
-        }
-        turnWidget.flushMessageBuffer();
-      }
-      refreshScrollerLayout();
-
-      // Auto-scroll to bottom if enabled
-      if (shouldAutoScrollToBottom()) {
-        scrollToBottom();
-      }
-
-      String errMsg = value.getErrorMessage();
-      if (StringUtils.isNotEmpty(errMsg)) {
-        errMsg = REQUEST_ID_SUFFIX.matcher(errMsg).replaceAll(StringUtils.EMPTY).trim();
-      }
-      String reason = value.getErrorReason();
-      if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
-        // TODO: add enable button for better UX.
-        errMsg = Messages.chat_model_unsupported_message;
-      }
-      if (StringUtils.isNotEmpty(errMsg)) {
-        // TODO: Remove this legacy fallback after TBB is officially released.
-        // When the language server has not enabled token-based billing yet, fall back to the
-        // original main-branch 402 behavior: replace the message with a plan-driven fallback
-        // notice, switch to the fallback model, refresh quota, and replay the previous input.
-        CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
-        CopilotModel fallbackModel = null;
-        if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402) {
-          CopilotPlan userPlan = quotaStatus.copilotPlan();
-          fallbackModel = this.serviceManager.getModelService().getFallbackModel();
-          String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
-              : Messages.chat_noQuotaView_fallbackModel;
-
-          if (MenuUtils.isCfiPlan(userPlan)) {
-            // Pro, Pro+ and Max message
-            errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
-          } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
-            // CE and CB message
-            errMsg = String.format(Messages.chat_noQuotaView_cbCeWarnMsg, fallbackModelName);
-          }
-        }
-
-        renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode(), value.getErrorModelProviderName());
-
-        // TODO: Remove this legacy fallback after TBB is officially released.
-        // Only replay the previous input when a fallback model is actually available; otherwise
-        // setFallBackModelAsActiveModel() is a no-op and re-posting the input with the same
-        // active model would just trigger the same 402 again.
-        if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402
-            && quotaStatus.copilotPlan() != CopilotPlan.free
-            && fallbackModel != null) {
-          // Detach the failed turn so the replayed response creates a new Copilot turn below the
-          // warning, instead of streaming into the same turn that just rendered the warn widget.
-          this.latestTurnWidget = null;
-          this.latestCopilotTurn = null;
-
-          this.serviceManager.getModelService().setFallBackModelAsActiveModel();
-          this.serviceManager.getAuthStatusManager().checkQuota();
-
-          String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
-          if (StringUtils.isNotEmpty(previousInput)) {
-            IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
-            Map<String, Object> properties = Map.of("previousInput", previousInput, "needCreateUserTurn", false);
-            eventBroker.post(CopilotEventConstants.TOPIC_CHAT_ON_SEND, properties);
-          }
         }
       }
-    }, this);
+
+      if (value.getAgentRounds() != null && !value.getAgentRounds().isEmpty()) {
+        // Handle agent mode responses
+        AgentRound agentRound = value.getAgentRounds().get(0);
+
+        if (agentRound.getReply() != null) {
+          turnWidget.appendMessage(agentRound.getReply());
+        }
+
+        if (agentRound.getToolCalls() != null && !agentRound.getToolCalls().isEmpty()) {
+          AgentToolCall toolCall = agentRound.getToolCalls().get(0);
+          turnWidget.appendToolCallStatus(toolCall);
+
+          // Extract and process todo list from tool result details
+          processTodoListFromToolCall(chatServiceManager, value.getConversationId(), toolCall);
+        }
+      } else {
+        // Handle chat mode responses
+        turnWidget.appendMessage(value.getReply());
+      }
+    } else if (value.getKind() == WorkDoneProgressKind.end) {
+      // Seal any in-progress thinking block before the turn ends.
+      if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
+        thinkingTurn.sealThinking();
+        updateActiveThinkingBlockId(value.getTurnId(), thinkingTurn);
+      }
+      turnWidget.flushMessageBuffer();
+    }
+
+    String errMsg = value.getErrorMessage();
+    if (StringUtils.isNotEmpty(errMsg)) {
+      errMsg = REQUEST_ID_SUFFIX.matcher(errMsg).replaceAll(StringUtils.EMPTY).trim();
+    }
+    String reason = value.getErrorReason();
+    if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
+      // TODO: add enable button for better UX.
+      errMsg = Messages.chat_model_unsupported_message;
+    }
+    if (StringUtils.isNotEmpty(errMsg)) {
+      // TODO: Remove this legacy fallback after TBB is officially released.
+      // When the language server has not enabled token-based billing yet, fall back to the
+      // original main-branch 402 behavior: replace the message with a plan-driven fallback
+      // notice, switch to the fallback model, refresh quota, and replay the previous input.
+      CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
+      CopilotModel fallbackModel = null;
+      if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402) {
+        CopilotPlan userPlan = quotaStatus.copilotPlan();
+        fallbackModel = this.serviceManager.getModelService().getFallbackModel();
+        String fallbackModelName = fallbackModel != null ? fallbackModel.getModelName()
+            : Messages.chat_noQuotaView_fallbackModel;
+
+        if (MenuUtils.isCfiPlan(userPlan)) {
+          // Pro, Pro+ and Max message
+          errMsg = String.format(Messages.chat_noQuotaView_proProplusWarnMsg, fallbackModelName);
+        } else if (userPlan == CopilotPlan.business || userPlan == CopilotPlan.enterprise) {
+          // CE and CB message
+          errMsg = String.format(Messages.chat_noQuotaView_cbCeWarnMsg, fallbackModelName);
+        }
+      }
+
+      renderWarnMessageWithUpgradePlanButton(errMsg, value.getCode(), value.getErrorModelProviderName());
+
+      // TODO: Remove this legacy fallback after TBB is officially released.
+      // Only replay the previous input when a fallback model is actually available; otherwise
+      // setFallBackModelAsActiveModel() is a no-op and re-posting the input with the same
+      // active model would just trigger the same 402 again.
+      if (!quotaStatus.tokenBasedBillingEnabled() && value.getCode() == 402
+          && quotaStatus.copilotPlan() != CopilotPlan.free
+          && fallbackModel != null) {
+        // Detach the failed turn so the replayed response creates a new Copilot turn below the
+        // warning, instead of streaming into the same turn that just rendered the warn widget.
+        this.latestTurnWidget = null;
+        this.latestCopilotTurn = null;
+
+        this.serviceManager.getModelService().setFallBackModelAsActiveModel();
+        this.serviceManager.getAuthStatusManager().checkQuota();
+
+        String previousInput = this.serviceManager.getUserPreferenceService().getPreviousInput(StringUtils.EMPTY);
+        if (StringUtils.isNotEmpty(previousInput)) {
+          IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+          Map<String, Object> properties = Map.of("previousInput", previousInput, "needCreateUserTurn", false);
+          eventBroker.post(CopilotEventConstants.TOPIC_CHAT_ON_SEND, properties);
+        }
+      }
+    }
   }
 
   /** Returns the active thinking block ID last observed while processing this turn's progress. */
@@ -437,11 +487,19 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Schedules a single async {@link #refreshScrollerLayout()} call so that multiple dispose/layout
-   * events that arrive in the same event-loop tick are coalesced into one pass.
+   * Schedules a coalesced asynchronous full layout pass; calls in the same UI tick collapse into one
+   * {@code asyncExec}. Used by structural changes that can resize a non-trailing turn (e.g. a
+   * tool-confirmation dialog disposing) outside the streaming event drain.
    */
-  public void requestRefreshScrollerLayout() {
-    SwtUtils.invokeOnDisplayThreadAsync(() -> refreshScrollerLayout(), this);
+  public void scheduleRefresh() {
+    if (this.isDisposed()) {
+      return;
+    }
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (!this.isDisposed()) {
+        doRefreshScrollerLayout(true);
+      }
+    }, this);
   }
 
   /**
@@ -451,9 +509,61 @@ public class ChatContentViewer extends ScrolledComposite {
     if (this.isDisposed()) {
       return;
     }
+    // Public entry point for structural changes (turn start, error/warn widgets, expand/collapse of
+    // historical thinking blocks). These can resize a non-trailing turn, so force a full re-measure.
+    // The streaming path instead goes through the event drain, which stays O(1).
+    doRefreshScrollerLayout(true);
+  }
 
+  private void doRefreshScrollerLayout(boolean forceFullMeasure) {
+    // Re-entrancy guard: setting the scroller min size can re-fire controlResized ->
+    // refreshScrollerLayout() while we are still inside this method. Recursing there reruns the
+    // expensive full re-measure and froze the UI. Instead record the nested request and run a single
+    // follow-up pass after the current one unwinds.
+    if (layoutState != LayoutState.IDLE) {
+      if (forceFullMeasure) {
+        layoutState = LayoutState.RERUN_FULL;
+      } else if (layoutState == LayoutState.RUNNING) {
+        layoutState = LayoutState.RERUN_INCREMENTAL;
+      }
+      return;
+    }
+
+    layoutState = LayoutState.RUNNING;
+    try {
+      doRefreshScrollerLayoutDecide(forceFullMeasure);
+      // Drain follow-up requests queued while we were laying out. The idempotent setMin* calls
+      // guarantee a fixed point, so this loop terminates.
+      while (layoutState != LayoutState.RUNNING) {
+        boolean rerunFull = layoutState == LayoutState.RERUN_FULL;
+        layoutState = LayoutState.RUNNING;
+        doRefreshScrollerLayoutDecide(rerunFull);
+      }
+    } finally {
+      layoutState = LayoutState.IDLE;
+    }
+  }
+
+  private void doRefreshScrollerLayoutDecide(boolean forceFullMeasure) {
     Rectangle clientArea = this.getClientArea();
-    Point containerSize = cmpContent.computeSize(clientArea.width, SWT.DEFAULT);
+    int width = clientArea.width;
+
+    // Width change re-wraps text and forces every turn to be re-measured. Otherwise (the common
+    // streaming case) only trailing turns are flushed and sealed turns keep cached sizes, so
+    // computeSize stays O(1) in the number of turns.
+    boolean fullMeasure = forceFullMeasure || width != lastLayoutWidth;
+    lastLayoutWidth = width;
+
+    doRefreshScrollerLayoutApply(clientArea, width, fullMeasure);
+  }
+
+  private void doRefreshScrollerLayoutApply(Rectangle clientArea, int width, boolean fullMeasure) {
+    if (!fullMeasure) {
+      // Only the trailing turns can grow/change during streaming.
+      flushTrailingTurnCaches();
+    }
+
+    Point containerSize = cmpContent.computeSize(width, SWT.DEFAULT, fullMeasure);
 
     // Use the default size as a fallback
     if (latestUserTurn == null) {
@@ -461,22 +571,57 @@ public class ChatContentViewer extends ScrolledComposite {
       return;
     }
 
-    Point userTurnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-    Point copilotTurnSize = latestCopilotTurn == null ? new Point(0, 0)
-        : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+    // Measure at the actual column width, not SWT.DEFAULT: unconstrained width collapses
+    // soft-wrapped text to a single line and under-estimates the height. roundedHeight must match
+    // the laid-out height shouldAutoScrollToBottom() reads via getBounds(), or the padding branch
+    // below reserves phantom whitespace while auto-scroll fires into it (issue #259 flicker).
+    int userTurnHeight = latestUserTurn.computeSize(width, SWT.DEFAULT).y;
+    int copilotTurnHeight = latestCopilotTurn == null || latestCopilotTurn.isDisposed() ? 0
+        : latestCopilotTurn.computeSize(width, SWT.DEFAULT).y;
 
     // Calculate the content height, so that the latest user turn is able to be put at the top of the client area.
     int contentHeight = 0;
-    int roundedHeight = userTurnSize.y + copilotTurnSize.y;
+    int roundedHeight = userTurnHeight + copilotTurnHeight;
     if (roundedHeight < clientArea.height) {
       contentHeight = clientArea.height + containerSize.y - roundedHeight;
     } else {
       contentHeight = containerSize.y;
     }
 
-    this.setMinHeight(contentHeight);
-    this.setMinWidth(containerSize.x);
-    this.layout(true, true);
+    // Only write min size when it changes: setMin* re-fires controlResized, so skipping no-op writes
+    // lets the re-entrancy guard converge to a fixed point.
+    if (this.getMinHeight() != contentHeight) {
+      this.setMinHeight(contentHeight);
+    }
+    if (this.getMinWidth() != containerSize.x) {
+      this.setMinWidth(containerSize.x);
+    }
+    // Incremental layout: only re-position the latest (growing) copilot turn instead of recursing
+    // into all past turns as conversations grow longer.
+    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
+      cmpContent.layout(new Control[] {latestCopilotTurn});
+    } else {
+      cmpContent.layout(true, false);
+    }
+    this.layout(true, false);
+  }
+
+  /**
+   * Flushes the cached layout sizes of the trailing (mutating) turns so the next
+   * {@code computeSize(width, DEFAULT, false)} re-measures them while sealed historical turns stay
+   * cached, keeping the layout pass O(1) in the number of historical turns.
+   */
+  private void flushTrailingTurnCaches() {
+    List<Control> dirty = new ArrayList<>(2);
+    if (latestUserTurn != null && !latestUserTurn.isDisposed()) {
+      dirty.add(latestUserTurn);
+    }
+    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
+      dirty.add(latestCopilotTurn);
+    }
+    if (!dirty.isEmpty()) {
+      cmpContent.layout(dirty.toArray(new Control[0]));
+    }
   }
 
   /**
@@ -493,14 +638,32 @@ public class ChatContentViewer extends ScrolledComposite {
     }
 
     Rectangle clientArea = this.getClientArea();
-    Point userTurnSize = latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-    Point copilotTurnSize = latestCopilotTurn == null ? new Point(0, 0)
-        : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-
-    int roundedHeight = userTurnSize.y + copilotTurnSize.y;
+    // Use the freshly laid-out bounds rather than computeSize(): the incremental streaming pass
+    // repositions the trailing turns but does not flush their computeSize cache, so computeSize
+    // would return a stale height and the auto-scroll trigger would fire seconds too late.
+    // getBounds() reflects the just-applied layout.
+    int roundedHeight = currentTurnLaidOutHeight();
 
     // Only auto-scroll when content height exceeds the visible area
     return roundedHeight >= clientArea.height;
+  }
+
+  /**
+   * Returns the height of the latest (streaming) turn from its applied layout bounds. Falls back to
+   * {@code computeSize} only when bounds are not yet available (before the first layout pass).
+   */
+  private int currentTurnLaidOutHeight() {
+    int height = 0;
+    if (latestUserTurn != null && !latestUserTurn.isDisposed()) {
+      int userHeight = latestUserTurn.getBounds().height;
+      height += userHeight > 0 ? userHeight : latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+    }
+    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
+      int copilotHeight = latestCopilotTurn.getBounds().height;
+      height += copilotHeight > 0 ? copilotHeight
+          : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+    }
+    return height;
   }
 
   /**
@@ -523,9 +686,7 @@ public class ChatContentViewer extends ScrolledComposite {
       return;
     }
 
-    // Use async execution to ensure layout is computed before reading positions.
-    // Using sync execution would read positions before the layout is complete,
-    // resulting in incorrect scroll position (always scrolling to 0).
+    // Async so layout is computed before reading positions; reading synchronously scrolls to 0.
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
       if (this.isDisposed() || latestUserTurn.isDisposed()) {
         return;
@@ -537,6 +698,7 @@ public class ChatContentViewer extends ScrolledComposite {
 
   @Override
   public void dispose() {
+    pendingEvents.clear();
     super.dispose();
     for (BaseTurnWidget turn : turns.values()) {
       turn.dispose();
