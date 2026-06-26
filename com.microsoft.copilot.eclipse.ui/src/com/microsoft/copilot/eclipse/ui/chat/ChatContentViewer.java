@@ -83,17 +83,8 @@ public class ChatContentViewer extends ScrolledComposite {
   /** Client-area width of the last layout pass; a change forces a full re-measure (text re-wraps). */
   private int lastLayoutWidth = -1;
 
-  /**
-   * Guards {@link #doRefreshScrollerLayout(boolean)} against synchronous re-entrancy: setting the
-   * scroller min size can toggle the scrollbar, changing the client width and re-firing
-   * {@code controlResized}. The running pass records any nested request here and drains it after
-   * unwinding (a full re-measure wins over an incremental one).
-   */
-  private enum LayoutState {
-    IDLE, RUNNING, RERUN_INCREMENTAL, RERUN_FULL
-  }
-
-  private LayoutState layoutState = LayoutState.IDLE;
+  /** Guards against scheduling more than one pending async refresh from a burst of resize events. */
+  private final AtomicBoolean refreshScheduled = new AtomicBoolean(false);
 
   /**
    * Create the composite.
@@ -120,7 +111,7 @@ public class ChatContentViewer extends ScrolledComposite {
     this.addControlListener(new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
-        refreshScrollerLayout();
+        scheduleCoalescedRefresh();
       }
     });
 
@@ -224,21 +215,31 @@ public class ChatContentViewer extends ScrolledComposite {
       pendingEvents.clear();
       return;
     }
-    boolean sawTurnEnd = false;
     ChatProgressValue event;
+    boolean sawTurnEnd = false;
     while ((event = pendingEvents.poll()) != null) {
-      final ChatProgressValue e = event;
-      if (e.getKind() == WorkDoneProgressKind.end) {
+      doProcessTurnEvent(event);
+      if (event.getKind() == WorkDoneProgressKind.end) {
         sawTurnEnd = true;
       }
-      doProcessTurnEvent(e);
     }
-    // Use a full re-measure on the turn-end batch so minHeight is accurate before scrollToBottom();
-    // the incremental path can accumulate a stale containerSize that leaves phantom space below the
-    // real content. All streaming batches keep the O(1) incremental path.
-    doRefreshScrollerLayout(sawTurnEnd);
+    refreshScrollerLayout(false);
     if (shouldAutoScrollToBottom()) {
       scrollToBottom();
+    }
+    if (sawTurnEnd) {
+      // A turn's height settles one frame after its content changes. Mid-stream the next chunk's drain
+      // re-measures and re-scrolls into that settled height; the final chunk has no follow-up, so run
+      // one on the next frame.
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (isDisposed()) {
+          return;
+        }
+        refreshScrollerLayout(false);
+        if (shouldAutoScrollToBottom()) {
+          scrollToBottom();
+        }
+      }, this);
     }
     // Events may have arrived while draining; schedule a follow-up drain if so.
     if (!pendingEvents.isEmpty() && drainScheduled.compareAndSet(false, true)) {
@@ -489,76 +490,45 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Schedules an asynchronous full layout pass for structural changes that can resize a non-trailing
-   * turn outside the streaming event drain.
+   * Coalesces resize-triggered refreshes into a single async incremental pass. Writing the scroller
+   * min size can re-fire {@code controlResized}; deferring instead of recursing avoids a synchronous
+   * re-entrancy guard while the idempotent min-size writes still converge.
    */
-  public void scheduleRefresh() {
-    if (this.isDisposed()) {
-      return;
+  private void scheduleCoalescedRefresh() {
+    if (refreshScheduled.compareAndSet(false, true)) {
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        refreshScheduled.set(false);
+        refreshScrollerLayout(false);
+      }, this);
     }
-    SwtUtils.invokeOnDisplayThreadAsync(() -> {
-      if (!this.isDisposed()) {
-        doRefreshScrollerLayout(true);
-      }
-    }, this);
   }
 
   /**
-   * Update the size of scrolled composite when there are content updates.
+   * Full re-measure entry point for structural changes (turn start, error/warn widgets,
+   * expand/collapse of historical thinking blocks) that can resize a non-trailing turn. The streaming
+   * path instead calls {@link #refreshScrollerLayout(boolean)} with an incremental measure, which
+   * stays O(1) in the number of turns.
    */
   public void refreshScrollerLayout() {
+    refreshScrollerLayout(true);
+  }
+
+  /**
+   * Re-measure the scroller and update its min size.
+   *
+   * @param forceFullMeasure when {@code true}, recursively re-measures every turn; when {@code false}
+   *     only the trailing (mutating) turns are flushed while sealed turns keep cached sizes, keeping
+   *     the pass O(1). A width change always upgrades to a full measure because text re-wraps.
+   */
+  private void refreshScrollerLayout(boolean forceFullMeasure) {
     if (this.isDisposed()) {
       return;
     }
-    // Public entry point for structural changes (turn start, error/warn widgets, expand/collapse of
-    // historical thinking blocks). These can resize a non-trailing turn, so force a full re-measure.
-    // The streaming path instead goes through the event drain, which stays O(1).
-    doRefreshScrollerLayout(true);
-  }
-
-  private void doRefreshScrollerLayout(boolean forceFullMeasure) {
-    // Re-entrancy guard: setting the scroller min size can re-fire controlResized ->
-    // refreshScrollerLayout() while we are still inside this method. Recursing there reruns the
-    // expensive full re-measure and froze the UI. Instead record the nested request and run a single
-    // follow-up pass after the current one unwinds.
-    if (layoutState != LayoutState.IDLE) {
-      if (forceFullMeasure) {
-        layoutState = LayoutState.RERUN_FULL;
-      } else if (layoutState == LayoutState.RUNNING) {
-        layoutState = LayoutState.RERUN_INCREMENTAL;
-      }
-      return;
-    }
-
-    layoutState = LayoutState.RUNNING;
-    try {
-      doRefreshScrollerLayoutDecide(forceFullMeasure);
-      // Drain follow-up requests queued while we were laying out. The idempotent setMin* calls
-      // guarantee a fixed point, so this loop terminates.
-      while (layoutState != LayoutState.RUNNING) {
-        boolean rerunFull = layoutState == LayoutState.RERUN_FULL;
-        layoutState = LayoutState.RUNNING;
-        doRefreshScrollerLayoutDecide(rerunFull);
-      }
-    } finally {
-      layoutState = LayoutState.IDLE;
-    }
-  }
-
-  private void doRefreshScrollerLayoutDecide(boolean forceFullMeasure) {
     Rectangle clientArea = this.getClientArea();
     int width = clientArea.width;
-
-    // Width change re-wraps text and forces every turn to be re-measured. Otherwise (the common
-    // streaming case) only trailing turns are flushed and sealed turns keep cached sizes, so
-    // computeSize stays O(1) in the number of turns.
     boolean fullMeasure = forceFullMeasure || width != lastLayoutWidth;
     lastLayoutWidth = width;
 
-    doRefreshScrollerLayoutApply(clientArea, width, fullMeasure);
-  }
-
-  private void doRefreshScrollerLayoutApply(Rectangle clientArea, int width, boolean fullMeasure) {
     if (!fullMeasure) {
       // Only the trailing turns can grow/change during streaming.
       flushTrailingTurnCaches();
@@ -590,7 +560,7 @@ public class ChatContentViewer extends ScrolledComposite {
     }
 
     // Only write min size when it changes: setMin* re-fires controlResized, so skipping no-op writes
-    // lets the re-entrancy guard converge to a fixed point.
+    // lets the coalesced async refresh converge to a fixed point.
     if (this.getMinHeight() != contentHeight) {
       this.setMinHeight(contentHeight);
     }
