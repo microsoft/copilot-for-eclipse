@@ -253,7 +253,9 @@ public class ChatContentViewer extends ScrolledComposite {
     }
     BaseTurnWidget turnWidget = turns.get(value.getTurnId());
     if (turnWidget == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("turnWidget not found: " + value.getTurnId()));
       appendMessageToTheLatestTurn(value.getReply());
+      return;
     }
 
     ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
@@ -487,9 +489,8 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Schedules a coalesced asynchronous full layout pass; calls in the same UI tick collapse into one
-   * {@code asyncExec}. Used by structural changes that can resize a non-trailing turn (e.g. a
-   * tool-confirmation dialog disposing) outside the streaming event drain.
+   * Schedules an asynchronous full layout pass for structural changes that can resize a non-trailing
+   * turn outside the streaming event drain.
    */
   public void scheduleRefresh() {
     if (this.isDisposed()) {
