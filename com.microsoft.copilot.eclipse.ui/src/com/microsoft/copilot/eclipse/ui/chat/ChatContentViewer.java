@@ -148,7 +148,7 @@ public class ChatContentViewer extends ScrolledComposite {
     turnWidget.appendMessage(message);
     turnWidget.flushMessageBuffer();
 
-    refreshScrollerLayout(false);
+    refreshScrollerLayout();
     scrollToLatestUserTurn();
     // Reset auto-scroll for new conversation turn
     autoScrollEnabled = true;
@@ -219,7 +219,8 @@ public class ChatContentViewer extends ScrolledComposite {
     while ((event = pendingEvents.poll()) != null) {
       doProcessTurnEvent(event);
     }
-    refreshScrollerLayoutInternal(false, true);
+    refreshScrollerLayoutInternal(false);
+    scrollToBottomIfAutoScroll();
     // Events may have arrived while draining; schedule a follow-up drain if so.
     if (!pendingEvents.isEmpty() && drainScheduled.compareAndSet(false, true)) {
       SwtUtils.invokeOnDisplayThreadAsync(this::drainPendingEvents, this);
@@ -425,7 +426,8 @@ public class ChatContentViewer extends ScrolledComposite {
     // the next round's reply and produce a single garbled line.
     latestCopilotTurn.flushMessageBuffer();
     latestCopilotTurn.showCompactingStatus();
-    refreshScrollerLayoutInternal(true, true);
+    refreshScrollerLayout();
+    scrollToBottomIfAutoScroll();
   }
 
   /**
@@ -440,7 +442,8 @@ public class ChatContentViewer extends ScrolledComposite {
     // in case a cancel path did not receive an end progress event to flush it.
     latestCopilotTurn.flushMessageBuffer();
     latestCopilotTurn.hideCompactingStatus();
-    refreshScrollerLayoutInternal(true, true);
+    refreshScrollerLayout();
+    scrollToBottomIfAutoScroll();
   }
 
   /**
@@ -452,7 +455,7 @@ public class ChatContentViewer extends ScrolledComposite {
 
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code, String modelProviderName) {
     latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
-    refreshScrollerLayout(false);
+    refreshScrollerLayout();
     scrollToLatestUserTurn();
   }
 
@@ -464,7 +467,7 @@ public class ChatContentViewer extends ScrolledComposite {
       this.errorWidget.dispose();
     }
     this.errorWidget = new ErrorWidget(cmpContent, SWT.BOTTOM, errorMessage);
-    refreshScrollerLayout(false);
+    refreshScrollerLayout();
     scrollToLatestUserTurn();
   }
 
@@ -477,19 +480,17 @@ public class ChatContentViewer extends ScrolledComposite {
     if (refreshScheduled.compareAndSet(false, true)) {
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
         refreshScheduled.set(false);
-        refreshScrollerLayoutInternal(false, false);
+        refreshScrollerLayoutInternal(false);
       }, this);
     }
   }
 
   /**
-   * Full re-measure entry point that optionally preserves the current auto-scroll position.
-   *
-   * @param preserveAutoScroll when {@code true}, keeps the viewport at the bottom after this refresh
-   *     if auto-scroll is currently enabled
+   * Full re-measure entry point. Layout only; scrolling is a separate concern handled by callers via
+   * {@link #scrollToBottomIfAutoScroll()}.
    */
-  public void refreshScrollerLayout(boolean preserveAutoScroll) {
-    refreshScrollerLayoutInternal(true, preserveAutoScroll);
+  public void refreshScrollerLayout() {
+    refreshScrollerLayoutInternal(true);
   }
 
   /**
@@ -498,10 +499,8 @@ public class ChatContentViewer extends ScrolledComposite {
    * @param forceFullMeasure when {@code true}, recursively re-measures every turn; when {@code false}
    *     only the trailing (mutating) turns are flushed while sealed turns keep cached sizes, keeping
    *     the pass O(1). A width change always upgrades to a full measure because text re-wraps.
-   * @param preserveAutoScroll when {@code true}, keeps the viewport at the bottom after this refresh
-   *     if auto-scroll is currently enabled
    */
-  private void refreshScrollerLayoutInternal(boolean forceFullMeasure, boolean preserveAutoScroll) {
+  private void refreshScrollerLayoutInternal(boolean forceFullMeasure) {
     if (this.isDisposed()) {
       return;
     }
@@ -556,7 +555,15 @@ public class ChatContentViewer extends ScrolledComposite {
       cmpContent.layout(true, false);
     }
     this.layout(true, false);
-    if (preserveAutoScroll && shouldAutoScrollToBottom()) {
+  }
+
+  /**
+   * Scrolls the viewport to the bottom when auto-scroll is currently enabled. Kept separate from the
+   * layout pass so refresh and scroll stay independent concerns; callers invoke this after a refresh
+   * when they want the latest content to stay in view.
+   */
+  public void scrollToBottomIfAutoScroll() {
+    if (shouldAutoScrollToBottom()) {
       scrollToBottom();
     }
   }

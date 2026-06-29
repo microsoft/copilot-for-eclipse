@@ -294,7 +294,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     SwtUtils.invokeOnDisplayThread(() -> {
       ref.set(activeTurnWidget.requestToolExecutionConfirmation(
           content, params.getInput()));
-      boundChatView.getChatContentViewer().refreshScrollerLayout(false);
+      boundChatView.getChatContentViewer().refreshScrollerLayout();
     });
 
     CompletableFuture<LanguageModelToolConfirmationResult> future = ref.get();

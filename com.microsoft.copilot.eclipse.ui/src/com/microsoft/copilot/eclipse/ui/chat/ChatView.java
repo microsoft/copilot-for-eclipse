@@ -1818,7 +1818,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
-    SwtUtils.invokeOnDisplayThreadAsync(() -> chatContentViewer.refreshScrollerLayout(true), chatContentViewer);
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      chatContentViewer.refreshScrollerLayout();
+      chatContentViewer.scrollToBottomIfAutoScroll();
+    }, chatContentViewer);
   }
 
   /**
@@ -1838,8 +1841,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       copilotWidget.renderModelInfo(modelName, billingMultiplier, reasoningEffort);
 
       // Refresh the scroller layout to ensure the footer is visible.
-      SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(true),
-          this.chatContentViewer);
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        this.chatContentViewer.refreshScrollerLayout();
+        this.chatContentViewer.scrollToBottomIfAutoScroll();
+      }, this.chatContentViewer);
     }
   }
 
