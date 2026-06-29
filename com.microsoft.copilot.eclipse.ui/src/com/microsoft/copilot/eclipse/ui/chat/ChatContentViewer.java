@@ -148,7 +148,7 @@ public class ChatContentViewer extends ScrolledComposite {
     turnWidget.appendMessage(message);
     turnWidget.flushMessageBuffer();
 
-    refreshScrollerLayout();
+    refreshScrollerLayout(false);
     scrollToLatestUserTurn();
     // Reset auto-scroll for new conversation turn
     autoScrollEnabled = true;
@@ -216,31 +216,10 @@ public class ChatContentViewer extends ScrolledComposite {
       return;
     }
     ChatProgressValue event;
-    boolean sawTurnEnd = false;
     while ((event = pendingEvents.poll()) != null) {
       doProcessTurnEvent(event);
-      if (event.getKind() == WorkDoneProgressKind.end) {
-        sawTurnEnd = true;
-      }
     }
-    refreshScrollerLayout(false);
-    if (shouldAutoScrollToBottom()) {
-      scrollToBottom();
-    }
-    if (sawTurnEnd) {
-      // A turn's height settles one frame after its content changes. Mid-stream the next chunk's drain
-      // re-measures and re-scrolls into that settled height; the final chunk has no follow-up, so run
-      // one on the next frame.
-      SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        if (isDisposed()) {
-          return;
-        }
-        refreshScrollerLayout(false);
-        if (shouldAutoScrollToBottom()) {
-          scrollToBottom();
-        }
-      }, this);
-    }
+    refreshScrollerLayoutInternal(false, true);
     // Events may have arrived while draining; schedule a follow-up drain if so.
     if (!pendingEvents.isEmpty() && drainScheduled.compareAndSet(false, true)) {
       SwtUtils.invokeOnDisplayThreadAsync(this::drainPendingEvents, this);
@@ -446,7 +425,7 @@ public class ChatContentViewer extends ScrolledComposite {
     // the next round's reply and produce a single garbled line.
     latestCopilotTurn.flushMessageBuffer();
     latestCopilotTurn.showCompactingStatus();
-    refreshScrollerLayout();
+    refreshScrollerLayoutInternal(true, true);
   }
 
   /**
@@ -461,7 +440,7 @@ public class ChatContentViewer extends ScrolledComposite {
     // in case a cancel path did not receive an end progress event to flush it.
     latestCopilotTurn.flushMessageBuffer();
     latestCopilotTurn.hideCompactingStatus();
-    refreshScrollerLayout();
+    refreshScrollerLayoutInternal(true, true);
   }
 
   /**
@@ -473,7 +452,7 @@ public class ChatContentViewer extends ScrolledComposite {
 
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code, String modelProviderName) {
     latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
-    refreshScrollerLayout();
+    refreshScrollerLayout(false);
     scrollToLatestUserTurn();
   }
 
@@ -485,7 +464,7 @@ public class ChatContentViewer extends ScrolledComposite {
       this.errorWidget.dispose();
     }
     this.errorWidget = new ErrorWidget(cmpContent, SWT.BOTTOM, errorMessage);
-    refreshScrollerLayout();
+    refreshScrollerLayout(false);
     scrollToLatestUserTurn();
   }
 
@@ -498,19 +477,19 @@ public class ChatContentViewer extends ScrolledComposite {
     if (refreshScheduled.compareAndSet(false, true)) {
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
         refreshScheduled.set(false);
-        refreshScrollerLayout(false);
+        refreshScrollerLayoutInternal(false, false);
       }, this);
     }
   }
 
   /**
-   * Full re-measure entry point for structural changes (turn start, error/warn widgets,
-   * expand/collapse of historical thinking blocks) that can resize a non-trailing turn. The streaming
-   * path instead calls {@link #refreshScrollerLayout(boolean)} with an incremental measure, which
-   * stays O(1) in the number of turns.
+   * Full re-measure entry point that optionally preserves the current auto-scroll position.
+   *
+   * @param preserveAutoScroll when {@code true}, keeps the viewport at the bottom after this refresh
+   *     if auto-scroll is currently enabled
    */
-  public void refreshScrollerLayout() {
-    refreshScrollerLayout(true);
+  public void refreshScrollerLayout(boolean preserveAutoScroll) {
+    refreshScrollerLayoutInternal(true, preserveAutoScroll);
   }
 
   /**
@@ -519,8 +498,10 @@ public class ChatContentViewer extends ScrolledComposite {
    * @param forceFullMeasure when {@code true}, recursively re-measures every turn; when {@code false}
    *     only the trailing (mutating) turns are flushed while sealed turns keep cached sizes, keeping
    *     the pass O(1). A width change always upgrades to a full measure because text re-wraps.
+   * @param preserveAutoScroll when {@code true}, keeps the viewport at the bottom after this refresh
+   *     if auto-scroll is currently enabled
    */
-  private void refreshScrollerLayout(boolean forceFullMeasure) {
+  private void refreshScrollerLayoutInternal(boolean forceFullMeasure, boolean preserveAutoScroll) {
     if (this.isDisposed()) {
       return;
     }
@@ -575,6 +556,9 @@ public class ChatContentViewer extends ScrolledComposite {
       cmpContent.layout(true, false);
     }
     this.layout(true, false);
+    if (preserveAutoScroll && shouldAutoScrollToBottom()) {
+      scrollToBottom();
+    }
   }
 
   /**

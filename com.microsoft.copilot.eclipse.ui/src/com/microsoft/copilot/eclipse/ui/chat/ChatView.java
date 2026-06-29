@@ -32,7 +32,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
@@ -1819,16 +1818,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
-    chatContentViewer.getDisplay().asyncExec(() -> {
-      if (chatContentViewer.isDisposed()) {
-        return;
-      }
-      chatContentViewer.refreshScrollerLayout();
-      ScrollBar verticalBar = chatContentViewer.getVerticalBar();
-      if (verticalBar != null && !verticalBar.isDisposed()) {
-        chatContentViewer.setOrigin(0, verticalBar.getMaximum());
-      }
-    });
+    SwtUtils.invokeOnDisplayThreadAsync(() -> chatContentViewer.refreshScrollerLayout(true), chatContentViewer);
   }
 
   /**
@@ -1847,8 +1837,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
       copilotWidget.renderModelInfo(modelName, billingMultiplier, reasoningEffort);
 
-      // Refresh the scroller layout to ensure the footer is visible
-      SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(), this.chatContentViewer);
+      // Refresh the scroller layout to ensure the footer is visible.
+      SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(true),
+          this.chatContentViewer);
     }
   }
 

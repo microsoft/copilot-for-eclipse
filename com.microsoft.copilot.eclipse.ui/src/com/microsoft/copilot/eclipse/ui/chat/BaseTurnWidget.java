@@ -651,11 +651,13 @@ public abstract class BaseTurnWidget extends Composite {
     reset();
 
     this.confirmDialog = new InvokeToolConfirmationDialog(this, content, input);
+    ensureFooterAtBottom();
+    requestLayout();
     this.confirmDialog.addDisposeListener(e -> {
       Composite ancestor = this.getParent();
       while (ancestor != null && !ancestor.isDisposed()) {
         if (ancestor instanceof ChatContentViewer viewer) {
-          SwtUtils.invokeOnDisplayThreadAsync(viewer::refreshScrollerLayout, viewer);
+          SwtUtils.invokeOnDisplayThreadAsync(() -> viewer.refreshScrollerLayout(false), viewer);
           break;
         }
         ancestor = ancestor.getParent();
