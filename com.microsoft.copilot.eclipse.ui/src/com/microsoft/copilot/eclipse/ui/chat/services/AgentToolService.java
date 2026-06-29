@@ -12,9 +12,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.core.runtime.Platform;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
-import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
@@ -36,10 +35,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
-import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
-import com.microsoft.copilot.eclipse.ui.chat.InvokeToolConfirmationDialog;
+import com.microsoft.copilot.eclipse.ui.chat.IConversationWidget;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.AttachedFileRegistry;
 import com.microsoft.copilot.eclipse.ui.chat.confirmation.ConfirmationService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
@@ -279,36 +276,28 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
           new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
     }
 
-    BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
-    if (turnWidget == null) {
-      LanguageModelToolConfirmationResult result = new LanguageModelToolConfirmationResult(
-          ToolConfirmationResult.DISMISS);
-      return CompletableFuture.completedFuture(result);
+    IConversationWidget widget = boundChatView.getConversationWidget();
+    if (widget == null || widget.isDisposed()) {
+      return CompletableFuture.completedFuture(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
     }
 
-    // Get the active turn widget (may be a subagent widget if in subagent context)
-    BaseTurnWidget activeTurnWidget = turnWidget.getActiveTurnWidget();
-
-    AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref = new AtomicReference<>();
     ConfirmationContent content = autoApproveResult.getContent();
+    AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref =
+        new AtomicReference<>();
     SwtUtils.invokeOnDisplayThread(() -> {
-      ref.set(activeTurnWidget.requestToolExecutionConfirmation(
-          content, params.getInput()));
-      boundChatView.getChatContentViewer().refreshLayoutFull();
+      ref.set(widget.requestToolConfirmation(
+          params.getTurnId(), content, params.getInput()));
     });
 
     CompletableFuture<LanguageModelToolConfirmationResult> future = ref.get();
     if (future != null && content != null) {
-      // Capture dialog reference before it can be reset by a new request
-      final InvokeToolConfirmationDialog dialog =
-          activeTurnWidget.getConfirmDialog();
+      final IConversationWidget widgetRef = widget;
       final String sessConvId = sessionConversationId;
       future = future.thenApply(result -> {
-        ConfirmationAction selected = dialog != null
-            ? dialog.getSelectedAction() : null;
+        ConfirmationAction selected = widgetRef.getLastSelectedConfirmationAction();
         if (selected != null && selected.isAccept()) {
-          confirmationService.cacheDecision(selected, params,
-              sessConvId);
+          confirmationService.cacheDecision(selected, params, sessConvId);
         }
         return result;
       });
@@ -321,19 +310,13 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return false;
     }
 
-    // Check if the conversation ID matches either the main conversation ID or the subagent conversation ID
-    boolean conversationIdMatches = Objects.equals(conversationId, boundChatView.getConversationId())
+    if (StringUtils.isBlank(turnId)) {
+      return false;
+    }
+
+    // Check if the conversation ID matches either the main or subagent conversation
+    return Objects.equals(conversationId, boundChatView.getConversationId())
         || Objects.equals(conversationId, boundChatView.getSubagentConversationId());
-
-    if (!conversationIdMatches) {
-      return false;
-    }
-
-    ChatContentViewer chatContentViewer = boundChatView.getChatContentViewer();
-    if (chatContentViewer == null || chatContentViewer.getTurnWidget(turnId) == null) {
-      return false;
-    }
-    return true;
   }
 
   /**

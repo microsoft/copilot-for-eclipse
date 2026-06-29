@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.ui.services.IStylingEngine;
@@ -38,8 +37,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ThinkingBlock extends Composite {
   private static final String SECONDARY_TEXT_CSS_CLASS = "text-secondary";
-  private static final Pattern TITLE_PATTERN =
-      Pattern.compile("(?:^|\\n)\\*\\*([^*\\r\\n]+?)\\*\\*(?=\\r?\\n|$)");
 
   private static final int STREAMING_MAX_HEIGHT = 180;
 
@@ -357,7 +354,7 @@ public class ThinkingBlock extends Composite {
     if (raw == null || raw.isEmpty()) {
       return result;
     }
-    Matcher matcher = TITLE_PATTERN.matcher(raw);
+    Matcher matcher = ThinkingTitles.TITLE_PATTERN.matcher(raw);
     String currentTitle = null;
     int cursor = 0;
     while (matcher.find()) {

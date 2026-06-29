@@ -45,7 +45,7 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
 
   @Override
   protected String getRoleName() {
-    return Messages.chat_turnWidget_copilot;
+    return serviceManager.getAvatarService().getCopilotName();
   }
 
   @Override

@@ -3,8 +3,6 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.Optional;
-
 import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
@@ -21,7 +19,6 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 
 /**
@@ -44,8 +41,7 @@ public class UserTurnWidget extends BaseTurnWidget {
 
   @Override
   protected String getRoleName() {
-    return Optional.ofNullable(serviceManager.getAuthStatusManager().getUserName()).filter(s -> !s.isEmpty())
-        .orElse(Messages.chat_turnWidget_user);
+    return serviceManager.getAvatarService().getUserName();
   }
 
   @Override
