@@ -5,12 +5,14 @@ package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
 import java.util.Objects;
 
+import com.google.gson.annotations.JsonAdapter;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Property value for input schema.
  */
 public class InputSchemaPropertyValue {
+  @JsonAdapter(JsonSchemaTypeAdapter.class)
   private String type;
   private String description;
   private InputSchemaPropertyValue items;
