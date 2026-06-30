@@ -1819,7 +1819,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
-      chatContentViewer.refreshScrollerLayout();
+      chatContentViewer.refreshLayoutFull();
       chatContentViewer.scrollToBottomIfAutoScroll();
     }, chatContentViewer);
   }
@@ -1842,7 +1842,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       // Refresh the scroller layout to ensure the footer is visible.
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        this.chatContentViewer.refreshScrollerLayout();
+        this.chatContentViewer.refreshLayoutFull();
         this.chatContentViewer.scrollToBottomIfAutoScroll();
       }, this.chatContentViewer);
     }

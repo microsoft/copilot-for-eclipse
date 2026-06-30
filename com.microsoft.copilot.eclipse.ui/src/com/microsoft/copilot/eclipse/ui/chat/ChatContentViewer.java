@@ -111,7 +111,9 @@ public class ChatContentViewer extends ScrolledComposite {
     this.addControlListener(new ControlAdapter() {
       @Override
       public void controlResized(ControlEvent e) {
-        scheduleCoalescedRefresh();
+        // setMinHeight re-fires controlResized; coalesce into one async incremental pass so the
+        // resize handler never recurses synchronously into layout.
+        coalesceAsync(refreshScheduled, ChatContentViewer.this::refreshLayoutIncremental);
       }
     });
 
@@ -148,7 +150,7 @@ public class ChatContentViewer extends ScrolledComposite {
     turnWidget.appendMessage(message);
     turnWidget.flushMessageBuffer();
 
-    refreshScrollerLayout();
+    refreshLayoutFull();
     scrollToLatestUserTurn();
     // Reset auto-scroll for new conversation turn
     autoScrollEnabled = true;
@@ -204,13 +206,10 @@ public class ChatContentViewer extends ScrolledComposite {
    */
   public void processTurnEvent(ChatProgressValue value) {
     pendingEvents.offer(value);
-    if (drainScheduled.compareAndSet(false, true)) {
-      SwtUtils.invokeOnDisplayThreadAsync(this::drainPendingEvents, this);
-    }
+    coalesceAsync(drainScheduled, this::drainPendingEvents);
   }
 
   private void drainPendingEvents() {
-    drainScheduled.set(false);
     if (isDisposed()) {
       pendingEvents.clear();
       return;
@@ -219,11 +218,11 @@ public class ChatContentViewer extends ScrolledComposite {
     while ((event = pendingEvents.poll()) != null) {
       doProcessTurnEvent(event);
     }
-    refreshScrollerLayoutInternal(false);
+    refreshLayoutIncremental();
     scrollToBottomIfAutoScroll();
     // Events may have arrived while draining; schedule a follow-up drain if so.
-    if (!pendingEvents.isEmpty() && drainScheduled.compareAndSet(false, true)) {
-      SwtUtils.invokeOnDisplayThreadAsync(this::drainPendingEvents, this);
+    if (!pendingEvents.isEmpty()) {
+      coalesceAsync(drainScheduled, this::drainPendingEvents);
     }
   }
 
@@ -426,7 +425,7 @@ public class ChatContentViewer extends ScrolledComposite {
     // the next round's reply and produce a single garbled line.
     latestCopilotTurn.flushMessageBuffer();
     latestCopilotTurn.showCompactingStatus();
-    refreshScrollerLayout();
+    refreshLayoutFull();
     scrollToBottomIfAutoScroll();
   }
 
@@ -442,7 +441,7 @@ public class ChatContentViewer extends ScrolledComposite {
     // in case a cancel path did not receive an end progress event to flush it.
     latestCopilotTurn.flushMessageBuffer();
     latestCopilotTurn.hideCompactingStatus();
-    refreshScrollerLayout();
+    refreshLayoutFull();
     scrollToBottomIfAutoScroll();
   }
 
@@ -455,7 +454,7 @@ public class ChatContentViewer extends ScrolledComposite {
 
   private void renderWarnMessageWithUpgradePlanButton(String errorMessage, int code, String modelProviderName) {
     latestTurnWidget.createWarnDialog(errorMessage, code, modelProviderName);
-    refreshScrollerLayout();
+    refreshLayoutFull();
     scrollToLatestUserTurn();
   }
 
@@ -467,46 +466,70 @@ public class ChatContentViewer extends ScrolledComposite {
       this.errorWidget.dispose();
     }
     this.errorWidget = new ErrorWidget(cmpContent, SWT.BOTTOM, errorMessage);
-    refreshScrollerLayout();
+    refreshLayoutFull();
     scrollToLatestUserTurn();
   }
 
   /**
-   * Coalesces resize-triggered refreshes into a single async incremental pass. Writing the scroller
-   * min size can re-fire {@code controlResized}; deferring instead of recursing avoids a synchronous
-   * re-entrancy guard while the idempotent min-size writes still converge.
+   * Coalesces a burst of calls into a single async pass on the UI thread. While a pass is already
+   * scheduled, further calls are dropped; {@code scheduled} is cleared right before {@code task} runs
+   * so work arriving during the task re-schedules a follow-up pass. This breaks synchronous
+   * re-entrancy (e.g. a layout pass writing the scroller min size re-fires {@code controlResized})
+   * without a re-entrancy guard, while idempotent writes still converge to a fixed point.
+   *
+   * @param scheduled the per-task latch guarding against duplicate scheduling
+   * @param task the work to run once on the next UI-thread turn
    */
-  private void scheduleCoalescedRefresh() {
-    if (refreshScheduled.compareAndSet(false, true)) {
+  private void coalesceAsync(AtomicBoolean scheduled, Runnable task) {
+    if (scheduled.compareAndSet(false, true)) {
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        refreshScheduled.set(false);
-        refreshScrollerLayoutInternal(false);
+        scheduled.set(false);
+        task.run();
       }, this);
     }
   }
 
   /**
-   * Full re-measure entry point. Layout only; scrolling is a separate concern handled by callers via
-   * {@link #scrollToBottomIfAutoScroll()}.
+   * Full re-measure entry point for external callers. Layout only; scrolling is a separate concern
+   * handled by callers via {@link #scrollToBottomIfAutoScroll()}.
    */
-  public void refreshScrollerLayout() {
-    refreshScrollerLayoutInternal(true);
+  public void refreshLayoutFull() {
+    refreshLayout(MeasureMode.FULL);
+  }
+
+  /**
+   * Incremental re-measure of just the trailing (streaming) turns. Layout only; scrolling is handled
+   * separately by callers via {@link #scrollToBottomIfAutoScroll()}.
+   */
+  private void refreshLayoutIncremental() {
+    refreshLayout(MeasureMode.INCREMENTAL);
+  }
+
+  /**
+   * Selects how many turns {@link #refreshLayout(MeasureMode)} re-measures.
+   */
+  private enum MeasureMode {
+    /** Recursively re-measure every turn. O(n) in the number of turns. */
+    FULL,
+    /** Only flush the trailing (mutating) turns; sealed turns keep cached sizes. O(1). */
+    INCREMENTAL
   }
 
   /**
    * Re-measure the scroller and update its min size.
    *
-   * @param forceFullMeasure when {@code true}, recursively re-measures every turn; when {@code false}
-   *     only the trailing (mutating) turns are flushed while sealed turns keep cached sizes, keeping
-   *     the pass O(1). A width change always upgrades to a full measure because text re-wraps.
+   * @param mode {@link MeasureMode#FULL} recursively re-measures every turn; {@link
+   *     MeasureMode#INCREMENTAL} only flushes the trailing (mutating) turns while sealed turns keep
+   *     cached sizes, keeping the pass O(1). A width change always upgrades to a full measure because
+   *     text re-wraps.
    */
-  private void refreshScrollerLayoutInternal(boolean forceFullMeasure) {
+  private void refreshLayout(MeasureMode mode) {
     if (this.isDisposed()) {
       return;
     }
     Rectangle clientArea = this.getClientArea();
     int width = clientArea.width;
-    boolean fullMeasure = forceFullMeasure || width != lastLayoutWidth;
+    boolean fullMeasure = mode == MeasureMode.FULL || width != lastLayoutWidth;
     lastLayoutWidth = width;
 
     if (!fullMeasure) {

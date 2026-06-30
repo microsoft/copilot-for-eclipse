@@ -498,7 +498,7 @@ public class ThinkingBlock extends Composite {
     Composite p = getParent();
     while (p != null && !p.isDisposed()) {
       if (p instanceof ChatContentViewer) {
-        ((ChatContentViewer) p).refreshScrollerLayout();
+        ((ChatContentViewer) p).refreshLayoutFull();
         return;
       }
       p = p.getParent();
