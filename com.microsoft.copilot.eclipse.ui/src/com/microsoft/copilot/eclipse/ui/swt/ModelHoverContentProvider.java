@@ -77,7 +77,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       addWarningRow(parent, model.getDegradationReason());
     }
 
-    addCustomModelInfoSection(parent);
+    addCustomModelInfoSection(parent, item.getLabel());
 
     addContextWindowSection(parent);
     addPricingSection(parent, model.getModelPickerPriceCategory());
@@ -98,8 +98,9 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
    * and key name, communicating that the model was provided by an owner through a specific key.
    *
    * @param parent the hover composite to render into
+   * @param displayedName the model name as shown in the hover header
    */
-  private void addCustomModelInfoSection(Composite parent) {
+  private void addCustomModelInfoSection(Composite parent, String displayedName) {
     CopilotModelCustomModel customModel = model.getCustomModel();
     if (customModel == null) {
       return;
@@ -110,8 +111,9 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       return;
     }
 
+    String modelLabel = StringUtils.defaultIfBlank(displayedName, model.getModelName());
     String infoText = NLS.bind(Messages.model_hover_customModelInfo,
-        new Object[] { model.getModelName(), ownerName, keyName });
+        new Object[] { modelLabel, ownerName, keyName });
     Label infoLabel = new Label(parent, SWT.WRAP);
     infoLabel.setText(infoText);
     setCssClass(infoLabel, POPUP_SECONDARY_TEXT_CLASS);
