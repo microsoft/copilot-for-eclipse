@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.service.CustomizationFileService;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
@@ -29,6 +30,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private ReferencedFileService referencedFileService;
   private McpConfigService mcpConfigService;
   private McpExtensionPointManager mcpExtensionPointManager;
+  private CustomizationFileService customizationFileService;
 
   private McpRuntimeLogger mcpRuntimeLogger;
   private ConversationPersistenceManager persistenceManager;
@@ -51,6 +53,8 @@ public class ChatServiceManager implements IChatServiceManager {
     referencedFileService = new ReferencedFileService();
     mcpConfigService = new McpConfigService();
     mcpExtensionPointManager = new McpExtensionPointManager(mcpConfigService);
+    customizationFileService = new CustomizationFileService(this.lsConnection);
+    customizationFileService.refresh();
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
     chatFontService = new ChatFontService();
@@ -138,6 +142,11 @@ public class ChatServiceManager implements IChatServiceManager {
   @Override
   public McpConfigService getMcpConfigService() {
     return mcpConfigService;
+  }
+
+  @Override
+  public CustomizationFileService getCustomizationFileService() {
+    return customizationFileService;
   }
 
   /**

@@ -33,6 +33,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesPara
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
@@ -51,6 +52,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
@@ -147,6 +149,38 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("conversation/templates")
   CompletableFuture<ConversationTemplate[]> listTemplates(ConversationTemplatesParams params);
+
+  /**
+   * List custom skill files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customSkill/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomSkills(WorkspaceFoldersParams params);
+
+  /**
+   * List custom prompt files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customPrompt/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomPrompts(WorkspaceFoldersParams params);
+
+  /**
+   * List custom instruction files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customInstruction/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomInstructions(WorkspaceFoldersParams params);
+
+  /**
+   * List custom agent files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customAgent/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomAgents(WorkspaceFoldersParams params);
 
   /**
    * List conversation modes.

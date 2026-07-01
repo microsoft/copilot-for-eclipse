@@ -229,6 +229,27 @@ public class FileUtils {
   }
 
   /**
+   * Returns whether {@code child} is the same path as {@code parent} or a descendant of it. Both
+   * paths are normalized to absolute form first, so this works for files that do not exist on disk.
+   *
+   * @param parent the candidate ancestor directory
+   * @param child the path to test for containment
+   * @param strict when {@code true}, {@code parent} equal to {@code child} is not a match
+   * @return {@code true} when {@code child} is contained within {@code parent}
+   */
+  public static boolean isPathWithin(Path parent, Path child, boolean strict) {
+    if (parent == null || child == null) {
+      return false;
+    }
+    Path normalizedParent = parent.toAbsolutePath().normalize();
+    Path normalizedChild = child.toAbsolutePath().normalize();
+    if (strict && normalizedParent.equals(normalizedChild)) {
+      return false;
+    }
+    return normalizedChild.startsWith(normalizedParent);
+  }
+
+  /**
    * Normalizes a file path or URI string to a proper file URI string. Handles Windows absolute paths, POSIX absolute
    * paths, and existing URI strings. Line number fragments (e.g., #L123) are preserved.
    *

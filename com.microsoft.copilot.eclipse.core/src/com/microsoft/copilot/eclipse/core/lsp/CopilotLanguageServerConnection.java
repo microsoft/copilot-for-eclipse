@@ -50,6 +50,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesPara
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
@@ -72,6 +73,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
@@ -377,6 +379,46 @@ public class CopilotLanguageServerConnection {
       return ((CopilotLanguageServer) server).listTemplates(new ConversationTemplatesParams(workspaceFolders));
     };
     return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List custom skill files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomSkills(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomSkills(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom prompt files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomPrompts(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomPrompts(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom instruction files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomInstructions(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomInstructions(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom agent files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomAgents(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomAgents(new WorkspaceFoldersParams(workspaceFolders)));
   }
 
   /**

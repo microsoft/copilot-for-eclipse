@@ -37,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.chat.service.IMcpConfigService;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -269,6 +270,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   @JsonNotification("copilot/customSkill/didChange")
   public void onDidChangeCustomSkill(Object params) {
     notifyCustomizationFilesChanged();
+    refreshCustomizationFiles(CustomizationType.SKILL);
   }
 
   /**
@@ -277,11 +279,35 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   @JsonNotification("copilot/customPrompt/didChange")
   public void onDidChangeCustomPrompt(Object params) {
     notifyCustomizationFilesChanged();
+    refreshCustomizationFiles(CustomizationType.PROMPT);
+  }
+
+  /**
+   * Notify when custom instructions change (global or workspace). Signal-only; clients re-fetch the file list.
+   */
+  @JsonNotification("copilot/customInstruction/didChange")
+  public void onDidChangeCustomInstruction(Object params) {
+    refreshCustomizationFiles(CustomizationType.INSTRUCTION);
+  }
+
+  /**
+   * Notify when custom agents change (global or workspace). Signal-only; clients re-fetch the file list.
+   */
+  @JsonNotification("copilot/customAgent/didChange")
+  public void onDidChangeCustomAgent(Object params) {
+    refreshCustomizationFiles(CustomizationType.AGENT);
   }
 
   private void notifyCustomizationFilesChanged() {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
+    }
+  }
+
+  private void refreshCustomizationFiles(CustomizationType type) {
+    IChatServiceManager chatServiceManager = CopilotCore.getPlugin().getChatServiceManager();
+    if (chatServiceManager != null && chatServiceManager.getCustomizationFileService() != null) {
+      chatServiceManager.getCustomizationFileService().refresh(type);
     }
   }
 
