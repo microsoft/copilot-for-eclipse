@@ -70,6 +70,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyPar
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 
 /**
  * Language client for the Copilot language server.
@@ -298,6 +299,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     refreshCustomizationFiles(CustomizationType.AGENT);
   }
 
+  // Drives the slash-command service to re-fetch templates, which cover only skills and prompts;
+  // instruction and agent changes therefore do not need to post this.
   private void notifyCustomizationFilesChanged() {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
@@ -307,7 +310,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   private void refreshCustomizationFiles(CustomizationType type) {
     IChatServiceManager chatServiceManager = CopilotCore.getPlugin().getChatServiceManager();
     if (chatServiceManager != null && chatServiceManager.getCustomizationFileService() != null) {
-      chatServiceManager.getCustomizationFileService().refresh(type);
+      chatServiceManager.getCustomizationFileService()
+          .refreshType(type, WorkspaceUtils.listWorkspaceFolders());
     }
   }
 

@@ -46,7 +46,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -376,7 +375,7 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ConversationTemplate[]> listConversationTemplates(List<WorkspaceFolder> workspaceFolders) {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
-      return ((CopilotLanguageServer) server).listTemplates(new ConversationTemplatesParams(workspaceFolders));
+      return ((CopilotLanguageServer) server).listTemplates(new WorkspaceFoldersParams(workspaceFolders));
     };
     return this.languageServerWrapper.execute(fn);
   }

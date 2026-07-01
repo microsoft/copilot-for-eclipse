@@ -54,7 +54,7 @@ public class ChatServiceManager implements IChatServiceManager {
     mcpConfigService = new McpConfigService();
     mcpExtensionPointManager = new McpExtensionPointManager(mcpConfigService);
     customizationFileService = new CustomizationFileService(this.lsConnection);
-    customizationFileService.refresh();
+    customizationFileService.refreshAll();
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
     chatFontService = new ChatFontService();

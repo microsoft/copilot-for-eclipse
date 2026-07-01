@@ -53,15 +53,15 @@ public class CustomizationFileService implements ICustomizationFileService {
   }
 
   @Override
-  public void refresh() {
+  public void refreshAll() {
+    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
     for (CustomizationType type : CustomizationType.values()) {
-      refresh(type);
+      refreshType(type, workspaceFolders);
     }
   }
 
   @Override
-  public void refresh(CustomizationType type) {
-    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
+  public void refreshType(CustomizationType type, List<WorkspaceFolder> workspaceFolders) {
     switch (type) {
       case SKILL -> toPaths(lsConnection.listCustomSkills(workspaceFolders)).thenAccept(paths -> {
         Set<Path> folders = new HashSet<>();
@@ -105,7 +105,7 @@ public class CustomizationFileService implements ICustomizationFileService {
         for (CustomizationFileInfo info : infos) {
           Path path = FileUtils.getLocalFilePath(info.uri());
           if (path != null) {
-            paths.add(path);
+            paths.add(path.toAbsolutePath().normalize());
           }
         }
       }
