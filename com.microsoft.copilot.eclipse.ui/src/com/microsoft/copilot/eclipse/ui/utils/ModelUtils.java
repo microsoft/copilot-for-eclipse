@@ -101,6 +101,11 @@ public class ModelUtils {
     if (model.getProviderName() != null) {
       return model.getProviderName();
     }
+    // Organization/enterprise-contributed custom models arrive through copilot/models without a providerName, but
+    // still carry their underlying provider in the custom-model metadata. Surface it so they read like BYOK models.
+    if (model.getCustomModel() != null && StringUtils.isNotBlank(model.getCustomModel().provider())) {
+      return model.getCustomModel().provider();
+    }
     if (isAutoModel(model)) {
       return Messages.model_billing_multiplier_variable;
     }

@@ -17,6 +17,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCustomModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
@@ -148,6 +149,27 @@ class ModelUtilsTests {
 
     assertFalse(ModelUtils.supportsReasoningEffortLevel(model));
     assertFalse(ModelUtils.supportsReasoningEffortLevel(null));
+  }
+
+  @Test
+  void testGetModelSuffix_customModelUsesProvider() {
+    // Organization-contributed custom models arrive without a providerName but carry their provider in the
+    // custom-model metadata; the suffix should surface that provider like a BYOK model.
+    CopilotModel model = new CopilotModel();
+    model.setModelName("Sonnet (Org)");
+    model.setCustomModel(new CopilotModelCustomModel("Contoso Azure Key", "Contoso", "organization", "Azure"));
+
+    assertEquals("Azure", ModelUtils.getModelSuffix(model, null));
+  }
+
+  @Test
+  void testGetModelSuffix_providerNameTakesPrecedenceOverCustomModel() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("GPT-4o");
+    model.setProviderName("OpenAI");
+    model.setCustomModel(new CopilotModelCustomModel("Key", "Contoso", "organization", "Azure"));
+
+    assertEquals("OpenAI", ModelUtils.getModelSuffix(model, null));
   }
 
   @Test

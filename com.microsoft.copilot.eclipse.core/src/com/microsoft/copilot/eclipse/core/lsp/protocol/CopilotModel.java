@@ -25,6 +25,7 @@ public class CopilotModel {
   private boolean isChatFallback;
   private CopilotModelCapabilities capabilities;
   private CopilotModelBilling billing;
+  private CopilotModelCustomModel customModel;
   private String degradationReason;
   private String providerName;
   private String modelPickerCategory;
@@ -158,6 +159,28 @@ public class CopilotModel {
     }
   }
 
+  /**
+   * Metadata describing a custom (BYOK) model that is contributed to the user by an organization or enterprise. When
+   * present, the model is served through a key that the owner configured, so it is surfaced in the model picker
+   * automatically without the user having to register their own API key.
+   *
+   * @param keyName the display name of the API key the model is served through
+   * @param ownerName the name of the organization, enterprise, or user that contributed the model
+   * @param ownerType the type of the owner (e.g. {@code organization}, {@code enterprise}, {@code user})
+   * @param provider the underlying model provider (e.g. {@code azure}, {@code openai})
+   */
+  public record CopilotModelCustomModel(String keyName, String ownerName, String ownerType, String provider) {
+    @Override
+    public String toString() {
+      ToStringBuilder builder = new ToStringBuilder(this);
+      builder.append("keyName", keyName);
+      builder.append("ownerName", ownerName);
+      builder.append("ownerType", ownerType);
+      builder.append("provider", provider);
+      return builder.toString();
+    }
+  }
+
   public String getModelFamily() {
     return modelFamily;
   }
@@ -246,6 +269,14 @@ public class CopilotModel {
     this.billing = billing;
   }
 
+  public CopilotModelCustomModel getCustomModel() {
+    return customModel;
+  }
+
+  public void setCustomModel(CopilotModelCustomModel customModel) {
+    this.customModel = customModel;
+  }
+
   public String getDegradationReason() {
     return degradationReason;
   }
@@ -300,6 +331,7 @@ public class CopilotModel {
     }
     CopilotModel other = (CopilotModel) obj;
     return Objects.equals(billing, other.billing) && Objects.equals(capabilities, other.capabilities)
+        && Objects.equals(customModel, other.customModel)
         && Objects.equals(degradationReason, other.degradationReason) && Objects.equals(id, other.id)
         && isChatDefault == other.isChatDefault && isChatFallback == other.isChatFallback
         && Objects.equals(modelFamily, other.modelFamily) && Objects.equals(modelName, other.modelName)
@@ -312,8 +344,9 @@ public class CopilotModel {
 
   @Override
   public int hashCode() {
-    return Objects.hash(billing, capabilities, degradationReason, id, isChatDefault, isChatFallback, modelFamily,
-        modelName, modelPickerCategory, modelPickerPriceCategory, modelPolicy, preview, providerName, scopes, vendor);
+    return Objects.hash(billing, capabilities, customModel, degradationReason, id, isChatDefault, isChatFallback,
+        modelFamily, modelName, modelPickerCategory, modelPickerPriceCategory, modelPolicy, preview, providerName,
+        scopes, vendor);
   }
 
   @Override
@@ -330,6 +363,7 @@ public class CopilotModel {
     builder.append("isChatFallback", isChatFallback);
     builder.append("capabilities", capabilities);
     builder.append("billing", billing);
+    builder.append("customModel", customModel);
     builder.append("degradationReason", degradationReason);
     builder.append("providerName", providerName);
     builder.append("modelPickerCategory", modelPickerCategory);

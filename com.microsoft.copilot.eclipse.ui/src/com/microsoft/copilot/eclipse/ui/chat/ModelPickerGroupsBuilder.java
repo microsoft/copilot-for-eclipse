@@ -66,7 +66,7 @@ public final class ModelPickerGroupsBuilder {
     List<CopilotModel> customModels = new ArrayList<>();
 
     for (CopilotModel model : modelMap.values()) {
-      if (model.getProviderName() != null) {
+      if (model.getProviderName() != null || model.getCustomModel() != null) {
         customModels.add(model);
       } else if (model.getBilling() != null) {
         if (model.getBilling().isPremium()) {

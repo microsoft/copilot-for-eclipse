@@ -27,6 +27,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCustomModel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -76,6 +77,8 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       addWarningRow(parent, model.getDegradationReason());
     }
 
+    addCustomModelInfoSection(parent);
+
     addContextWindowSection(parent);
     addPricingSection(parent, model.getModelPickerPriceCategory());
     addThinkingEffortSection(parent, closeRequest);
@@ -87,6 +90,34 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     titleLabel.setFont(createBoldFont(titleLabel));
     GridData headerGd = new GridData(SWT.FILL, SWT.NONE, true, false);
     titleLabel.setLayoutData(headerGd);
+  }
+
+  /**
+   * Renders the "contributed by" line for organization/enterprise-contributed custom (BYOK) models. Mirrors the
+   * IntelliJ model tooltip: the row only appears when the model carries custom-model metadata with a non-blank owner
+   * and key name, communicating that the model was provided by an owner through a specific key.
+   *
+   * @param parent the hover composite to render into
+   */
+  private void addCustomModelInfoSection(Composite parent) {
+    CopilotModelCustomModel customModel = model.getCustomModel();
+    if (customModel == null) {
+      return;
+    }
+    String ownerName = StringUtils.trimToNull(customModel.ownerName());
+    String keyName = StringUtils.trimToNull(customModel.keyName());
+    if (ownerName == null || keyName == null) {
+      return;
+    }
+
+    String infoText = NLS.bind(Messages.model_hover_customModelInfo,
+        new Object[] { model.getModelName(), ownerName, keyName });
+    Label infoLabel = new Label(parent, SWT.WRAP);
+    infoLabel.setText(infoText);
+    setCssClass(infoLabel, POPUP_SECONDARY_TEXT_CLASS);
+    GridData gd = new GridData(SWT.FILL, SWT.NONE, true, false);
+    gd.verticalIndent = SECTION_SPACING;
+    infoLabel.setLayoutData(gd);
   }
 
   private void addContextWindowSection(Composite parent) {
