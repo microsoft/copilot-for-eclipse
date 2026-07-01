@@ -378,7 +378,7 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
       return true;
     }
     for (Path skillFolder : skillFolders) {
-      if (FileUtils.isPathWithin(skillFolder, normalized, false)) {
+      if (normalized.startsWith(skillFolder)) {
         return true;
       }
     }

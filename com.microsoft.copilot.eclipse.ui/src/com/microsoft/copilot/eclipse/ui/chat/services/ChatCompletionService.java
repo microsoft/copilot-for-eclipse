@@ -30,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -76,7 +77,13 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     ResourcesPlugin.getWorkspace().addResourceChangeListener(skillFileListener, IResourceChangeEvent.POST_CHANGE);
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (this.eventBroker != null) {
-      this.customPromptsChangedHandler = event -> fetchAsync();
+      // Templates only surface skills and prompts, so ignore instruction/agent changes.
+      this.customPromptsChangedHandler = event -> {
+        Object type = event.getProperty(IEventBroker.DATA);
+        if (type == CustomizationType.SKILL || type == CustomizationType.PROMPT) {
+          fetchAsync();
+        }
+      };
       this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES,
           customPromptsChangedHandler);
     }

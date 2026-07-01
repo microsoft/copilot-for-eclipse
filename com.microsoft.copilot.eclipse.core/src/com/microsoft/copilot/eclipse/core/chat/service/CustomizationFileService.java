@@ -10,9 +10,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.e4.core.contexts.EclipseContextFactory;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
@@ -25,6 +30,8 @@ import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 public class CustomizationFileService implements ICustomizationFileService {
 
   private final CopilotLanguageServerConnection lsConnection;
+  private final IEventBroker eventBroker;
+  private final EventHandler customizationFilesChangedHandler;
 
   private volatile Set<Path> promptFiles = Set.of();
   private volatile Set<Path> instructionFiles = Set.of();
@@ -34,12 +41,30 @@ public class CustomizationFileService implements ICustomizationFileService {
   private volatile Set<Path> customizationFiles = Set.of();
 
   /**
-   * Creates the service.
+   * Creates the service and subscribes to customization-file change events.
    *
    * @param lsConnection the language server connection used to issue the list requests
    */
   public CustomizationFileService(CopilotLanguageServerConnection lsConnection) {
     this.lsConnection = lsConnection;
+    this.eventBroker = EclipseContextFactory
+        .getServiceContext(FrameworkUtil.getBundle(getClass()).getBundleContext()).get(IEventBroker.class);
+    this.customizationFilesChangedHandler = event -> {
+      if (event.getProperty(IEventBroker.DATA) instanceof CustomizationType type) {
+        CompletableFuture.runAsync(() -> refreshType(type, WorkspaceUtils.listWorkspaceFolders()));
+      }
+    };
+    if (eventBroker != null) {
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES,
+          customizationFilesChangedHandler);
+    }
+  }
+
+  /** Unsubscribes from customization-file change events. */
+  public void dispose() {
+    if (eventBroker != null) {
+      eventBroker.unsubscribe(customizationFilesChangedHandler);
+    }
   }
 
   @Override
@@ -54,14 +79,15 @@ public class CustomizationFileService implements ICustomizationFileService {
 
   @Override
   public void refreshAll() {
-    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
-    for (CustomizationType type : CustomizationType.values()) {
-      refreshType(type, workspaceFolders);
-    }
+    CompletableFuture.runAsync(() -> {
+      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
+      for (CustomizationType type : CustomizationType.values()) {
+        refreshType(type, workspaceFolders);
+      }
+    });
   }
 
-  @Override
-  public void refreshType(CustomizationType type, List<WorkspaceFolder> workspaceFolders) {
+  private void refreshType(CustomizationType type, List<WorkspaceFolder> workspaceFolders) {
     switch (type) {
       case SKILL -> toPaths(lsConnection.listCustomSkills(workspaceFolders)).thenAccept(paths -> {
         Set<Path> folders = new HashSet<>();

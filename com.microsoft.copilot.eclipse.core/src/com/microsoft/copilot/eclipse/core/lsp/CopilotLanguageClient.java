@@ -70,7 +70,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyPar
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
-import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 
 /**
  * Language client for the Copilot language server.
@@ -266,52 +265,42 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Notify when custom skills change (global or workspace). Signal-only; clients re-fetch templates.
+   * Notify when custom skills change (global or workspace).
    */
   @JsonNotification("copilot/customSkill/didChange")
   public void onDidChangeCustomSkill(Object params) {
-    notifyCustomizationFilesChanged();
-    refreshCustomizationFiles(CustomizationType.SKILL);
+    postCustomizationFilesChanged(CustomizationType.SKILL);
   }
 
   /**
-   * Notify when custom prompts change (global or workspace). Signal-only; clients re-fetch templates.
+   * Notify when custom prompts change (global or workspace).
    */
   @JsonNotification("copilot/customPrompt/didChange")
   public void onDidChangeCustomPrompt(Object params) {
-    notifyCustomizationFilesChanged();
-    refreshCustomizationFiles(CustomizationType.PROMPT);
+    postCustomizationFilesChanged(CustomizationType.PROMPT);
   }
 
   /**
-   * Notify when custom instructions change (global or workspace). Signal-only; clients re-fetch the file list.
+   * Notify when custom instructions change (global or workspace).
    */
   @JsonNotification("copilot/customInstruction/didChange")
   public void onDidChangeCustomInstruction(Object params) {
-    refreshCustomizationFiles(CustomizationType.INSTRUCTION);
+    postCustomizationFilesChanged(CustomizationType.INSTRUCTION);
   }
 
   /**
-   * Notify when custom agents change (global or workspace). Signal-only; clients re-fetch the file list.
+   * Notify when custom agents change (global or workspace).
    */
   @JsonNotification("copilot/customAgent/didChange")
   public void onDidChangeCustomAgent(Object params) {
-    refreshCustomizationFiles(CustomizationType.AGENT);
+    postCustomizationFilesChanged(CustomizationType.AGENT);
   }
 
-  // Drives the slash-command service to re-fetch templates, which cover only skills and prompts;
-  // instruction and agent changes therefore do not need to post this.
-  private void notifyCustomizationFilesChanged() {
+  // Broadcasts the change on the event bus; subscribers (the customization-file service and the
+  // slash-command service) react without this class depending on them directly.
+  private void postCustomizationFilesChanged(CustomizationType type) {
     if (eventBroker != null) {
-      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
-    }
-  }
-
-  private void refreshCustomizationFiles(CustomizationType type) {
-    IChatServiceManager chatServiceManager = CopilotCore.getPlugin().getChatServiceManager();
-    if (chatServiceManager != null && chatServiceManager.getCustomizationFileService() != null) {
-      chatServiceManager.getCustomizationFileService()
-          .refreshType(type, WorkspaceUtils.listWorkspaceFolders());
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, type);
     }
   }
 

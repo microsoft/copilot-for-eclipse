@@ -211,6 +211,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpConfigService.dispose();
+    this.customizationFileService.dispose();
     this.contextWindowService.dispose();
     if (this.byokService != null) {
       this.byokService.dispose();

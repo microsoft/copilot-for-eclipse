@@ -4,10 +4,7 @@
 package com.microsoft.copilot.eclipse.core.chat.service;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
-
-import org.eclipse.lsp4j.WorkspaceFolder;
 
 /**
  * Maintains an up-to-date view of the Copilot customization files (skills, prompts, instructions,
@@ -36,17 +33,7 @@ public interface ICustomizationFileService {
 
   /**
    * Refreshes every customization type from the language server. Used for the initial load.
-   * Fire-and-forget; the work completes asynchronously off the language server's response.
+   * Fire-and-forget; the work completes asynchronously off the caller's thread.
    */
   void refreshAll();
-
-  /**
-   * Refreshes only the given customization type, leaving the other snapshots untouched. Used to
-   * respond to a single {@code copilot/custom*&#47;didChange} notification without re-fetching the
-   * unaffected types. Fire-and-forget; completes asynchronously off the language server's response.
-   *
-   * @param type the customization type to refresh
-   * @param workspaceFolders the workspace folders to scan
-   */
-  void refreshType(CustomizationType type, List<WorkspaceFolder> workspaceFolders);
 }
