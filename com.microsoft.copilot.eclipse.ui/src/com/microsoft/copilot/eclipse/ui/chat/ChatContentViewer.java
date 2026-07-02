@@ -611,15 +611,20 @@ public class ChatContentViewer extends Composite {
     Control[] children = cmpContent.getChildren();
     int[] tops = new int[children.length];
     int[] heights = new int[children.length];
+    boolean[] remeasured = new boolean[children.length];
     int running = 0;
     int latestUserTop = -1;
     for (int i = 0; i < children.length; i++) {
       if (children[i] == latestUserTurn) {
         latestUserTop = running;
       }
+      boolean wasCached = heightCache.containsKey(children[i]);
       int height = measuredHeight(children[i], width);
       tops[i] = running;
       heights[i] = height;
+      // A cache miss means the turn was (re)measured this pass: its width changed or its content
+      // mutated, so its internal GridLayout must be re-run.
+      remeasured[i] = !wasCached;
       running += height;
     }
     int rawHeight = running;
@@ -648,6 +653,11 @@ public class ChatContentViewer extends Composite {
         child.setBounds(0, y, width, heights[i]);
         if (!child.getVisible()) {
           child.setVisible(true);
+        }
+        // Run the turn's own layout so its GridLayout children (wrapped text, code blocks, footers)
+        // reflow.
+        if (remeasured[i] && child instanceof Composite composite) {
+          composite.layout();
         }
       } else if (child.getVisible()) {
         child.setVisible(false);
