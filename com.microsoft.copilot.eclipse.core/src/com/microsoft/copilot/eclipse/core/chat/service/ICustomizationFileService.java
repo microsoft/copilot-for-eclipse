@@ -35,5 +35,5 @@ public interface ICustomizationFileService {
    * Refreshes every customization type from the language server. Used for the initial load.
    * Fire-and-forget; the work completes asynchronously off the caller's thread.
    */
-  void refreshAll();
+  void refreshAllAsync();
 }

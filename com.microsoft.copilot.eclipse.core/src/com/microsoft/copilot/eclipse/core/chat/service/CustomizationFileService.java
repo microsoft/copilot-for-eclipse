@@ -78,7 +78,7 @@ public class CustomizationFileService implements ICustomizationFileService {
   }
 
   @Override
-  public void refreshAll() {
+  public void refreshAllAsync() {
     CompletableFuture.runAsync(() -> {
       List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
       for (CustomizationType type : CustomizationType.values()) {
