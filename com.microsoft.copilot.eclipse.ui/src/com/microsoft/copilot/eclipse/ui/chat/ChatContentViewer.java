@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -18,13 +19,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.lsp4j.WorkDoneProgressKind;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.ScrolledComposite;
-import org.eclipse.swt.events.ControlAdapter;
-import org.eclipse.swt.events.ControlEvent;
-import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.ScrollBar;
@@ -50,8 +48,14 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
  * Widget to display chat content.
+ *
+ * <p>A self-managed, windowed vertical scroller (not a {@link org.eclipse.swt.custom.ScrolledComposite}):
+ * on Windows a classic scroller cannot move very tall content far enough to reveal the newest messages.
+ * Here {@code cmpContent} is pinned to the viewport and each turn is positioned in
+ * viewport-local coordinates; off-window turns are parked with {@code setVisible(false)}, so no child is
+ * ever given an out-of-range native coordinate.</p>
  */
-public class ChatContentViewer extends ScrolledComposite {
+public class ChatContentViewer extends Composite {
 
   private static final int SCROLL_THRESHOLD = 100;
 
@@ -86,6 +90,18 @@ public class ChatContentViewer extends ScrolledComposite {
   /** Guards against scheduling more than one pending async refresh from a burst of resize events. */
   private final AtomicBoolean refreshScheduled = new AtomicBoolean(false);
 
+  /** Current logical scroll position (top of the viewport in content coordinates). */
+  private int scrollOffset;
+
+  /** Full logical content height in pixels; may far exceed any native coordinate limit. */
+  private int totalHeight;
+
+  /** Cached measured heights keyed by row control identity; invalidated on width change. */
+  private final Map<Control, Integer> heightCache = new IdentityHashMap<>();
+
+  /** Cached font line height (px), the unit for one scroll line; recomputed when the font changes. */
+  private int cachedLineHeight = -1;
+
   /**
    * Create the composite.
    *
@@ -93,46 +109,45 @@ public class ChatContentViewer extends ScrolledComposite {
    * @param style the style
    */
   public ChatContentViewer(Composite parent, int style, ChatServiceManager serviceManager) {
-    super(parent, style | SWT.V_SCROLL);
-    this.setExpandHorizontal(true);
-    this.setExpandVertical(true);
-    this.setLayout(new GridLayout(1, true));
+    super(parent, style | SWT.V_SCROLL | SWT.DOUBLE_BUFFERED);
+    // Null layout: children are positioned manually by relayoutWindow() so SWT never stacks them into
+    // one oversized composite.
+    this.setLayout(null);
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     this.setData(CssConstants.CSS_ID_KEY, "chat-content-viewer");
 
     this.cmpContent = new Composite(this, SWT.NONE);
-    GridLayout gl = new GridLayout(1, true);
-    gl.marginHeight = 0;
-    gl.marginWidth = 0;
-    this.cmpContent.setLayout(gl);
-    this.cmpContent.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-    this.setContent(this.cmpContent);
+    this.cmpContent.setLayout(null);
 
-    this.addControlListener(new ControlAdapter() {
-      @Override
-      public void controlResized(ControlEvent e) {
-        // setMinHeight re-fires controlResized; coalesce into one async incremental pass so the
-        // resize handler never recurses synchronously into layout.
-        coalesceAsync(refreshScheduled, ChatContentViewer.this::refreshLayoutIncremental);
-      }
+    this.addListener(SWT.Resize, e -> {
+      layoutContentArea();
+      coalesceAsync(refreshScheduled, this::refreshLayoutIncremental);
     });
 
-    // Listen for user scroll events to manage auto-scroll behavior
     ScrollBar verticalBar = this.getVerticalBar();
     if (verticalBar != null) {
       verticalBar.addListener(SWT.Selection, event -> {
-        int selection = verticalBar.getSelection();
-        int maximum = verticalBar.getMaximum();
-        int thumb = verticalBar.getThumb();
-
-        // If scrolled to bottom, keep auto-scroll enabled
-        // Otherwise disable it (user is viewing history)
-        int threshold = SCROLL_THRESHOLD;
-        int maxScrollPosition = maximum - thumb;
-        boolean isAtBottom = selection >= (maxScrollPosition - threshold);
-        autoScrollEnabled = isAtBottom;
+        scrollOffset = verticalBar.getSelection();
+        autoScrollEnabled = isViewportAtBottom();
+        relayoutWindow();
       });
     }
+
+    // The wheel does not move the scrollbar on a manually-laid-out composite, so handle it explicitly.
+    this.addListener(SWT.MouseWheel, event -> {
+      if (totalHeight <= getClientArea().height) {
+        return;
+      }
+      // event.count is the OS-provided number of lines to scroll for this notch; a font line height
+      // turns it into pixels, so one notch moves whole text lines like a native scrollable.
+      int newOffset = clampOffset(scrollOffset - event.count * lineHeight());
+      if (newOffset != scrollOffset) {
+        scrollOffset = newOffset;
+        autoScrollEnabled = isViewportAtBottom();
+        relayoutWindow();
+      }
+      event.doit = false;
+    });
 
     this.turns = new HashMap<>();
     this.activeThinkingBlockIds = new ConcurrentHashMap<>();
@@ -471,11 +486,9 @@ public class ChatContentViewer extends ScrolledComposite {
   }
 
   /**
-   * Coalesces a burst of calls into a single async pass on the UI thread. While a pass is already
-   * scheduled, further calls are dropped; {@code scheduled} is cleared right before {@code task} runs
-   * so work arriving during the task re-schedules a follow-up pass. This breaks synchronous
-   * re-entrancy (e.g. a layout pass writing the scroller min size re-fires {@code controlResized})
-   * without a re-entrancy guard, while idempotent writes still converge to a fixed point.
+   * Coalesces a burst of calls into a single async pass on the UI thread, clearing {@code scheduled}
+   * right before {@code task} runs so work arriving during the task re-schedules a follow-up pass.
+   * Breaks synchronous re-entrancy without a re-entrancy guard.
    *
    * @param scheduled the per-task latch guarding against duplicate scheduling
    * @param task the work to run once on the next UI-thread turn
@@ -509,19 +522,15 @@ public class ChatContentViewer extends ScrolledComposite {
    * Selects how many turns {@link #refreshLayout(MeasureMode)} re-measures.
    */
   private enum MeasureMode {
-    /** Recursively re-measure every turn. O(n) in the number of turns. */
+    /** Re-measure every turn. */
     FULL,
-    /** Only flush the trailing (mutating) turns; sealed turns keep cached sizes. O(1). */
+    /** Only re-measure the trailing (mutating) turns; sealed turns keep cached sizes. */
     INCREMENTAL
   }
 
   /**
-   * Re-measure the scroller and update its min size.
-   *
-   * @param mode {@link MeasureMode#FULL} recursively re-measures every turn; {@link
-   *     MeasureMode#INCREMENTAL} only flushes the trailing (mutating) turns while sealed turns keep
-   *     cached sizes, keeping the pass O(1). A width change always upgrades to a full measure because
-   *     text re-wraps.
+   * Re-measures turns and re-runs the windowing pass. {@link MeasureMode#INCREMENTAL} keeps sealed
+   * turns' cached heights; a width change forces a full re-measure because text re-wraps.
    */
   private void refreshLayout(MeasureMode mode) {
     if (this.isDisposed()) {
@@ -532,133 +541,190 @@ public class ChatContentViewer extends ScrolledComposite {
     boolean fullMeasure = mode == MeasureMode.FULL || width != lastLayoutWidth;
     lastLayoutWidth = width;
 
-    if (!fullMeasure) {
-      // Only the trailing turns can grow/change during streaming.
-      flushTrailingTurnCaches();
+    if (fullMeasure) {
+      heightCache.clear();
+    } else {
+      invalidateTrailingTurnHeights();
     }
 
-    Point containerSize = cmpContent.computeSize(width, SWT.DEFAULT, fullMeasure);
+    layoutContentArea();
+    relayoutWindow();
+  }
 
-    // Use the default size as a fallback
-    if (latestUserTurn == null) {
-      this.setMinSize(containerSize);
+  /**
+   * Scrolls to the bottom when auto-scroll is enabled. The bottom padding reserved by {@link
+   * #relayoutWindow()} makes this pin the latest user turn to the top while the round is short, then
+   * follow the real bottom once it grows past the viewport.
+   */
+  public void scrollToBottomIfAutoScroll() {
+    if (this.isDisposed() || latestUserTurn == null || latestUserTurn.isDisposed()) {
+      return;
+    }
+    if (!autoScrollEnabled) {
+      return;
+    }
+    scrollOffset = Integer.MAX_VALUE;
+    relayoutWindow();
+  }
+
+  /**
+   * Drops the cached heights of the trailing (mutating) turns so they are re-measured next pass, while
+   * sealed historical turns keep their cached size.
+   */
+  private void invalidateTrailingTurnHeights() {
+    if (latestUserTurn != null && !latestUserTurn.isDisposed()) {
+      heightCache.remove(latestUserTurn);
+    }
+    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
+      heightCache.remove(latestCopilotTurn);
+    }
+    if (errorWidget != null && !errorWidget.isDisposed()) {
+      heightCache.remove(errorWidget);
+    }
+  }
+
+  /** Pins {@code cmpContent} to the current viewport rectangle so it is never grown or moved. */
+  private void layoutContentArea() {
+    if (cmpContent == null || cmpContent.isDisposed()) {
+      return;
+    }
+    Rectangle clientArea = this.getClientArea();
+    cmpContent.setBounds(0, 0, Math.max(0, clientArea.width), Math.max(0, clientArea.height));
+  }
+
+  /**
+   * The core windowing pass: measures every turn (cached), positions the ones intersecting the
+   * viewport in viewport-local coordinates, and parks the rest with {@code setVisible(false)} so no
+   * native child ever gets an out-of-range coordinate.
+   */
+  private void relayoutWindow() {
+    if (this.isDisposed() || cmpContent == null || cmpContent.isDisposed()) {
+      return;
+    }
+    Rectangle clientArea = this.getClientArea();
+    int width = clientArea.width;
+    int viewport = clientArea.height;
+    if (width <= 0 || viewport <= 0) {
       return;
     }
 
-    // Measure at the actual column width, not SWT.DEFAULT: unconstrained width collapses
-    // soft-wrapped text to a single line and under-estimates the height. roundedHeight must match
-    // the laid-out height shouldAutoScrollToBottom() reads via getBounds(), or the padding branch
-    // below reserves phantom whitespace while auto-scroll fires into it (issue #259 flicker).
-    int userTurnHeight = latestUserTurn.computeSize(width, SWT.DEFAULT).y;
-    int copilotTurnHeight = latestCopilotTurn == null || latestCopilotTurn.isDisposed() ? 0
-        : latestCopilotTurn.computeSize(width, SWT.DEFAULT).y;
+    Control[] children = cmpContent.getChildren();
+    int[] tops = new int[children.length];
+    int[] heights = new int[children.length];
+    int running = 0;
+    int latestUserTop = -1;
+    for (int i = 0; i < children.length; i++) {
+      if (children[i] == latestUserTurn) {
+        latestUserTop = running;
+      }
+      int height = measuredHeight(children[i], width);
+      tops[i] = running;
+      heights[i] = height;
+      running += height;
+    }
+    int rawHeight = running;
 
-    // Calculate the content height, so that the latest user turn is able to be put at the top of the client area.
-    int contentHeight = 0;
-    int roundedHeight = userTurnHeight + copilotTurnHeight;
-    if (roundedHeight < clientArea.height) {
-      contentHeight = clientArea.height + containerSize.y - roundedHeight;
-    } else {
-      contentHeight = containerSize.y;
+    // Bottom padding (virtual, no widget): when the last round is shorter than the viewport, reserve
+    // whitespace below it so the latest user turn can pin to the top instead of floating mid-screen.
+    // Without it maxOffset is too small, so the new message cannot reach the top and "scroll to
+    // bottom" misaligns with the real maximum, breaking auto-scroll.
+    int bottomPadding = 0;
+    if (latestUserTop >= 0) {
+      int lastRoundHeight = rawHeight - latestUserTop;
+      if (lastRoundHeight < viewport) {
+        bottomPadding = viewport - lastRoundHeight;
+      }
+    }
+    totalHeight = rawHeight + bottomPadding;
+    scrollOffset = clampOffset(scrollOffset);
+
+    for (int i = 0; i < children.length; i++) {
+      Control child = children[i];
+      if (child.isDisposed()) {
+        continue;
+      }
+      int y = tops[i] - scrollOffset;
+      if (y + heights[i] > 0 && y < viewport) {
+        child.setBounds(0, y, width, heights[i]);
+        if (!child.getVisible()) {
+          child.setVisible(true);
+        }
+      } else if (child.getVisible()) {
+        child.setVisible(false);
+      }
     }
 
-    // Only write min size when it changes: setMin* re-fires controlResized, so skipping no-op writes
-    // lets the coalesced async refresh converge to a fixed point.
-    if (this.getMinHeight() != contentHeight) {
-      this.setMinHeight(contentHeight);
-    }
-    if (this.getMinWidth() != containerSize.x) {
-      this.setMinWidth(containerSize.x);
-    }
-    // Incremental layout: only re-position the latest (growing) copilot turn instead of recursing
-    // into all past turns as conversations grow longer.
-    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
-      cmpContent.layout(new Control[] {latestCopilotTurn});
-    } else {
-      cmpContent.layout(true, false);
-    }
-    this.layout(true, false);
+    updateScrollBar(viewport);
   }
 
-  /**
-   * Scrolls the viewport to the bottom when auto-scroll is currently enabled. Kept separate from the
-   * layout pass so refresh and scroll stay independent concerns; callers invoke this after a refresh
-   * when they want the latest content to stay in view.
-   */
-  public void scrollToBottomIfAutoScroll() {
-    if (shouldAutoScrollToBottom()) {
-      scrollToBottom();
+  /** Returns the measured height of a row, using the identity cache when available. */
+  private int measuredHeight(Control child, int width) {
+    if (child == null || child.isDisposed()) {
+      return 0;
     }
-  }
-
-  /**
-   * Flushes the cached layout sizes of the trailing (mutating) turns so the next
-   * {@code computeSize(width, DEFAULT, false)} re-measures them while sealed historical turns stay
-   * cached, keeping the layout pass O(1) in the number of historical turns.
-   */
-  private void flushTrailingTurnCaches() {
-    List<Control> dirty = new ArrayList<>(2);
-    if (latestUserTurn != null && !latestUserTurn.isDisposed()) {
-      dirty.add(latestUserTurn);
+    Integer cached = heightCache.get(child);
+    if (cached != null) {
+      return cached;
     }
-    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
-      dirty.add(latestCopilotTurn);
-    }
-    if (!dirty.isEmpty()) {
-      cmpContent.layout(dirty.toArray(new Control[0]));
-    }
-  }
-
-  /**
-   * Check if auto-scroll to bottom is needed. Only scroll when auto-scroll is enabled (user hasn't manually scrolled
-   * during response).
-   */
-  private boolean shouldAutoScrollToBottom() {
-    if (this.isDisposed() || latestUserTurn == null) {
-      return false;
-    }
-
-    if (!autoScrollEnabled) {
-      return false;
-    }
-
-    Rectangle clientArea = this.getClientArea();
-    // Use the freshly laid-out bounds rather than computeSize(): the incremental streaming pass
-    // repositions the trailing turns but does not flush their computeSize cache, so computeSize
-    // would return a stale height and the auto-scroll trigger would fire seconds too late.
-    // getBounds() reflects the just-applied layout.
-    int roundedHeight = currentTurnLaidOutHeight();
-
-    // Only auto-scroll when content height exceeds the visible area
-    return roundedHeight >= clientArea.height;
-  }
-
-  /**
-   * Returns the height of the latest (streaming) turn from its applied layout bounds. Falls back to
-   * {@code computeSize} only when bounds are not yet available (before the first layout pass).
-   */
-  private int currentTurnLaidOutHeight() {
-    int height = 0;
-    if (latestUserTurn != null && !latestUserTurn.isDisposed()) {
-      int userHeight = latestUserTurn.getBounds().height;
-      height += userHeight > 0 ? userHeight : latestUserTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-    }
-    if (latestCopilotTurn != null && !latestCopilotTurn.isDisposed()) {
-      int copilotHeight = latestCopilotTurn.getBounds().height;
-      height += copilotHeight > 0 ? copilotHeight
-          : latestCopilotTurn.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-    }
+    int height = child.computeSize(width, SWT.DEFAULT, true).y;
+    heightCache.put(child, height);
     return height;
+  }
+
+  private void updateScrollBar(int viewport) {
+    ScrollBar verticalBar = this.getVerticalBar();
+    if (verticalBar == null) {
+      return;
+    }
+    if (totalHeight <= viewport) {
+      int safeViewport = Math.max(1, viewport);
+      verticalBar.setValues(0, 0, safeViewport, safeViewport, lineHeight(), safeViewport);
+      verticalBar.setEnabled(false);
+      return;
+    }
+    verticalBar.setEnabled(true);
+    verticalBar.setValues(scrollOffset, 0, totalHeight, viewport, lineHeight(), viewport);
+  }
+
+  private int maxOffset() {
+    return Math.max(0, totalHeight - getClientArea().height);
+  }
+
+  private int clampOffset(int offset) {
+    return Math.max(0, Math.min(offset, maxOffset()));
+  }
+
+  private boolean isViewportAtBottom() {
+    return scrollOffset >= maxOffset() - SCROLL_THRESHOLD;
+  }
+
+  /** One scroll "line" in pixels: the current font's line height. Cached until the font changes. */
+  private int lineHeight() {
+    if (cachedLineHeight < 0) {
+      GC gc = new GC(this);
+      try {
+        gc.setFont(getFont());
+        cachedLineHeight = Math.max(1, gc.getFontMetrics().getHeight());
+      } finally {
+        gc.dispose();
+      }
+    }
+    return cachedLineHeight;
+  }
+
+  @Override
+  public void setFont(Font font) {
+    super.setFont(font);
+    cachedLineHeight = -1;
   }
 
   /**
    * Scroll to the bottom.
    */
   private void scrollToBottom() {
-    ScrollBar verticalBar = this.getVerticalBar();
-    if (verticalBar != null) {
-      this.setOrigin(0, verticalBar.getMaximum());
-    }
+    autoScrollEnabled = true;
+    scrollOffset = Integer.MAX_VALUE;
+    relayoutWindow();
   }
 
   /**
@@ -666,24 +732,38 @@ public class ChatContentViewer extends ScrolledComposite {
    */
   private void scrollToLatestUserTurn() {
     // Scroll to the bottom as a fallback.
-    if (latestUserTurn == null) {
+    if (latestUserTurn == null || latestUserTurn.isDisposed()) {
       scrollToBottom();
       return;
     }
 
-    // Async so layout is computed before reading positions; reading synchronously scrolls to 0.
+    // Async so heights are measured before reading positions.
     SwtUtils.invokeOnDisplayThreadAsync(() -> {
       if (this.isDisposed() || latestUserTurn.isDisposed()) {
         return;
       }
-      Point turnLocation = latestUserTurn.getLocation();
-      this.setOrigin(0, turnLocation.y);
+      scrollOffset = clampOffset(topOf(latestUserTurn));
+      relayoutWindow();
     }, this);
+  }
+
+  /** Returns the cumulative top offset (in content coordinates) of the given row control. */
+  private int topOf(Control target) {
+    int width = this.getClientArea().width;
+    int running = 0;
+    for (Control child : cmpContent.getChildren()) {
+      if (child == target) {
+        break;
+      }
+      running += measuredHeight(child, width);
+    }
+    return running;
   }
 
   @Override
   public void dispose() {
     pendingEvents.clear();
+    heightCache.clear();
     super.dispose();
     for (BaseTurnWidget turn : turns.values()) {
       turn.dispose();
