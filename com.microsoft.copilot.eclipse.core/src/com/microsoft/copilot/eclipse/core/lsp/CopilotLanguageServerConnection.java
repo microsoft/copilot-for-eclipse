@@ -708,19 +708,15 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Builds the {@link ModelInfo} payload to forward with chat requests. Returns {@code null} when no reasoning effort
-   * is available so we do not send redundant {@code id}/{@code providerName} fields ahead of the future migration
-   * away from the legacy {@code model}/{@code modelProviderName} fields. Today the language server only consumes
-   * {@code modelInfo.reasoningEffort}, so suppressing the payload when there is nothing meaningful to forward keeps
-   * the protocol surface minimal and avoids implicit behaviour changes if the server starts honouring id/providerName
-   * before the client migration lands.
+   * Builds the {@link ModelInfo} payload for chat requests. Always sends the concrete model id (which the server
+   * prefers over the legacy {@code model} family field), since the family is not unique across models. Returns
+   * {@code null} when no model id is available.
    */
   private static ModelInfo buildModelInfo(CopilotModel activeModel, String reasoningEffort) {
-    if (StringUtils.isBlank(reasoningEffort)) {
+    if (activeModel == null || StringUtils.isBlank(activeModel.getId())) {
       return null;
     }
-    String id = activeModel != null ? activeModel.getId() : null;
-    String providerName = activeModel != null ? activeModel.getProviderName() : null;
-    return new ModelInfo(id, providerName, reasoningEffort, null);
+    String effort = StringUtils.isBlank(reasoningEffort) ? null : reasoningEffort;
+    return new ModelInfo(activeModel.getId(), activeModel.getProviderName(), effort, null);
   }
 }
