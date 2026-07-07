@@ -1734,11 +1734,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    *
    * @param changed every control whose content/layout data just changed
    */
-  public void requestLayout(Control... changed) {
-    if (getSite() == null || getSite().getPage() == null || !getSite().getPage().isPartVisible(this)) {
+public void requestLayout(Control... changed) {
+  if (getSite() == null || getSite().getPage() == null || !getSite().getPage().isPartVisible(this)) {
+    if (changed != null) {
       Collections.addAll(pendingLayoutRequests, changed);
-      return;
     }
+    return;
+  }
+  layoutNow(changed);
+}
     layoutNow(changed);
   }
 
