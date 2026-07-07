@@ -4,7 +4,9 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +34,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
@@ -163,6 +166,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private IContextActivation chatViewContextActivation;
   private IPartListener2 partListener;
+
+  /** Controls whose {@link #requestLayout(Control...)} call was suppressed while this view was hidden. */
+  private final Set<Control> pendingLayoutRequests = new LinkedHashSet<>();
 
   @Override
   public void createPartControl(Composite parent) {
@@ -517,7 +523,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       @Override
       public void partVisible(IWorkbenchPartReference partRef) {
-        // No action needed
+        // Replay layout requests skipped while this view was hidden behind another part in the same
+        // stack, targeted at just the specific control(s) that changed -- avoids a blind full-tree
+        // relayout of the (possibly long) chat conversation.
+        if (partRef.getPart(false) == ChatView.this) {
+          flushPendingLayoutRequests();
+        }
       }
     };
 
@@ -1702,16 +1713,73 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       getSite().getPage().removePartListener(this.partListener);
       this.partListener = null;
     }
+    pendingLayoutRequests.clear();
     deactivateChatViewContext();
 
     super.dispose();
   }
 
   /**
-   * Layout the view.
+   * Request a layout of the given control(s), which must be part of this view's widget tree.
+   *
+   * <p>Passing every control whose content actually changed (rather than a blind {@code
+   * parent.layout(true, true)}) lets SWT flush exactly those controls' cached sizes -- and only the
+   * ancestor chains leading to them -- so it never touches unrelated subtrees like the chat
+   * conversation history. Passing only a subset of what changed (e.g. a text label but not a
+   * sibling icon label that also changed) will leave the omitted control's cached size stale.
+   *
+   * <p>Skipped while the view isn't visible (e.g. stacked behind another part) to avoid layout cost
+   * on every editor switch; {@code changed} is instead remembered and replayed by {@link
+   * #flushPendingLayoutRequests()} once the view becomes visible again.
+   *
+   * @param changed every control whose content/layout data just changed
    */
-  public void layout(boolean changed, boolean all) {
-    parent.layout(changed, all);
+  public void requestLayout(Control... changed) {
+    if (getSite() == null || getSite().getPage() == null || !getSite().getPage().isPartVisible(this)) {
+      Collections.addAll(pendingLayoutRequests, changed);
+      return;
+    }
+    layoutNow(changed);
+  }
+
+  /**
+   * Replays layout requests that were suppressed by {@link #requestLayout(Control...)} while this
+   * view was hidden, targeted at just the specific control(s) that changed.
+   */
+  private void flushPendingLayoutRequests() {
+    if (pendingLayoutRequests.isEmpty()) {
+      return;
+    }
+    // Snapshot and clear before replaying: a control's requestLayout() could in principle
+    // synchronously trigger a new call back into requestLayout(Control...), which would otherwise
+    // mutate pendingLayoutRequests while it's being iterated.
+    Set<Control> toFlush = new LinkedHashSet<>(pendingLayoutRequests);
+    pendingLayoutRequests.clear();
+    layoutNow(toFlush.toArray(new Control[0]));
+  }
+
+  /**
+   * Flushes cached sizes for exactly the given controls (and the ancestor chains leading to them)
+   * and lays them out, in a single batched pass. Silently ignores {@code null} or disposed
+   * controls.
+   */
+  private void layoutNow(Control... controls) {
+    List<Control> valid = new ArrayList<>();
+    if (controls != null) {
+      for (Control control : controls) {
+        if (control != null && !control.isDisposed()) {
+          valid.add(control);
+        }
+      }
+    }
+    if (valid.isEmpty()) {
+      return;
+    }
+    Shell shell = valid.get(0).getShell();
+    if (shell == null || shell.isDisposed()) {
+      return;
+    }
+    shell.layout(valid.toArray(new Control[0]), SWT.DEFER);
   }
 
   /**
