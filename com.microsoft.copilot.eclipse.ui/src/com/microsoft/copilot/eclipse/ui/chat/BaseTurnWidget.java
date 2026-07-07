@@ -629,10 +629,11 @@ public abstract class BaseTurnWidget extends Composite {
           && quotaStatus.premiumInteractions().overagePermitted();
       canUpgradePlan = quotaStatus.canUpgradePlan();
     }
-    WarnWidget warnWidget = new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
+    WarnWidget warnWidget =
+        new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
     ensureFooterAtBottom();
     requestLayout();
-  return warnWidget;
+    return warnWidget;
   }
 
   /**
