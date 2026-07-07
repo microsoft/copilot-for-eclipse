@@ -814,8 +814,7 @@ public class ChatContentViewer extends Composite {
       localY += c.getLocation().y;
     }
     int targetTop = ancestorTop + localY;
-    int targetHeight = target.computeSize(getClientArea().width, SWT.DEFAULT).y;
-    int targetBottom = targetTop + targetHeight;
+    int targetBottom = targetTop + target.getSize().y;
     int viewport = getClientArea().height;
     // Scroll the minimum amount: down if target is below the visible area, up if above.
     int newOffset = scrollOffset;
