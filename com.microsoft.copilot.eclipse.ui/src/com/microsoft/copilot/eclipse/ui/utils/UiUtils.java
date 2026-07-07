@@ -35,7 +35,7 @@ import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
@@ -88,7 +88,7 @@ import org.eclipse.ui.navigator.CommonViewer;
 import org.eclipse.ui.part.IShowInTarget;
 import org.eclipse.ui.part.ShowInContext;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.osgi.service.prefs.Preferences;
+import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -502,15 +502,89 @@ public class UiUtils {
   /**
    * Returns true if Eclipse is currently using a dark theme.
    *
+   * <p>Prefers the active e4 CSS theme id, resolved reflectively to avoid a compile-time dependency
+   * on the friend-restricted {@code org.eclipse.e4.ui.css.swt.theme} package. When e4 theming is
+   * unavailable, falls back to sampling the actual widget background color.
+   *
    * @return true if dark theme is active, false otherwise
    */
   public static boolean isDarkTheme() {
-    Preferences preferences = InstanceScope.INSTANCE.getNode("org.eclipse.e4.ui.css.swt.theme");
-    String themeCssUri = preferences.get("themeid", "");
-    if (themeCssUri.toLowerCase().contains("dark")) {
-      return true;
+    String activeThemeId = getActiveThemeIdIfThemeSupportIsAvailable();
+    if (activeThemeId != null) {
+      return activeThemeId.toLowerCase().contains("dark");
     }
-    return false;
+    // The persisted themeid preference is unreliable here: it can still hold a "...dark" value from
+    // a previous themed session while the IDE renders in its native light appearance. Sample the
+    // real background color instead.
+    return isBackgroundDark();
+  }
+
+  /**
+   * Reflectively resolves the id of the active e4 CSS theme. The theme bundle's own class loader
+   * loads the friend-restricted {@code IThemeEngine}/{@code ITheme} types, keeping the theming
+   * dependency optional. Returns {@code null} when theming is unavailable or the theme cannot be
+   * determined, so the caller can fall back.
+   */
+  private static String getActiveThemeIdIfThemeSupportIsAvailable() {
+    Bundle themeBundle = Platform.getBundle("org.eclipse.e4.ui.css.swt.theme");
+    if (themeBundle == null) {
+      return null;
+    }
+    try {
+      Class<?> themeEngineClass = themeBundle.loadClass("org.eclipse.e4.ui.css.swt.theme.IThemeEngine");
+      Object themeEngine = PlatformUI.getWorkbench().getService(themeEngineClass);
+      if (themeEngine == null) {
+        return null;
+      }
+      Object activeTheme = themeEngineClass.getMethod("getActiveTheme").invoke(themeEngine);
+      if (activeTheme == null) {
+        return null;
+      }
+      Class<?> themeClass = themeBundle.loadClass("org.eclipse.e4.ui.css.swt.theme.ITheme");
+      Object themeId = themeClass.getMethod("getId").invoke(activeTheme);
+      return themeId == null ? null : themeId.toString();
+    } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+      return null;
+    }
+  }
+
+  /**
+   * Fallback theme detection that samples the widget background color, for when no theming bundle is
+   * available. {@link Display#getSystemColor(int)} must run on the UI thread, so this reads directly
+   * when already on a UI thread and otherwise marshals via {@link Display#getDefault()}. Degrades to
+   * light when no color can be resolved.
+   */
+  private static boolean isBackgroundDark() {
+    Display current = Display.getCurrent();
+    if (current != null && !current.isDisposed()) {
+      return isDark(current.getSystemColor(SWT.COLOR_WIDGET_BACKGROUND).getRGB());
+    }
+    Display display = Display.getDefault();
+    if (display == null || display.isDisposed()) {
+      return false;
+    }
+    RGB[] holder = new RGB[1];
+    display.syncExec(() -> {
+      if (!display.isDisposed()) {
+        holder[0] = display.getSystemColor(SWT.COLOR_WIDGET_BACKGROUND).getRGB();
+      }
+    });
+    return holder[0] != null && isDark(holder[0]);
+  }
+
+  /**
+   * Decides whether a color is dark based on its perceived brightness (luma).
+   *
+   * <p>Uses the ITU-R BT.601 luma coefficients (0.299 R, 0.587 G, 0.114 B), which sum to 1.0 so the
+   * result stays in the 0-255 range; values below the mid-point (128) are treated as dark. See
+   * <a href="https://www.itu.int/rec/R-REC-BT.601">ITU-R Recommendation BT.601</a>.
+   *
+   * @param rgb the color to evaluate
+   * @return true if the color is dark, false otherwise
+   */
+  static boolean isDark(RGB rgb) {
+    double luminance = 0.299 * rgb.red + 0.587 * rgb.green + 0.114 * rgb.blue;
+    return luminance < 128;
   }
 
   /**
