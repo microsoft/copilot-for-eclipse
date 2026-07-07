@@ -35,7 +35,8 @@ import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.e4.ui.css.swt.theme.ITheme;
+import org.eclipse.e4.ui.css.swt.theme.IThemeEngine;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
@@ -88,7 +89,6 @@ import org.eclipse.ui.navigator.CommonViewer;
 import org.eclipse.ui.part.IShowInTarget;
 import org.eclipse.ui.part.ShowInContext;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.osgi.service.prefs.Preferences;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -505,10 +505,15 @@ public class UiUtils {
    * @return true if dark theme is active, false otherwise
    */
   public static boolean isDarkTheme() {
-    Preferences preferences = InstanceScope.INSTANCE.getNode("org.eclipse.e4.ui.css.swt.theme");
-    String themeCssUri = preferences.get("themeid", "");
-    if (themeCssUri.toLowerCase().contains("dark")) {
-      return true;
+    IThemeEngine engine = PlatformUI.getWorkbench().getService(IThemeEngine.class);
+    if (engine != null) {
+      ITheme activeTheme = engine.getActiveTheme();
+      if (activeTheme != null) {
+        String themeCssUri = activeTheme.getId();
+        if (themeCssUri != null && themeCssUri.toLowerCase().contains("dark")) {
+          return true;
+        }
+      }
     }
     return false;
   }

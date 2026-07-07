@@ -24,7 +24,8 @@ Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui
 Bundle-ActivationPolicy: lazy
-Import-Package: org.osgi.framework;version="[1.10.0,2.0.0)"
+Import-Package: org.eclipse.e4.ui.css.swt.theme,
+ org.osgi.framework;version="[1.10.0,2.0.0)"
 Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.19.0",
  com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.19.0",
  org.eclipse.ui.ide;bundle-version="3.22.0",
