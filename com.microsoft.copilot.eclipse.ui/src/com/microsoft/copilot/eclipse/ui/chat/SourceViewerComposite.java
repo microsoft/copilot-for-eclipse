@@ -252,7 +252,7 @@ public class SourceViewerComposite extends Composite {
     // remove scroll-bar height
     ScrollBar horizontalBar = textWidget.getHorizontalBar();
     int scrollbarHeight = horizontalBar != null ? horizontalBar.getSize().y : 0;
-    return textSize.y - scrollbarHeight;
+    return Math.max(0, textSize.y - scrollbarHeight);
   }
 
   private void insert(Event e) {
