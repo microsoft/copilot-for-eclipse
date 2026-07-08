@@ -213,6 +213,23 @@ public class SourceViewerComposite extends Composite {
     return result;
   }
 
+  @Override
+  public Point computeSize(int widthHint, int heightHint, boolean changed) {
+    if (this.sourceViewer == null) {
+      return super.computeSize(widthHint, heightHint, changed);
+    }
+
+    StyledText textWidget = this.sourceViewer.getTextWidget();
+    if (textWidget == null || textWidget.isDisposed()) {
+      return super.computeSize(widthHint, heightHint, changed);
+    }
+
+    Point textSize = textWidget.computeSize(widthHint, SWT.DEFAULT, changed);
+    int width = widthHint == SWT.DEFAULT ? textSize.x : widthHint;
+    int height = heightHint == SWT.DEFAULT ? getSourceViewerHeight(textWidget, textSize) : heightHint;
+    return new Point(Math.max(0, width), Math.max(0, height));
+  }
+
   private void refreshScrollerLayout() {
     if (this.sourceViewer == null) {
       return;
@@ -224,14 +241,18 @@ public class SourceViewerComposite extends Composite {
       }
       Point size = textWidget.computeSize(SWT.DEFAULT, SWT.DEFAULT);
       Rectangle clientArea = this.getClientArea();
-      // remove scroll-bar height
-      ScrollBar horizontalBar = textWidget.getHorizontalBar();
-      int scrollbarHeight = horizontalBar != null ? horizontalBar.getSize().y : 0;
-      int height = size.y - scrollbarHeight;
+      int height = getSourceViewerHeight(textWidget, size);
       // Set bounds on SourceViewer's control (the direct child), not just the textWidget
       this.sourceViewer.getControl().setBounds(0, 0, clientArea.width, height);
       textWidget.redraw();
     });
+  }
+
+  private int getSourceViewerHeight(StyledText textWidget, Point textSize) {
+    // remove scroll-bar height
+    ScrollBar horizontalBar = textWidget.getHorizontalBar();
+    int scrollbarHeight = horizontalBar != null ? horizontalBar.getSize().y : 0;
+    return textSize.y - scrollbarHeight;
   }
 
   private void insert(Event e) {
