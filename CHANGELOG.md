@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.20.0
+### Added
+- Support organization-enabled custom (BYOK) models automatically in the model picker. [PR#333](https://github.com/microsoft/copilot-for-eclipse/pull/333)
+
+### Changed
+- Move Copilot Menu to the left of the Help menu. [#287](https://github.com/microsoft/copilot-for-eclipse/issues/287)
+
+### Fixed
+- Chat cannot be scrolled down to see the newest messages in long conversations. [#63](https://github.com/microsoft/copilot-for-eclipse/issues/63)
+- Copilot asks read permission for a global skill file. [#318](https://github.com/microsoft/copilot-for-eclipse/issues/318)
+- Detailed model information on dropdown hover is cropped on Linux. [#113](https://github.com/microsoft/copilot-for-eclipse/issues/113), contributed by [@travkin79](https://github.com/travkin79)
+- Automatically scroll the chat view to prompts requiring user action (e.g. "Continue") in Agent mode. [#120](https://github.com/microsoft/copilot-for-eclipse/issues/120), contributed by [@raghucssit](https://github.com/raghucssit)
+- Agents become extremely slow due to expensive chat view re-layout on every streamed chunk. [#259](https://github.com/microsoft/copilot-for-eclipse/issues/259)
+- UI freezes on editor switch when the Chat view has a long conversation. [#335](https://github.com/microsoft/copilot-for-eclipse/issues/335)
+
 ## 0.19.0
 ### Added
 - Improve terminal command execution across Windows and Linux. [PR#247](https://github.com/microsoft/copilot-for-eclipse/pull/247)

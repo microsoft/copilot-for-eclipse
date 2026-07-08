@@ -1,3 +1,24 @@
+# GitHub Copilot 0.20.0 Release Notes
+
+### Organization-Level Custom Models
+Copilot for Eclipse now supports organization-enabled custom models in the model picker. If your organization has configured custom models, they appear automatically so you can select them alongside Copilot's built-in models.
+
+![Custom Model](0.20.0/custom-model.png)
+
+---
+
+### Faster and More Reliable Chat Rendering
+The chat view now renders long and streaming conversations more efficiently, reducing slowdowns during agent sessions and editor switches.
+
+This release also includes chat fixes so long conversations scroll correctly to the newest messages, prompts that need user action are brought into view automatically, and model details display better on Linux.
+
+---
+
+### Copilot Menu on the Left
+The Copilot menu has moved to the left side of the Eclipse menu bar, immediately before the Help menu.
+
+---
+
 # GitHub Copilot 0.19.0 Release Notes
 
 ### Agent Tool Auto-Approve Controls
@@ -66,34 +87,3 @@ For models that support reasoning, the chat view now displays thinking blocks so
 You can now choose the thinking effort level for supported models. Dial the reasoning depth up for complex problems or keep it light for quick tasks — giving you control over the trade-off between latency and answer quality.
 
 ![Selectable Thinking Effort](0.18.0/thinking_effort.png)
-
----
-
-# GitHub Copilot 0.17.0 Release Notes
-
-### GitHub Copilot for Eclipse Is Now Open Source
-We're thrilled to share that GitHub Copilot for Eclipse is now open source! The full source code is available on GitHub at [microsoft/copilot-for-eclipse](https://github.com/microsoft/copilot-for-eclipse). Browse the code, file issues, and send pull requests — we'd love to build the plugin together with the Eclipse community. Your feedback and contributions help shape what comes next.
-
----
-
-### Refreshed Chat View with a New Combo Picker
-The chat view has been refreshed with a brand-new combo picker for selecting chat modes and models, with more information surfaced for each model.
-
-![New Combo Picker](0.17.0/new_combo_picker.png)
-
----
-
-### Session Context Window Usage at a Glance
-Ever wonder how much of the conversation's context window has been consumed? The chat view now shows a context size donut indicator alongside the input area, with a popup that breaks down token usage for the current session. Auto compression is coming next.
-
-![Context Window Usage](0.17.0/context_window_usage.png)
-
----
-
-### Custom Models (BYOK) for Copilot Business and Enterprise
-Bring Your Own Key (BYOK) is now available to GitHub Copilot Business and Enterprise users — in addition to Individual users — when enabled by their organization. Once your organization turns it on, you can configure your own API keys for supported providers and use the custom models directly in Copilot chat in Eclipse. If you don't see custom models enabled, reach out to your organization's administrator to turn the feature on.
-
----
-
-### Better ABAP Support
-This release brings improved support for ABAP development in Eclipse. Copilot now provides more accurate and context-aware chat responses for ABAP projects, and it can read directories and search within the locally cached files.
