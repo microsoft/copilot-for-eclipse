@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -83,6 +86,7 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   private WatchedFileManager watchedFileManager;
 
   private IEventBroker eventBroker;
+  private final Executor readFileExecutor;
 
   private static final String SIGNUP_URL = "https://github.com/github-copilot/signup";
 
@@ -90,6 +94,11 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    * Constructor for CopilotLanguageClient.
    */
   public CopilotLanguageClient() {
+    this(ForkJoinPool.commonPool());
+  }
+
+  CopilotLanguageClient(Executor readFileExecutor) {
+    this.readFileExecutor = readFileExecutor;
     this.eventBroker = EclipseContextFactory.getServiceContext(FrameworkUtil.getBundle(getClass()).getBundleContext())
         .get(IEventBroker.class);
   }
@@ -126,11 +135,16 @@ public class CopilotLanguageClient extends LanguageClientImpl {
         }
 
         IFile file = fileService.getCurrentFile();
-        if (file == null) {
-          break;
+        if (file != null) {
+          String uri = FileUtils.getResourceUri(file);
+          return CompletableFuture.completedFuture(new Object[] { new CurrentEditorContext(uri), null });
         }
-        String uri = FileUtils.getResourceUri(file);
-        return CompletableFuture.completedFuture(new Object[] { new CurrentEditorContext(uri), null });
+
+        String uri = fileService.getCurrentEditorUri();
+        if (StringUtils.isNotBlank(uri)) {
+          return CompletableFuture.completedFuture(new Object[] { new CurrentEditorContext(uri), null });
+        }
+        break;
       default:
         break;
     }
@@ -412,7 +426,29 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    */
   @JsonRequest("workspace/readFile")
   public CompletableFuture<ReadFileResult> readFile(String uri) {
-    return CompletableFuture.supplyAsync(() -> FileUtils.readFileWithStats(uri));
+    IReferencedFileService fileService = getReferencedFileService();
+    return CompletableFuture.supplyAsync(() -> {
+      ReadFileResult result = FileUtils.readFileWithStats(uri);
+      if (!shouldFallbackToCurrentEditor(uri)) {
+        return result;
+      }
+
+      ReadFileResult currentEditorResult = fileService != null ? fileService.readCurrentEditor(uri) : null;
+      return currentEditorResult != null ? currentEditorResult : result;
+    }, readFileExecutor);
+  }
+
+  private static boolean shouldFallbackToCurrentEditor(String uri) {
+    return FileUtils.getFileFromUri(uri) == null;
+  }
+
+  private static IReferencedFileService getReferencedFileService() {
+    CopilotCore plugin = CopilotCore.getPlugin();
+    if (plugin == null || plugin.getChatServiceManager() == null) {
+      return null;
+    }
+
+    return plugin.getChatServiceManager().getReferencedFileService();
   }
 
   /**

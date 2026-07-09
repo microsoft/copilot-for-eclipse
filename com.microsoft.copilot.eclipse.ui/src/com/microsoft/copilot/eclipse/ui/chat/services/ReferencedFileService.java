@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +36,10 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.FileStat;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
 import com.microsoft.copilot.eclipse.ui.chat.CurrentReferencedFile;
@@ -47,6 +49,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Service to manage the referenced file in the chat view.
  */
 public class ReferencedFileService extends ChatBaseService implements IReferencedFileService {
+
+  private static final String VISIBLE_EDITOR_URI_PREFIX = "copilot-visible-editor://current/";
 
   private IObservableValue<IFile> currentFileObservable;
   private IObservableValue<Boolean> isCurrentFileVisibleObservable;
@@ -65,6 +69,10 @@ public class ReferencedFileService extends ChatBaseService implements IReference
   private IPartListener2 listener;
   private ISelectionChangedListener selectionListener;
   private ITextEditor currentTrackedEditor;
+  private final Object currentEditorLock = new Object();
+  private long currentEditorSequence;
+  @Nullable
+  private VisibleEditorSnapshot currentEditorSnapshot;
 
   /**
    * Creates a new ReferencedFileService.
@@ -111,6 +119,9 @@ public class ReferencedFileService extends ChatBaseService implements IReference
             currentFileObservable.setValue(null);
             currentSelectionObservable.setValue(null);
           });
+          clearCurrentEditorSnapshot();
+        } else {
+          updateCurrentReferencedFile(UiUtils.getActiveEditor());
         }
         untrackSelectionInEditor(partRef);
       }
@@ -126,6 +137,36 @@ public class ReferencedFileService extends ChatBaseService implements IReference
           Boolean.TRUE.equals(isCurrentFileVisibleObservable.getValue()) ? currentFileObservable.getValue() : null);
     });
     return result.get();
+  }
+
+  @Override
+  @Nullable
+  public String getCurrentEditorUri() {
+    final AtomicReference<String> result = new AtomicReference<>();
+    ensureRealm(() -> {
+      if (!Boolean.TRUE.equals(isCurrentFileVisibleObservable.getValue())) {
+        result.set(null);
+        return;
+      }
+      synchronized (currentEditorLock) {
+        result.set(currentEditorSnapshot != null ? currentEditorSnapshot.uri : null);
+      }
+    });
+    return result.get();
+  }
+
+  @Override
+  @Nullable
+  public ReadFileResult readCurrentEditor(String uri) {
+    VisibleEditorSnapshot snapshot;
+    synchronized (currentEditorLock) {
+      snapshot = currentEditorSnapshot;
+    }
+    if (snapshot == null || !snapshot.uri.equals(uri)) {
+      return null;
+    }
+
+    return createReadFileResult(snapshot.text);
   }
 
   @Override
@@ -481,12 +522,14 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   private void updateCurrentReferencedFile(IEditorPart editorPart) {
     if (editorPart == null) {
+      clearCurrentEditorSnapshot();
       updateObservable(currentFileObservable, null);
       return;
     }
 
     ITextEditor textEditor = editorPart.getAdapter(ITextEditor.class);
     if (textEditor == null) {
+      clearCurrentEditorSnapshot();
       updateObservable(currentFileObservable, null);
       return;
     }
@@ -495,17 +538,55 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     // be added to the current file. See: https://github.com/microsoft/copilot-eclipse/issues/884
     // TODO: Support other types of editors.
     IDocument document = LSPEclipseUtils.getDocument(textEditor);
-    if (document == null || LSPEclipseUtils.toUri(document) == null) {
+    if (document == null) {
+      clearCurrentEditorSnapshot();
       updateObservable(currentFileObservable, null);
       return;
     }
 
     IFile currentFile = UiUtils.getCurrentFile();
-    if (FileUtils.isExcludedFromCurrentFile(currentFile)) {
-      currentFile = null;
+    if (currentFile != null) {
+      if (FileUtils.isExcludedFromCurrentFile(currentFile) || LSPEclipseUtils.toUri(document) == null) {
+        clearCurrentEditorSnapshot();
+        updateObservable(currentFileObservable, null);
+        return;
+      }
+
+      clearCurrentEditorSnapshot();
+      updateObservable(currentFileObservable, currentFile);
+      return;
     }
 
-    updateObservable(currentFileObservable, currentFile);
+    clearCurrentFileObservable();
+    updateCurrentEditorSnapshot(textEditor, document.get());
+  }
+
+  private void clearCurrentFileObservable() {
+    ensureRealm(() -> currentFileObservable.setValue(null));
+  }
+
+  private void updateCurrentEditorSnapshot(ITextEditor textEditor, String text) {
+    synchronized (currentEditorLock) {
+      if (currentEditorSnapshot != null && currentEditorSnapshot.editor == textEditor) {
+        currentEditorSnapshot = new VisibleEditorSnapshot(currentEditorSnapshot.uri, textEditor, text);
+        return;
+      }
+
+      currentEditorSnapshot = new VisibleEditorSnapshot(
+          VISIBLE_EDITOR_URI_PREFIX + Long.toUnsignedString(++currentEditorSequence), textEditor, text);
+    }
+  }
+
+  private void clearCurrentEditorSnapshot() {
+    synchronized (currentEditorLock) {
+      currentEditorSnapshot = null;
+    }
+  }
+
+  private ReadFileResult createReadFileResult(String text) {
+    FileStat stat = new FileStat();
+    stat.setSize(text.getBytes(StandardCharsets.UTF_8).length);
+    return new ReadFileResult(text, stat);
   }
 
   /**
@@ -526,6 +607,18 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     IWorkbenchWindow[] windows = PlatformUI.getWorkbench().getWorkbenchWindows();
     for (IWorkbenchWindow window : windows) {
       window.getPartService().removePartListener(this.listener);
+    }
+  }
+
+  private static class VisibleEditorSnapshot {
+    private final String uri;
+    private final ITextEditor editor;
+    private final String text;
+
+    VisibleEditorSnapshot(String uri, ITextEditor editor, String text) {
+      this.uri = uri;
+      this.editor = editor;
+      this.text = text;
     }
   }
 
