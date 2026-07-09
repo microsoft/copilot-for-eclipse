@@ -225,8 +225,9 @@ public class SourceViewerComposite extends Composite {
     }
 
     Point textSize = textWidget.computeSize(widthHint, SWT.DEFAULT, changed);
-    int width = widthHint == SWT.DEFAULT ? textSize.x : widthHint;
-    int height = heightHint == SWT.DEFAULT ? getSourceViewerHeight(textWidget, textSize) : heightHint;
+    Rectangle trim = computeTrim(0, 0, textSize.x, getSourceViewerHeight(textWidget, textSize));
+    int width = widthHint == SWT.DEFAULT ? trim.width : widthHint;
+    int height = heightHint == SWT.DEFAULT ? trim.height : heightHint;
     return new Point(Math.max(0, width), Math.max(0, height));
   }
 
