@@ -62,9 +62,9 @@ the language server. Concretely:
 - **Simpler, correct behavior.** Sub-agents are available to every user unless
   the organization policy forbids them, enforced in one authoritative place.
   This also fixes the fresh-user "advertised `false`" bug.
-- **No client-side opt-out.** A user who previously disabled sub-agents via the
-  toggle will now have them enabled (subject to org policy). This is the intended
-  outcome of "always enable".
+- **No dedicated client-side opt-out.** The `subAgentEnabled` toggle is removed; the client always advertises `subAgent`.
+  Users who previously disabled sub-agents via the toggle may still have a persisted `mcpToolsModeStatus` override for
+  `run_subagent` and may need to reset their MCP tool settings to re-enable it (subject to org policy).
 - **Server dependency.** Correct behavior now relies on the server continuing to
   gate `run_subagent` on `subagent.enabled`. If a future server regressed that
   gate, the client would no longer provide a second line of defense.
