@@ -55,7 +55,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     NameAndVersion editorPluginInfo = new NameAndVersion(EDITOR_PLUGIN_NAME, bundleVersion);
     List<String> supportedUriSchemes = PlatformUtils.getSupportedUriSchemes();
     CopilotCapabilities capabilities = new CopilotCapabilities(false, FeatureFlags.isWorkspaceContextEnabled(),
-        FeatureFlags.isSubAgentEnabled(), supportedUriSchemes);
+        true /*isSubAgentEnabled*/, supportedUriSchemes);
     return new InitializationOptions(editorInfo, editorPluginInfo, capabilities);
   }
 
