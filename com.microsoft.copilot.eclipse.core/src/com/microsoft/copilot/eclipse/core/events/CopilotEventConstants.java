@@ -92,6 +92,11 @@ public class CopilotEventConstants {
   public static final String TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY = TOPIC_POLICY + "CUSTOM_AGENT_ENABLED";
 
   /**
+   * Event when the Auto model policy flag is updated.
+   */
+  public static final String TOPIC_DID_CHANGE_AUTO_MODEL_POLICY = TOPIC_POLICY + "AUTO_MODEL_ENABLED";
+
+  /**
    * Event when the chat mode is changed.
    */
   public static final String TOPIC_CHAT_MODE_CHANGED = TOPIC_CHAT + "MODE_CHANGED";

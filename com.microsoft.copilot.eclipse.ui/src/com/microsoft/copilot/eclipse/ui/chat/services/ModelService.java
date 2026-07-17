@@ -50,8 +50,6 @@ import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
  */
 public class ModelService extends ChatBaseService {
 
-  private static final String AUTO_MODEL_ID = "auto";
-
   // models for the model picker
   private IObservableValue<Map<String, CopilotModel>> modelObservable;
   private IObservableValue<CopilotModel> activeModelObservable;
@@ -73,6 +71,7 @@ public class ModelService extends ChatBaseService {
   private EventHandler chatModeChangedEventHandler;
   private EventHandler byokModelsUpdatedEventHandler;
   private EventHandler featureFlagsChangedEventHandler;
+  private EventHandler autoModelPolicyChangedEventHandler;
   private EventHandler customModeModelChangedEventHandler;
 
   /**
@@ -132,6 +131,13 @@ public class ModelService extends ChatBaseService {
       }
     };
 
+    autoModelPolicyChangedEventHandler = event -> {
+      Object property = event.getProperty(IEventBroker.DATA);
+      if (property instanceof Boolean) {
+        initializeModels();
+      }
+    };
+
     customModeModelChangedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof String modelNameWithFamily) {
@@ -159,6 +165,8 @@ public class ModelService extends ChatBaseService {
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, chatModeChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_BYOK_MODELS_UPDATED, byokModelsUpdatedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagsChangedEventHandler);
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_AUTO_MODEL_POLICY,
+          autoModelPolicyChangedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_CUSTOM_MODE_MODEL_CHANGED,
           customModeModelChangedEventHandler);
     } else {
@@ -193,27 +201,26 @@ public class ModelService extends ChatBaseService {
   private void fetchCopilotModels() throws InterruptedException, ExecutionException {
     CopilotModel[] modelArray = lsConnection.listModels().get();
     Map<String, CopilotModel> newModels = new HashMap<>();
+    CopilotModel newDefaultModel = null;
+    CopilotModel newFallbackModel = null;
 
     for (CopilotModel model : modelArray) {
-      // TODO: remove it once CLS supports filtering models by preview flag
-      if (!CopilotCore.getPlugin().getFeatureFlags().isClientPreviewFeatureEnabled()
-          && AUTO_MODEL_ID.equals(model.getId())) {
-        continue;
-      }
       boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
       boolean supportsAgent = model.getScopes().contains(CopilotScope.AGENT_PANEL);
       if (supportsChat || supportsAgent) {
         newModels.put(model.getModelKey(), model);
       }
       if (model.isChatDefault()) {
-        defaultModel = model;
+        newDefaultModel = model;
       }
       if (model.isChatFallback()) {
-        fallbackModel = model;
+        newFallbackModel = model;
       }
     }
 
     copilotModels = newModels;
+    defaultModel = newDefaultModel;
+    fallbackModel = newFallbackModel;
   }
 
   private void fetchByokModels() throws InterruptedException, ExecutionException {
@@ -245,7 +252,7 @@ public class ModelService extends ChatBaseService {
     }
 
     if (defaultModel != null) {
-      return defaultModel.getId();
+      return defaultModel.getModelKey();
     }
 
     return null;
@@ -274,7 +281,7 @@ public class ModelService extends ChatBaseService {
     ensureRealm(() -> {
       modelObservable.setValue(modelsForCurrentMode);
       // Validate and set active model for the current mode
-      validateAndSetActiveModelForMode(modelsForCurrentMode, scope);
+      validateAndSetActiveModelForMode(modelsForCurrentMode);
     });
   }
 
@@ -282,7 +289,7 @@ public class ModelService extends ChatBaseService {
    * Validate and set the appropriate active model for the current chat mode. This method handles the logic of restoring
    * user preference or falling back to default.
    */
-  private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode, String scope) {
+  private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode) {
     CopilotModel currentActive = getActiveModel();
     boolean isCurrentModelAvailable = currentActive != null
         && modelsForCurrentMode.containsKey(currentActive.getModelKey());
@@ -293,12 +300,28 @@ public class ModelService extends ChatBaseService {
         ensureRealm(() -> activeModelObservable.setValue(modelsForCurrentMode.get(restoredModelId)));
         return;
       }
-      // fall back the first available model in the current mode
-      if (!modelsForCurrentMode.isEmpty()) {
-        CopilotModel firstModel = modelsForCurrentMode.values().iterator().next();
-        ensureRealm(() -> activeModelObservable.setValue(firstModel));
+      CopilotModel replacementModel = selectReplacementModel(modelsForCurrentMode);
+      if (replacementModel != null) {
+        ensureRealm(() -> activeModelObservable.setValue(replacementModel));
       }
     }
+  }
+
+  private CopilotModel selectReplacementModel(Map<String, CopilotModel> modelsForCurrentMode) {
+    if (defaultModel != null && modelsForCurrentMode.containsKey(defaultModel.getModelKey())) {
+      return defaultModel;
+    }
+    return modelsForCurrentMode.keySet().stream()
+        .sorted()
+        .findFirst()
+        .map(modelsForCurrentMode::get)
+        .orElse(null);
+  }
+
+  private void persistModelSelection(CopilotModel model) {
+    UserPreference preference = getUserPreference();
+    preference.setChatModel(model.getModelKey());
+    CompletableFuture.runAsync(this::persistUserPreference);
   }
 
   private String modeToScope(ChatMode mode) {
@@ -350,14 +373,11 @@ public class ModelService extends ChatBaseService {
     }
     model = foundModel;
     if (model != null && compositeKey != null) {
-      // Persist using the composite key for proper identification
-      UserPreference preference = getUserPreference();
-      preference.setChatModel(compositeKey);
       // Persist asynchronously to avoid deadlock: persistUserPreference() calls
       // persistence().get() which blocks waiting for the LSP listener thread.
       // If called on the UI thread while the listener is in syncExec, both threads
       // deadlock.
-      CompletableFuture.runAsync(this::persistUserPreference);
+      persistModelSelection(model);
 
       // Update observable
       ensureRealm(() -> activeModelObservable.setValue(model));
@@ -657,6 +677,7 @@ public class ModelService extends ChatBaseService {
       eventBroker.unsubscribe(chatModeChangedEventHandler);
       eventBroker.unsubscribe(byokModelsUpdatedEventHandler);
       eventBroker.unsubscribe(featureFlagsChangedEventHandler);
+      eventBroker.unsubscribe(autoModelPolicyChangedEventHandler);
       eventBroker.unsubscribe(customModeModelChangedEventHandler);
       eventBroker = null;
     }

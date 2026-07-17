@@ -356,6 +356,12 @@ public class CopilotLanguageClient extends LanguageClientImpl {
         eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY, params.isCustomAgentEnabled());
       }
       flags.setAutoApprovalPolicyEnabled(params.isAutoApprovalPolicyEnabled());
+      if (flags.isAutoModelPolicyEnabled() != params.isAutoModelEnabled()) {
+        flags.setAutoModelPolicyEnabled(params.isAutoModelEnabled());
+        if (eventBroker != null) {
+          eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_AUTO_MODEL_POLICY, params.isAutoModelEnabled());
+        }
+      }
     }
   }
 

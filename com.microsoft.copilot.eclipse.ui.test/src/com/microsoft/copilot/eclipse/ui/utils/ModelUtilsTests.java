@@ -132,7 +132,8 @@ class ModelUtilsTests {
   @Test
   void testSupportsReasoningEffortLevel_falseForAutoModel() {
     CopilotModel model = new CopilotModel();
-    model.setModelName("Auto");
+    model.setId("auto");
+    model.setModelName("Automatic");
     // Even if the server were to advertise the capability, the Auto model routes to other models and does not
     // own its own effort selection.
     model.setCapabilities(new CopilotModelCapabilities(
@@ -173,18 +174,29 @@ class ModelUtilsTests {
   }
 
   @Test
-  void testIsAutoModel() {
+  void testGetModelSuffix_autoUsesStableModelId() {
     CopilotModel auto = new CopilotModel();
-    auto.setModelName("Auto");
+    auto.setId("auto");
+    auto.setModelName("Automatic");
+    assertEquals("Variable", ModelUtils.getModelSuffix(auto, null));
+
+    CopilotModel matchingDisplayName = new CopilotModel();
+    matchingDisplayName.setId("gpt-5");
+    matchingDisplayName.setModelName("Auto");
+    assertEquals("", ModelUtils.getModelSuffix(matchingDisplayName, null));
+  }
+
+  @Test
+  void testIsAutoModel_usesStableModelId() {
+    CopilotModel auto = new CopilotModel();
+    auto.setId("auto");
+    auto.setModelName("Automatic");
     assertTrue(ModelUtils.isAutoModel(auto));
 
-    CopilotModel autoLower = new CopilotModel();
-    autoLower.setModelName("auto");
-    assertFalse(ModelUtils.isAutoModel(autoLower));
-
-    CopilotModel other = new CopilotModel();
-    other.setModelName("gpt-5");
-    assertFalse(ModelUtils.isAutoModel(other));
+    CopilotModel matchingDisplayName = new CopilotModel();
+    matchingDisplayName.setId("gpt-5");
+    matchingDisplayName.setModelName("Auto");
+    assertFalse(ModelUtils.isAutoModel(matchingDisplayName));
 
     assertFalse(ModelUtils.isAutoModel(null));
   }

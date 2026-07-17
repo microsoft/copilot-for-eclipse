@@ -352,7 +352,7 @@ public class ModelUtils {
    * @return {@code true} when the model is the Auto model
    */
   public static boolean isAutoModel(CopilotModel model) {
-    return model != null && "Auto".equals(model.getModelName());
+    return model != null && "auto".equals(model.getId());
   }
 
   /**

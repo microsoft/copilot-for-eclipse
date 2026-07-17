@@ -26,6 +26,8 @@ public class FeatureFlags {
 
   private boolean autoApprovalPolicyEnabled = true;
 
+  private boolean autoModelPolicyEnabled = true;
+
   public boolean isAgentModeEnabled() {
     return agentModeEnabled;
   }
@@ -83,6 +85,14 @@ public class FeatureFlags {
 
   public void setAutoApprovalPolicyEnabled(boolean autoApprovalPolicyEnabled) {
     this.autoApprovalPolicyEnabled = autoApprovalPolicyEnabled;
+  }
+
+  public boolean isAutoModelPolicyEnabled() {
+    return autoModelPolicyEnabled;
+  }
+
+  public void setAutoModelPolicyEnabled(boolean autoModelPolicyEnabled) {
+    this.autoModelPolicyEnabled = autoModelPolicyEnabled;
   }
 
   public boolean isClientPreviewFeatureEnabled() {
