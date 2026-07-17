@@ -308,8 +308,11 @@ public class ModelService extends ChatBaseService {
   }
 
   private CopilotModel selectReplacementModel(Map<String, CopilotModel> modelsForCurrentMode) {
-    if (defaultModel != null && modelsForCurrentMode.containsKey(defaultModel.getModelKey())) {
-      return defaultModel;
+    if (defaultModel != null) {
+      CopilotModel availableDefaultModel = modelsForCurrentMode.get(defaultModel.getModelKey());
+      if (availableDefaultModel != null) {
+        return availableDefaultModel;
+      }
     }
     return modelsForCurrentMode.keySet().stream()
         .sorted()

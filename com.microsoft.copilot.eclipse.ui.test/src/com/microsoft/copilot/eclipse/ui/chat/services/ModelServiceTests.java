@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -162,6 +163,28 @@ class ModelServiceTests {
 
     waitUntil(() -> firstModel.getId().equals(getActiveModelId()));
     assertPersistedModelRemains(autoModel.getModelKey());
+  }
+
+  @Test
+  void testDefaultKeyCollisionSelectsModelFromCurrentInventory() throws IOException, InterruptedException {
+    CopilotModel defaultModel = createModel("gpt-4o", "Default", true);
+    CopilotModel inventoryModel = createModel("gpt-4o", "Inventory", false);
+    writePersistedModel("unavailable-model");
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, inventoryModel }));
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+    waitUntil(() -> isModelAvailable(defaultModel.getModelKey()));
+
+    AtomicReference<CopilotModel> activeModel = new AtomicReference<>();
+    AtomicReference<CopilotModel> pickerModel = new AtomicReference<>();
+    Display.getDefault().syncExec(() -> {
+      activeModel.set(modelService.getActiveModel());
+      pickerModel.set(modelService.getModels().get(defaultModel.getModelKey()));
+    });
+
+    assertSame(inventoryModel, pickerModel.get());
+    assertSame(pickerModel.get(), activeModel.get());
   }
 
   private static CopilotModel createModel(String id, String name, boolean isChatDefault) {
