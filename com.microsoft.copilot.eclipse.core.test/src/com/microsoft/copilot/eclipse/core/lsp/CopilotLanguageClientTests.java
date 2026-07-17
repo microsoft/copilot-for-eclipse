@@ -39,6 +39,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
@@ -151,7 +152,6 @@ class CopilotLanguageClientTests {
         .get(IEventBroker.class);
     assertNotNull(eventBroker);
 
-    String autoModelPolicyTopic = "com/microsoft/copilot/eclipse/POLICY/AUTO_MODEL_ENABLED";
     CountDownLatch eventReceived = new CountDownLatch(1);
     CountDownLatch duplicateEventReceived = new CountDownLatch(1);
     AtomicInteger eventCount = new AtomicInteger();
@@ -164,7 +164,7 @@ class CopilotLanguageClientTests {
         duplicateEventReceived.countDown();
       }
     };
-    eventBroker.subscribe(autoModelPolicyTopic, eventHandler);
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_DID_CHANGE_AUTO_MODEL_POLICY, eventHandler);
 
     DidChangePolicyParams params = new Gson().fromJson("""
         {

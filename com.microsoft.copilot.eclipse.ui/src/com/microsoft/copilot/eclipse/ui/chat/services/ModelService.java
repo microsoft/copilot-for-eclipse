@@ -295,9 +295,9 @@ public class ModelService extends ChatBaseService {
         && modelsForCurrentMode.containsKey(currentActive.getModelKey());
     if (currentActive == null || !isCurrentModelAvailable) {
       // Try to restore user's preferred model if it's available in current mode
-      String restoredModelId = restoreActiveModel();
-      if (restoredModelId != null && modelsForCurrentMode.containsKey(restoredModelId)) {
-        ensureRealm(() -> activeModelObservable.setValue(modelsForCurrentMode.get(restoredModelId)));
+      String restoredModelKey = restoreActiveModel();
+      if (restoredModelKey != null && modelsForCurrentMode.containsKey(restoredModelKey)) {
+        ensureRealm(() -> activeModelObservable.setValue(modelsForCurrentMode.get(restoredModelKey)));
         return;
       }
       CopilotModel replacementModel = selectReplacementModel(modelsForCurrentMode);
@@ -359,20 +359,11 @@ public class ModelService extends ChatBaseService {
   public void setActiveModel(String modelName) {
     Map<String, CopilotModel> currentModels = modelObservable.getValue();
 
-    // Find model by model name and get its composite key
-    String compositeKey = null;
-    final CopilotModel model;
-    CopilotModel foundModel = null;
-
-    for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
-      if (entry.getValue().getModelName().equals(modelName)) {
-        compositeKey = entry.getKey();
-        foundModel = entry.getValue();
-        break;
-      }
-    }
-    model = foundModel;
-    if (model != null && compositeKey != null) {
+    final CopilotModel model = currentModels.values().stream()
+        .filter(candidateModel -> candidateModel.getModelName().equals(modelName))
+        .findFirst()
+        .orElse(null);
+    if (model != null) {
       // Persist asynchronously to avoid deadlock: persistUserPreference() calls
       // persistence().get() which blocks waiting for the LSP listener thread.
       // If called on the UI thread while the listener is in syncExec, both threads
