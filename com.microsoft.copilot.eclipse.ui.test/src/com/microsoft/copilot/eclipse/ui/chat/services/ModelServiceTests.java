@@ -166,6 +166,29 @@ class ModelServiceTests {
   }
 
   @Test
+  void testAutoPolicyReEnableRestoresPersistedAutoPreference() throws IOException, InterruptedException {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    CopilotModel autoModel = createModel("auto", "Auto", false);
+    writePersistedModel(autoModel.getModelKey());
+    when(lsConnection.listModels()).thenReturn(
+        CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, autoModel }),
+        CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }),
+        CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, autoModel }));
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+    waitUntil(() -> autoModel.getId().equals(getActiveModelId()));
+
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    assertNotNull(eventBroker);
+    eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_AUTO_MODEL_POLICY, Boolean.FALSE);
+    waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
+
+    eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_AUTO_MODEL_POLICY, Boolean.TRUE);
+
+    waitUntil(() -> autoModel.getId().equals(getActiveModelId()));
+  }
+
+  @Test
   void testDefaultKeyCollisionSelectsModelFromCurrentInventory() throws IOException, InterruptedException {
     CopilotModel defaultModel = createModel("gpt-4o", "Default", true);
     CopilotModel inventoryModel = createModel("gpt-4o", "Inventory", false);

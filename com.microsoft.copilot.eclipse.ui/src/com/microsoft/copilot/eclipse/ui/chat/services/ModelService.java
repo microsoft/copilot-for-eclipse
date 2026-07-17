@@ -291,15 +291,18 @@ public class ModelService extends ChatBaseService {
    */
   private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode) {
     CopilotModel currentActive = getActiveModel();
+    String restoredModelKey = restoreActiveModel();
+    CopilotModel restoredModel = restoredModelKey == null ? null : modelsForCurrentMode.get(restoredModelKey);
+    if (restoredModel != null) {
+      if (currentActive != restoredModel) {
+        ensureRealm(() -> activeModelObservable.setValue(restoredModel));
+      }
+      return;
+    }
+
     boolean isCurrentModelAvailable = currentActive != null
         && modelsForCurrentMode.containsKey(currentActive.getModelKey());
     if (currentActive == null || !isCurrentModelAvailable) {
-      // Try to restore user's preferred model if it's available in current mode
-      String restoredModelKey = restoreActiveModel();
-      if (restoredModelKey != null && modelsForCurrentMode.containsKey(restoredModelKey)) {
-        ensureRealm(() -> activeModelObservable.setValue(modelsForCurrentMode.get(restoredModelKey)));
-        return;
-      }
       CopilotModel replacementModel = selectReplacementModel(modelsForCurrentMode);
       if (replacementModel != null) {
         ensureRealm(() -> activeModelObservable.setValue(replacementModel));
