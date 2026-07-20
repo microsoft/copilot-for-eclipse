@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
 
+import com.google.gson.JsonObject;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -32,6 +34,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.CopilotSettings;
+import com.microsoft.copilot.eclipse.core.utils.GsonUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
@@ -73,6 +76,29 @@ class LanguageServerSettingManagerTests {
 
     // assert
     verify(mockLsConnection, times(1)).updateConfig(params);
+  }
+
+  @Test
+  void testSyncConfigurationIncludesEmptyMcpAutoApproveList() {
+    when(mockPreferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION)).thenReturn(true);
+
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+    manager.syncConfiguration();
+
+    ArgumentCaptor<DidChangeConfigurationParams> paramsCaptor = ArgumentCaptor
+        .forClass(DidChangeConfigurationParams.class);
+    verify(mockLsConnection).updateConfig(paramsCaptor.capture());
+
+    JsonObject serializedSettings = GsonUtils.getDefault().toJsonTree(paramsCaptor.getValue().getSettings())
+        .getAsJsonObject();
+    assertTrue(serializedSettings.getAsJsonObject("github")
+        .getAsJsonObject("copilot")
+        .getAsJsonObject("agent")
+        .getAsJsonObject("tools")
+        .getAsJsonObject("mcp")
+        .getAsJsonArray("autoApprove")
+        .isEmpty());
   }
 
   @Test
