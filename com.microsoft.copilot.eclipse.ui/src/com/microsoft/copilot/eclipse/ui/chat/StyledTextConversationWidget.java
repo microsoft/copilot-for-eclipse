@@ -157,7 +157,7 @@ public class StyledTextConversationWidget implements IConversationWidget {
 
     // User turn
     if (turn instanceof UserTurnData userTurn) {
-      if (userTurn.getMessage() == null
+      if (userTurn.getMessage() != null
           || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
         BaseTurnWidget userTurnWidget =
             viewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
