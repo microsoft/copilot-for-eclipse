@@ -168,7 +168,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Create a simple note for the feature disabled case
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isMcpEnabled()) {
-      return WrappableIconLink.createWithSharedImage(parent,
+      return WrappableIconLink.create(parent,
           CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_INFO_TSK),
           Messages.preferences_page_mcp_disabled_tip);
     }
@@ -378,8 +378,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
 
     // Create info message composite using WrappableIconLink
-    registryInfoMessageComposite = WrappableIconLink.createWithCustomizedImage(mcpRegistryGroup,
-        "/icons/information.png", message);
+    registryInfoMessageComposite = WrappableIconLink.create(mcpRegistryGroup,
+        CopilotImages.getImage(CopilotImages.IMG_INFORMATION), message);
 
     // Trigger layout update on the entire hierarchy to ensure proper sizing
     mcpRegistryGroup.requestLayout();

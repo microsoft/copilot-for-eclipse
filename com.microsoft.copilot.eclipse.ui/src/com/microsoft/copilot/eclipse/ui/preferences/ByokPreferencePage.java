@@ -177,7 +177,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     disabledCompositeLayout.marginWidth = 0;
     disabledCompositeLayout.marginHeight = 0;
     disabledComposite.setLayout(disabledCompositeLayout);
-    WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
+    WrappableIconLink.create(disabledComposite, CopilotImages.getImage(CopilotImages.IMG_INFORMATION),
         Messages.preferences_page_byok_disabled_tip);
     contentComposite = createByokView(pageStateStack);
     updatePageState();

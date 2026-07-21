@@ -47,7 +47,7 @@ public class AutoApprovePreferencePage extends PreferencePage
   protected Control createContents(Composite parent) {
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isAutoApprovalEnabled()) {
-      return WrappableIconLink.createWithSharedImage(parent,
+      return WrappableIconLink.create(parent,
           CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_INFO_TSK),
           Messages.preferences_page_auto_approve_disabled_by_organization);
     }
