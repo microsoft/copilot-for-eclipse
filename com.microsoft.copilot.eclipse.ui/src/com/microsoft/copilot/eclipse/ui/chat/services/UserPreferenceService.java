@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
@@ -47,6 +48,7 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  * Service for managing chat modes and input navigation.
  */
 public class UserPreferenceService extends ChatBaseService implements CopilotAuthStatusListener {
+  private final BuiltInChatModeManager builtInChatModeManager;
   private IObservableValue<String[]> chatModeObservable;
   private IObservableValue<ChatMode> activeChatModeObservable; // Controls which view to show: Ask or Agent
   private IObservableValue<String> activeModeNameOrIdObservable; // Tracks current mode name/ID for UI elements
@@ -63,9 +65,15 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
   /**
    * Constructor for the UserPreferenceService.
+   *
+   * @param lsConnection the language server connection
+   * @param authStatusManager the authentication status manager
+   * @param builtInChatModeManager the manager for built-in chat modes
    */
-  public UserPreferenceService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
+  public UserPreferenceService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager,
+      BuiltInChatModeManager builtInChatModeManager) {
     super(lsConnection, authStatusManager);
+    this.builtInChatModeManager = Objects.requireNonNull(builtInChatModeManager);
 
     this.authStatusManager.addCopilotAuthStatusListener(this);
     ensureRealm(() -> {
@@ -89,7 +97,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         // If the user signs out, we need to clear the preference cache to avoid the current preference being used in
         // the next sign in account.
         if (statusResult.isNotSignedIn()) {
-          BuiltInChatModeManager.INSTANCE.clearModes();
+          builtInChatModeManager.clearModes();
           refreshAvailableChatModes();
           clearUserPreferenceCache();
           this.inputNavigation = null;
@@ -125,7 +133,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   private void reloadBuiltInModes() {
-    BuiltInChatModeManager.INSTANCE.reloadModes()
+    builtInChatModeManager.reloadModes()
         .thenRun(this::refreshAvailableChatModes)
         .exceptionally(ex -> {
           CopilotCore.LOGGER.error("Failed to reload built-in modes", ex);
@@ -230,7 +238,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
     // Add built-in modes from BuiltInChatModeManager
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    List<BuiltInChatMode> builtInModes = BuiltInChatModeManager.INSTANCE.getBuiltInModes();
+    List<BuiltInChatMode> builtInModes = builtInChatModeManager.getBuiltInModes();
 
     if (flags != null && !flags.isAgentModeEnabled()) {
       // When agent mode is disabled, show only Ask mode
@@ -440,7 +448,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     List<String> available = Arrays.asList(availableModeNames);
 
     List<DropdownItem> builtInItems = new ArrayList<>();
-    for (BuiltInChatMode mode : BuiltInChatModeManager.INSTANCE.getBuiltInModes()) {
+    for (BuiltInChatMode mode : builtInChatModeManager.getBuiltInModes()) {
       if (!available.contains(mode.getDisplayName())) {
         continue;
       }

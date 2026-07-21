@@ -66,7 +66,14 @@ public final class BuiltInChatModeManager {
       requestGeneration = ++loadGeneration;
     }
 
-    return service.loadBuiltInModes().thenAccept(modes -> {
+    final CompletableFuture<List<BuiltInChatMode>> modesFuture;
+    try {
+      modesFuture = service.loadBuiltInModes();
+    } catch (RuntimeException e) {
+      return CompletableFuture.failedFuture(e);
+    }
+
+    return modesFuture.thenAccept(modes -> {
       synchronized (this) {
         if (requestGeneration == loadGeneration) {
           builtInModes = List.copyOf(modes);

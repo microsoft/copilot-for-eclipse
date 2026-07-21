@@ -4,14 +4,18 @@
 package com.microsoft.copilot.eclipse.core.chat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,6 +93,23 @@ class BuiltInChatModeManagerTests {
     pendingModes.complete(List.of(createBuiltInMode(BuiltInChatMode.ASK_MODE_NAME)));
     reload.join();
 
+    assertTrue(manager.getBuiltInModes().isEmpty());
+  }
+
+  @Test
+  void testReloadModes_serviceThrowsSynchronously_returnsFailedFutureAndInvalidatesOlderLoad() {
+    CompletableFuture<List<BuiltInChatMode>> pendingModes = new CompletableFuture<>();
+    RuntimeException failure = new IllegalStateException("Synchronous load failure");
+    when(mockService.loadBuiltInModes()).thenReturn(pendingModes).thenThrow(failure);
+
+    CompletableFuture<Void> olderReload = manager.reloadModes();
+    CompletableFuture<Void> failedReload = assertDoesNotThrow(manager::reloadModes);
+
+    CompletionException exception = assertThrows(CompletionException.class, failedReload::join);
+    assertSame(failure, exception.getCause());
+
+    pendingModes.complete(List.of(createBuiltInMode(BuiltInChatMode.AGENT_MODE_NAME)));
+    olderReload.join();
     assertTrue(manager.getBuiltInModes().isEmpty());
   }
 
