@@ -21,7 +21,6 @@ import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
@@ -54,18 +53,14 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addNote(parent, Messages.preferences_page_watched_files_note_content);
     addSeparator(parent);
 
-    if (isClientPreviewFeatureEnabled()) {
-      // Add Enable Skills toggle
-      Composite skillsComposite = createSectionComposite(parent, gdf);
+    Composite skillsComposite = createSectionComposite(parent, gdf);
+    BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
+        Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
+    applyFieldWidthHint(skillsField, skillsComposite);
+    addField(skillsField);
 
-      BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
-          Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);
-      applyFieldWidthHint(skillsField, skillsComposite);
-      addField(skillsField);
-
-      addNote(parent, Messages.preferences_page_skills_enabled_note_content);
-      addSeparator(parent);
-    }
+    addNote(parent, Messages.preferences_page_skills_enabled_note_content);
+    addSeparator(parent);
 
     // Add Agent Max Requests field
     Composite agentMaxRequestsComposite = createSectionComposite(parent, gdf);
@@ -137,10 +132,5 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     gridData.horizontalSpan = 2;
     separator.setLayoutData(gridData);
-  }
-
-  private boolean isClientPreviewFeatureEnabled() {
-    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    return flags != null && flags.isClientPreviewFeatureEnabled();
   }
 }
