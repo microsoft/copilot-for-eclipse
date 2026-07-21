@@ -5,33 +5,28 @@ package com.microsoft.copilot.eclipse.core.chat;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.copilot.eclipse.core.chat.service.BuiltInChatModeService;
 
 /**
- * Singleton manager for built-in chat modes. Built-in modes are loaded once from the LSP API at startup.
+ * Singleton manager for asynchronously loaded built-in chat modes.
  */
-public enum BuiltInChatModeManager {
-  INSTANCE;
+public final class BuiltInChatModeManager {
+
+  public static final BuiltInChatModeManager INSTANCE = new BuiltInChatModeManager();
 
   private final BuiltInChatModeService service;
-  private List<BuiltInChatMode> builtInModes;
+  private volatile List<BuiltInChatMode> builtInModes;
+  private long loadGeneration;
 
-  BuiltInChatModeManager() {
-    this.service = new BuiltInChatModeService();
-    this.builtInModes = new CopyOnWriteArrayList<>();
-    loadModesSync();
+  private BuiltInChatModeManager() {
+    this(new BuiltInChatModeService());
   }
 
-  private void loadModesSync() {
-    try {
-      List<BuiltInChatMode> modes = service.loadBuiltInModes().get();
-      this.builtInModes = new CopyOnWriteArrayList<>(modes);
-    } catch (Exception e) {
-      // Initialize with empty list on failure
-      this.builtInModes = new CopyOnWriteArrayList<>();
-    }
+  BuiltInChatModeManager(BuiltInChatModeService service) {
+    this.service = service;
+    this.builtInModes = List.of();
   }
 
   public List<BuiltInChatMode> getBuiltInModes() {
@@ -62,8 +57,29 @@ public enum BuiltInChatModeManager {
   /**
    * Reloads built-in chat modes from the LSP API. This should be called when the user switches
    * to ensure the latest modes are available for the current user context.
+   *
+   * @return a future that completes after this load has been processed; stale results may be ignored
    */
-  public void reloadModes() {
-    loadModesSync();
+  public CompletableFuture<Void> reloadModes() {
+    final long requestGeneration;
+    synchronized (this) {
+      requestGeneration = ++loadGeneration;
+    }
+
+    return service.loadBuiltInModes().thenAccept(modes -> {
+      synchronized (this) {
+        if (requestGeneration == loadGeneration) {
+          builtInModes = List.copyOf(modes);
+        }
+      }
+    });
+  }
+
+  /**
+   * Clears cached built-in modes and prevents in-flight loads from publishing stale results.
+   */
+  public synchronized void clearModes() {
+    loadGeneration++;
+    builtInModes = List.of();
   }
 }

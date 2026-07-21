@@ -77,6 +77,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     initializeEventHandlers();
     subscribeToEvents();
     init();
+    if (authStatusManager.isSignedIn()) {
+      reloadBuiltInModes();
+    }
   }
 
   private void initializeEventHandlers() {
@@ -86,25 +89,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         // If the user signs out, we need to clear the preference cache to avoid the current preference being used in
         // the next sign in account.
         if (statusResult.isNotSignedIn()) {
+          BuiltInChatModeManager.INSTANCE.clearModes();
+          refreshAvailableChatModes();
           clearUserPreferenceCache();
           this.inputNavigation = null;
-        } else {
-          // User has signed in - reload built-in modes to ensure we have the latest modes for this user
-          try {
-            BuiltInChatModeManager.INSTANCE.reloadModes();
-
-            // Update available chat modes in the observable to reflect any changes
-            ensureRealm(() -> {
-              if (!Arrays.deepEquals(getAvailableChatModes(), chatModeObservable.getValue())) {
-                chatModeObservable.setValue(getAvailableChatModes());
-              }
-            });
-
-            // Reinitialize user preferences for the new user
-            init();
-          } catch (Exception e) {
-            CopilotCore.LOGGER.error("Failed to reload built-in modes on user switch", e);
-          }
+        } else if (statusResult.isSignedIn()) {
+          // Reinitialize preferences immediately while built-in modes load in the background.
+          init();
+          reloadBuiltInModes();
         }
       }
     };
@@ -112,11 +104,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     featureFlagNotifiedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof DidChangeFeatureFlagsParams params) {
+        refreshAvailableChatModes();
         ensureRealm(() -> {
-          if (!Arrays.deepEquals(getAvailableChatModes(), chatModeObservable.getValue())) {
-            chatModeObservable.setValue(getAvailableChatModes());
-          }
-
           if (!params.isAgentModeEnabled()) {
             setActiveChatMode(ChatMode.Ask.toString());
           }
@@ -133,6 +122,24 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
     }
+  }
+
+  private void reloadBuiltInModes() {
+    BuiltInChatModeManager.INSTANCE.reloadModes()
+        .thenRun(this::refreshAvailableChatModes)
+        .exceptionally(ex -> {
+          CopilotCore.LOGGER.error("Failed to reload built-in modes", ex);
+          return null;
+        });
+  }
+
+  private void refreshAvailableChatModes() {
+    chatModeObservable.getRealm().asyncExec(() -> {
+      String[] availableChatModes = getAvailableChatModes();
+      if (!Arrays.deepEquals(availableChatModes, chatModeObservable.getValue())) {
+        chatModeObservable.setValue(availableChatModes);
+      }
+    });
   }
 
   private void init() {
@@ -341,10 +348,10 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
   /**
    * Reload the available chat modes from the manager. This will sync custom modes from the Language Server and refresh
-   * the dropdown. Built-in modes are loaded once at startup and don't need reloading.
+   * the dropdown. Built-in modes are refreshed separately when authentication changes.
    */
   public void reloadChatModes() {
-    // Sync custom modes from LS (built-in modes are loaded once at startup)
+    // Sync custom modes from LS.
     CustomChatModeManager.INSTANCE.syncCustomModesFromService().thenRun(() -> {
       ensureRealm(() -> {
         String[] currentModes = chatModeObservable.getValue();
