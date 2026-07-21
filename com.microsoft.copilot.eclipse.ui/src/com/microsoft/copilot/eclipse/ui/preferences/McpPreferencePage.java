@@ -54,9 +54,9 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.PlatformUI;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -169,7 +169,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isMcpEnabled()) {
       return WrappableIconLink.createWithSharedImage(parent,
-          PlatformUI.getWorkbench().getSharedImages().getImage(org.eclipse.ui.ISharedImages.IMG_OBJS_INFO_TSK),
+          CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_INFO_TSK),
           Messages.preferences_page_mcp_disabled_tip);
     }
 

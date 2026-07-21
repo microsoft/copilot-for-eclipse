@@ -474,7 +474,7 @@ public class ChatHistoryViewer extends Composite {
 
     if (!isCurrentConversation) {
       deleteIcon = new Label(actionsComposite, SWT.NONE);
-      deleteImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
+      deleteImage = CopilotImages.getSharedImage(ISharedImages.IMG_ELCL_REMOVE);
       deleteIcon.setImage(deleteImage);
       deleteIcon.setToolTipText(Messages.chat_historyView_deleteIcon_tooltip);
       deleteIcon.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));

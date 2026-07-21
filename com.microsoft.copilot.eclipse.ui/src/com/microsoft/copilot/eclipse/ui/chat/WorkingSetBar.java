@@ -346,7 +346,7 @@ public class WorkingSetBar extends Composite {
         }
 
         Image image = file.isWorkspaceFile() ? labelProvider.getImage(file.getWorkspaceFile())
-            : PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_FILE);
+            : CopilotImages.getSharedImage(ISharedImages.IMG_OBJ_FILE);
         fileRows.add(new FileRow(contentArea, SWT.NONE, image, file));
       }
 
@@ -493,7 +493,7 @@ public class WorkingSetBar extends Composite {
       });
 
       undoButton = new Label(actionsArea, SWT.NONE);
-      Image undoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_UNDO);
+      Image undoImage = CopilotImages.getSharedImage(ISharedImages.IMG_TOOL_UNDO);
       undoButton.setImage(undoImage);
       undoButton.setToolTipText(Messages.fileChangeSummary_undoButton);
       GridData undoGridData = new GridData(SWT.END, SWT.CENTER, false, false);

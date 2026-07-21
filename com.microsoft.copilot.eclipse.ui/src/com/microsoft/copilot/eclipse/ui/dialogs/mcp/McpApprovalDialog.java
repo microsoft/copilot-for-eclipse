@@ -86,7 +86,7 @@ public class McpApprovalDialog extends Dialog {
 
   private void loadImages(Shell shell) {
     approvedImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_KEEP);
-    deniedImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_DELETE);
+    deniedImage = CopilotImages.getSharedImage(ISharedImages.IMG_TOOL_DELETE);
   }
 
   @Override

@@ -103,7 +103,7 @@ public class AgentStatusLabel extends Composite {
     if (this.status == Status.RUNNING) {
       spinner.stop();
     }
-    iconLabel.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK));
+    iconLabel.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_ERROR_TSK));
     this.status = Status.ERROR;
   }
 

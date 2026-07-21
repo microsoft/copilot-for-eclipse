@@ -866,7 +866,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         break;
       case CANCEL_ENABLED:
         isSendButton = false;
-        Image cancelImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_STOP);
+        Image cancelImage = CopilotImages.getSharedImage(ISharedImages.IMG_ELCL_STOP);
         updateSendOrCancelMsgBtn(true, cancelImage, Messages.chat_actionBar_cancelButton_Tooltip);
         updateSendToJobBtn(false);
         break;

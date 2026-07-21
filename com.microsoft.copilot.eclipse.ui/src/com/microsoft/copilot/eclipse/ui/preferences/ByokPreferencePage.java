@@ -270,7 +270,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     GridData stackData = new GridData(SWT.FILL, SWT.FILL, true, true);
     viewerStack.setLayoutData(stackData);
     enabledIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_KEEP);
-    disabledIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ETOOL_DELETE);
+    disabledIcon = CopilotImages.getSharedImage(ISharedImages.IMG_ETOOL_DELETE);
 
     // Create tree viewer composite
     treeComposite = createTreeViewer(viewerStack);

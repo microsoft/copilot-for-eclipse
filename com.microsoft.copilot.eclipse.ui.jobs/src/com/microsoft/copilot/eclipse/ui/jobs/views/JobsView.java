@@ -42,7 +42,6 @@ import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -568,13 +567,13 @@ public class JobsView {
         return directoryIcon;
       } else {
         // This is an error message or unknown status, use warning icon
-        return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+        return CopilotJobsImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK);
       }
     }
 
     private Image getStatusIconForPr(GitHubPullRequestItem pr) {
       if (pr == null || pr.copilotWorkStatus() == null) {
-        return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+        return CopilotJobsImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK);
       }
 
       switch (pr.copilotWorkStatus()) {
@@ -584,7 +583,7 @@ public class JobsView {
           }
           return this.completeIcon;
         case error:
-          return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+          return CopilotJobsImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK);
         case in_progress:
         default:
           if (this.loadingIcon == null) {

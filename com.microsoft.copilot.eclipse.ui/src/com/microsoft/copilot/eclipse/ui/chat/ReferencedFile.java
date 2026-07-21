@@ -24,7 +24,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -197,7 +196,7 @@ public class ReferencedFile extends Composite {
    */
   private void setupUnsupportedFileDisplay() {
     // Set warning icon
-    lblfileIcon.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK));
+    lblfileIcon.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK));
     // Set tooltip with model name
     String modelName = CopilotUi.getPlugin().getChatServiceManager().getModelService().getActiveModel()
         .getModelName();
