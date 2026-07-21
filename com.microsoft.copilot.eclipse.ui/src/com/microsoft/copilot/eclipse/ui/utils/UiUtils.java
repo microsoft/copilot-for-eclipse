@@ -407,20 +407,6 @@ public class UiUtils {
   }
 
   /**
-   * Builds an image descriptor from a PNG file at the given path.
-   */
-  public static ImageDescriptor buildImageDescriptorFromPngPath(String path) {
-    return ImageDescriptor.createFromURL(UiUtils.class.getResource(path));
-  }
-
-  /**
-   * Builds an image from a PNG file at the given path.
-   */
-  public static Image buildImageFromPngPath(String path) {
-    return buildImageDescriptorFromPngPath(path).createImage();
-  }
-
-  /**
    * Refreshes the elements of the command with the given ID.
    */
   public static void refreshCopilotMenu() {
