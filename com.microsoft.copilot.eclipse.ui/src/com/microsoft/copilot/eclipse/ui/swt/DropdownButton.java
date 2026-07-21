@@ -19,9 +19,9 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A custom-painted dropdown button composite.
@@ -44,8 +44,6 @@ public class DropdownButton extends Composite {
   private static final int H_PADDING = 4;
   private static final int ARROW_AREA_WIDTH = 16;
 
-  private static Image arrowIcon;
-
   private final DropdownPopup popup;
   private List<DropdownItemGroup> itemGroups;
   private String selectedItemId;
@@ -60,13 +58,6 @@ public class DropdownButton extends Composite {
   public DropdownButton(Composite parent, int style) {
     super(parent, style | SWT.NONE);
     popup = new DropdownPopup(getShell(), this);
-
-    if (arrowIcon == null || arrowIcon.isDisposed()) {
-      arrowIcon = UiUtils.isDarkTheme()
-          ? UiUtils.buildImageFromPngPath("/icons/dropdown/down_arrow_dark.png")
-          : UiUtils.buildImageFromPngPath("/icons/dropdown/down_arrow.png");
-      getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
-    }
 
     addPaintListener(e -> paintControl(e.gc));
 
@@ -158,13 +149,6 @@ public class DropdownButton extends Composite {
     AccessibilityUtils.addAccessibilityNameForUiComponent(this, name);
   }
 
-  private static void disposeStaticIcons() {
-    if (arrowIcon != null && !arrowIcon.isDisposed()) {
-      arrowIcon.dispose();
-      arrowIcon = null;
-    }
-  }
-
   private void togglePopup() {
     if (popup.isOpen()) {
       popup.close();
@@ -185,6 +169,8 @@ public class DropdownButton extends Composite {
   private void paintControl(GC gc) {
     Rectangle bounds = getClientArea();
     Display display = getDisplay();
+    Image arrowIcon = CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_DOWN_ARROW,
+        CopilotImages.IMG_DROPDOWN_DOWN_ARROW_DARK);
     DropdownItem selected = findItemById(selectedItemId);
     Image selectedIcon = getSelectedItemIcon(selected);
     Color bg = mouseHover ? CssConstants.getButtonFocusBgColor(display) : getBackground();
@@ -249,9 +235,10 @@ public class DropdownButton extends Composite {
       if (selectedIcon != null) {
         iconWidth = selectedIcon.getBounds().width + ICON_TEXT_GAP;
       }
-      Image arrow = arrowIcon;
-      int arrowWidth = arrowIcon != null && !arrowIcon.isDisposed()
-          ? arrowIcon.getBounds().width : ARROW_AREA_WIDTH;
+      Image arrow = CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_DOWN_ARROW,
+          CopilotImages.IMG_DROPDOWN_DOWN_ARROW_DARK);
+      int arrowWidth = arrow != null && !arrow.isDisposed()
+          ? arrow.getBounds().width : ARROW_AREA_WIDTH;
       int width = H_PADDING + iconWidth + textExtent.x + arrowWidth;
       int height = getContentHeight(textExtent, selectedIcon, arrow) + 2 * UiConstants.BTN_PADDING;
       if (widthHint != SWT.DEFAULT) {

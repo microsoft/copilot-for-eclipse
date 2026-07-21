@@ -7,7 +7,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 
 /**
  * Drives a rotating spinner animation on a target {@link Label}.
@@ -21,8 +21,8 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * running frame is freed automatically when the label goes away.
  */
 public final class SpinnerAnimator {
-  /** Total number of frames in the spinner animation under {@code /icons/spinner/}. */
-  private static final int TOTAL_FRAMES = 8;
+  /** Total number of frames. */
+  private static final int TOTAL_FRAMES = CopilotImages.SPINNER_FRAMES.length;
   /** Per-frame interval in milliseconds. */
   private static final int FRAME_INTERVAL_MS = 100;
 
@@ -58,10 +58,6 @@ public final class SpinnerAnimator {
         if (target.isDisposed()) {
           return;
         }
-        // Dispose the previous frame before loading the next one.
-        if (currentFrameImage != null && !currentFrameImage.isDisposed()) {
-          currentFrameImage.dispose();
-        }
         currentFrameImage = buildFrame(currentFrame);
         target.setImage(currentFrameImage);
         // Request layout so the icon scale stays correct as frames change.
@@ -88,13 +84,10 @@ public final class SpinnerAnimator {
     if (!target.isDisposed() && target.getImage() == currentFrameImage) {
       target.setImage(null);
     }
-    if (currentFrameImage != null && !currentFrameImage.isDisposed()) {
-      currentFrameImage.dispose();
-    }
     currentFrameImage = null;
   }
 
   private static Image buildFrame(int frame) {
-    return UiUtils.buildImageFromPngPath(String.format("/icons/spinner/%d.png", frame));
+    return CopilotImages.getSpinnerFrame(frame);
   }
 }

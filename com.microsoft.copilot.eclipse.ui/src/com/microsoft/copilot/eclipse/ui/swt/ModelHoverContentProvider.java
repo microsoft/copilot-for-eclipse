@@ -28,11 +28,11 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCustomModel;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title header,
@@ -48,8 +48,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   private static final int THINKING_EFFORT_ROW_H_PADDING = 4;
   /** Vertical padding inside a thinking effort row, so the hover background has breathing room. */
   private static final int THINKING_EFFORT_ROW_V_PADDING = 2;
-
-  private static Image effortCheckIcon;
 
   private final CopilotModel model;
   private final IStylingEngine stylingEngine;
@@ -213,7 +211,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     row.setLayout(rowLayout);
     row.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
 
-    Image checkIcon = getCheckIcon(parent);
+    Image checkIcon = getCheckIcon();
     Label iconLabel = new Label(row, SWT.NONE);
     GridData iconGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
     if (checkIcon != null) {
@@ -317,28 +315,14 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     return row;
   }
 
-  private static void disposeStaticIcons() {
-    if (effortCheckIcon != null && !effortCheckIcon.isDisposed()) {
-      effortCheckIcon.dispose();
-      effortCheckIcon = null;
-    }
-  }
-
   /**
    * Returns the cached check-mark image used to indicate the selected thinking effort row, lazily loaded on first
    * access. The icon shares the asset used by the dropdown popup so the leading column lines up visually with the
    * checkmarks shown next to selected model items.
    */
-  private static Image getCheckIcon(Composite parent) {
-    if (effortCheckIcon == null || effortCheckIcon.isDisposed()) {
-      effortCheckIcon = UiUtils.isDarkTheme()
-          ? UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status_dark.png")
-          : UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status.png");
-      if (parent != null && !parent.isDisposed()) {
-        parent.getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
-      }
-    }
-    return effortCheckIcon;
+  private static Image getCheckIcon() {
+    return CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS,
+        CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS_DARK);
   }
 
   private static boolean isPositive(Integer value) {

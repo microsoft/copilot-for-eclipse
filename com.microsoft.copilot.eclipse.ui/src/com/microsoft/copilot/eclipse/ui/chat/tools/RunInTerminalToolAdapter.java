@@ -25,12 +25,12 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalCommandProcessor;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Adapter that bridges the UI tool interface with SPI-based terminal implementations.
@@ -199,7 +199,7 @@ public class RunInTerminalToolAdapter extends BaseTool {
       isBackground = Boolean.parseBoolean((String) isBackgroundObj);
     }
 
-    impl.setTerminalIconDescriptor(UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png"));
+    impl.setTerminalIconDescriptor(CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT));
     String workingDirectory = resolveWorkingDirectory();
 
     return impl.executeCommand(command, isBackground, workingDirectory)

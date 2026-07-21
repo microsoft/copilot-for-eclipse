@@ -39,6 +39,7 @@ import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerList;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -91,15 +92,10 @@ public class McpRegistryDialog extends Dialog {
     newShell.setText(Messages.mcpRegistryDialog_mcpRegistry);
     newShell.setMinimumSize(MIN_WIDTH, SWT.DEFAULT);
 
-    Image dialogIcon = UiUtils.buildImageFromPngPath("/icons/mcp/mcp_registry.png");
+    Image dialogIcon = CopilotImages.getImage(CopilotImages.IMG_MCP_REGISTRY);
     if (dialogIcon != null) {
       newShell.setImage(dialogIcon);
     }
-    newShell.addDisposeListener(e -> {
-      if (dialogIcon != null && !dialogIcon.isDisposed()) {
-        dialogIcon.dispose();
-      }
-    });
   }
 
   @Override
@@ -443,22 +439,17 @@ public class McpRegistryDialog extends Dialog {
 
   private void createRefreshButton(Composite parent) {
     Button refreshButton = new Button(parent, SWT.PUSH);
-    Image refreshIcon = UiUtils.buildImageFromPngPath("/icons/mcp/refresh.png");
+    Image refreshIcon = CopilotImages.getImage(CopilotImages.IMG_MCP_REFRESH);
     refreshButton.setImage(refreshIcon);
     refreshButton.setText(Messages.mcpRegistryDialog_button_refresh);
     refreshButton.setToolTipText(Messages.mcpRegistryDialog_button_refresh_tooltip);
     refreshButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     refreshButton.addListener(SWT.Selection, e -> refreshServerList());
-    refreshButton.addDisposeListener(e -> {
-      if (refreshIcon != null && !refreshIcon.isDisposed()) {
-        refreshIcon.dispose();
-      }
-    });
   }
 
   private void createChangeUrlButton(Composite parent) {
     Button editButton = new Button(parent, SWT.PUSH);
-    Image editIcon = UiUtils.buildImageFromPngPath("/icons/edit_preferences.png");
+    Image editIcon = CopilotImages.getImage(CopilotImages.IMG_EDIT_PREFERENCES);
     editButton.setImage(editIcon);
     editButton.setText(Messages.mcpRegistryDialog_button_changeUrl);
     editButton.setToolTipText(Messages.mcpRegistryDialog_button_changeUrl_tooltip);
@@ -467,11 +458,6 @@ public class McpRegistryDialog extends Dialog {
         e -> PreferencesUtil
             .createPreferenceDialogOn(getShell(), McpPreferencePage.ID, PreferencesUtils.getAllPreferenceIds(), null)
             .open());
-    editButton.addDisposeListener(e -> {
-      if (editIcon != null && !editIcon.isDisposed()) {
-        editIcon.dispose();
-      }
-    });
   }
 
   /**
@@ -531,14 +517,9 @@ public class McpRegistryDialog extends Dialog {
 
     // Create icon label on the right
     Label iconLabel = new Label(banner, SWT.NONE);
-    Image bannerIcon = UiUtils.buildImageFromPngPath("/icons/mcp/mcp_marketplace_icon.png");
+    Image bannerIcon = CopilotImages.getImage(CopilotImages.IMG_MCP_MARKETPLACE_ICON);
     if (bannerIcon != null) {
       iconLabel.setImage(bannerIcon);
-      iconLabel.addDisposeListener(e -> {
-        if (!bannerIcon.isDisposed()) {
-          bannerIcon.dispose();
-        }
-      });
     }
     iconLabel.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
   }

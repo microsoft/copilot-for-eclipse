@@ -41,6 +41,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Package;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ActionResult;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ActionType;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ButtonState;
@@ -191,32 +192,30 @@ public class McpServerItem extends Composite implements EventHandler {
     rowLayout.marginBottom = 0;
     metaRow.setLayout(rowLayout);
 
-    boolean isDark = UiUtils.isDarkTheme();
-
     // Version
     if (StringUtils.isNotBlank(version)) {
-      String iconPath = isDark ? "/icons/mcp/versions_dark.png" : "/icons/mcp/versions.png";
+      Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_VERSIONS, CopilotImages.IMG_MCP_VERSIONS_DARK);
       String text = Messages.mcpServerDetailDialog_version + " " + version;
-      createIconTextLabel(metaRow, iconPath, text, NLS.bind(Messages.mcpServerItem_versionTooltip, version));
+      createIconTextLabel(metaRow, icon, text, NLS.bind(Messages.mcpServerItem_versionTooltip, version));
     }
 
     // Published date
     if (StringUtils.isNotBlank(publishedAt)) {
-      String iconPath = isDark ? "/icons/mcp/history_dark.png" : "/icons/mcp/history.png";
+      Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_HISTORY, CopilotImages.IMG_MCP_HISTORY_DARK);
       String relativeTime = formatRelativeTime(publishedAt);
       String text = relativeTime != null ? Messages.mcpServerDetailDialog_published + " " + relativeTime
           : Messages.mcpServerDetailDialog_noPublishedDate;
-      createIconTextLabel(metaRow, iconPath, text,
+      createIconTextLabel(metaRow, icon, text,
           NLS.bind(Messages.mcpServerItem_publishedTooltip, formatDetailedDate(publishedAt)));
     }
 
     // Updated date
     if (StringUtils.isNotBlank(updatedAt)) {
-      String iconPath = isDark ? "/icons/mcp/update_dark.png" : "/icons/mcp/update.png";
+      Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_UPDATE, CopilotImages.IMG_MCP_UPDATE_DARK);
       String relativeTime = formatRelativeTime(updatedAt);
       String text = relativeTime != null ? Messages.mcpServerDetailDialog_updated + " " + relativeTime
           : Messages.mcpServerDetailDialog_noUpdatedDate;
-      createIconTextLabel(metaRow, iconPath, text,
+      createIconTextLabel(metaRow, icon, text,
           NLS.bind(Messages.mcpServerItem_updatedTooltip, formatDetailedDate(updatedAt)));
     }
   }
@@ -233,24 +232,16 @@ public class McpServerItem extends Composite implements EventHandler {
     return serverResponse.meta().official();
   }
 
-  private void createIconTextLabel(Composite parent, String iconPath, String text, String tooltip) {
+  private void createIconTextLabel(Composite parent, Image icon, String text, String tooltip) {
     Composite row = new Composite(parent, SWT.NONE);
     GridLayout rowLayout = new GridLayout(2, false);
     rowLayout.marginWidth = 0;
     rowLayout.marginHeight = 0;
     row.setLayout(rowLayout);
 
-    // Icon
     Label iconLabel = new Label(row, SWT.NONE);
-    Image icon = UiUtils.buildImageFromPngPath(iconPath);
     iconLabel.setImage(icon);
-    iconLabel.addDisposeListener(e -> {
-      if (icon != null && !icon.isDisposed()) {
-        icon.dispose();
-      }
-    });
 
-    // Text
     Label textLabel = new Label(row, SWT.NONE);
     textLabel.setText(text != null ? text : "");
     if (tooltip != null) {

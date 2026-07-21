@@ -12,9 +12,9 @@ import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.swt.DropdownItem;
@@ -29,8 +29,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * Builds model picker dropdown groups for the chat UI.
  */
 public final class ModelPickerGroupsBuilder {
-
-  private static Image warningIcon;
 
   private ModelPickerGroupsBuilder() {
   }
@@ -140,23 +138,8 @@ public final class ModelPickerGroupsBuilder {
     if (StringUtils.isBlank(model.getDegradationReason())) {
       return null;
     }
-    if (warningIcon == null || warningIcon.isDisposed()) {
-      warningIcon = UiUtils.isDarkTheme()
-          ? UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_warning_dark.png")
-          : UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_warning.png");
-      Display display = SwtUtils.getDisplay();
-      if (display != null) {
-        display.addListener(SWT.Dispose, event -> disposeWarningIcons());
-      }
-    }
-    return warningIcon;
-  }
-
-  private static void disposeWarningIcons() {
-    if (warningIcon != null && !warningIcon.isDisposed()) {
-      warningIcon.dispose();
-      warningIcon = null;
-    }
+    return CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_WARNING,
+        CopilotImages.IMG_DROPDOWN_WARNING_DARK);
   }
 
   private static void openManageModelsPreferences() {

@@ -50,9 +50,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.GitHubPullReque
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrResponse;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
+import com.microsoft.copilot.eclipse.ui.jobs.CopilotJobsImages;
 import com.microsoft.copilot.eclipse.ui.jobs.events.JobsViewEvents;
 import com.microsoft.copilot.eclipse.ui.jobs.i18n.Messages;
-import com.microsoft.copilot.eclipse.ui.jobs.utils.UiUtils;
 
 /**
  * The view to display coding agent jobs with PRs from GitHub. Shows a 2-level
@@ -83,8 +83,8 @@ public class JobsView {
   public void createPartControl(Composite parent) {
     parent.setLayout(new GridLayout(1, false));
 
-    this.directoryIcon = UiUtils.buildImageFromPngPath("/icons/repo.png");
-    this.informationIcon = UiUtils.buildImageFromPngPath("/icons/information.png");
+    this.directoryIcon = CopilotJobsImages.getImage(CopilotJobsImages.IMG_REPO);
+    this.informationIcon = CopilotJobsImages.getImage(CopilotJobsImages.IMG_INFORMATION);
 
     treeViewer = new TreeViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
     treeViewer.getTree().setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -105,19 +105,6 @@ public class JobsView {
         }
       } else {
         treeViewer.getTree().setToolTipText(null);
-      }
-    });
-
-    // Add dispose listener to clean up images
-    treeViewer.getTree().addDisposeListener(e -> {
-      if (directoryIcon != null && !directoryIcon.isDisposed()) {
-        directoryIcon.dispose();
-      }
-      if (informationIcon != null && !informationIcon.isDisposed()) {
-        informationIcon.dispose();
-      }
-      if (treeViewer.getLabelProvider() instanceof PullRequestLabelProvider labelProvider) {
-        labelProvider.disposeImages();
       }
     });
 
@@ -572,7 +559,7 @@ public class JobsView {
     private Image getStatusIconForLabel(String nodeText) {
       if (Messages.jobsView_label_loadingAgentJobs.equals(nodeText)) {
         if (this.loadingIcon == null) {
-          loadingIcon = UiUtils.buildImageFromPngPath("/icons/status/loading.png");
+          loadingIcon = CopilotJobsImages.getImage(CopilotJobsImages.IMG_STATUS_LOADING);
         }
         return this.loadingIcon;
       } else if (SPECIAL_STATUS_LABELS.contains(nodeText)) {
@@ -593,7 +580,7 @@ public class JobsView {
       switch (pr.copilotWorkStatus()) {
         case done:
           if (this.completeIcon == null) {
-            completeIcon = UiUtils.buildImageFromPngPath("/icons/status/complete.png");
+            completeIcon = CopilotJobsImages.getImage(CopilotJobsImages.IMG_STATUS_COMPLETE);
           }
           return this.completeIcon;
         case error:
@@ -601,20 +588,11 @@ public class JobsView {
         case in_progress:
         default:
           if (this.loadingIcon == null) {
-            loadingIcon = UiUtils.buildImageFromPngPath("/icons/status/loading.png");
+            loadingIcon = CopilotJobsImages.getImage(CopilotJobsImages.IMG_STATUS_LOADING);
           }
           return this.loadingIcon;
       }
     }
 
-    public void disposeImages() {
-      if (loadingIcon != null && !loadingIcon.isDisposed()) {
-        loadingIcon.dispose();
-      }
-      if (completeIcon != null && !completeIcon.isDisposed()) {
-        completeIcon.dispose();
-      }
-    }
   }
-
 }

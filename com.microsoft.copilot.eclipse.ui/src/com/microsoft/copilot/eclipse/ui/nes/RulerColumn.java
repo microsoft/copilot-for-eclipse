@@ -32,6 +32,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.rulers.IContributedRulerColumn;
 import org.eclipse.ui.texteditor.rulers.RulerColumnDescriptor;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -263,7 +264,7 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
 
   private void ensureIcon() {
     if (icon == null || icon.isDisposed()) {
-      ImageDescriptor desc = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/gutter-arrow.png");
+      ImageDescriptor desc = CopilotImages.getImageDescriptor(CopilotImages.IMG_CHAT_GUTTER_ARROW);
       if (desc != null) {
         icon = desc.createImage(true);
 

@@ -28,6 +28,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -81,15 +82,9 @@ public class ReferencedFile extends Composite {
     lblClose.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     setCloseClickAction();
 
-    lblImage = UiUtils.buildImageFromPngPath("/icons/close.png");
+    lblImage = CopilotImages.getImage(CopilotImages.IMG_CLOSE);
 
     setFile(file);
-
-    this.addDisposeListener(e -> {
-      if (lblImage != null && !lblImage.isDisposed()) {
-        lblImage.dispose();
-      }
-    });
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
 
     // Add keyboard support for Enter activation

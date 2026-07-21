@@ -29,8 +29,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A generic popup shell for {@link DropdownButton}.
@@ -50,8 +50,6 @@ class DropdownPopup {
   private static final int BORDER_ARC = 8;
   private static final int MAX_VISIBLE_ITEMS = 15;
   private static final int SHORT_POPUP_WIDTH = 250;
-
-  private static Image checkIcon;
 
   private Shell shell;
   private final Shell parentShell;
@@ -81,24 +79,10 @@ class DropdownPopup {
     this.parentShell = parentShell;
     this.anchorControl = anchorControl;
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
-
-    if (checkIcon == null || checkIcon.isDisposed()) {
-      checkIcon = UiUtils.isDarkTheme()
-          ? UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status_dark.png")
-          : UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status.png");
-      parentShell.getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
-    }
   }
 
   void setSelectionListener(Consumer<String> listener) {
     this.selectionListener = listener;
-  }
-
-  private static void disposeStaticIcons() {
-    if (checkIcon != null && !checkIcon.isDisposed()) {
-      checkIcon.dispose();
-      checkIcon = null;
-    }
   }
 
   /**
@@ -528,8 +512,9 @@ class DropdownPopup {
   }
 
   private Image resolvePopupLeadingIcon(DropdownItem item, boolean selected) {
-    if (selected && checkIcon != null && !checkIcon.isDisposed()) {
-      return checkIcon;
+    if (selected) {
+      return CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS,
+          CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS_DARK);
     }
     Image icon = item.getIcon();
     return icon != null && !icon.isDisposed() ? icon : null;

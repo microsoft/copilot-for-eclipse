@@ -13,9 +13,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A widget that displays a loading view.
@@ -44,7 +44,7 @@ public class LoadingViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    Image mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_loading.png");
+    Image mainIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_LOADING);
     Label icon = new Label(iconLabelComposite, SWT.CENTER);
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
@@ -62,9 +62,6 @@ public class LoadingViewer extends BaseViewer {
     subLabel.setForeground(this.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
 
     this.addDisposeListener(e -> {
-      if (mainIcon != null && !mainIcon.isDisposed()) {
-        mainIcon.dispose();
-      }
       if (mainLabelFont != null && !mainLabelFont.isDisposed()) {
         mainLabelFont.dispose();
       }

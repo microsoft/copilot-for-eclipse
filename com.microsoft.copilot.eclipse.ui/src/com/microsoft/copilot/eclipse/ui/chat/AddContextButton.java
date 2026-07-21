@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -50,7 +51,7 @@ public class AddContextButton extends Composite {
     setLayout(layout);
 
     btnAttachIcon = UiUtils.createIconButton(this, SWT.PUSH | SWT.FLAT);
-    Image attachImage = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
+    Image attachImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_ATTACH_CONTEXT);
     btnAttachIcon.setImage(attachImage);
     String attachTooltip = Messages.chat_addContext_tooltip;
     btnAttachIcon.setToolTipText(attachTooltip);
@@ -59,11 +60,6 @@ public class AddContextButton extends Composite {
       @Override
       public void widgetSelected(SelectionEvent e) {
         openFilePickerAndAddFiles();
-      }
-    });
-    btnAttachIcon.addDisposeListener(e -> {
-      if (attachImage != null && !attachImage.isDisposed()) {
-        attachImage.dispose();
       }
     });
   }

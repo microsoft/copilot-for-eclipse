@@ -49,10 +49,10 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ByokService;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * BYOK (Bring Your Own Key) preference page for configuring AI model providers. This page allows users to add, remove,
@@ -269,15 +269,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     viewerStack.setLayout(stackLayout);
     GridData stackData = new GridData(SWT.FILL, SWT.FILL, true, true);
     viewerStack.setLayoutData(stackData);
-    enabledIcon = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
+    enabledIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_KEEP);
     disabledIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ETOOL_DELETE);
-
-    viewerStack.addDisposeListener(e -> {
-      if (enabledIcon != null && !enabledIcon.isDisposed()) {
-        enabledIcon.dispose();
-        enabledIcon = null;
-      }
-    });
 
     // Create tree viewer composite
     treeComposite = createTreeViewer(viewerStack);

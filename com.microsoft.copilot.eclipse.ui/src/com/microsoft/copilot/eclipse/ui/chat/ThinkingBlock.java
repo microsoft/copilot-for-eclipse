@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
@@ -87,8 +88,6 @@ public class ThinkingBlock extends Composite {
     createHeader();
     createBody();
 
-    addDisposeListener(e -> handleDispose());
-
     setTitle(Messages.thinking_title);
     spinner = new SpinnerAnimator(iconLabel);
     spinner.start();
@@ -135,7 +134,7 @@ public class ThinkingBlock extends Composite {
     }
     stopSpinner();
     if (cancelledIcon == null || cancelledIcon.isDisposed()) {
-      cancelledIcon = UiUtils.buildImageFromPngPath("/icons/cancel_status.png");
+      cancelledIcon = CopilotImages.getImage(CopilotImages.IMG_CANCEL_STATUS);
     }
     if (!iconLabel.isDisposed()) {
       iconLabel.setImage(cancelledIcon);
@@ -474,14 +473,14 @@ public class ThinkingBlock extends Composite {
     Image image;
     String tooltip;
     if (expanded) {
-      if (downArrowImage == null || downArrowImage.isDisposed()) {
-        downArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/down_arrow.png");
+      if (downArrowImage == null) {
+        downArrowImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_DOWN_ARROW);
       }
       image = downArrowImage;
       tooltip = Messages.thinking_collapseTooltip;
     } else {
-      if (rightArrowImage == null || rightArrowImage.isDisposed()) {
-        rightArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/right_arrow.png");
+      if (rightArrowImage == null) {
+        rightArrowImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_RIGHT_ARROW);
       }
       image = rightArrowImage;
       tooltip = Messages.thinking_expandTooltip;
@@ -502,21 +501,6 @@ public class ThinkingBlock extends Composite {
         return;
       }
       p = p.getParent();
-    }
-  }
-
-  private void handleDispose() {
-    if (cancelledIcon != null && !cancelledIcon.isDisposed()) {
-      cancelledIcon.dispose();
-      cancelledIcon = null;
-    }
-    if (downArrowImage != null && !downArrowImage.isDisposed()) {
-      downArrowImage.dispose();
-      downArrowImage = null;
-    }
-    if (rightArrowImage != null && !rightArrowImage.isDisposed()) {
-      rightArrowImage.dispose();
-      rightArrowImage = null;
     }
   }
 

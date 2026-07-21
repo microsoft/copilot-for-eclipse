@@ -14,9 +14,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A widget that displays a initial chat introduction.
@@ -82,13 +82,8 @@ public class AgentModeViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    Image mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
+    Image mainIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_WELCOME);
     this.copilotIconLabel = new Label(iconLabelComposite, SWT.CENTER);
-    this.copilotIconLabel.addDisposeListener(e -> {
-      if (mainIcon != null && !mainIcon.isDisposed()) {
-        mainIcon.dispose();
-      }
-    });
     this.copilotIconLabel.setImage(mainIcon);
     this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
@@ -142,21 +137,11 @@ public class AgentModeViewer extends BaseViewer {
     instructionComposite.setLayoutData(gridData);
 
     // configure MCP icon with label
-    Image configureMcpIcon = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
-    instructionComposite.addDisposeListener(e -> {
-      if (configureMcpIcon != null && !configureMcpIcon.isDisposed()) {
-        configureMcpIcon.dispose();
-      }
-    });
+    Image configureMcpIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_TOOLS);
     buildLabelWithIcon(instructionComposite, configureMcpIcon, Messages.chat_agentModeView_configureMcpSuffix);
 
     // attach context icon with label
-    Image attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    instructionComposite.addDisposeListener(e -> {
-      if (attachContextIcon != null && !attachContextIcon.isDisposed()) {
-        attachContextIcon.dispose();
-      }
-    });
+    Image attachContextIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_ATTACH_CONTEXT);
     buildLabelWithIcon(instructionComposite, attachContextIcon, Messages.chat_agentModeView_attachContextSuffix);
   }
 }

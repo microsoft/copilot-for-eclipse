@@ -9,26 +9,22 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A special {@link ReferencedFile} that represents the current file being edited. This is used to represent the current
  * file in the chat view, when no file is selected.
  */
 public class CurrentReferencedFile extends ReferencedFile {
-  private static Image visibleImage = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/eye.png").createImage();
-  private static Image invisibleImage = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/eye_closed.png")
-      .createImage();
 
   private Label descriptionLabel;
   private Label selectionLabel;
@@ -81,9 +77,9 @@ public class CurrentReferencedFile extends ReferencedFile {
    */
   public void updateCloseClickBtnIcon(boolean isCurrentFileVisible) {
     if (isCurrentFileVisible) {
-      setCloseClickBtnIcon(visibleImage);
+      setCloseClickBtnIcon(CopilotImages.getImage(CopilotImages.IMG_CHAT_EYE));
     } else {
-      setCloseClickBtnIcon(invisibleImage);
+      setCloseClickBtnIcon(CopilotImages.getImage(CopilotImages.IMG_CHAT_EYE_CLOSED));
     }
   }
 

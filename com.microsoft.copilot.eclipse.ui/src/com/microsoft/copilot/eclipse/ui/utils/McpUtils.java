@@ -18,6 +18,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryEntry;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Icon;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer;
@@ -157,11 +158,11 @@ public class McpUtils {
   }
 
   /**
-   * Builds the default MCP server icon image.
+   * Loads the shared default MCP server icon.
    *
-   * @return the default MCP icon image, or {@code null} if it cannot be loaded
+   * @return the default MCP icon image; callers must not dispose it
    */
   public static Image loadDefaultServerIcon() {
-    return UiUtils.buildImageFromPngPath("/icons/mcp/mcp_default_icon.png");
+    return CopilotImages.getImage(CopilotImages.IMG_MCP_DEFAULT_ICON);
   }
 }

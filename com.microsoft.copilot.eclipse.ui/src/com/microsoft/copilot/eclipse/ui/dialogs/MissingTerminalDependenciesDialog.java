@@ -29,10 +29,10 @@ import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Dialog to inform users about missing terminal dependencies. Provides information about what needs to be installed and
@@ -66,14 +66,9 @@ public class MissingTerminalDependenciesDialog extends TitleAreaDialog {
   }
 
   private void loadIcon(Shell shell) {
-    Image icon = UiUtils.buildImageFromPngPath("/icons/github_copilot.png");
+    Image icon = CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT);
     if (icon != null) {
       shell.setImage(icon);
-      shell.addDisposeListener(e -> {
-        if (!icon.isDisposed()) {
-          icon.dispose();
-        }
-      });
     }
   }
 
