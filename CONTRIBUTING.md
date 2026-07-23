@@ -16,7 +16,7 @@ When you submit a pull request, a CLA bot will automatically determine whether y
 
 ### Prerequisites
 
-- **Java 17** or later (CI uses Temurin 17; use a newer JDK if required by your Eclipse IDE)
+- **Java 21** or later (CI uses Temurin 21; use a newer JDK if required by your Eclipse IDE)
 - **Maven 3.8+** (or use the provided Maven wrapper `./mvnw`)
 - **Node.js 22.13** or later, with npm
 - **Eclipse IDE for Eclipse Committers 2025-12** or later (for development)

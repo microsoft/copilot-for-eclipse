@@ -5,7 +5,7 @@ Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.jobs;singleton:=true
 Bundle-Version: 0.21.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.jobs.CopilotJobs
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-Localization: plugin
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.jobs
 Bundle-ActivationPolicy: lazy
