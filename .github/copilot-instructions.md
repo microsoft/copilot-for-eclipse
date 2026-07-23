@@ -117,12 +117,6 @@ The project follows Eclipse plugin conventions with multiple OSGi bundles:
 - **Service**: `IRunInTerminalTool` implementation
 - **Dependencies**: `org.eclipse.terminal.*` packages
 
-**`com.microsoft.copilot.eclipse.ui.terminal.tm`** - TM Terminal integration (legacy)
-- **Package**: `com.microsoft.copilot.eclipse.ui.terminal.tm`
-- **Purpose**: Implementation for TM Terminal (Eclipse 4.36 and lower)
-- **Service**: `IRunInTerminalTool` implementation
-- **Dependencies**: `org.eclipse.tm.terminal.*` packages
-
 #### Platform-Specific Agent Bundles
 
 These bundles contain the Node.js-based Copilot language server agent for each platform:
