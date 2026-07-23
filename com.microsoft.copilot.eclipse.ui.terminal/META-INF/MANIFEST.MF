@@ -3,7 +3,7 @@ Bundle-Name: com.microsoft.copilot.eclipse.ui.terminal
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.terminal;singleton:=true
 Bundle-Version: 0.21.0.qualifier
 Bundle-Vendor: GitHub Copilot
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.terminal
 Bundle-ActivationPolicy: lazy
 Service-Component: OSGI-INF/component.xml

@@ -13,7 +13,7 @@ This is the **GitHub Copilot for Eclipse** plugin - an Eclipse IDE extension tha
 - **Multi-Platform Support**: Windows, macOS (x64/aarch64), and Linux (x64/aarch64)
 
 ### Tech Stack
-- **Java**: Primary language (Java 17+, with Eclipse 4.38+ requiring Java 21+)
+- **Java**: Primary language (Java 21+, with Eclipse 4.38+ requiring Java 21+)
 - **Eclipse RCP/OSGi**: Plugin architecture using Eclipse platform APIs
 - **Maven/Tycho**: Build system for Eclipse plugin development
 - **LSP4E**: Language Server Protocol integration for Eclipse
