@@ -21,7 +21,7 @@
 	</properties>
 
 	<modules>
-        <!-- terminal bundles must be built before ui bundle as ui bundle depends on terminal bundle artifacts -->
+		<!-- terminal bundles must be built before ui bundle as ui bundle depends on terminal bundle artifacts -->
 		<module>com.microsoft.copilot.eclipse.terminal.api</module>
 		<module>com.microsoft.copilot.eclipse.ui.terminal</module>
 		<module>com.microsoft.copilot.eclipse.ui.terminal.tm</module>
@@ -96,7 +96,7 @@
 				<version>${tycho-version}</version>
 				<configuration>
 					<target>
-						<file>../base.target</file>
+						<file>../target-platforms/2025-12.target</file>
 					</target>
 					<executionEnvironment>JavaSE-21</executionEnvironment>
 					<environments>

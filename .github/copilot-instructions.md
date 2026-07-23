@@ -13,7 +13,7 @@ This is the **GitHub Copilot for Eclipse** plugin - an Eclipse IDE extension tha
 - **Multi-Platform Support**: Windows, macOS (x64/aarch64), and Linux (x64/aarch64)
 
 ### Tech Stack
-- **Java**: Primary language (Java 17+, with Eclipse 4.31+ requiring Java 21+)
+- **Java**: Primary language (Java 17+, with Eclipse 4.38+ requiring Java 21+)
 - **Eclipse RCP/OSGi**: Plugin architecture using Eclipse platform APIs
 - **Maven/Tycho**: Build system for Eclipse plugin development
 - **LSP4E**: Language Server Protocol integration for Eclipse
@@ -46,7 +46,7 @@ You MUST verify compilation and code quality before declaring work complete!
 - Root POM coordinates multi-module build with Tycho
 - Each bundle/feature/test has its own POM inheriting from root
 - Checkstyle validation runs during `verify` phase
-- Target platform defined in `base.target`, `target-terminal.target`, `target-tm-terminal.target`
+- Target platform defined in `target-platforms/2025-12.target`
 
 ### Code Change Review Trigger
 
@@ -569,7 +569,7 @@ distinguish repeated controls with stable context or an ordinal
 
 **When** writing tests → use JUnit 5 for core logic; integration tests for Eclipse integration
 
-**When** adding dependencies → only add necessary bundles; check `base.target` for Eclipse 2024-03 version constraints
+**When** adding dependencies → only add necessary bundles; check `target-platforms/2025-12.target` for Eclipse 2025-12 version constraints
 
 **When** targeting Eclipse versions → support multiple versions when possible
 
