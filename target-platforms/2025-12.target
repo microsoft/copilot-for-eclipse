@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+<target name="Copilot for Eclipse Target Definition for Eclipse 2025-12">
+	<locations>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="true" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/releases/2025-12/"/>
+			<unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.platform.ide" version="0.0.0"/>
+			<unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.lsp4e" version="0.0.0"/>
+			<unit id="org.eclipse.pde.junit.runtime" version="0.0.0"/>
+			<unit id="org.eclipse.tm4e.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.tm4e.language_pack.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.egit.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.jgit" version="0.0.0"/>
+			<unit id="org.eclipse.terminal.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.wildwebdeveloper.embedder.node.feature.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.mylyn.wikitext.feature.feature.group" version="0.0.0"/>
+			<unit id="org.osgi.service.component" version="0.0.0"/>
+			<unit id="org.osgi.service.component.annotations" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.bundle" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.context" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.core" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.css" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.event" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.model" version="0.0.0"/>
+			<unit id="org.eclipse.pde.spy.preferences" version="0.0.0"/>
+			<unit id="org.eclipse.tools.layout.spy" version="0.0.0"/>
+			<unit id="org.eclipse.swtbot.eclipse.spy" version="0.0.0"/>
+			<unit id="org.apache.commons.lang3" version="0.0.0"/>
+			<unit id="org.apache.commons.logging" version="0.0.0"/>
+			<unit id="com.google.guava" version="0.0.0"/>
+			<unit id="com.google.guava.failureaccess" version="0.0.0"/>
+			<unit id="junit-jupiter-api" version="0.0.0"/>
+			<unit id="junit-jupiter-engine" version="0.0.0"/>
+			<unit id="junit-jupiter-migrationsupport" version="0.0.0"/>
+			<unit id="junit-jupiter-params" version="0.0.0"/>
+			<unit id="junit-platform-commons" version="0.0.0"/>
+			<unit id="junit-platform-engine" version="0.0.0"/>
+			<unit id="junit-platform-launcher" version="0.0.0"/>
+			<unit id="junit-platform-runner" version="0.0.0"/>
+			<unit id="junit-platform-suite-api" version="0.0.0"/>
+			<unit id="junit-platform-suite-commons" version="0.0.0"/>
+			<unit id="junit-platform-suite-engine" version="0.0.0"/>
+			<unit id="junit-vintage-engine" version="0.0.0"/>
+			<unit id="org.eclipse.swtbot.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.swtbot.eclipse.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.swtbot.ide.feature.group" version="0.0.0"/>
+			<unit id="org.eclipse.swtbot.junit4_x" version="0.0.0"/>
+		</location>
+		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="true" type="InstallableUnit">
+			<repository location="https://download.eclipse.org/tools/orbit/simrel/orbit-aggregation/2025-12/"/>
+			<unit id="org.mockito.mockito-core" version="0.0.0"/>
+			<unit id="org.mockito.junit-jupiter" version="0.0.0"/>
+			<unit id="org.objenesis" version="0.0.0"/>
+			<unit id="org.hamcrest" version="0.0.0"/>
+			<unit id="org.commonmark" version="0.0.0"/>
+			<unit id="org.commonmark.ext-gfm-tables" version="0.0.0"/>
+			<unit id="org.commonmark.ext-task-list-items" version="0.0.0"/>
+			<unit id="org.commonmark.ext-gfm-strikethrough" version="0.0.0"/>
+		</location>
+	</locations>
+	<targetJRE path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21"/>
+</target>
