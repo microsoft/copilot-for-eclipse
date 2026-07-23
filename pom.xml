@@ -24,7 +24,6 @@
 		<!-- terminal bundles must be built before ui bundle as ui bundle depends on terminal bundle artifacts -->
 		<module>com.microsoft.copilot.eclipse.terminal.api</module>
 		<module>com.microsoft.copilot.eclipse.ui.terminal</module>
-		<module>com.microsoft.copilot.eclipse.ui.terminal.tm</module>
 
 		<module>com.microsoft.copilot.eclipse.core</module>
 		<module>com.microsoft.copilot.eclipse.ui</module>
