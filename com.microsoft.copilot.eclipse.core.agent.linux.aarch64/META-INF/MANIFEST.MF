@@ -6,5 +6,5 @@ Automatic-Module-Name: com.microsoft.copilot.eclipse.core.agent.linux.aarch64
 Bundle-Version: 0.21.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Fragment-Host: com.microsoft.copilot.eclipse.core
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Eclipse-PlatformFilter: (&(osgi.os=linux)(osgi.arch=aarch64))

@@ -4,7 +4,7 @@ Bundle-Name: com.microsoft.copilot.eclipse.ui.jobs.test
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.jobs.test;singleton:=true
 Bundle-Version: 0.21.0.qualifier
 Bundle-Vendor: GitHub Copilot
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.jobs.test
 Require-Bundle: junit-jupiter-api;bundle-version="5.10.1",
  junit-jupiter-params;bundle-version="5.10.1",

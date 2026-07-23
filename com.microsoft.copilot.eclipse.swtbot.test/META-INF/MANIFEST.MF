@@ -4,7 +4,7 @@ Bundle-Name: com.microsoft.copilot.eclipse.swtbot.test
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.swtbot.test;singleton:=true
 Bundle-Version: 0.21.0.qualifier
 Bundle-Vendor: GitHub Copilot
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Automatic-Module-Name: com.microsoft.copilot.eclipse.swtbot.test
 Require-Bundle: org.eclipse.swtbot.swt.finder;bundle-version="4.1.0",
  org.eclipse.swtbot.eclipse.finder;bundle-version="4.1.0",
