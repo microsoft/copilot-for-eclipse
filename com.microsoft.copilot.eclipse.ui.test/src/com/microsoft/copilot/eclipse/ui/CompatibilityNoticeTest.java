@@ -95,7 +95,6 @@ class CompatibilityNoticeTest {
   @Test
   void testShouldShow_otherNoticesDisabled_returnsTrue() {
     preferences.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, false);
-    preferences.putBoolean(Constants.SUPPRESS_TERMINAL_DEPENDENCY_DIALOG, true);
     CompatibilityNotice notice = new CompatibilityNotice(preferences);
 
     assertTrue(notice.shouldShow(new Version(4, 37, 0), 21));

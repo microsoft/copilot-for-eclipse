@@ -21,15 +21,6 @@ public final class Messages extends NLS {
   public static String projectSelectionDialog_button_continue;
   public static String githubCodingAgent_link_learnMore;
 
-  // Terminal dependency dialog
-  public static String terminalDependencyDialog_shellTitle;
-  public static String terminalDependencyDialog_title;
-  public static String terminalDependencyDialog_message;
-  public static String terminalDependencyDialog_missingDependencies;
-  public static String terminalDependencyDialog_instruction;
-  public static String terminalDependencyDialog_helpLink;
-  public static String terminalDependencyDialog_dontShowAgain;
-
   public static String compatibilityNotice_title;
   public static String compatibilityNotice_message;
   public static String compatibilityNotice_dontRemindAgain;
