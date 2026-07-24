@@ -60,8 +60,9 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
      activate the check box *Search for nested projects*, and finish the wizard.
    * Do also import the agent bundle for your OS (e.g., `com.microsoft.copilot.eclipse.core.agent.win32`)
      after building the project with npm and maven or import all OS-specific agent bundles.
-2. Activate one of the target platforms, i.e. open one of the target definition files and select `Set As Active Target Platform`,
-   e.g. `target-platforms/2025-12.target` (Eclipse 4.38)
+2. Activate one of the target platforms, i.e. open one of the target definition files and select `Set As Active Target Platform`.
+   * `target-platforms/2025-12.target` (Eclipse 4.38 and later)
+   * `target-platforms/2024-12.target` (Eclipse 4.36 and earlier)
 3. For using the Checkstyle configuration (assuming you have installed the Eclipse Checkstyle plugin, see prerequisites),
    add a new named Checkstyle configuration.
    * Select *Window > Preferences > Checkstyle* and press the *New...* button.
