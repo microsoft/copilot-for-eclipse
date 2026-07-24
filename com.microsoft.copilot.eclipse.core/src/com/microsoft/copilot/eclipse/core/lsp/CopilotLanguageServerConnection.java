@@ -16,11 +16,9 @@ import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
-import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
-import org.eclipse.lsp4j.jsonrpc.Endpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -39,7 +37,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
@@ -50,7 +47,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
@@ -86,7 +82,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrRespons
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
  * Language Server for Copilot agent.
@@ -293,7 +288,6 @@ public class CopilotLanguageServerConnection {
       }
 
       if (StringUtils.isBlank(agentSlug)) {
-        param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(workspaceFolders == null ? List.of() : workspaceFolders);
         param.setTodoList(todos);
       } else {
@@ -346,7 +340,6 @@ public class CopilotLanguageServerConnection {
       param.setCustomChatModeId(customChatModeId);
 
       if (StringUtils.isBlank(agentSlug)) {
-        param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(workspaceFolders == null ? List.of() : workspaceFolders);
         param.setTodoList(todoList);
       } else {
@@ -426,24 +419,6 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ConversationMode[]> listConversationModes(ConversationModesParams params) {
     Function<LanguageServer, CompletableFuture<ConversationMode[]>> fn = server -> {
       return ((CopilotLanguageServer) server).listModes(params);
-    };
-    return this.languageServerWrapper.execute(fn);
-  }
-
-  /**
-   * List the conversation agents.
-   */
-  public CompletableFuture<ConversationAgent[]> listConversationAgents() {
-    Function<LanguageServer, CompletableFuture<ConversationAgent[]>> fn = server -> {
-      // return ((CopilotLanguageServer) server).listAgents(new NullParams());
-      // Hard code the only supported @project agent. Should revert this when @github agent is supported.
-      ConversationAgent project = new ConversationAgent();
-      project.setSlug("project");
-      project.setName("Project");
-      project.setDescription("Ask about your project");
-      project.setAvatarUrl(null);
-
-      return CompletableFuture.completedFuture(new ConversationAgent[] { project });
     };
     return this.languageServerWrapper.execute(fn);
   }
@@ -535,27 +510,6 @@ public class CopilotLanguageServerConnection {
       CopilotCore.LOGGER.error(ex);
       return null;
     });
-  }
-
-  /**
-   * Notify the language server that watched files have changed.
-   */
-  public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
-    this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
-  }
-
-  /**
-   * Send $/progress notification to the language server. Used for reporting partial results during long-running
-   * operations like file indexing.
-   */
-  public CompletableFuture<Void> sendProgressNotification(ProgressParams progressParams) {
-    Function<LanguageServer, CompletableFuture<Void>> fn = server -> {
-      if (server instanceof Endpoint endpoint) {
-        endpoint.notify("$/progress", progressParams);
-      }
-      return CompletableFuture.completedFuture(null);
-    };
-    return this.languageServerWrapper.execute(fn);
   }
 
   /**

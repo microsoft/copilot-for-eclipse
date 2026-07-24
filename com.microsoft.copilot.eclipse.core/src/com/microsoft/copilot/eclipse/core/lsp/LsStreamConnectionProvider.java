@@ -34,7 +34,6 @@ import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NameAndVersion;
@@ -54,8 +53,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     String bundleVersion = PlatformUtils.getBundleVersion();
     NameAndVersion editorPluginInfo = new NameAndVersion(EDITOR_PLUGIN_NAME, bundleVersion);
     List<String> supportedUriSchemes = PlatformUtils.getSupportedUriSchemes();
-    CopilotCapabilities capabilities = new CopilotCapabilities(false, FeatureFlags.isWorkspaceContextEnabled(),
-        true /*isSubAgentEnabled*/, supportedUriSchemes);
+    CopilotCapabilities capabilities = new CopilotCapabilities(false, true /*isSubAgentEnabled*/, supportedUriSchemes);
     return new InitializationOptions(editorInfo, editorPluginInfo, capabilities);
   }
 

@@ -27,3 +27,12 @@ connection to the language server. A capability is an *offer of support*, not a
 A gate that exposes in-development features to a subset of users. It is distinct
 from the sub-agent policy: after this change, the availability of sub-agents no
 longer depends on the client preview feature.
+
+### Workspace folder
+A project root associated with a chat so project-scoped prompts, skills, agents,
+and instructions can be discovered. A workspace folder does not imply that the
+project's files are semantically indexed.
+
+### Workspace instructions
+Custom instructions associated with workspace folders and loaded into chat.
+They are distinct from semantic search over project files.

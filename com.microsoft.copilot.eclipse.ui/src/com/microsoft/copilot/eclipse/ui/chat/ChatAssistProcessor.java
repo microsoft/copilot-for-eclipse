@@ -4,12 +4,9 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
@@ -30,7 +27,6 @@ import org.eclipse.swt.graphics.Point;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
@@ -167,26 +163,6 @@ class ChatAssistProcessor implements IContentAssistProcessor {
     return -1;
   }
 
-  public ICompletionProposal[] createCopilotCompletionAgentProposals(String prefix) {
-    List<ICompletionProposal> proposals = new ArrayList<>();
-    ChatCompletionService commandService = chatServiceManager.getChatCompletionService();
-    if (!commandService.isAgentsReady()) {
-      return new ICompletionProposal[0];
-    }
-    // So far no template supports agent mode.
-    if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
-      return new ICompletionProposal[0];
-    }
-    ConversationAgent[] agents = commandService.getAgents();
-    for (ConversationAgent agent : agents) {
-      if (prefix.isEmpty() || agent.getSlug().startsWith(prefix)) {
-        proposals
-            .add(new ChatCompletionProposal(ChatCompletionService.AGENT_MARK, agent.getSlug(), agent.getDescription()));
-      }
-    }
-    return proposals.toArray(new ICompletionProposal[proposals.size()]);
-  }
-
   @Override
   public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int offset) {
     // Provide your completion proposals here
@@ -201,10 +177,6 @@ class ChatAssistProcessor implements IContentAssistProcessor {
         return createCopilotCompletionTemplateProposals(lineText.substring(1));
       }
 
-      // Check if the "@" are at the beginning of the line
-      if (lineText.startsWith(ChatCompletionService.AGENT_MARK)) {
-        return createCopilotCompletionAgentProposals(lineText.substring(1));
-      }
     } catch (BadLocationException e) {
       CopilotCore.LOGGER.error(e);
     }
@@ -218,12 +190,12 @@ class ChatAssistProcessor implements IContentAssistProcessor {
 
   @Override
   public char[] getCompletionProposalAutoActivationCharacters() {
-    return new char[] { '/', '@' };
+    return new char[] { '/' };
   }
 
   @Override
   public char[] getContextInformationAutoActivationCharacters() {
-    return new char[] { '/', '@' };
+    return new char[] { '/' };
   }
 
   @Override

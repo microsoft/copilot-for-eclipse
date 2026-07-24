@@ -22,7 +22,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
@@ -222,12 +221,6 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("copilot/models")
   CompletableFuture<CopilotModel[]> listModels(NullParams param);
-
-  /**
-   * Get the conversation agents.
-   */
-  @JsonRequest("conversation/agents")
-  CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
 
   /**
    * Notify the code acceptance.

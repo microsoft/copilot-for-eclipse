@@ -10,12 +10,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IResourceChangeEvent;
-import org.eclipse.core.resources.IResourceChangeListener;
-import org.eclipse.core.resources.IResourceDelta;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -29,12 +23,10 @@ import org.osgi.service.event.EventHandler;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -45,11 +37,9 @@ import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
  * Service for handling slash commands.
  */
 public class ChatCompletionService implements CopilotAuthStatusListener {
-  public static final String AGENT_MARK = "@";
   public static final String TEMPLATE_MARK = "/";
 
   private volatile List<ConversationTemplate> templates = List.of();
-  private volatile List<ConversationAgent> agents = List.of();
   private volatile Set<String> allCommands = Set.of();
   // Exclude intelliJ sepcific slash commands
   private static final Set<String> EXCLUDED_COMMANDS = Set.of("help", "feedback");
@@ -57,12 +47,8 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       "com.microsoft.copilot.eclipse.chat.services.SlashCommandService.refreshJob";
   private CopilotLanguageServerConnection lsConnection;
   private AuthStatusManager authStatusManager;
-  private IResourceChangeListener skillFileListener;
   private IEventBroker eventBroker;
   private EventHandler customPromptsChangedHandler;
-
-  private static final String SKILL_FILE_NAME = "SKILL.md";
-  private static final String PROMPT_FILE_SUFFIX = ".prompt.md";
 
   /**
    * Constructor for the SlashCommandService.
@@ -71,10 +57,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     this.authStatusManager = authStatusManager;
     this.lsConnection = lsConnection;
     this.authStatusManager.addCopilotAuthStatusListener(this);
-    // TODO: Remove this listener once workspace-root is removed from workspaceFolders in CopilotLanguageClient as CLS
-    // can watch the project prompt file change directly.
-    this.skillFileListener = new SkillFileChangeListener();
-    ResourcesPlugin.getWorkspace().addResourceChangeListener(skillFileListener, IResourceChangeEvent.POST_CHANGE);
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (this.eventBroker != null) {
       // Templates only surface skills and prompts, so ignore instruction/agent changes.
@@ -114,7 +96,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
 
   private void initConversationTemplates(IProgressMonitor monitor) {
     List<ConversationTemplate> newTemplates = new ArrayList<>();
-    List<ConversationAgent> newAgents = new ArrayList<>();
     Set<String> newCommands = new HashSet<>();
     boolean skillsEnabled = PreferencesUtils.isSkillsEnabled();
 
@@ -140,41 +121,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       CopilotCore.LOGGER.error(e);
     }
 
-    if (monitor.isCanceled()) {
-      return;
-    }
-
-    // Command: @***
-    try {
-      ConversationAgent[] rawAgents = this.lsConnection.listConversationAgents().get();
-      if (monitor.isCanceled()) {
-        return;
-      }
-      for (ConversationAgent agent : rawAgents) {
-        String agentSlug = agent.getSlug();
-        // @see ui.chat.ChatView#replaceWorkspaceCommand(String)
-        if (agentSlug.equals("project")) {
-          if (!FeatureFlags.isWorkspaceContextEnabled()) {
-            continue;
-          }
-
-          agent.setSlug("workspace");
-        }
-        newAgents.add(agent);
-        newCommands.add(AGENT_MARK + agent.getSlug());
-      }
-    } catch (InterruptedException | ExecutionException e) {
-      CopilotCore.LOGGER.error(e);
-    }
-
-    if (monitor.isCanceled()) {
-      return;
-    }
-
     // Atomically swap the cached data so readers always see a consistent snapshot.
     // Publish immutable snapshots so readers cannot accidentally mutate a live collection.
     this.templates = List.copyOf(newTemplates);
-    this.agents = List.copyOf(newAgents);
     this.allCommands = Set.copyOf(newCommands);
   }
 
@@ -241,14 +190,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     return templates != null && templates.size() > 0;
   }
 
-  public boolean isAgentsReady() {
-    return agents != null && agents.size() > 0;
-  }
-
-  public ConversationAgent[] getAgents() {
-    return agents.toArray(new ConversationAgent[0]);
-  }
-
   @Override
   public void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
     String status = copilotStatusResult.getStatus();
@@ -263,7 +204,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       default:
         this.allCommands = Set.of();
         this.templates = List.of();
-        this.agents = List.of();
         break;
     }
   }
@@ -273,70 +213,8 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
    */
   public void dispose() {
     this.authStatusManager.removeCopilotAuthStatusListener(this);
-    ResourcesPlugin.getWorkspace().removeResourceChangeListener(skillFileListener);
     if (this.eventBroker != null && this.customPromptsChangedHandler != null) {
       this.eventBroker.unsubscribe(this.customPromptsChangedHandler);
-    }
-  }
-
-  /**
-   * Listens for workspace resource changes involving SKILL.md or .prompt.md files and triggers a template refresh when
-   * such files are added, removed, or changed.
-   *
-   * <p>TODO: Remove this listener once workspace-root is removed from workspaceFolders in CopilotLanguageClient as CLS
-   * can watch the project prompt file change directly.
-   */
-  private class SkillFileChangeListener implements IResourceChangeListener {
-    @Override
-    public void resourceChanged(IResourceChangeEvent event) {
-      IResourceDelta delta = event.getDelta();
-      if (delta == null) {
-        return;
-      }
-      boolean[] needsRefresh = { false };
-      try {
-        delta.accept(childDelta -> {
-          if (needsRefresh[0]) {
-            return false;
-          }
-          if (!shouldVisitDelta(childDelta)) {
-            return false;
-          }
-          if (isPromptOrSkillFileDelta(childDelta)) {
-            needsRefresh[0] = true;
-            return false;
-          }
-          return true;
-        });
-      } catch (CoreException e) {
-        CopilotCore.LOGGER.error("Error visiting resource delta for skill file changes", e);
-      }
-      if (needsRefresh[0]) {
-        fetchAsync();
-      }
-    }
-
-    private boolean shouldVisitDelta(IResourceDelta delta) {
-      IResource resource = delta.getResource();
-      return resource != null && !resource.isDerived() && !resource.isTeamPrivateMember();
-    }
-
-    private boolean isPromptOrSkillFileDelta(IResourceDelta delta) {
-      IResource resource = delta.getResource();
-      if (resource.getType() != IResource.FILE || !isRelevantFileDelta(delta)) {
-        return false;
-      }
-
-      String name = resource.getName();
-      return SKILL_FILE_NAME.equals(name) || name.endsWith(PROMPT_FILE_SUFFIX);
-    }
-
-    private boolean isRelevantFileDelta(IResourceDelta delta) {
-      int kind = delta.getKind();
-      if (kind == IResourceDelta.ADDED || kind == IResourceDelta.REMOVED) {
-        return true;
-      }
-      return kind == IResourceDelta.CHANGED && (delta.getFlags() & IResourceDelta.CONTENT) != 0;
     }
   }
 }

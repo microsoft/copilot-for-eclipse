@@ -17,7 +17,8 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 public class CopilotCapabilities {
   private boolean fetch;
 
-  private boolean watchedFiles;
+  // CLS still expects this capability in the initialization payload, but Eclipse no longer supports the integration.
+  private final boolean watchedFiles = false;
 
   private boolean didChangeFeatureFlags;
 
@@ -35,15 +36,18 @@ public class CopilotCapabilities {
 
   /**
    * Creates a new CopilotCapabilities.
+   *
+   * @param fetch whether the client supports fetch requests
+   * @param subAgent whether the client supports sub-agents
+   * @param contentProvider supported content-provider URI schemes
    */
-  public CopilotCapabilities(boolean fetch, boolean watchedFiles, boolean subAgent, List<String> contentProvider) {
+  public CopilotCapabilities(boolean fetch, boolean subAgent, List<String> contentProvider) {
     this.didChangeFeatureFlags = true;
     this.stateDatabase = true;
     this.cveRemediatorAgent = true;
     this.debuggerAgent = JdtUtils.isJdtDebugAvailable() && PlatformUtils.isNightly();
     this.manageTodoListTool = true;
     this.fetch = fetch;
-    this.watchedFiles = watchedFiles;
     this.subAgent = subAgent;
     this.contentProvider = contentProvider;
   }
@@ -58,10 +62,6 @@ public class CopilotCapabilities {
 
   public boolean isWatchedFiles() {
     return watchedFiles;
-  }
-
-  public void setWatchedFiles(boolean watchedFiles) {
-    this.watchedFiles = watchedFiles;
   }
 
   public void setStateDatabase(boolean stateDatabase) {

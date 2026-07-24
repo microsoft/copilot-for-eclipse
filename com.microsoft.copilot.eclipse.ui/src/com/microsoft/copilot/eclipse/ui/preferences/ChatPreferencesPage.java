@@ -3,8 +3,6 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
-import org.eclipse.core.runtime.preferences.InstanceScope;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
@@ -16,11 +14,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.PlatformUI;
-import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
-import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
@@ -43,15 +38,6 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     parent.setLayout(new GridLayout(1, true));
 
     GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
-
-    Composite workspaceContextComposite = createSectionComposite(parent, gdf);
-    BooleanFieldEditor workspaceContextField = new BooleanFieldEditor(Constants.WORKSPACE_CONTEXT_ENABLED,
-        Messages.preferences_page_watched_files, SWT.WRAP, workspaceContextComposite);
-    applyFieldWidthHint(workspaceContextField, workspaceContextComposite);
-    addField(workspaceContextField);
-
-    addNote(parent, Messages.preferences_page_watched_files_note_content);
-    addSeparator(parent);
 
     Composite skillsComposite = createSectionComposite(parent, gdf);
     BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
@@ -77,34 +63,6 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
   @Override
   public void init(IWorkbench workbench) {
     setPreferenceStore(CopilotUi.getPlugin().getPreferenceStore());
-  }
-
-  @Override
-  public boolean performOk() {
-    final boolean oldWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
-
-    final boolean result = super.performOk();
-    boolean newWorkspaceContextValue = getPreferenceStore().getBoolean(Constants.WORKSPACE_CONTEXT_ENABLED);
-
-    boolean isWorkspaceContextChanged = oldWorkspaceContextValue ^ newWorkspaceContextValue;
-    if (isWorkspaceContextChanged) {
-      try {
-        InstanceScope.INSTANCE.getNode(CopilotUi.getPlugin().getBundle().getSymbolicName()).flush();
-      } catch (BackingStoreException e) {
-        CopilotCore.LOGGER.error("Failed to save preference 'Enable workspace context'", e);
-      }
-
-      boolean restart = MessageDialog.openQuestion(getShell(), Messages.preferences_page_restart_required,
-          Messages.preferences_page_restart_question);
-
-      if (restart) {
-        getShell().getDisplay().asyncExec(() -> {
-          PlatformUI.getWorkbench().restart();
-        });
-      }
-    }
-
-    return result;
   }
 
   private Composite createSectionComposite(Composite parent, GridDataFactory gdf) {

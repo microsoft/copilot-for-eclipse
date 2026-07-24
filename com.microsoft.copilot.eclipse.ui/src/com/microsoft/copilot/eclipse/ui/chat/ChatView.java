@@ -88,7 +88,6 @@ import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
-import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
@@ -1030,10 +1029,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
-    String processedMessage = replaceWorkspaceCommand(message);
-
     // Persist the user input to history
-    chatServiceManager.getUserPreferenceService().addInputToHistory(processedMessage);
+    chatServiceManager.getUserPreferenceService().addInputToHistory(message);
 
     final ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
 
@@ -1096,7 +1093,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       flushPendingAttachedFiles(this.conversationId);
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, message,
             activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
@@ -1110,7 +1107,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       String turnReasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
+          message, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
           customChatModeId, currentTodos, agentSlug, agentJobWorkspaceFolder,
           deriveWorkspaceFolders(currentFile, references));
       conversationFutures.add(addConversationFuture);
@@ -1146,7 +1143,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            message, activeModel, chatModeName, customChatModeId, currentFile, references);
 
         // Set conversationId and last completed turnId for CLS server-side session restoration.
         restoredConversationId = this.conversationId;
@@ -1169,20 +1166,20 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            message, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
       String reasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
-        createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
+        createConversationFuture = ls.createConversation(workDoneToken, message, references, currentFile,
             currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, todosToRestore, null,
             null, restoredConversationId, restoreToTurnId, workspaceFolders);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
-        createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
+        createConversationFuture = ls.createConversation(workDoneToken, message, references, currentFile,
             currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, null, agentSlug,
             agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
       }
@@ -1269,24 +1266,6 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private boolean isCompressionForActiveConversation(String compressionConversationId) {
     return StringUtils.equals(compressionConversationId, this.conversationId)
         || StringUtils.equals(compressionConversationId, this.subagentConversationId);
-  }
-
-  /**
-   * Align with @Workspace of vscode, because we are actually indexing the whole workspace, not a single project.
-   * (@Project is only for IntelliJ.)
-   *
-   * @param message the original message
-   * @return the processed message
-   */
-  private String replaceWorkspaceCommand(String message) {
-    if (!StringUtils.isBlank(message)
-        && chatServiceManager.getUserPreferenceService().getActiveChatMode() == ChatMode.Ask
-        && message.trim().startsWith(ChatCompletionService.AGENT_MARK + "workspace")) {
-      return message.replaceFirst(ChatCompletionService.AGENT_MARK + "workspace",
-          ChatCompletionService.AGENT_MARK + "project");
-    }
-
-    return message;
   }
 
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {

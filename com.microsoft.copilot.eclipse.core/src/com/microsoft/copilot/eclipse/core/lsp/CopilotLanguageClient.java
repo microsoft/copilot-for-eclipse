@@ -23,7 +23,6 @@ import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
-import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -54,8 +53,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
@@ -79,8 +76,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   private static final String HTTP = "http"; //$NON-NLS-1$
   private static final String COPILOT_FILE_ENCODING_SECTION = "copilot.file.encoding"; //$NON-NLS-1$
-
-  private WatchedFileManager watchedFileManager;
 
   private IEventBroker eventBroker;
 
@@ -186,20 +181,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     });
   }
 
-  // TODO: Should remove workspace-root folder as the projects are not directly under it in Eclipse, and can cause
-  // confusion in CLS.
-  @Override
-  public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
-    // Ideally, we should return each IProject as a workspace folder, but given that when
-    // creating a new conversation or new conversation turn, the uri of the workspace folder
-    // is required to use the @project (or @workspace) agent. There is no easy way to guess which
-    // IProject should be used. So we are returning the workspace root as a single workspace folder.
-    final WorkspaceFolder folder = new WorkspaceFolder();
-    folder.setUri(PlatformUtils.getWorkspaceRootUri());
-    folder.setName("workspace-root"); // $NON-NLS-1$
-    return CompletableFuture.completedFuture(List.of(folder));
-  }
-
   @Override
   public CompletableFuture<List<Object>> configuration(ConfigurationParams params) {
     return CompletableFuture.supplyAsync(() -> {
@@ -221,17 +202,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
       return results;
     });
-  }
-
-  /**
-   * Get the conversation context for the given request.
-   */
-  @JsonRequest("copilot/watchedFiles")
-  public CompletableFuture<GetWatchedFilesResponse> getWatchedFiles(GetWatchedFilesRequest params) {
-    if (watchedFileManager == null) {
-      watchedFileManager = new WatchedFileManager();
-    }
-    return watchedFileManager.getWatchedFilesWithProgress(params);
   }
 
   /**
