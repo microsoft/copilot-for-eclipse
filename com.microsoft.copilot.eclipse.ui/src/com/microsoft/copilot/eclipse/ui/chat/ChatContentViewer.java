@@ -3,17 +3,14 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -34,13 +31,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentRound;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
-import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
@@ -58,13 +51,6 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 public class ChatContentViewer extends Composite {
 
   private static final int SCROLL_THRESHOLD = 100;
-
-  /**
-   * Matches the trailing "| Request ID: ..." and "GitHub Request ID: ..." segments that the
-   * language server appends to user-facing error messages.
-   */
-  private static final Pattern REQUEST_ID_SUFFIX =
-      Pattern.compile("\\s*\\|?\\s*(?:GitHub\\s+)?Request\\s+ID:\\s*\\S+\\.?", Pattern.CASE_INSENSITIVE);
 
   private ChatServiceManager serviceManager;
   private String conversationId;
@@ -253,8 +239,6 @@ public class ChatContentViewer extends Composite {
       return;
     }
 
-    ChatServiceManager chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
-
     if (value.getKind() == WorkDoneProgressKind.report) {
       if (turnWidget instanceof ThinkingTurnWidget thinkingTurn) {
         thinkingTurn.setConversationContext(conversationId, value.getTurnId());
@@ -277,9 +261,6 @@ public class ChatContentViewer extends Composite {
         if (agentRound.getToolCalls() != null && !agentRound.getToolCalls().isEmpty()) {
           AgentToolCall toolCall = agentRound.getToolCalls().get(0);
           turnWidget.appendToolCallStatus(toolCall);
-
-          // Extract and process todo list from tool result details
-          processTodoListFromToolCall(chatServiceManager, value.getConversationId(), toolCall);
         }
       } else {
         // Handle chat mode responses
@@ -294,15 +275,7 @@ public class ChatContentViewer extends Composite {
       turnWidget.flushMessageBuffer();
     }
 
-    String errMsg = value.getErrorMessage();
-    if (StringUtils.isNotEmpty(errMsg)) {
-      errMsg = REQUEST_ID_SUFFIX.matcher(errMsg).replaceAll(StringUtils.EMPTY).trim();
-    }
-    String reason = value.getErrorReason();
-    if (StringUtils.isNotEmpty(reason) && reason.equals("model_not_supported")) {
-      // TODO: add enable button for better UX.
-      errMsg = Messages.chat_model_unsupported_message;
-    }
+    String errMsg = ChatErrorMessages.resolveDisplayMessage(value);
     if (StringUtils.isNotEmpty(errMsg)) {
       // TODO: Remove this legacy fallback after TBB is officially released.
       // When the language server has not enabled token-based billing yet, fall back to the
@@ -396,36 +369,6 @@ public class ChatContentViewer extends Composite {
       }
     }
     return false;
-  }
-
-  /**
-   * Process todo list from tool call result. Extracts todo list data from the tool-specific data
-   * and updates the TodoListService.
-   *
-   * @param chatServiceManager the chat service manager
-   * @param conversationId the conversation ID
-   * @param toolCall the agent tool call containing tool-specific data
-   */
-  private void processTodoListFromToolCall(ChatServiceManager chatServiceManager, String conversationId,
-      AgentToolCall toolCall) {
-    if (chatServiceManager == null || conversationId == null || toolCall == null) {
-      return;
-    }
-
-    ToolSpecificData toolSpecificData = toolCall.getToolSpecificData();
-    if (toolSpecificData == null || toolSpecificData.getTodoList() == null) {
-      return;
-    }
-
-    TodoListService todoListService = chatServiceManager.getTodoListService();
-    if (todoListService == null) {
-      return;
-    }
-
-    List<TodoItem> todos = toolSpecificData.getTodoList();
-    if (todos != null) {
-      todoListService.setTodoList(new ArrayList<>(todos));
-    }
   }
 
   /**

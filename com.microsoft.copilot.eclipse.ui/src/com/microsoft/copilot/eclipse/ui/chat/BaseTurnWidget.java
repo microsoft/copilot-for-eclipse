@@ -30,7 +30,6 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationDataFactory;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
@@ -623,11 +622,11 @@ public abstract class BaseTurnWidget extends Composite {
     boolean overageEnabled = false;
     Boolean canUpgradePlan = null;
     if (code == 402 && !byokQuotaExceeded) {
-      CheckQuotaResult quotaStatus = this.serviceManager.getAuthStatusManager().getQuotaStatus();
-      planForActions = quotaStatus.copilotPlan();
-      overageEnabled = quotaStatus.premiumInteractions() != null
-          && quotaStatus.premiumInteractions().overagePermitted();
-      canUpgradePlan = quotaStatus.canUpgradePlan();
+      QuotaActions.QuotaPlanContext context = QuotaActions.QuotaPlanContext.from(
+          this.serviceManager.getAuthStatusManager().getQuotaStatus());
+      planForActions = context.plan();
+      overageEnabled = context.overageEnabled();
+      canUpgradePlan = context.canUpgradePlan();
     }
     WarnWidget warnWidget =
         new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);

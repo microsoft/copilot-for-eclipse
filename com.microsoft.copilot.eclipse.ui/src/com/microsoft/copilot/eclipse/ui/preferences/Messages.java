@@ -58,6 +58,8 @@ public class Messages extends NLS {
   public static String preferences_page_watched_files;
   public static String preferences_page_watched_files_note_content;
   public static String preferences_page_restart_question;
+  public static String preferences_page_browser_renderer;
+  public static String preferences_page_browser_renderer_tooltip;
   public static String preferences_page_mcp;
   public static String preferences_page_proxy_config_link;
   public static String preferences_page_proxy_settings;
