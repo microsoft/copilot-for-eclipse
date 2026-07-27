@@ -240,6 +240,12 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
    * transport request before it can be edited. The lock result is stored as a session property on the semantic file
    * and is accessed reflectively, as the ADT classes are not available at compile time.
    *
+   * <p>
+   * A distinction is made between the lock information being read successfully (in which case the transport
+   * request is enforced) and the reflective read failing, e.g. because the ADT API changed. In the latter case
+   * the check cannot be performed reliably, so the failure is logged and the edit is allowed to continue rather
+   * than blocking the user.
+   *
    * @param file the file about to be changed
    * @throws CoreException if the file is transport-relevant but has no transport request number assigned
    */
@@ -252,27 +258,30 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     if (lockResult == null || !ADT_LOCK_RESULT_CLASS.equals(lockResult.getClass().getCanonicalName())) {
       return;
     }
-    Boolean transportRelevant = readField(lockResult, "transportRelevant", Boolean.class);
-    if (!Boolean.TRUE.equals(transportRelevant)) {
-      return;
-    }
-    String transportRequestNumber = readField(lockResult, "transportRequestNumber", String.class);
-    if (transportRequestNumber == null || transportRequestNumber.isEmpty()) {
-      throw new CoreException(Status.error(String.format(
-          "Cannot edit %s: the file is transport-relevant but no transport request number is assigned.",
-          file.getFullPath())));
+    try {
+      Boolean transportRelevant = readField(lockResult, "transportRelevant", Boolean.class);
+      if (!Boolean.TRUE.equals(transportRelevant)) {
+        return;
+      }
+      String transportRequestNumber = readField(lockResult, "transportRequestNumber", String.class);
+      if (transportRequestNumber == null || transportRequestNumber.isEmpty()) {
+        throw new CoreException(Status.error(String.format(
+            "Cannot edit %s: the file is transport-relevant but no transport request number is assigned.",
+            file.getFullPath())));
+      }
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      // The lock result is a genuine AdtLockResult, but its fields could not be read reflectively (e.g. the ADT
+      // API changed or setAccessible was denied). The transport check cannot be performed reliably, so log the
+      // failure and allow the edit to continue instead of blocking the user.
+      CopilotCore.LOGGER.error("Could not verify ADT transport lock for " + file.getFullPath()
+          + "; allowing the edit to continue.", e);
     }
   }
 
-  private <T> T readField(Object target, String fieldName, Class<T> type) {
-    try {
-      var field = target.getClass().getDeclaredField(fieldName);
-      field.setAccessible(true);
-      return type.cast(field.get(target));
-    } catch (ReflectiveOperationException | SecurityException e) {
-      CopilotCore.LOGGER.error("Failed to read field '" + fieldName + "' from " + target.getClass().getName(), e);
-      return null;
-    }
+  private <T> T readField(Object target, String fieldName, Class<T> type) throws ReflectiveOperationException {
+    var field = target.getClass().getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return type.cast(field.get(target));
   }
 
   private ByteArrayInputStream getInputStream(String changedContent, IFile file) {
