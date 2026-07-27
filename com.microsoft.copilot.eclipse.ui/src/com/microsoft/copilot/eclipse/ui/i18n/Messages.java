@@ -204,10 +204,13 @@ public final class Messages extends NLS {
   public static String model_billing_multiplier_variable;
   public static String model_preview_suffix;
   public static String model_hover_contextWindow;
+  public static String model_hover_contextWindow_title;
   public static String model_hover_cost;
   public static String model_hover_thinkingEffort;
   public static String model_hover_thinkingEffort_default_suffix;
   public static String model_hover_customModelInfo;
+  public static String model_contextWindow_default_description;
+  public static String model_contextWindow_longContext_description;
   public static String model_reasoningEffort_none;
   public static String model_reasoningEffort_low;
   public static String model_reasoningEffort_medium;
