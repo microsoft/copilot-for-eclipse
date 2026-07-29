@@ -65,7 +65,8 @@ public class AvatarService {
   }
 
   /**
-   * Gets the avatar for the current user.
+   * Gets the avatar for the current user or a default user icon.
+   * The returned {@link Image} must never be disposed by the caller.
    *
    * @param display the display
    * @return the avatar
@@ -83,7 +84,8 @@ public class AvatarService {
   }
 
   /**
-   * Gets the avatar for a user.
+   * Gets the avatar icon for a user or a default user icon.
+   * The returned {@link Image} must never be disposed by the caller.
    *
    * @param display the display
    * @param user the user
