@@ -72,6 +72,7 @@ public final class CopilotImages {
   public static final String IMG_CHAT_EYE_CLOSED = ICONS_CHAT + "eye_closed.png";
   public static final String IMG_CHAT_EYE_CLOSED_DARK = ICONS_CHAT + "eye_closed_dark.png";
   public static final String IMG_CHAT_GUTTER_ARROW = ICONS_CHAT + "gutter-arrow.png";
+  public static final String IMG_CHAT_INSERT_TEMPLATE = ICONS_CHAT + "insert_template.png";
   public static final String IMG_CHAT_KEEP = ICONS_CHAT + "keep.png";
   public static final String IMG_CHAT_KEYBOARD_TAB = ICONS_CHAT + "keyboard-tab.png";
   public static final String IMG_CHAT_RED_NOTICE = ICONS_CHAT + "red_notice.png";
@@ -204,6 +205,7 @@ public final class CopilotImages {
     register(registry, IMG_CHAT_EYE_CLOSED);
     register(registry, IMG_CHAT_EYE_CLOSED_DARK);
     register(registry, IMG_CHAT_GUTTER_ARROW);
+    register(registry, IMG_CHAT_INSERT_TEMPLATE);
     register(registry, IMG_CHAT_KEEP);
     register(registry, IMG_CHAT_KEYBOARD_TAB);
     register(registry, IMG_CHAT_RED_NOTICE);

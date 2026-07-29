@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
@@ -29,14 +28,12 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.ui.CopilotImages;
-import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -57,7 +54,6 @@ public class SourceViewerComposite extends Composite {
   private Composite actionsComposite;
 
   private Image copyIcon;
-  private Image insertIcon;
   private Runnable fontChangeCallback;
 
   /**
@@ -184,12 +180,8 @@ public class SourceViewerComposite extends Composite {
       }
     });
 
-    ImageDescriptor insertDesc = AbstractUIPlugin.imageDescriptorFromPlugin(UiConstants.WORKBENCH_TEXTEDITOR,
-        UiConstants.INSERT_ICON);
-    this.insertIcon = Optional.ofNullable(insertDesc).map(desc -> desc.createImage()).orElse(null);
-    Image pasteIcon = CopilotImages.getSharedImage(ISharedImages.IMG_TOOL_PASTE);
-    Image insertButtonIcon = this.insertIcon != null ? this.insertIcon : pasteIcon;
-    Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertButtonIcon, "Insert",
+    Image insertIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_INSERT_TEMPLATE);
+    Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertIcon, "Insert",
         "Insert into editor", Messages.sourceViewerComposite_insertButtonAccessibilityName);
     insertButton.addListener(SWT.Selection, this::insert);
 
@@ -330,9 +322,6 @@ public class SourceViewerComposite extends Composite {
     super.dispose();
     if (fontChangeCallback != null) {
       serviceManager.getChatFontService().unregisterCallback(fontChangeCallback);
-    }
-    if (insertIcon != null) {
-      insertIcon.dispose();
     }
   }
 
