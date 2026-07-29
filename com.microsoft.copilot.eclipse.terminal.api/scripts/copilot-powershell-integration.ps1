@@ -39,12 +39,19 @@ if (-not $global:COPILOT_SHELL_INTEGRATION) {
 
         $result += "$esc]7775;A$bel"
 
+        $promptText = $null
         if ($global:__copilot_original_prompt) {
-            $result += $global:__copilot_original_prompt.Invoke()
-        } else {
-            $result += "PS $($executionContext.SessionState.Path.CurrentLocation)> "
+            try {
+                $promptText = & $global:__copilot_original_prompt 2>$null
+            } catch {
+                $promptText = $null
+            }
         }
 
+        if ($null -eq $promptText -or "$promptText" -eq "") {
+            $promptText = "PS $($executionContext.SessionState.Path.CurrentLocation)> "
+        }
+        $result += $promptText
         $result += "$esc]7775;B$bel"
         if ($null -ne $lastHistoryEntry) {
             $global:__copilot_last_history_id = $lastHistoryEntry.Id
