@@ -63,6 +63,7 @@ public final class CopilotJobsImages {
    * callers must <em>not</em> dispose it.
    *
    * @param key one of the {@code IMG_*} constants defined in this class
+   * @return the registry-owned image for the given key
    */
   public static Image getImage(String key) {
     return getImageRegistry().get(key);
@@ -73,6 +74,7 @@ public final class CopilotJobsImages {
    * e.g. for {@code Action.setImageDescriptor()}.
    *
    * @param key one of the {@code IMG_*} constants defined in this class
+   * @return the image descriptor for the given key
    */
   public static ImageDescriptor getImageDescriptor(String key) {
     return getImageRegistry().getDescriptor(key);
@@ -82,6 +84,7 @@ public final class CopilotJobsImages {
    * Convenience access to Eclipse's workbench shared images.
    *
    * @param imageId a constant from {@link ISharedImages}, e.g. {@link ISharedImages#IMG_OBJS_WARN_TSK}
+   * @return the shared workbench image for the given id
    */
   public static Image getSharedImage(String imageId) {
     return PlatformUI.getWorkbench().getSharedImages().getImage(imageId);

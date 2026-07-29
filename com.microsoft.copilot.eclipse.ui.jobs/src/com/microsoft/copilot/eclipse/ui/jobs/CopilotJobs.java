@@ -21,7 +21,11 @@ public class CopilotJobs extends AbstractUIPlugin {
 
   private static volatile CopilotJobs COPILOT_JOBS_PLUGIN;
 
-  /** Returns the shared plugin instance. */
+  /**
+   * Returns the shared plugin instance.
+   *
+   * @return the shared plugin instance
+   */
   public static CopilotJobs getPlugin() {
     Assert.isNotNull(COPILOT_JOBS_PLUGIN);
     return COPILOT_JOBS_PLUGIN;

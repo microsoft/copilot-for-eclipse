@@ -271,6 +271,7 @@ public final class CopilotImages {
    * callers must <em>not</em> dispose it.
    *
    * @param key one of the {@code IMG_*} constants defined in this class
+   * @return the registry-owned image for the given key
    */
   public static Image getImage(String key) {
     return getImageRegistry().get(key);
@@ -281,6 +282,7 @@ public final class CopilotImages {
    * e.g. for {@code Action.setImageDescriptor()}.
    *
    * @param key one of the {@code IMG_*} constants defined in this class
+   * @return the image descriptor for the given key
    */
   public static ImageDescriptor getImageDescriptor(String key) {
     return getImageRegistry().getDescriptor(key);
@@ -289,11 +291,14 @@ public final class CopilotImages {
   /**
    * Returns the theme-correct image for icons that come in light/dark variants.
    * Uses {@link UiUtils#isDarkTheme()} to pick the right key.
+   * The returned image is owned by the plugin registry;
+   * callers must <em>not</em> dispose it.
    *
    * <p>Does not track live theme changes; callers re-render on theme-change events as needed.
    *
    * @param lightKey key to use in light theme
    * @param darkKey  key to use in dark theme
+   * @return the registry-owned image for the current theme
    */
   public static Image getThemedImage(String lightKey, String darkKey) {
     return getImage(UiUtils.isDarkTheme() ? darkKey : lightKey);
@@ -307,8 +312,11 @@ public final class CopilotImages {
 
   /**
    * Returns the image for the given 1-based spinner frame (1–8).
+   * The returned image is owned by the plugin registry;
+   * callers must <em>not</em> dispose it.
    *
    * @param frame 1-based index of the spinner frame
+   * @return the registry-owned image for the requested spinner frame
    * @throws IllegalArgumentException if {@code frame} is outside [1, 8]
    */
   public static Image getSpinnerFrame(int frame) {
@@ -328,8 +336,11 @@ public final class CopilotImages {
 
   /**
    * Convenience access to Eclipse's workbench shared images.
+   * The returned image is owned by the owning plugin's registry;
+   * callers must <em>not</em> dispose it.
    *
    * @param imageId a constant from {@link ISharedImages}, e.g. {@link ISharedImages#IMG_OBJS_ERROR_TSK}
+   * @return the shared workbench image for the given id
    */
   public static Image getSharedImage(String imageId) {
     return PlatformUI.getWorkbench().getSharedImages().getImage(imageId);

@@ -60,6 +60,11 @@ public class WrappableIconLink extends Composite {
   // ------------- Factory methods -------------
   /**
    * Creates a WrappableIconLink with the given icon image.
+   *
+   * @param parent the parent composite
+   * @param icon the icon image (not owned by this widget)
+   * @param linkText the text for the link (may contain HTML link tags)
+   * @return the created {@link WrappableIconLink}
    */
   public static WrappableIconLink create(Composite parent, Image icon, String linkText) {
     return new WrappableIconLink(parent, icon, linkText, DEFAULT_MARGIN);
@@ -67,6 +72,12 @@ public class WrappableIconLink extends Composite {
 
   /**
    * Creates a WrappableIconLink with the given icon image and custom width margin.
+   *
+   * @param parent the parent composite
+   * @param icon the icon image (not owned by this widget)
+   * @param linkText the text for the link (may contain HTML link tags)
+   * @param widthMargin the horizontal margin to subtract when computing the link width
+   * @return the created {@link WrappableIconLink}
    */
   public static WrappableIconLink create(Composite parent, Image icon, String linkText, int widthMargin) {
     return new WrappableIconLink(parent, icon, linkText, widthMargin);
