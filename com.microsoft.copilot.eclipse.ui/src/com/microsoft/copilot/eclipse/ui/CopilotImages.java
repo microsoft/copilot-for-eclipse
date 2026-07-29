@@ -299,17 +299,6 @@ public final class CopilotImages {
     return getImage(UiUtils.isDarkTheme() ? darkKey : lightKey);
   }
 
-  /**
-   * Returns the theme-correct descriptor for icons that come in light/dark variants.
-   *
-   * @param lightKey key to use in light theme
-   * @param darkKey  key to use in dark theme
-   * @see #getThemedImage(String, String)
-   */
-  public static ImageDescriptor getThemedImageDescriptor(String lightKey, String darkKey) {
-    return getImageDescriptor(UiUtils.isDarkTheme() ? darkKey : lightKey);
-  }
-
   private static String getSpinnerFrameImageKey(int frame) {
     Assert.isLegal(frame >= 1 && frame <= SPINNER_FRAMES.length,
         "Spinner frame must be in [1, " + SPINNER_FRAMES.length + "], got: " + frame);
@@ -344,15 +333,6 @@ public final class CopilotImages {
    */
   public static Image getSharedImage(String imageId) {
     return PlatformUI.getWorkbench().getSharedImages().getImage(imageId);
-  }
-
-  /**
-   * Convenience access to Eclipse's workbench shared image descriptors.
-   *
-   * @param imageId a constant from {@link ISharedImages}
-   */
-  public static ImageDescriptor getSharedImageDescriptor(String imageId) {
-    return PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(imageId);
   }
 
 }

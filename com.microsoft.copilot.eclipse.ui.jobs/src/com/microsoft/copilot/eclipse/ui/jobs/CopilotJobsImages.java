@@ -87,13 +87,4 @@ public final class CopilotJobsImages {
     return PlatformUI.getWorkbench().getSharedImages().getImage(imageId);
   }
 
-  /**
-   * Convenience access to Eclipse's workbench shared image descriptors.
-   *
-   * @param imageId a constant from {@link ISharedImages}
-   */
-  public static ImageDescriptor getSharedImageDescriptor(String imageId) {
-    return PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(imageId);
-  }
-
 }
