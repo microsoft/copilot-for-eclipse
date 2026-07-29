@@ -476,17 +476,21 @@ public class McpServerItem extends Composite implements EventHandler {
     List<Icon> icons = detail != null ? detail.icons() : null;
     String iconUrl = McpUtils.getPreferredIconUrl(icons);
 
-    McpUtils.loadServerIcon(iconUrl, iconSize, iconSize).thenAccept(image -> {
-      if (image == null) {
-        return;
-      }
+    McpUtils.loadDisposableServerIcon(iconUrl, iconSize, iconSize).thenAccept(image -> {
       if (iconLabel == null || iconLabel.isDisposed()) {
-        if (!image.isDisposed()) {
+        // label disposed -> also dispose freshly loaded image
+        if (image != null && !image.isDisposed()) {
           image.dispose();
         }
         return;
       }
+      if (image == null) {
+        iconLabel.setImage(McpUtils.loadDefaultServerIcon());
+        // never dispose image-registry-owned iamges; thus, return here
+        return;
+      }
       iconLabel.setImage(image);
+      // we need to dispose all images loaded via loadDisposableServerIcon(...)
       iconLabel.addDisposeListener(e -> {
         if (!image.isDisposed()) {
           image.dispose();
