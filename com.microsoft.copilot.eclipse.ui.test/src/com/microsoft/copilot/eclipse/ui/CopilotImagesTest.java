@@ -12,8 +12,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * Verifies that every public constant in {@link CopilotImages} refers to a bundle resource that
- * actually exists on the classpath.
+ * Verifies that every {@code IMG_*} constant in {@link CopilotImages} refers to a bundle resource
+ * that actually exists on the classpath.
  *
  * <p>This test is independent of a running Display or plugin registry — it only needs the bundle's
  * classpath. It guards against typos in icon paths and missing files caused by renames or deletions.
@@ -26,6 +26,7 @@ class CopilotImagesTest {
         .filter(f -> f.getName().startsWith("IMG_"))
         .map(f -> {
           try {
+            f.setAccessible(true);
             return Arguments.of(f.getName(), f.get(null));
           } catch (IllegalAccessException e) {
             throw new IllegalStateException("Cannot read constant: " + f.getName(), e);

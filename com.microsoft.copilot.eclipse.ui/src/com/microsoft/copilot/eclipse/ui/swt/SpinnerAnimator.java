@@ -21,7 +21,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotImages;
  */
 public final class SpinnerAnimator {
   /** Total number of frames. */
-  private static final int TOTAL_FRAMES = CopilotImages.SPINNER_FRAMES.length;
+  private static final int TOTAL_FRAMES = CopilotImages.SPINNER_FRAME_COUNT;
   /** Per-frame interval in milliseconds. */
   private static final int FRAME_INTERVAL_MS = 100;
 

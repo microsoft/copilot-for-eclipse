@@ -134,19 +134,22 @@ public final class CopilotImages {
   public static final String IMG_QUICKSTART_CLOSE_HOVER_DARK = ICONS_QUICKSTART + "close_hover_dark.png";
 
   // ---- Spinner frames (1-based index, see getSpinnerFrame) -----------------
-  public static final String IMG_SPINNER_1 = ICONS_SPINNER + "1.png";
-  public static final String IMG_SPINNER_2 = ICONS_SPINNER + "2.png";
-  public static final String IMG_SPINNER_3 = ICONS_SPINNER + "3.png";
-  public static final String IMG_SPINNER_4 = ICONS_SPINNER + "4.png";
-  public static final String IMG_SPINNER_5 = ICONS_SPINNER + "5.png";
-  public static final String IMG_SPINNER_6 = ICONS_SPINNER + "6.png";
-  public static final String IMG_SPINNER_7 = ICONS_SPINNER + "7.png";
-  public static final String IMG_SPINNER_8 = ICONS_SPINNER + "8.png";
+  private static final String IMG_SPINNER_1 = ICONS_SPINNER + "1.png";
+  private static final String IMG_SPINNER_2 = ICONS_SPINNER + "2.png";
+  private static final String IMG_SPINNER_3 = ICONS_SPINNER + "3.png";
+  private static final String IMG_SPINNER_4 = ICONS_SPINNER + "4.png";
+  private static final String IMG_SPINNER_5 = ICONS_SPINNER + "5.png";
+  private static final String IMG_SPINNER_6 = ICONS_SPINNER + "6.png";
+  private static final String IMG_SPINNER_7 = ICONS_SPINNER + "7.png";
+  private static final String IMG_SPINNER_8 = ICONS_SPINNER + "8.png";
 
-  public static final String[] SPINNER_FRAMES = {
+  private static final String[] SPINNER_FRAMES = {
       IMG_SPINNER_1, IMG_SPINNER_2, IMG_SPINNER_3, IMG_SPINNER_4,
       IMG_SPINNER_5, IMG_SPINNER_6, IMG_SPINNER_7, IMG_SPINNER_8
   };
+
+  /** Number of spinner animation frames (1-based indices run from 1 to this value). */
+  public static final int SPINNER_FRAME_COUNT = SPINNER_FRAMES.length;
 
   private CopilotImages() {
     // prevent instantiation
@@ -311,24 +314,24 @@ public final class CopilotImages {
   }
 
   /**
-   * Returns the image for the given 1-based spinner frame (1–8).
+   * Returns the image for the given 1-based spinner frame (1–{@link SPINNER_FRAME_COUNT}).
    * The returned image is owned by the plugin registry;
    * callers must <em>not</em> dispose it.
    *
    * @param frame 1-based index of the spinner frame
    * @return the registry-owned image for the requested spinner frame
-   * @throws IllegalArgumentException if {@code frame} is outside [1, 8]
+   * @throws IllegalArgumentException if {@code frame} is outside [1, {@link SPINNER_FRAME_COUNT}]
    */
   public static Image getSpinnerFrame(int frame) {
     return getImage(getSpinnerFrameImageKey(frame));
   }
 
   /**
-   * Returns the image descriptor for the given 1-based spinner frame (1–8).
+   * Returns the image descriptor for the given 1-based spinner frame (1–{@link SPINNER_FRAME_COUNT}).
    *
    * @param frame 1-based index of the spinner frame
    * @return the image descriptor for the requested spinner frame
-   * @throws IllegalArgumentException if {@code frame} is outside [1, 8]
+   * @throws IllegalArgumentException if {@code frame} is outside [1, {@link SPINNER_FRAME_COUNT}]
    */
   public static ImageDescriptor getSpinnerFrameDescriptor(int frame) {
     return getImageDescriptor(getSpinnerFrameImageKey(frame));
