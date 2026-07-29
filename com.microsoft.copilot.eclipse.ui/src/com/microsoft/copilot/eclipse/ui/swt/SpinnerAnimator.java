@@ -12,13 +12,12 @@ import com.microsoft.copilot.eclipse.ui.CopilotImages;
 /**
  * Drives a rotating spinner animation on a target {@link Label}.
  *
- * <p>The animator owns the lifecycle of the per-frame {@link Image} resources: each new frame is
- * loaded, the previous one is disposed, and {@link #stop()} guarantees that the label no longer
- * holds a reference to a disposed image. After {@link #stop()} the caller is free to swap in a
- * final image (e.g. a "completed" icon) on the same label.
+ * <p>Frames are taken from the image registry ({@link CopilotImages}) and must never be disposed.
+ * {@link #stop()} only detaches the current frame from the label so the caller can swap
+ * in a final image (e.g. a "completed" icon) on the same label.
  *
- * <p>The animator hooks the target label's dispose listener so the animation is cancelled and the
- * running frame is freed automatically when the label goes away.
+ * <p>The animator hooks the target label's dispose listener so the animation is cancelled
+ * automatically when the label goes away.
  */
 public final class SpinnerAnimator {
   /** Total number of frames. */
@@ -70,17 +69,16 @@ public final class SpinnerAnimator {
   }
 
   /**
-   * Stop the animation and release the frame image. Detaches the image from the target label
-   * before disposing it so the label never points at a disposed image. Safe to call repeatedly.
+   * Stop the animation and detach the current frame from the target label.
+   * Frames owned by the image registry are never disposed. Safe to call repeatedly.
    */
   public void stop() {
     if (animationRunnable != null && !target.isDisposed()) {
       target.getDisplay().timerExec(-1, animationRunnable);
     }
     animationRunnable = null;
-    // Detach the image from the label before disposing it so the label never points at a
-    // disposed image. Callers that want a final icon (completed/cancelled/error) set it
-    // immediately after stop(), avoiding any visible flicker.
+    // Detach the registry-owned frame from the label. Callers that want a final icon
+    // (completed/cancelled/error) set it immediately after stop(), avoiding any visible flicker.
     if (!target.isDisposed() && target.getImage() == currentFrameImage) {
       target.setImage(null);
     }
