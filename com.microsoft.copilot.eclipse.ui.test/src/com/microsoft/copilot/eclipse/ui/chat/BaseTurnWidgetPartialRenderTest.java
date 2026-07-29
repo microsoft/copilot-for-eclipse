@@ -7,27 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 
 import java.lang.reflect.Field;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Shell;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
-import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
-import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
-import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -36,48 +23,7 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  * blocks where fence detection requires a complete line.
  */
 @ExtendWith(MockitoExtension.class)
-class BaseTurnWidgetPartialRenderTest {
-
-  private static final String TURN_ID = "turn-1";
-
-  private Shell shell;
-  private MockedStatic<CopilotUi> copilotUiMock;
-  private CopilotUi mockPlugin;
-
-  @Mock
-  private ChatServiceManager mockChatServiceManager;
-  @Mock
-  private AvatarService mockAvatarService;
-  @Mock
-  private ChatFontService mockChatFontService;
-
-  @BeforeEach
-  void setUp() {
-    lenient().when(mockChatServiceManager.getAvatarService()).thenReturn(mockAvatarService);
-    lenient().when(mockChatServiceManager.getChatFontService()).thenReturn(mockChatFontService);
-    lenient().when(mockAvatarService.getAvatarForCopilot()).thenReturn(null);
-
-    SwtUtils.invokeOnDisplayThread(() -> {
-      shell = new Shell(Display.getDefault());
-      copilotUiMock = mockStatic(CopilotUi.class);
-      mockPlugin = mock(CopilotUi.class);
-      copilotUiMock.when(CopilotUi::getPlugin).thenReturn(mockPlugin);
-      lenient().when(mockPlugin.getChatServiceManager()).thenReturn(mockChatServiceManager);
-    });
-  }
-
-  @AfterEach
-  void tearDown() {
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (copilotUiMock != null) {
-        copilotUiMock.close();
-        copilotUiMock = null;
-      }
-      if (shell != null && !shell.isDisposed()) {
-        shell.dispose();
-      }
-    });
-  }
+class BaseTurnWidgetPartialRenderTest extends BaseTurnWidgetTestSupport {
 
   @Test
   void appendMessage_partialLineWithoutNewline_rendersImmediately() {

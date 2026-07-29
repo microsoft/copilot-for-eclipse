@@ -140,6 +140,8 @@ public class AgentStatusLabel extends Composite {
       styledText.setEditable(false);
       styledText.setData(CssConstants.CSS_CLASS_NAME_KEY, "text-secondary");
       AccessibilityUtils.addFocusBorderToComposite(styledText);
+      AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+          Messages.agentStatusLabel_accessibilityName);
     }
     textLabel.setMarkup(text);
   }

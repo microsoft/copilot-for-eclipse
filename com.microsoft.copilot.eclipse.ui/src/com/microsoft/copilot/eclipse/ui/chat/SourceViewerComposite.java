@@ -154,6 +154,8 @@ public class SourceViewerComposite extends Composite {
     };
     serviceManager.getChatFontService().registerCallback(fontChangeCallback);
     AccessibilityUtils.addFocusBorderToComposite(styledText);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        Messages.sourceViewerComposite_codeBlockAccessibilityName);
 
     return viewer;
   }
@@ -172,7 +174,8 @@ public class SourceViewerComposite extends Composite {
     result.setLayout(layout);
 
     this.copyIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_COPY);
-    Button copyButton = createActionButton(result, SWT.PUSH | SWT.FLAT, copyIcon, "Copy", "Copy to clipboard");
+    Button copyButton = createActionButton(result, SWT.PUSH | SWT.FLAT, copyIcon, "Copy", "Copy to clipboard",
+        Messages.sourceViewerComposite_copyButtonAccessibilityName);
     copyButton.addListener(SWT.Selection, e -> {
       String content = this.sourceViewer.getDocument().get();
       if (StringUtils.isNotEmpty(content)) {
@@ -187,7 +190,7 @@ public class SourceViewerComposite extends Composite {
     Image pasteIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_PASTE);
     Image insertButtonIcon = this.insertIcon != null ? this.insertIcon : pasteIcon;
     Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertButtonIcon, "Insert",
-        "Insert into editor");
+        "Insert into editor", Messages.sourceViewerComposite_insertButtonAccessibilityName);
     insertButton.addListener(SWT.Selection, this::insert);
 
     result.setVisible(false);
@@ -195,9 +198,11 @@ public class SourceViewerComposite extends Composite {
     return result;
   }
 
-  private Button createActionButton(Composite parent, int style, Image image, String text, String tooltip) {
+  private Button createActionButton(Composite parent, int style, Image image, String text, String tooltip,
+      String accessibilityName) {
     Button result = new Button(parent, style);
     result.setToolTipText(tooltip);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(result, accessibilityName);
     result.setVisible(true);
     if (image == null) {
       result.setText(text);

@@ -517,6 +517,9 @@ CompletableFuture.runAsync(() -> {
 
 **When** adding user-facing text → externalize in `Messages.properties` using Eclipse NLS pattern
 
+**When** naming focusable controls for accessibility → use non-empty names that are unique among sibling controls;
+distinguish repeated controls with stable context or an ordinal
+
 **When** implementing context menus → prefer simple, predictable visibility logic
 
 **When** opening preference dialogs → show only relevant pages

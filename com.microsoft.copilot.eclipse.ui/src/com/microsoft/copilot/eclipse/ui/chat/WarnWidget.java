@@ -22,6 +22,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.chat.QuotaActions.QuotaAction;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -123,6 +124,8 @@ public class WarnWidget extends Composite {
     StyledText styledText = textLabel.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
     styledText.setEditable(false);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        Messages.chat_warnWidget_message_accessibilityName);
     textLabel.setMarkup(message);
 
     requestLayout();

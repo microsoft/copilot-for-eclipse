@@ -94,6 +94,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_sendToJob_noProject;
   public static String chat_actionBar_cancelButton_Tooltip;
   public static String chat_actionBar_toolButton_toolTip;
+  public static String chat_actionBar_toolButton_accessibilityName;
   public static String chat_actionBar_toolButton_disabled_toolTip;
   public static String chat_actionBar_modelPicker_manageModels;
   public static String chat_actionBar_toolButton_detected_toolTip;
@@ -156,6 +157,9 @@ public final class Messages extends NLS {
   public static String chat_currentReferencedFile_description;
   public static String chat_turnWidget_copilot;
   public static String chat_turnWidget_user;
+  public static String chat_userTurnWidget_message_accessibilityName;
+  public static String chat_copilotTurnWidget_message_accessibilityName;
+  public static String chat_warnWidget_message_accessibilityName;
   public static String chat_model_unsupported_message;
   public static String chat_copilotModels;
   public static String chat_standardModels;

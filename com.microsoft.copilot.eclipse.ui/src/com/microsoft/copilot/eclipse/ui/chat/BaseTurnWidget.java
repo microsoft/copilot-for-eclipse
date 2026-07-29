@@ -67,6 +67,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected int codeBlockIndex;
   protected boolean inSubagentBlock;
   protected String overrideRoleName;
+  private int textBlockIndex;
 
   // Resource
   protected Image icon = null;
@@ -106,6 +107,7 @@ public abstract class BaseTurnWidget extends Composite {
     this.isCopilot = isCopilot;
     this.turnId = turnId;
     this.codeBlockIndex = 1;
+    this.textBlockIndex = 1;
     this.statusLabels = new HashMap<>();
     this.subagentBlocks = new HashMap<>();
     // editor group
@@ -576,6 +578,13 @@ public abstract class BaseTurnWidget extends Composite {
    * Create the appropriate type of text block based on implementation.
    */
   protected abstract void createTextBlock();
+
+  /**
+   * Returns the next unique accessible name for a text block in this turn.
+   */
+  protected String nextTextBlockAccessibilityName(String pattern) {
+    return NLS.bind(pattern, textBlockIndex++);
+  }
 
   /**
    * Create an optional footer component. Subclasses can override this to define footer structure.

@@ -61,6 +61,8 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
     styledText.setEditable(false);
 
     AccessibilityUtils.addFocusBorderToComposite(styledText);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        nextTextBlockAccessibilityName(Messages.chat_copilotTurnWidget_message_accessibilityName));
   }
 
   /**

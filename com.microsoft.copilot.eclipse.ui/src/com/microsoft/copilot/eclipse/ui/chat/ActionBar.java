@@ -450,6 +450,8 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendToJobButton.setEnabled(hasText);
       this.sendToJobButton.setImage(hasText ? sendToJobImage : sendToJobDisabledImage);
       this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
+      AccessibilityUtils.addAccessibilityNameForUiComponent(this.sendToJobButton,
+          Messages.chat_actionBar_sendToJobButton_Tooltip);
       GridData sendToJobGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       sendToJobGd.widthHint = sendToJobImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       sendToJobGd.heightHint = sendToJobImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -550,6 +552,8 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.mcpToolButton = UiUtils.createIconButton(parent, SWT.PUSH | SWT.FLAT);
     this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
         mcpToolDisabledImage, mcpToolDetectedImage);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpToolButton,
+        Messages.chat_actionBar_toolButton_accessibilityName);
 
     GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
     mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;

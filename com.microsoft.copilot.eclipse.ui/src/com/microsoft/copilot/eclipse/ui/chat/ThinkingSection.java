@@ -15,6 +15,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -94,6 +95,8 @@ final class ThinkingSection extends Composite {
     titleWidget.setEditable(false);
     titleWidget.setMargins(0, 0, 0, 0);
     UiUtils.applyCssClass(titleWidget, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(titleWidget,
+        Messages.thinkingSection_headingAccessibilityName);
     titleView.setMarkup("**" + titleText + "**");
   }
 
@@ -116,6 +119,8 @@ final class ThinkingSection extends Composite {
     text.setEditable(false);
     text.setMargins(0, 0, 0, 0);
     UiUtils.applyCssClass(text, SECONDARY_TEXT_CSS_CLASS, stylingEngine);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(text,
+        Messages.thinkingSection_detailsAccessibilityName);
     viewer.setMarkup(markup);
     return viewer;
   }
