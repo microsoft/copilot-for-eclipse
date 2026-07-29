@@ -33,6 +33,7 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
+import com.microsoft.copilot.eclipse.ui.utils.ModelUtils.ContextWindowOption;
 
 /**
  * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title header,
@@ -44,10 +45,10 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   private static final int SECTION_SPACING = 3;
   private static final String POPUP_SECONDARY_TEXT_CLASS = "popup-secondary-text";
 
-  /** Horizontal padding inside a thinking effort row, so the hover background has breathing room. */
-  private static final int THINKING_EFFORT_ROW_H_PADDING = 4;
-  /** Vertical padding inside a thinking effort row, so the hover background has breathing room. */
-  private static final int THINKING_EFFORT_ROW_V_PADDING = 2;
+  /** Horizontal padding inside a selectable option row, so the hover background has breathing room. */
+  private static final int OPTION_ROW_H_PADDING = 4;
+  /** Vertical padding inside a selectable option row, so the hover background has breathing room. */
+  private static final int OPTION_ROW_V_PADDING = 2;
 
   private final CopilotModel model;
   private final IStylingEngine stylingEngine;
@@ -77,8 +78,8 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
     addCustomModelInfoSection(parent, item.getLabel());
 
-    addContextWindowSection(parent);
     addPricingSection(parent, model.getModelPickerPriceCategory());
+    addContextWindowSection(parent, closeRequest);
     addThinkingEffortSection(parent, closeRequest);
   }
 
@@ -120,7 +121,16 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     infoLabel.setLayoutData(gd);
   }
 
-  private void addContextWindowSection(Composite parent) {
+  private void addContextWindowSection(Composite parent, Runnable closeRequest) {
+    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
+    if (options.size() >= 2) {
+      // Multiple price tiers -> let the user pick a context-window size, mirroring the thinking-effort section.
+      Composite optionsComposite = createOptionsSection(parent, Messages.model_hover_contextWindow_title);
+      populateContextWindowOptions(optionsComposite, options, closeRequest);
+      return;
+    }
+
+    // Single tier (or no tier metadata) -> show the context window as a static, non-selectable row.
     String contextWindowText = ModelUtils.getContextWindowText(model);
     if (StringUtils.isBlank(contextWindowText)) {
       return;
@@ -128,6 +138,38 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
 
     addSeparator(parent);
     addKeyValueRow(parent, Messages.model_hover_contextWindow, contextWindowText);
+  }
+
+  private void populateContextWindowOptions(Composite optionsComposite, List<ContextWindowOption> options,
+      Runnable closeRequest) {
+    ModelService modelService = resolveModelService();
+    // Show the user's selection when present, otherwise pre-mark the default so the hover always communicates which
+    // context-window size the request will use.
+    ContextWindowOption effective = modelService != null ? modelService.resolveEffectiveContextWindowOption(model)
+        : ModelUtils.resolveDefaultContextWindowOption(model);
+    for (ContextWindowOption option : options) {
+      boolean isSelected = effective != null && effective.maxContext() == option.maxContext();
+      addContextWindowOption(optionsComposite, modelService, option, isSelected, closeRequest);
+    }
+    optionsComposite.requestLayout();
+  }
+
+  private void addContextWindowOption(Composite parent, ModelService modelService, ContextWindowOption option,
+      boolean isSelected, Runnable closeRequest) {
+    String displayText = ModelUtils.formatTokenCount(ModelUtils.getContextWindowDisplaySize(model, option));
+    String description = ModelUtils.formatContextWindowDescription(option);
+    addSelectableOptionRow(parent, displayText, description, isSelected, () -> {
+      if (modelService == null) {
+        return;
+      }
+      // Persist the chosen size first, then activate this model so the picker button reflects the (model, size) pair
+      // the user just chose -- even when they clicked a size on a non-active model.
+      modelService.setSelectedContextWindow(model, option.maxContext());
+      modelService.setActiveModel(model.getModelName());
+      if (closeRequest != null) {
+        closeRequest.run();
+      }
+    });
   }
 
   private void addPricingSection(Composite parent, String priceCategory) {
@@ -150,6 +192,20 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       return;
     }
 
+    Composite options = createOptionsSection(parent, Messages.model_hover_thinkingEffort);
+    populateThinkingEffortOptions(options, efforts, closeRequest);
+  }
+
+  /**
+   * Creates a titled options section shared by the context-window and thinking-effort selectors: a separator, a
+   * section composite carrying the secondary-text title, and an inner options composite that the caller populates
+   * with selectable rows via {@link #addSelectableOptionRow}.
+   *
+   * @param parent the hover composite to add the section to
+   * @param titleText the section title (rendered as secondary text)
+   * @return the inner composite that selectable option rows should be added to
+   */
+  private Composite createOptionsSection(Composite parent, String titleText) {
     addSeparator(parent);
 
     Composite section = new Composite(parent, SWT.NONE);
@@ -161,18 +217,18 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     ((GridData) section.getLayoutData()).verticalIndent = SECTION_SPACING;
     section.setLayout(sectionLayout);
 
-    Label keyLabel = createSecondaryTextLabel(section, Messages.model_hover_thinkingEffort);
+    Label keyLabel = createSecondaryTextLabel(section, titleText);
     keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
-    Composite options = new Composite(section, SWT.NONE);
-    options.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    Composite optionsComposite = new Composite(section, SWT.NONE);
+    optionsComposite.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
     GridLayout optionsLayout = new GridLayout(1, false);
     optionsLayout.marginWidth = 0;
     optionsLayout.marginHeight = 0;
     optionsLayout.verticalSpacing = 2;
-    options.setLayout(optionsLayout);
+    optionsComposite.setLayout(optionsLayout);
 
-    populateThinkingEffortOptions(options, efforts, closeRequest);
+    return optionsComposite;
   }
 
   private void populateThinkingEffortOptions(Composite options, List<String> efforts, Runnable closeRequest) {
@@ -200,12 +256,45 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       return;
     }
 
-    // Three-column layout mirroring the model item row in DropdownPopup: a fixed-width leading icon column that
-    // reserves space for the selection check mark, the left-aligned effort label, and the right-aligned secondary
-    // description that grows to fill the remaining width.
+    String labelText = isDefault ? NLS.bind(Messages.model_hover_thinkingEffort_default_suffix, displayText)
+        : displayText;
+    String description = ModelUtils.formatReasoningEffortDescription(effort);
+    addSelectableOptionRow(parent, labelText, description, isSelected, () -> {
+      if (modelService == null) {
+        return;
+      }
+      // Persist the chosen effort first, then activate this model. Activating triggers the picker button
+      // to update its label/suffix so the dropdown control reflects the (model, effort) pair the user just
+      // chose -- even when they clicked an effort on a non-active model.
+      modelService.setSelectedReasoningEffort(model, effort);
+      modelService.setActiveModel(model.getModelName());
+      // Close the entire dropdown (hover + main popup) via the host-provided callback so the user sees an
+      // immediate dismiss. Next time the dropdown opens, refreshBoundModelPickers (invoked from
+      // setSelectedReasoningEffort) has updated the model row's suffix to reflect the newly selected effort.
+      if (closeRequest != null) {
+        closeRequest.run();
+      }
+    });
+  }
+
+  /**
+   * Renders a single selectable option row shared by the thinking-effort and context-window sections. The row uses a
+   * three-column layout mirroring the model item row in {@code DropdownPopup}: a fixed-width leading icon column that
+   * reserves space for the selection check mark, a left-aligned primary label, and an optional right-aligned secondary
+   * description that grows to fill the remaining width. The whole row participates in the shared hover/keyboard focus
+   * background and invokes {@code onSelect} on a left click.
+   *
+   * @param parent the composite to add the row to
+   * @param primaryText the primary (left-aligned) label text
+   * @param description the secondary (right-aligned) description, or {@code null}/blank to omit
+   * @param isSelected whether to show the leading check mark
+   * @param onSelect the action to run when the row is left-clicked
+   */
+  private void addSelectableOptionRow(Composite parent, String primaryText, String description, boolean isSelected,
+      Runnable onSelect) {
     GridLayout rowLayout = new GridLayout(3, false);
-    rowLayout.marginWidth = THINKING_EFFORT_ROW_H_PADDING;
-    rowLayout.marginHeight = THINKING_EFFORT_ROW_V_PADDING;
+    rowLayout.marginWidth = OPTION_ROW_H_PADDING;
+    rowLayout.marginHeight = OPTION_ROW_V_PADDING;
     rowLayout.horizontalSpacing = 6;
     Composite row = new Composite(parent, SWT.NONE);
     row.setLayout(rowLayout);
@@ -226,20 +315,17 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       iconLabel.setImage(checkIcon);
     }
 
-    String labelText = isDefault ? NLS.bind(Messages.model_hover_thinkingEffort_default_suffix, displayText)
-        : displayText;
     Label optionLabel = new Label(row, SWT.NONE);
-    optionLabel.setText(labelText);
+    optionLabel.setText(primaryText);
     // Primary text color (default Label foreground); left-aligned in the middle column.
     optionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
 
-    String description = ModelUtils.formatReasoningEffortDescription(effort);
     Label descriptionLabel = null;
     if (StringUtils.isNotBlank(description)) {
       descriptionLabel = new Label(row, SWT.NONE);
       descriptionLabel.setText(description);
       // Right-aligned and grabs the remaining horizontal space so the description hugs the right edge of the
-      // hover popup while the effort label stays anchored to the left.
+      // hover popup while the primary label stays anchored to the left.
       descriptionLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, true, false));
       setCssClass(descriptionLabel, POPUP_SECONDARY_TEXT_CLASS);
     }
@@ -261,20 +347,10 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     MouseAdapter clickHandler = new MouseAdapter() {
       @Override
       public void mouseDown(MouseEvent e) {
-        if (e.button != 1 || modelService == null) {
+        if (e.button != 1) {
           return;
         }
-        // Persist the chosen effort first, then activate this model. Activating triggers the picker button
-        // to update its label/suffix so the dropdown control reflects the (model, effort) pair the user just
-        // chose -- even when they clicked an effort on a non-active model.
-        modelService.setSelectedReasoningEffort(model, effort);
-        modelService.setActiveModel(model.getModelName());
-        // Close the entire dropdown (hover + main popup) via the host-provided callback so the user sees an
-        // immediate dismiss. Next time the dropdown opens, refreshBoundModelPickers (invoked from
-        // setSelectedReasoningEffort) has updated the model row's suffix to reflect the newly selected effort.
-        if (closeRequest != null) {
-          closeRequest.run();
-        }
+        onSelect.run();
       }
     };
 
@@ -316,9 +392,9 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   }
 
   /**
-   * Returns the cached check-mark image used to indicate the selected thinking effort row, lazily loaded on first
-   * access. The icon shares the asset used by the dropdown popup so the leading column lines up visually with the
-   * checkmarks shown next to selected model items.
+   * Returns the cached check-mark image used to indicate the selected option row (context window or thinking effort),
+   * lazily loaded on first access. The icon shares the asset used by the dropdown popup so the leading column lines
+   * up visually with the checkmarks shown next to selected model items.
    */
   private static Image getCheckIcon() {
     return CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS,

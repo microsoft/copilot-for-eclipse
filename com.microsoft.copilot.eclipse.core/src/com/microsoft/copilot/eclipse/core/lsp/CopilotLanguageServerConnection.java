@@ -265,13 +265,13 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Create a conversation with the given parameters, including an optional reasoning effort to forward to the server
-   * via {@code modelInfo}.
+   * Create a conversation with the given parameters, including an optional reasoning effort and context-window size to
+   * forward to the server via {@code modelInfo}.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
-      String reasoningEffort, String chatModeName, String customChatModeId, List<TodoItem> todos, String agentSlug,
-      String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId,
+      String reasoningEffort, Integer contextSize, String chatModeName, String customChatModeId, List<TodoItem> todos,
+      String agentSlug, String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId,
       List<WorkspaceFolder> workspaceFolders) {
 
     boolean supportVision = activeModel.getCapabilities().supports().vision();
@@ -282,7 +282,7 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
-      param.setModelInfo(buildModelInfo(activeModel, reasoningEffort));
+      param.setModelInfo(buildModelInfo(activeModel, reasoningEffort, contextSize));
       param.setChatMode(chatModeName);
       param.setCustomChatModeId(customChatModeId);
 
@@ -323,13 +323,14 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Create a conversation turn with the given parameters, including an optional reasoning effort to forward to the
-   * server via {@code modelInfo}.
+   * Create a conversation turn with the given parameters, including an optional reasoning effort and context-window
+   * size to forward to the server via {@code modelInfo}.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
-      String reasoningEffort, String chatModeName, String customChatModeId, List<TodoItem> todoList, String agentSlug,
-      String agentJobWorkspaceFolder, List<WorkspaceFolder> workspaceFolders) {
+      String reasoningEffort, Integer contextSize, String chatModeName, String customChatModeId,
+      List<TodoItem> todoList, String agentSlug, String agentJobWorkspaceFolder,
+      List<WorkspaceFolder> workspaceFolders) {
 
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
@@ -339,7 +340,7 @@ public class CopilotLanguageServerConnection {
       param.setReferences(FileUtils.convertToChatReferences(files));
       param.setModel(getModelName(activeModel));
       param.setModelProviderName(activeModel.getProviderName());
-      param.setModelInfo(buildModelInfo(activeModel, reasoningEffort));
+      param.setModelInfo(buildModelInfo(activeModel, reasoningEffort, contextSize));
       param.setChatMode(chatModeName);
       param.setCustomChatModeId(customChatModeId);
 
@@ -741,11 +742,11 @@ public class CopilotLanguageServerConnection {
    * prefers over the legacy {@code model} family field), since the family is not unique across models. Returns
    * {@code null} when no model id is available.
    */
-  private static ModelInfo buildModelInfo(CopilotModel activeModel, String reasoningEffort) {
+  private static ModelInfo buildModelInfo(CopilotModel activeModel, String reasoningEffort, Integer contextSize) {
     if (activeModel == null || StringUtils.isBlank(activeModel.getId())) {
       return null;
     }
     String effort = StringUtils.isBlank(reasoningEffort) ? null : reasoningEffort;
-    return new ModelInfo(activeModel.getId(), activeModel.getProviderName(), effort, null);
+    return new ModelInfo(activeModel.getId(), activeModel.getProviderName(), effort, contextSize);
   }
 }

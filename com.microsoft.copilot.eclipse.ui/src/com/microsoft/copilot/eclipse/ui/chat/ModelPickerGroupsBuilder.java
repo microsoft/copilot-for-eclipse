@@ -34,30 +34,21 @@ public final class ModelPickerGroupsBuilder {
   }
 
   /**
-   * Builds grouped dropdown items for the model picker.
-   *
-   * @param modelMap available models keyed by id
-   * @param showAddPremiumModelOption whether to include the premium upsell action
-   * @param showByokManageOption whether to include the BYOK manage action
-   * @return grouped dropdown items for the model picker
-   */
-  public static List<DropdownItemGroup> build(Map<String, CopilotModel> modelMap, boolean showAddPremiumModelOption,
-      boolean showByokManageOption) {
-    return build(modelMap, showAddPremiumModelOption, showByokManageOption, null);
-  }
-
-  /**
-   * Builds grouped dropdown items for the model picker, including the effective reasoning effort in the suffix.
+   * Builds grouped dropdown items for the model picker, including the effective reasoning effort and context-window
+   * size in the suffix.
    *
    * @param modelMap available models keyed by id
    * @param showAddPremiumModelOption whether to include the premium upsell action
    * @param showByokManageOption whether to include the BYOK manage action
    * @param reasoningEffortResolver resolves the effective reasoning effort for a given model (user-selected when
    *     present, otherwise the inferred default), or {@code null} when none applies
+   * @param contextWindowResolver resolves the effective context-window display size for a given model (user-selected
+   *     tier when present, otherwise the default tier), or {@code null} when none applies
    * @return grouped dropdown items for the model picker
    */
   public static List<DropdownItemGroup> build(Map<String, CopilotModel> modelMap, boolean showAddPremiumModelOption,
-      boolean showByokManageOption, Function<CopilotModel, String> reasoningEffortResolver) {
+      boolean showByokManageOption, Function<CopilotModel, String> reasoningEffortResolver,
+      Function<CopilotModel, String> contextWindowResolver) {
     List<CopilotModel> otherModels = new ArrayList<>();
     List<CopilotModel> standardModels = new ArrayList<>();
     List<CopilotModel> premiumModels = new ArrayList<>();
@@ -83,19 +74,21 @@ public final class ModelPickerGroupsBuilder {
 
     List<DropdownItemGroup> groups = new ArrayList<>();
     if (!otherModels.isEmpty()) {
-      groups.add(DropdownItemGroup.of(buildModelDropdownItems(otherModels, reasoningEffortResolver)));
+      groups.add(DropdownItemGroup.of(buildModelDropdownItems(otherModels, reasoningEffortResolver,
+          contextWindowResolver)));
     }
     if (!standardModels.isEmpty()) {
       groups.add(DropdownItemGroup.of(Messages.chat_standardModels,
-          buildModelDropdownItems(standardModels, reasoningEffortResolver)));
+          buildModelDropdownItems(standardModels, reasoningEffortResolver, contextWindowResolver)));
     }
     if (!premiumModels.isEmpty()) {
       String header = standardModels.isEmpty() ? Messages.chat_copilotModels : Messages.chat_premiumModels;
-      groups.add(DropdownItemGroup.of(header, buildModelDropdownItems(premiumModels, reasoningEffortResolver)));
+      groups.add(DropdownItemGroup.of(header, buildModelDropdownItems(premiumModels, reasoningEffortResolver,
+          contextWindowResolver)));
     }
     if (!customModels.isEmpty()) {
       groups.add(DropdownItemGroup.of(Messages.chat_customModels,
-          buildModelDropdownItems(customModels, reasoningEffortResolver)));
+          buildModelDropdownItems(customModels, reasoningEffortResolver, contextWindowResolver)));
     }
 
     List<DropdownItem> actionItems = new ArrayList<>();
@@ -115,7 +108,7 @@ public final class ModelPickerGroupsBuilder {
   }
 
   private static List<DropdownItem> buildModelDropdownItems(List<CopilotModel> models,
-      Function<CopilotModel, String> reasoningEffortResolver) {
+      Function<CopilotModel, String> reasoningEffortResolver, Function<CopilotModel, String> contextWindowResolver) {
     List<DropdownItem> items = new ArrayList<>();
     for (CopilotModel model : models) {
       String rawName = model.getModelName();
@@ -123,10 +116,18 @@ public final class ModelPickerGroupsBuilder {
       String name = model.isPreview() && !alreadyHasPreview ? rawName + " " + Messages.model_preview_suffix : rawName;
 
       String effectiveEffort = reasoningEffortResolver != null ? reasoningEffortResolver.apply(model) : null;
-      String suffix = ModelUtils.getModelSuffix(model, effectiveEffort);
+      String effectiveContextWindow = contextWindowResolver != null ? contextWindowResolver.apply(model) : null;
+      String suffix = ModelUtils.getModelSuffix(model, effectiveEffort, effectiveContextWindow);
       String effortLevel = ModelUtils.formatReasoningEffortLevel(effectiveEffort);
-      String selectedLabel = StringUtils.isNotBlank(effortLevel) && StringUtils.isNotBlank(name)
-          ? name + " - " + effortLevel : null;
+      List<String> selectedDetails = new ArrayList<>();
+      if (StringUtils.isNotBlank(effectiveContextWindow)) {
+        selectedDetails.add(effectiveContextWindow);
+      }
+      if (StringUtils.isNotBlank(effortLevel)) {
+        selectedDetails.add(effortLevel);
+      }
+      String selectedLabel = StringUtils.isNotBlank(name) && !selectedDetails.isEmpty()
+          ? name + " - " + String.join(" - ", selectedDetails) : null;
 
       items.add(new DropdownItem.Builder().id(rawName).label(name).selectedLabel(selectedLabel).suffix(suffix)
           .icon(resolveModelIcon(model)).hoverProvider(new ModelHoverContentProvider(model)).build());
