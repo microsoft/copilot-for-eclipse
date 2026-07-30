@@ -32,6 +32,8 @@ public class CopilotCapabilities {
 
   private boolean manageTodoListTool;
 
+  private final boolean mcpSampling = true;
+
   private List<String> contentProvider;
 
   /**
@@ -112,6 +114,10 @@ public class CopilotCapabilities {
     this.manageTodoListTool = manageTodoListTool;
   }
 
+  public boolean isMcpSampling() {
+    return mcpSampling;
+  }
+
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
@@ -124,13 +130,14 @@ public class CopilotCapabilities {
     builder.append("contentProvider", contentProvider);
     builder.append("debuggerAgent", debuggerAgent);
     builder.append("manageTodoListTool", manageTodoListTool);
+    builder.append("mcpSampling", mcpSampling);
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(cveRemediatorAgent, debuggerAgent, didChangeFeatureFlags, fetch, manageTodoListTool,
-        stateDatabase, subAgent, watchedFiles, contentProvider);
+        mcpSampling, stateDatabase, subAgent, watchedFiles, contentProvider);
   }
 
   @Override
@@ -145,8 +152,8 @@ public class CopilotCapabilities {
 
     return cveRemediatorAgent == other.cveRemediatorAgent && debuggerAgent == other.debuggerAgent
         && didChangeFeatureFlags == other.didChangeFeatureFlags && fetch == other.fetch
-        && manageTodoListTool == other.manageTodoListTool && stateDatabase == other.stateDatabase
-        && subAgent == other.subAgent && watchedFiles == other.watchedFiles
+        && manageTodoListTool == other.manageTodoListTool && mcpSampling == other.mcpSampling
+        && stateDatabase == other.stateDatabase && subAgent == other.subAgent && watchedFiles == other.watchedFiles
         && Objects.equals(contentProvider, other.contentProvider);
   }
 }

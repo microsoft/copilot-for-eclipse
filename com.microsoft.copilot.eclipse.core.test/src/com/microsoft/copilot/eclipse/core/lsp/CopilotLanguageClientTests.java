@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -44,6 +45,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpSamplingConfig;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadMcpSamplingConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyParams;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 
@@ -143,6 +146,15 @@ class CopilotLanguageClientTests {
       verify(mockFeatureFlags).setMcpEnabled(true);
       verify(mockFeatureFlags).setByokEnabled(true);
     }
+  }
+
+  @Test
+  void testReadMcpSamplingConfig_requiresConfirmationAndAllowsAllModels() throws Exception {
+    Object[] result = client.readMcpSamplingConfig(new ReadMcpSamplingConfigParams("test-server")).get();
+
+    assertEquals(2, result.length);
+    assertEquals(new McpSamplingConfig(false, false, List.of()), result[0]);
+    assertNull(result[1]);
   }
 
   @Test

@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.Text;
 
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
@@ -68,6 +69,7 @@ public class InvokeToolConfirmationDialog extends Composite {
   private Runnable titleFontChangeCallback;
   private ConfirmationContent confirmationContent;
   private ConfirmationAction selectedAction;
+  private Text samplingPromptText;
 
   /**
    * Create a new confirmation dialog driven by {@link ConfirmationContent}.
@@ -160,10 +162,14 @@ public class InvokeToolConfirmationDialog extends Composite {
 
   @SuppressWarnings("unchecked")
   private void createInputContent(Object input) {
-    if (input == null) {
+    if (!(input instanceof Map<?, ?>)) {
       return;
     }
     Map<String, Object> inputMap = (Map<String, Object>) input;
+
+    if ("sampling".equals(inputMap.get("mcpType"))) {
+      createSamplingPromptReview(inputMap);
+    }
 
     if (inputMap.containsKey(ACTION_KEY)) {
       createScrollableCommand(formatDebuggerInput(inputMap),
@@ -180,6 +186,33 @@ public class InvokeToolConfirmationDialog extends Composite {
       explanationLbl.setText((String) inputMap.get(EXPLANATION_KEY));
       registerControlForFontUpdates(explanationLbl);
     }
+  }
+
+  private void createSamplingPromptReview(Map<String, Object> inputMap) {
+    String prompt = extractSamplingPrompt(inputMap.get("content"));
+    if (StringUtils.isBlank(prompt)) {
+      return;
+    }
+    samplingPromptText = new Text(this,
+        SWT.BORDER | SWT.MULTI | SWT.READ_ONLY | SWT.WRAP | SWT.V_SCROLL);
+    samplingPromptText.setText(prompt);
+    GridData data = new GridData(SWT.FILL, SWT.FILL, true, false);
+    data.heightHint = 180;
+    data.exclude = true;
+    samplingPromptText.setLayoutData(data);
+    samplingPromptText.setVisible(false);
+    registerControlForFontUpdates(samplingPromptText);
+  }
+
+  private String extractSamplingPrompt(Object content) {
+    if (content instanceof Map<?, ?> contentMap) {
+      Object text = contentMap.get("text");
+      return text instanceof String ? (String) text : null;
+    }
+    if (content instanceof List<?> contentList && !contentList.isEmpty()) {
+      return extractSamplingPrompt(contentList.get(0));
+    }
+    return content instanceof String ? (String) content : null;
   }
 
   private void createScrollableCommand(String text, int scrollStyle) {
@@ -218,10 +251,13 @@ public class InvokeToolConfirmationDialog extends Composite {
 
     ConfirmationAction primaryAction = null;
     ConfirmationAction dismissAction = null;
+    ConfirmationAction reviewAction = null;
     List<ConfirmationAction> dropdownActions = new ArrayList<>();
 
     for (ConfirmationAction action : actions) {
-      if (!action.isAccept()) {
+      if (isReviewPromptAction(action)) {
+        reviewAction = action;
+      } else if (!action.isAccept()) {
         dismissAction = action;
       } else if (action.isPrimary()) {
         primaryAction = action;
@@ -234,8 +270,8 @@ public class InvokeToolConfirmationDialog extends Composite {
       return;
     }
 
-    // Column count: primary dropdown button + dismiss
-    Composite actionArea = newButtonArea(2);
+    int columnCount = reviewAction != null ? 3 : 2;
+    Composite actionArea = newButtonArea(columnCount);
 
     // --- primary dropdown button ---
     SplitDropdownButton primaryDropdown =
@@ -277,6 +313,15 @@ public class InvokeToolConfirmationDialog extends Composite {
       }
     });
 
+    if (reviewAction != null) {
+      Button reviewBtn = new Button(actionArea, SWT.PUSH);
+      reviewBtn.setLayoutData(
+          new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
+      reviewBtn.setText(reviewAction.getLabel());
+      registerControlForFontUpdates(reviewBtn);
+      reviewBtn.addListener(SWT.Selection, e -> toggleSamplingPrompt());
+    }
+
     // --- dismiss (skip) button ---
     Button dismissBtn = new Button(actionArea, SWT.PUSH);
     dismissBtn.setLayoutData(
@@ -291,6 +336,23 @@ public class InvokeToolConfirmationDialog extends Composite {
       this.selectedAction = dismissRef;
       cancelConfirmation();
     });
+  }
+
+  private boolean isReviewPromptAction(ConfirmationAction action) {
+    return ConfirmationAction.UI_ACTION_REVIEW_PROMPT.equals(
+        action.getMetadata().get(ConfirmationAction.META_UI_ACTION));
+  }
+
+  private void toggleSamplingPrompt() {
+    if (samplingPromptText == null || samplingPromptText.isDisposed()) {
+      return;
+    }
+    GridData data = (GridData) samplingPromptText.getLayoutData();
+    boolean show = !samplingPromptText.isVisible();
+    data.exclude = !show;
+    samplingPromptText.setVisible(show);
+    layout(true, true);
+    getParent().requestLayout();
   }
 
   // --------------- helpers ---------------

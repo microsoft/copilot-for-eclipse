@@ -31,6 +31,7 @@ import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolAnnotations;
+import com.microsoft.copilot.eclipse.ui.chat.Messages;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -398,6 +399,42 @@ class McpConfirmationHandlerTests {
         McpConfirmationHandler.Action.ACCEPT_SERVER_SESSION));
   }
 
+  @Test
+  void buildContent_samplingHasInferenceApprovalActions() {
+    ConfirmationResult result = evaluate(
+        buildSamplingParams(SERVER), CONV_ID);
+
+    ConfirmationContent content = result.getContent();
+    List<ConfirmationAction> actions = content.getActions();
+    assertEquals(Messages.confirmation_sampling_title,
+        content.getTitle());
+    assertEquals(4, actions.size());
+    assertEquals(Messages.confirmation_sampling_action_yes,
+        actions.get(0).getLabel());
+    assertEquals(ConfirmationActionScope.ONCE,
+        actions.get(0).getScope());
+    assertTrue(hasAction(actions,
+        McpConfirmationHandler.Action.ACCEPT_SERVER_GLOBAL));
+    assertTrue(actions.stream().anyMatch(action ->
+        ConfirmationAction.UI_ACTION_REVIEW_PROMPT.equals(
+            action.getMetadata().get(
+                ConfirmationAction.META_UI_ACTION))));
+    assertEquals(Messages.confirmation_sampling_action_no,
+        actions.get(actions.size() - 1).getLabel());
+  }
+
+  @Test
+  void buildContent_samplingWithoutAutoApprovalOmitsPersistentAction() {
+    ConfirmationResult result = handler.evaluate(
+        buildSamplingParams(SERVER), CONV_ID, false);
+
+    List<ConfirmationAction> actions =
+        result.getContent().getActions();
+    assertEquals(3, actions.size());
+    assertFalse(hasAction(actions,
+        McpConfirmationHandler.Action.ACCEPT_SERVER_GLOBAL));
+  }
+
   // --- Helpers ---
 
   private void stubGlobalServers(List<String> servers) {
@@ -435,6 +472,19 @@ class McpConfirmationHandlerTests {
       input.put("mcpToolName", toolName);
     }
     params.setInput(input);
+    return params;
+  }
+
+  private static InvokeClientToolConfirmationParams buildSamplingParams(
+      String serverName) {
+    InvokeClientToolConfirmationParams params =
+        buildParams(serverName, null);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> input =
+        (Map<String, Object>) params.getInput();
+    input.put("mcpType", "sampling");
+    input.put("content", Map.of("type", "text",
+        "text", "Prompt to review"));
     return params;
   }
 

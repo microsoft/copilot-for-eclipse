@@ -158,6 +158,10 @@ public class McpConfirmationHandler implements ConfirmationHandler {
     }
 
     // 6. Needs confirmation
+    if (isSamplingRequest(params)) {
+      return ConfirmationResult.needsConfirmation(
+          buildSamplingContent(serverName, false));
+    }
     return ConfirmationResult.needsConfirmation(
         buildContent(params, serverName, toolName));
   }
@@ -166,8 +170,35 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       InvokeClientToolConfirmationParams params) {
     String serverName = extractServerName(params);
     String toolName = extractToolName(params);
+    if (isSamplingRequest(params)) {
+      return ConfirmationResult.needsConfirmation(
+          buildSamplingContent(serverName, true));
+    }
     return ConfirmationResult.needsConfirmation(
         buildContent(params, serverName, toolName, /* simplifiedOnly= */ true));
+  }
+
+  private ConfirmationContent buildSamplingContent(
+      String serverName, boolean simplifiedOnly) {
+    final String displayName = StringUtils.defaultIfBlank(serverName,
+        Messages.confirmation_sampling_unknownServer);
+    List<ConfirmationAction> actions = new ArrayList<>();
+    actions.add(ConfirmationAction.allowOnce(
+        Messages.confirmation_sampling_action_yes));
+    if (!simplifiedOnly && serverName != null) {
+      actions.add(action(Action.ACCEPT_SERVER_GLOBAL,
+          Messages.confirmation_sampling_action_alwaysAllow,
+          ConfirmationActionScope.GLOBAL,
+          Map.of(META_SERVER_NAME, serverName)));
+    }
+    actions.add(ConfirmationAction.reviewPrompt(
+        Messages.confirmation_sampling_action_reviewPrompt));
+    actions.add(ConfirmationAction.skip(
+        Messages.confirmation_sampling_action_no));
+    return new ConfirmationContent(
+        Messages.confirmation_sampling_title,
+        NLS.bind(Messages.confirmation_sampling_message, displayName),
+        actions);
   }
 
   @Override
@@ -324,6 +355,15 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       }
     }
     return null;
+  }
+
+  private boolean isSamplingRequest(
+      InvokeClientToolConfirmationParams params) {
+    Object input = params.getInput();
+    if (input instanceof Map<?, ?> inputMap) {
+      return "sampling".equals(inputMap.get("mcpType"));
+    }
+    return false;
   }
 
   private static String buildToolKey(String serverLower, String toolName) {
