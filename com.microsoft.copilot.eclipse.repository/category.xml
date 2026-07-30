@@ -3,5 +3,15 @@
    <feature id="com.microsoft.copilot.eclipse.feature" version="0.21.0.qualifier">
       <category name="com.microsoft.copilot.eclipse.category"/>
    </feature>
+   <bundle id="org.eclipse.lsp4e">
+      <category name="com.microsoft.copilot.eclipse.dependencies.category"/>
+   </bundle>
+   <bundle id="org.eclipse.lsp4j">
+      <category name="com.microsoft.copilot.eclipse.dependencies.category"/>
+   </bundle>
+   <bundle id="org.eclipse.lsp4j.jsonrpc">
+      <category name="com.microsoft.copilot.eclipse.dependencies.category"/>
+   </bundle>
    <category-def name="com.microsoft.copilot.eclipse.category" label="GitHub Copilot"/>
+   <category-def name="com.microsoft.copilot.eclipse.dependencies.category" label="GitHub Copilot Dependencies"/>
 </site>
