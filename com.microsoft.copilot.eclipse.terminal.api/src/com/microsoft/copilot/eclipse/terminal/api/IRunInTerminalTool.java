@@ -5,8 +5,9 @@ package com.microsoft.copilot.eclipse.terminal.api;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
-import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.swt.graphics.Image;
 
 
 /**
@@ -50,7 +51,14 @@ public interface IRunInTerminalTool {
   public void cancelCurrentCommand();
 
   /**
-   * Sets the terminal icon descriptor for the tool.
+   * Sets the supplier that provides the terminal icon for the tool.
+   *
+   * <p>The supplier must return a shared {@link Image} owned by a plug-in's image registry.
+   * The image must never be disposed (this is done by the registry).
+   *
+   * <p>The run-in-terminal implementation needs to invoke the supplier on the UI thread.
+   *
+   * @param terminalIconSupplier supplier of a shared, non-disposable terminal icon
    */
-  public void setTerminalIconDescriptor(ImageDescriptor terminalIconDescriptor);
+  public void setTerminalIconSupplier(Supplier<Image> terminalIconSupplier);
 }

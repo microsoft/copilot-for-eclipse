@@ -10,10 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.swt.graphics.Image;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConfirmationMessages;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -199,7 +201,8 @@ public class RunInTerminalToolAdapter extends BaseTool {
       isBackground = Boolean.parseBoolean((String) isBackgroundObj);
     }
 
-    impl.setTerminalIconDescriptor(CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT));
+    Supplier<Image> terminalIconSupplier = () -> CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT);
+    impl.setTerminalIconSupplier(terminalIconSupplier);
     String workingDirectory = resolveWorkingDirectory();
 
     return impl.executeCommand(command, isBackground, workingDirectory)
