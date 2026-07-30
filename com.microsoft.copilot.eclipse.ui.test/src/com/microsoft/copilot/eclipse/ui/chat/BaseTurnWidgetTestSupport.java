@@ -7,6 +7,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.jupiter.api.AfterEach;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.TestImageRegistrySupport;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
@@ -37,6 +39,7 @@ abstract class BaseTurnWidgetTestSupport {
   private ChatFontService mockChatFontService;
 
   private MockedStatic<CopilotUi> copilotUiMock;
+  private ImageRegistry imageRegistry;
 
   @BeforeEach
   void setUpBaseTurnWidget() {
@@ -50,6 +53,8 @@ abstract class BaseTurnWidgetTestSupport {
       CopilotUi mockPlugin = mock(CopilotUi.class);
       copilotUiMock.when(CopilotUi::getPlugin).thenReturn(mockPlugin);
       lenient().when(mockPlugin.getChatServiceManager()).thenReturn(mockChatServiceManager);
+      imageRegistry = TestImageRegistrySupport.createCopilotImageRegistry();
+      lenient().when(mockPlugin.getImageRegistry()).thenReturn(imageRegistry);
     });
   }
 
@@ -62,6 +67,10 @@ abstract class BaseTurnWidgetTestSupport {
       }
       if (shell != null && !shell.isDisposed()) {
         shell.dispose();
+      }
+      if (imageRegistry != null) {
+        imageRegistry.dispose();
+        imageRegistry = null;
       }
     });
   }
