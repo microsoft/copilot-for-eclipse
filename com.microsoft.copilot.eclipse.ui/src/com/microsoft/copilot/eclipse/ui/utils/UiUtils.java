@@ -41,7 +41,6 @@ import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.FontRegistry;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.ITextViewerExtension5;
 import org.eclipse.jface.viewers.ISelectionProvider;
@@ -327,21 +326,6 @@ public class UiUtils {
       CopilotCore.LOGGER.error("Failed to open E4 part: " + partId, e);
     }
     return false;
-  }
-
-  /**
-   * Resizes the icon at the given path to the given width and height. Icon size is 16x16 by default, which is the
-   * recommended size for toolbar icons. For more details: https://eclipse-platform.github.io/ui-best-practices/#toolbar
-   */
-  public static ImageDescriptor resizeIcon(String path, int width, int height) {
-    ImageLoader loader = new ImageLoader();
-    ImageData[] imageDataArray = loader.load(UiUtils.class.getResourceAsStream(path));
-    if (imageDataArray.length > 0) {
-      ImageData imageData = imageDataArray[0].scaledTo(width, height);
-      Image image = new Image(Display.getDefault(), imageData);
-      return ImageDescriptor.createFromImage(image);
-    }
-    return null;
   }
 
   /**
