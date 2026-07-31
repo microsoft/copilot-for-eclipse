@@ -188,7 +188,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
    */
   @JsonRequest("copilot/readMcpSamplingConfig")
   public CompletableFuture<Object[]> readMcpSamplingConfig(ReadMcpSamplingConfigParams params) {
-    McpSamplingConfig config = new McpSamplingConfig(false, false, List.of());
+    McpSamplingConfig config = CopilotCore.getPlugin().getChatEventsManager()
+        .getMcpSamplingConfig(params.serverName());
     return CompletableFuture.completedFuture(new Object[] { config, null });
   }
 

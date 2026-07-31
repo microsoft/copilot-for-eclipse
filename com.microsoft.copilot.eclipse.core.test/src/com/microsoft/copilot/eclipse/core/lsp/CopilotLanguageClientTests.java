@@ -38,6 +38,7 @@ import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -63,6 +64,9 @@ class CopilotLanguageClientTests {
 
   @Mock
   private IReferencedFileService fileService;
+
+  @Mock
+  private ChatEventsManager chatEventsManager;
 
   @BeforeEach
   void setUp() {
@@ -150,11 +154,35 @@ class CopilotLanguageClientTests {
 
   @Test
   void testReadMcpSamplingConfig_requiresConfirmationAndAllowsAllModels() throws Exception {
-    Object[] result = client.readMcpSamplingConfig(new ReadMcpSamplingConfigParams("test-server")).get();
+    McpSamplingConfig expected = new McpSamplingConfig(false, false, List.of());
 
-    assertEquals(2, result.length);
-    assertEquals(new McpSamplingConfig(false, false, List.of()), result[0]);
-    assertNull(result[1]);
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatEventsManager()).thenReturn(chatEventsManager);
+      when(chatEventsManager.getMcpSamplingConfig("test-server")).thenReturn(expected);
+
+      Object[] result = client.readMcpSamplingConfig(new ReadMcpSamplingConfigParams("test-server")).get();
+
+      assertEquals(2, result.length);
+      assertEquals(expected, result[0]);
+      assertNull(result[1]);
+    }
+  }
+
+  @Test
+  void testReadMcpSamplingConfig_reflectsPersistedAlwaysAllowDecision() throws Exception {
+    McpSamplingConfig approved = new McpSamplingConfig(true, false, List.of());
+
+    try (MockedStatic<CopilotCore> copilotCoreMock = Mockito.mockStatic(CopilotCore.class)) {
+      copilotCoreMock.when(CopilotCore::getPlugin).thenReturn(plugin);
+      when(plugin.getChatEventsManager()).thenReturn(chatEventsManager);
+      when(chatEventsManager.getMcpSamplingConfig("test-server")).thenReturn(approved);
+
+      Object[] result = client.readMcpSamplingConfig(new ReadMcpSamplingConfigParams("test-server")).get();
+
+      assertEquals(approved, result[0]);
+      assertTrue(((McpSamplingConfig) result[0]).alwaysAllow());
+    }
   }
 
   @Test

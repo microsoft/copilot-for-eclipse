@@ -27,6 +27,7 @@ import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpSamplingConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolAnnotations;
 import com.microsoft.copilot.eclipse.ui.chat.Messages;
 
@@ -46,7 +47,9 @@ public class McpConfirmationHandler implements ConfirmationHandler {
     /** Allow all tools from a server for the current session/conversation. */
     ACCEPT_SERVER_SESSION,
     /** Always allow all tools from a server (persisted globally). */
-    ACCEPT_SERVER_GLOBAL
+    ACCEPT_SERVER_GLOBAL,
+    /** Always allow MCP sampling (inference) requests from a server (persisted globally). */
+    ACCEPT_SAMPLING_SERVER_GLOBAL
   }
 
   static final String META_SERVER_NAME = "serverName";
@@ -89,12 +92,14 @@ public class McpConfirmationHandler implements ConfirmationHandler {
 
   /**
    * Evaluates an MCP tool confirmation request. Check order:
-   * 1. Session approved servers (by conversationId)
-   * 2. Session approved tools (by conversationId, key = "server::tool")
-   * 3. Global approved servers list
-   * 4. Global approved tools list
-   * 5. Trust annotations (readOnlyHint=true AND openWorldHint=false)
-   * 6. Otherwise: needs confirmation
+   * 1. Sampling requests: checked against their own dedicated approval list, never the
+   *    regular tool/server lists below (sampling is a distinct, billable permission)
+   * 2. Session approved servers (by conversationId)
+   * 3. Session approved tools (by conversationId, key = "server::tool")
+   * 4. Global approved servers list
+   * 5. Global approved tools list
+   * 6. Trust annotations (readOnlyHint=true AND openWorldHint=false)
+   * 7. Otherwise: needs confirmation
    */
   private ConfirmationResult evaluateAutoApprovalEnabled(
       InvokeClientToolConfirmationParams params,
@@ -105,7 +110,18 @@ public class McpConfirmationHandler implements ConfirmationHandler {
         ? serverName.toLowerCase(Locale.ROOT) : null;
     String toolKey = buildToolKey(serverLower, toolName);
 
-    // 1. Session: server approved for this conversation
+    // 1. Sampling requests are evaluated independently of the regular tool/server approval
+    // lists below, since auto-approving tool calls for a server should never silently
+    // auto-approve its (billable) sampling/inference requests, or vice versa.
+    if (isSamplingRequest(params)) {
+      if (serverLower != null && isServerApprovedForSampling(serverLower)) {
+        return ConfirmationResult.AUTO_APPROVED;
+      }
+      return ConfirmationResult.needsConfirmation(
+          buildSamplingContent(serverName, false));
+    }
+
+    // 2. Session: server approved for this conversation
     if (serverLower != null) {
       Set<String> sessionServers =
           approvedServers.get(sessionConversationId);
@@ -124,7 +140,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 3. Global: server in approved servers list
+    // 4. Global: server in approved servers list
     if (serverLower != null) {
       List<String> globalServers = loadJsonList(
           Constants.AUTO_APPROVE_MCP_SERVERS);
@@ -135,7 +151,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 4. Global: tool in approved tools list
+    // 5. Global: tool in approved tools list
     if (toolKey != null) {
       List<String> globalTools = loadJsonList(
           Constants.AUTO_APPROVE_MCP_TOOLS);
@@ -146,7 +162,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 5. Trust annotations: read-only and not open-world
+    // 6. Trust annotations: read-only and not open-world
     if (preferenceStore.getBoolean(
         Constants.AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS)) {
       ToolAnnotations annotations = params.getAnnotations();
@@ -157,11 +173,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 6. Needs confirmation
-    if (isSamplingRequest(params)) {
-      return ConfirmationResult.needsConfirmation(
-          buildSamplingContent(serverName, false));
-    }
+    // 7. Needs confirmation
     return ConfirmationResult.needsConfirmation(
         buildContent(params, serverName, toolName));
   }
@@ -186,7 +198,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
     actions.add(ConfirmationAction.allowOnce(
         Messages.confirmation_sampling_action_yes));
     if (!simplifiedOnly && serverName != null) {
-      actions.add(action(Action.ACCEPT_SERVER_GLOBAL,
+      actions.add(action(Action.ACCEPT_SAMPLING_SERVER_GLOBAL,
           Messages.confirmation_sampling_action_alwaysAllow,
           ConfirmationActionScope.GLOBAL,
           Map.of(META_SERVER_NAME, serverName)));
@@ -252,6 +264,11 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       case ACCEPT_SERVER_GLOBAL:
         if (serverName != null) {
           addToGlobalList(Constants.AUTO_APPROVE_MCP_SERVERS, serverName);
+        }
+        break;
+      case ACCEPT_SAMPLING_SERVER_GLOBAL:
+        if (serverName != null) {
+          addToGlobalList(Constants.AUTO_APPROVE_MCP_SAMPLING_SERVERS, serverName);
         }
         break;
       default:
@@ -364,6 +381,33 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       return "sampling".equals(inputMap.get("mcpType"));
     }
     return false;
+  }
+
+  private boolean isServerApprovedForSampling(String serverLower) {
+    List<String> approvedSamplingServers = loadJsonList(
+        Constants.AUTO_APPROVE_MCP_SAMPLING_SERVERS);
+    for (String s : approvedSamplingServers) {
+      if (s.toLowerCase(Locale.ROOT).equals(serverLower)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Reads the persisted sampling preferences for the given MCP server, reflecting any
+   * "don't ask again" decision the user previously made for sampling requests from that server.
+   *
+   * @param serverName the MCP server name
+   * @return the sampling config: {@code alwaysAllow} is true only if the server was previously
+   *     approved via the sampling-specific "don't ask again" action; deny decisions and
+   *     per-model restrictions are not yet supported by this dialog, so those fields are always
+   *     {@code false}/empty.
+   */
+  public McpSamplingConfig getMcpSamplingConfig(String serverName) {
+    boolean alwaysAllow = StringUtils.isNotBlank(serverName)
+        && isServerApprovedForSampling(serverName.toLowerCase(Locale.ROOT));
+    return new McpSamplingConfig(alwaysAllow, false, List.of());
   }
 
   private static String buildToolKey(String serverLower, String toolName) {

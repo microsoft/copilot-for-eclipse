@@ -351,7 +351,7 @@ public class InvokeToolConfirmationDialog extends Composite {
     boolean show = !samplingPromptText.isVisible();
     data.exclude = !show;
     samplingPromptText.setVisible(show);
-    layout(true, true);
+    requestLayout();
     getParent().requestLayout();
   }
 

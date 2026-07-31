@@ -32,6 +32,8 @@ public class CopilotCapabilities {
 
   private boolean manageTodoListTool;
 
+  // Always advertised as supported; Eclipse always implements the client side of MCP sampling
+  // (the confirmation dialog and readMcpSamplingConfig handler), so this is not user-configurable.
   private final boolean mcpSampling = true;
 
   private List<String> contentProvider;
