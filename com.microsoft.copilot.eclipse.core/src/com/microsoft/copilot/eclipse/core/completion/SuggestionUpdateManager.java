@@ -45,6 +45,8 @@ public class SuggestionUpdateManager {
 
   /**
    * Creates a new SuggestionUpdateManager.
+   *
+   * @param document the document whose suggestions are being updated.
    */
   public SuggestionUpdateManager(IDocument document) {
     this.document = document;
@@ -57,6 +59,7 @@ public class SuggestionUpdateManager {
   /**
    * When user type new input, update the suggestion list based on the user input.
    *
+   * @param text the inserted text.
    * @return <code>true</code> if the update is accepted, <code>false</code> otherwise.
    */
   public boolean insert(String text) {
@@ -97,6 +100,7 @@ public class SuggestionUpdateManager {
   /**
    * When user delete characters, update the suggestion list based on the user input.
    *
+   * @param deletedCount the number of deleted characters.
    * @return true if the update is accepted, false otherwise
    */
   public boolean delete(int deletedCount) {
@@ -135,6 +139,8 @@ public class SuggestionUpdateManager {
 
   /**
    * Get the next word for the current active completion item.
+   *
+   * @return the next word from the current active completion item.
    */
   public String getNextWord() {
     CompletionItem item = getCurrentItem();
@@ -182,6 +188,8 @@ public class SuggestionUpdateManager {
   /**
    * Initialize the completion items when the suggestion is resolved. It will do a entire flush when the original items
    * are empty. Otherwise, it will only update the updated items as a correction.
+   *
+   * @param items the completion items to set.
    */
   public void setCompletionItems(List<CompletionItem> items) {
     if (originalItems == null || originalItems.isEmpty()) {
@@ -206,6 +214,8 @@ public class SuggestionUpdateManager {
 
   /**
    * Get the current active completion item. return null if there is no active item.
+   *
+   * @return the current active completion item, or null if there is no active item.
    */
   public CompletionItem getCurrentItem() {
     if (this.updatedItems.isEmpty()) {
@@ -219,6 +229,8 @@ public class SuggestionUpdateManager {
 
   /**
    * Get the text of the current active completion item.
+   *
+   * @return the display text of the current active completion item.
    */
   public String getText() {
     CompletionItem item = getCurrentItem();
@@ -230,6 +242,8 @@ public class SuggestionUpdateManager {
 
   /**
    * Get the first line of the current active completion item.
+   *
+   * @return the first line of the current active completion item.
    */
   public String getFirstLine() {
     String text = getText();
@@ -241,6 +255,8 @@ public class SuggestionUpdateManager {
 
   /**
    * Get the remaining lines of the current active completion item.
+   *
+   * @return the remaining lines of the current active completion item.
    */
   public String getRemainingLines() {
     String text = getText();

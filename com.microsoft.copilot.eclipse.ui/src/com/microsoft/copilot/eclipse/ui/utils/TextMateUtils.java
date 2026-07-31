@@ -40,6 +40,9 @@ public class TextMateUtils {
 
   /**
    * Get or create a SourceViewerConfiguration for the given language.
+   *
+   * @param lang the language ID or file extension to configure.
+   * @return the source viewer configuration for the language.
    */
   public static SourceViewerConfiguration getConfiguration(String lang) {
     TMPresentationReconciler reconciler = new TMPresentationReconciler();

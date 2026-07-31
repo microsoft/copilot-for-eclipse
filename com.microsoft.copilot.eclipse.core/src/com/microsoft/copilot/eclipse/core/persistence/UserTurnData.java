@@ -56,6 +56,8 @@ public class UserTurnData extends AbstractTurnData {
 
   /**
    * Set the current document as a TextDocument instance created from the provided IResource.
+   *
+   * @param resource the resource to convert into the current document.
    */
   public void setCurrentDocument(IResource resource) {
     if (resource != null) {
@@ -69,6 +71,8 @@ public class UserTurnData extends AbstractTurnData {
 
   /**
    * Set the list of IResources as the references after converting them to TextDocument instances.
+   *
+   * @param refs the resources to convert into reference documents.
    */
   public void setReferences(List<IResource> refs) {
     if (refs != null) {

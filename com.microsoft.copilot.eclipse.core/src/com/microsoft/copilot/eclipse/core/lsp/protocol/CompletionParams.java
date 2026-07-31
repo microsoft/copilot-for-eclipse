@@ -21,6 +21,8 @@ public class CompletionParams {
 
   /**
    * Create a new parameter for getCompletion request.
+   *
+   * @param doc the document information for the completion request.
    */
   public CompletionParams(@NonNull CompletionDocument doc) {
     this.doc = doc;

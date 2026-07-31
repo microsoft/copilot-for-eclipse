@@ -16,6 +16,11 @@ public class LineEndGhostText extends LineEndCodeMining {
 
   /**
    * Creates a new LineEndGhostText.
+   *
+   * @param document the document containing the line end ghost text.
+   * @param line the line where the ghost text is displayed.
+   * @param provider the code mining provider creating this ghost text.
+   * @param text the ghost text to display.
    */
   public LineEndGhostText(IDocument document, int line, ICodeMiningProvider provider, String text)
       throws BadLocationException {

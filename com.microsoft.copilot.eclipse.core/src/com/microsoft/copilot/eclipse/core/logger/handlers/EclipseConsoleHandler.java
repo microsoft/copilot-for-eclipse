@@ -21,6 +21,8 @@ public class EclipseConsoleHandler extends Handler {
 
   /**
    * Constructor.
+   *
+   * @param logger the Eclipse logger to receive log records.
    */
   public EclipseConsoleHandler(ILog logger) {
     this.logger = logger;

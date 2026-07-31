@@ -72,6 +72,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
     /**
      * Checks if this is a pure deletion (has original text but no replacement).
+     *
+     * @return true if this model represents a pure deletion, false otherwise.
      */
     public boolean isPureDelete() {
       return StringUtils.isNotBlank(original) && StringUtils.isBlank(replacement);
@@ -79,6 +81,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
     /**
      * Checks if this is a pure insertion (has replacement text but no original).
+     *
+     * @return true if this model represents a pure insertion, false otherwise.
      */
     public boolean isPureInsert() {
       return StringUtils.isBlank(original) && StringUtils.isNotBlank(replacement);
@@ -112,6 +116,10 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   /**
    * Constructor. Mirrors BaseCompletionManager pattern: accepts ITextEditor and extracts viewer/text internally.
+   *
+   * @param lsConnection the language server connection used for NES telemetry and document versions.
+   * @param nesProvider the provider that supplies next edit suggestions.
+   * @param editor the text editor managed by this renderer.
    */
   public RenderManager(CopilotLanguageServerConnection lsConnection, NextEditSuggestionProvider nesProvider,
       ITextEditor editor) {
@@ -168,6 +176,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   /**
    * Attach a ruler column after controller creation. Safe to call repeatedly; only the first effective column is used.
+   *
+   * @param col the ruler column to attach.
    */
   public synchronized void attachColumn(RulerColumn col) {
     if (col == null || col == this.column) {
@@ -183,6 +193,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   /**
    * Detach the current column (e.g. when UI column disposed) without disposing controller so suggestions keep flowing.
+   *
+   * @param col the ruler column to detach.
    */
   public synchronized void detachColumn(RulerColumn col) {
     if (this.column == col) {
@@ -270,6 +282,10 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   /**
    * Show suggestion UI for the given model line and texts.
+   *
+   * @param modelLine the model line where the suggestion starts.
+   * @param removed the original text removed by the suggestion.
+   * @param added the replacement text added by the suggestion.
    */
   public void showSuggestion(int modelLine, String removed, String added) {
     if (text == null) {
@@ -376,6 +392,9 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   /**
    * Open the action (accept / reject) menu at the given StyledText-relative coordinates.
+   *
+   * @param textX the x-coordinate relative to the styled text.
+   * @param textY the y-coordinate relative to the styled text.
    */
   public void openActionMenu(int textX, int textY) {
     SwtUtils.invokeOnDisplayThread(() -> {
@@ -459,6 +478,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
 
   /**
    * Get the current suggestion line number in the document, or null if no active suggestion.
+   *
+   * @return the current suggestion line number, or -1 if no suggestion line is available.
    */
   public int getSuggestionLine() {
     if (suggestionStartPosition == null || suggestionStartPosition.isDeleted()) {
@@ -868,6 +889,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   /**
    * Handle a TAB action: if the suggestion line is in the current viewport, accept it; otherwise scroll (jump) to
    * reveal it (centered approximately). Returns true if a suggestion was present and action handled, false otherwise.
+   *
+   * @return true if a suggestion was present and handled, false otherwise.
    */
   public boolean handleTabAcceptOrReveal() {
     if (!hasActiveSuggestion() || text == null || text.isDisposed()) {

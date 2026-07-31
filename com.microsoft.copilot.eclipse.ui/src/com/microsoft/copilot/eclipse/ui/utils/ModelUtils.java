@@ -32,6 +32,9 @@ public class ModelUtils {
 
   /**
    * Convert ByokModel to CopilotModel format for unified handling.
+   *
+   * @param byokModel the BYOK model to convert.
+   * @return the converted Copilot model.
    */
   public static CopilotModel convertByokModelToCopilotModel(ByokModel byokModel) {
     CopilotModel copilotModel = new CopilotModel();
@@ -172,6 +175,9 @@ public class ModelUtils {
 
   /**
    * Returns the formatted context window size for the model, or {@code null} if unavailable.
+   *
+   * @param model the model whose context window size should be formatted.
+   * @return the formatted context window size, or {@code null} if unavailable.
    */
   public static String getContextWindowText(CopilotModel model) {
     Integer contextWindow = resolveContextWindowSize(model);

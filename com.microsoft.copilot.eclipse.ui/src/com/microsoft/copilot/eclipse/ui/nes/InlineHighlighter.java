@@ -45,7 +45,12 @@ public class InlineHighlighter {
   private Color lineBgColor;
   private LineBackgroundListener lineBackgroundListener;
 
-  /** Constructor. Does not register listeners - call registerListeners() from UI thread. */
+  /**
+   * Constructor. Does not register listeners - call registerListeners() from UI thread.
+   *
+   * @param viewer the text viewer whose document is highlighted.
+   * @param text the styled text that renders line highlights.
+   */
   public InlineHighlighter(ITextViewer viewer, StyledText text) {
     this.viewer = viewer;
     this.text = text;
@@ -105,7 +110,14 @@ public class InlineHighlighter {
 
   }
 
-  /** Apply annotation + line highlight based on diff spans. */
+  /**
+   * Apply annotation + line highlight based on diff spans.
+   *
+   * @param diffModel the diff model containing original, replacement, and span information.
+   * @param startOffset the start offset of the suggestion in the document.
+   * @param endOffset the end offset of the suggestion in the document.
+   * @param lspRange the LSP range covered by the suggestion.
+   */
   public void apply(RenderManager.DiffModel diffModel, int startOffset, int endOffset, Range lspRange) {
     clear();
     if (diffModel == null || viewer == null) {

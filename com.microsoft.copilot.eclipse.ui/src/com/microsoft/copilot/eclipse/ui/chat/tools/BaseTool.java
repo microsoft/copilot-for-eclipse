@@ -21,11 +21,17 @@ public abstract class BaseTool {
 
   /**
    * Invoke the tool.
+   *
+   * @param input the input arguments for the tool invocation.
+   * @param chatView the chat view requesting the tool invocation.
+   * @return a future completed with the language model tool results.
    */
   public abstract CompletableFuture<LanguageModelToolResult[]> invoke(Map<String, Object> input, ChatView chatView);
 
   /**
    * Get the registration information of the tool.
+   *
+   * @return the language model tool registration information.
    */
   public LanguageModelToolInformation getToolInformation() {
     LanguageModelToolInformation toolInfo = new LanguageModelToolInformation();
@@ -37,6 +43,8 @@ public abstract class BaseTool {
 
   /**
    * Needs user's confirmation to continue.
+   *
+   * @return {@code true} if the tool requires user confirmation; {@code false} otherwise.
    */
   public boolean needConfirmation() {
     return false;
@@ -44,6 +52,8 @@ public abstract class BaseTool {
 
   /**
    * Get confirmed messages.
+   *
+   * @return the confirmation messages for this tool.
    */
   public ConfirmationMessages getConfirmationMessages() {
     return new ConfirmationMessages();
@@ -51,6 +61,8 @@ public abstract class BaseTool {
 
   /**
    * Get the user input.
+   *
+   * @return the user input for this tool, or {@code null} if none is available.
    */
   @Nullable
   public Map<String, Object> getInput() {
@@ -59,6 +71,8 @@ public abstract class BaseTool {
 
   /**
    * Get the name of the tool.
+   *
+   * @return the tool name.
    */
   public String getToolName() {
     return name;

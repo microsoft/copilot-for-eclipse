@@ -88,7 +88,11 @@ public class NextEditSuggestionsResult {
       this.command = command;
     }
 
-    /** Convenience for future use (may return null). */
+    /**
+     * Convenience for future use (may return null).
+     *
+     * @return the UUID argument from the command, or {@code null} if unavailable.
+     */
     public String getUuid() {
       if (command == null || command.getArguments() == null || command.getArguments().isEmpty()) {
         return null;

@@ -35,6 +35,13 @@ public class CompletionItem {
 
   /**
    * Creates a new CompletionItem.
+   *
+   * @param uuid the unique identifier of the completion item.
+   * @param text the completion text to insert.
+   * @param range the document range the completion applies to.
+   * @param displayText the text to display for the completion item.
+   * @param position the cursor position associated with the completion.
+   * @param docVersion the version of the document for the completion.
    */
   public CompletionItem(@NonNull String uuid, @NonNull String text, @NonNull Range range, @NonNull String displayText,
       @NonNull Position position, @NonNull int docVersion) {

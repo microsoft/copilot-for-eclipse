@@ -90,6 +90,8 @@ public class ReadDirectoryResult {
 
     /**
      * Gets the entry name.
+     *
+     * @return the entry name.
      */
     public String getName() {
       return name;
@@ -101,6 +103,8 @@ public class ReadDirectoryResult {
 
     /**
      * Gets the file type.
+     *
+     * @return the file type.
      */
     public int getType() {
       return type;

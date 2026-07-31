@@ -19,6 +19,8 @@ import com.microsoft.copilot.eclipse.ui.nes.RenderManager;
 public abstract class CopilotHandler extends AbstractHandler {
   /**
    * Gets the active {@link BaseCompletionManager} for the current editor.
+   *
+   * @return the active completion manager, or <code>null</code> if none is available.
    */
   @Nullable
   public BaseCompletionManager getActiveCompletionManager() {
@@ -39,6 +41,8 @@ public abstract class CopilotHandler extends AbstractHandler {
 
   /**
    * Gets the active {@link RenderManager} for the current editor.
+   *
+   * @return the active next edit suggestion render manager, or <code>null</code> if none is available.
    */
   @Nullable
   public RenderManager getActiveNesRenderManager() {

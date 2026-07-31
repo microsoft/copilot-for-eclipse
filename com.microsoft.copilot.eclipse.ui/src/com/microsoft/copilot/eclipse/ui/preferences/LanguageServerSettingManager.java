@@ -70,6 +70,10 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
 
   /**
    * Initializes the LanguageServerSettingManager.
+   *
+   * @param conn the language server connection to update with settings.
+   * @param proxyService the proxy service whose changes should be observed.
+   * @param preferenceStore the preference store that backs language server settings.
    */
   public LanguageServerSettingManager(CopilotLanguageServerConnection conn, IProxyService proxyService,
       IPreferenceStore preferenceStore) {
@@ -235,6 +239,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
 
   /**
    * Synchronizes the configuration with the language server.
+   *
+   * @param singleSetting the single settings object to send to the language server.
    */
   public void syncSingleConfiguration(CopilotLanguageServerSettings singleSetting) {
     DidChangeConfigurationParams params = new DidChangeConfigurationParams();
@@ -595,6 +601,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   /**
    * Gets the preference store.
    *
+   * @param listener the listener to register for preference changes.
    */
   public void registerPropertyChangeListener(IPropertyChangeListener listener) {
     if (preferenceStore == null) {
@@ -619,6 +626,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
 
   /**
    * Gets the if auto show completions is enabled.
+   *
+   * @return true if auto show completions is enabled, or false otherwise.
    */
   public boolean isAutoShowCompletionEnabled() {
     return preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION);
@@ -626,6 +635,8 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
 
   /**
    * Enable or disable auto show completions.
+   *
+   * @param autoShowCompletion true to enable auto show completions, or false to disable them.
    */
   public void setAutoShowCompletion(boolean autoShowCompletion) {
     preferenceStore.setValue(Constants.AUTO_SHOW_COMPLETION, autoShowCompletion);
