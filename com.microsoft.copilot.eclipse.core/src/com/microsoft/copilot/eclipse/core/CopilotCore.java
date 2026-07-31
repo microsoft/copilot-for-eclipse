@@ -149,6 +149,8 @@ public class CopilotCore extends Plugin {
 
   /**
    * Get the next edit suggestion provider in lazy-load manner.
+   *
+   * @return the next edit suggestion provider.
    */
   public NextEditSuggestionProvider getNextEditSuggestionProvider() {
     if (this.nextEditSuggestionProvider == null) {
@@ -163,6 +165,8 @@ public class CopilotCore extends Plugin {
 
   /**
    * Get the format option provider in lazy-load manner.
+   *
+   * @return the format option provider.
    */
   public FormatOptionProvider getFormatOptionProvider() {
     if (this.formatOptionProvider == null) {

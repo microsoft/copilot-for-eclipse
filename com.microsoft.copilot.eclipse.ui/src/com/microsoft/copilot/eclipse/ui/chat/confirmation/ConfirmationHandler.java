@@ -78,7 +78,11 @@ public interface ConfirmationHandler {
     // no-op by default
   }
 
-  /** Clears session-scoped approvals for the given conversation. */
+  /**
+   * Clears session-scoped approvals for the given conversation.
+   *
+   * @param conversationId the conversation ID whose session-scoped approvals should be cleared.
+   */
   default void clearSession(String conversationId) {
     // no-op by default
   }

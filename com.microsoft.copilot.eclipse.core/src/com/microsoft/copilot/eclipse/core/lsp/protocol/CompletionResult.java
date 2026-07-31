@@ -19,6 +19,8 @@ public class CompletionResult {
 
   /**
    * Creates a new CompletionResult.
+   *
+   * @param completions the completion items returned by the request.
    */
   public CompletionResult(@NonNull List<CompletionItem> completions) {
     this.completions = completions;

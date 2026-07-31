@@ -49,7 +49,12 @@ public class TerminalAutoApproveSection extends Composite {
   private Button resetButton;
   private Button unmatchedCheckbox;
 
-  /** Creates the terminal auto-approve section inside the given parent. */
+  /**
+   * Creates the terminal auto-approve section inside the given parent.
+   *
+   * @param parent the parent composite for this section.
+   * @param style the SWT style bits for this section.
+   */
   public TerminalAutoApproveSection(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(1, false));
@@ -246,7 +251,11 @@ public class TerminalAutoApproveSection extends Composite {
     return true;
   }
 
-  /** Loads terminal rules and unmatched-command preference from the store. */
+  /**
+   * Loads terminal rules and unmatched-command preference from the store.
+   *
+   * @param store the preference store to load settings from.
+   */
   public void loadFromPreferences(IPreferenceStore store) {
     String json = store.getString(Constants.AUTO_APPROVE_TERMINAL_RULES);
     rules.clear();
@@ -269,7 +278,11 @@ public class TerminalAutoApproveSection extends Composite {
     updateButtonState();
   }
 
-  /** Saves terminal rules and unmatched-command preference to the store. */
+  /**
+   * Saves terminal rules and unmatched-command preference to the store.
+   *
+   * @param store the preference store to save settings to.
+   */
   public void saveToPreferences(IPreferenceStore store) {
     store.setValue(Constants.AUTO_APPROVE_TERMINAL_RULES,
         new Gson().toJson(rules));

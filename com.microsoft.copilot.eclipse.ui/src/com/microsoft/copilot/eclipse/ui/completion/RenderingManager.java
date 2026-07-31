@@ -39,6 +39,8 @@ public class RenderingManager implements PaintListener {
 
   /**
    * Creates a new CompletionManager.
+   *
+   * @param textViewer the text viewer whose ghost text should be rendered.
    */
   public RenderingManager(ITextViewer textViewer) {
     this.ghostTexts = new ArrayList<>();

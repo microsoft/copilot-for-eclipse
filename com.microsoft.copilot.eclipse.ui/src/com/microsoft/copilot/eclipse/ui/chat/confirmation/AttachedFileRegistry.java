@@ -35,6 +35,8 @@ public class AttachedFileRegistry {
   /**
    * Stages file paths for auto-approve before the conversation ID is
    * known. These are checked by {@link #isAttachedFile} immediately.
+   *
+   * @param filePaths the file paths to stage for auto-approval.
    */
   public void addPending(Collection<String> filePaths) {
     if (filePaths == null || filePaths.isEmpty()) {
@@ -49,6 +51,8 @@ public class AttachedFileRegistry {
   /**
    * Moves pending files into per-conversation storage under the given
    * conversation ID, then clears the pending set.
+   *
+   * @param conversationId the conversation ID to associate with pending files.
    */
   public void flushPending(String conversationId) {
     if (StringUtils.isBlank(conversationId) || pendingFiles.isEmpty()) {
@@ -71,6 +75,9 @@ public class AttachedFileRegistry {
 
   /**
    * Records files for an existing conversation (continued turns).
+   *
+   * @param conversationId the conversation ID to associate with the files.
+   * @param filePaths the file paths to record as attached files.
    */
   public void addAttachedFiles(String conversationId,
       Collection<String> filePaths) {
@@ -98,6 +105,10 @@ public class AttachedFileRegistry {
   /**
    * Returns {@code true} when the given file was explicitly attached
    * by the user — either in the pending set or for the given conversation.
+   *
+   * @param conversationId the conversation ID to check.
+   * @param filePath the file path to check.
+   * @return {@code true} if the file was explicitly attached; {@code false} otherwise.
    */
   public boolean isAttachedFile(String conversationId, String filePath) {
     if (StringUtils.isBlank(filePath)) {
@@ -112,7 +123,11 @@ public class AttachedFileRegistry {
     return paths != null && paths.contains(key);
   }
 
-  /** Removes all tracked data for a conversation. */
+  /**
+   * Removes all tracked data for a conversation.
+   *
+   * @param conversationId the conversation ID whose tracked data should be removed.
+   */
   public void clearConversation(String conversationId) {
     attachedPaths.remove(conversationId);
   }

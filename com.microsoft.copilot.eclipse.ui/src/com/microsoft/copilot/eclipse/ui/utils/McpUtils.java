@@ -59,6 +59,7 @@ public class McpUtils {
    * <li>If admin does not set any registry URL, users can set any registry URL in the IDE.</li>
    * </ol>
    *
+   * @param allowList the MCP registry allowlist to inspect.
    * @return The selected MCP registry URL, or an empty string if no valid URL is available
    */
   public static String parseMcpRegistryBaseUrlFromAllowList(McpRegistryAllowList allowList) {

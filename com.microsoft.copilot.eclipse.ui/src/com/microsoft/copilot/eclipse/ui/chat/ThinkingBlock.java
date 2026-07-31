@@ -75,7 +75,12 @@ public class ThinkingBlock extends Composite {
 
   private final IStylingEngine stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
 
-  /** Construct an empty thinking block; the spinner starts immediately. */
+  /**
+   * Construct an empty thinking block; the spinner starts immediately.
+   *
+   * @param parent the parent composite.
+   * @param style the widget style.
+   */
   public ThinkingBlock(Composite parent, int style) {
     super(parent, style);
     GridLayout layout = new GridLayout(1, false);
@@ -94,7 +99,11 @@ public class ThinkingBlock extends Composite {
     updateChevron();
   }
 
-  /** Append a thinking stream fragment. Null/empty fragments are ignored. */
+  /**
+   * Append a thinking stream fragment. Null/empty fragments are ignored.
+   *
+   * @param fragment the thinking stream fragment to append.
+   */
   public void appendText(String fragment) {
     if (fragment == null || fragment.isEmpty()) {
       return;
@@ -122,6 +131,8 @@ public class ThinkingBlock extends Composite {
    * Cancel the thinking block. If still streaming, shows the cancel icon and collapses. If already sealed (thinking
    * content finished, title fetch in flight), simply finalizes as completed since thinking itself was not interrupted.
    * No-op if already finalized.
+   *
+   * @return {@code true} if the block was marked cancelled; {@code false} otherwise.
    */
   public boolean showCancelled() {
     if (isFinalized()) {
@@ -160,27 +171,47 @@ public class ThinkingBlock extends Composite {
     unwrapBodyFromScroller();
   }
 
-  /** True only while new thinking stream fragments should still be appended to this block. */
+  /**
+   * True only while new thinking stream fragments should still be appended to this block.
+   *
+   * @return {@code true} while this block accepts thinking stream fragments; {@code false} otherwise.
+   */
   public boolean isAcceptingThinkStream() {
     return state == State.STREAMING;
   }
 
-  /** True once the block has been completed or cancelled (spinner stopped, final title shown). */
+  /**
+   * True once the block has been completed or cancelled (spinner stopped, final title shown).
+   *
+   * @return {@code true} once this block has been completed or cancelled; {@code false} otherwise.
+   */
   public boolean isFinalized() {
     return state == State.COMPLETED || state == State.CANCELLED;
   }
 
-  /** The unique ID for this thinking block, shared with the persistence layer. */
+  /**
+   * The unique ID for this thinking block, shared with the persistence layer.
+   *
+   * @return the unique thinking block ID.
+   */
   public String getThinkingId() {
     return thinkingId;
   }
 
-  /** The full accumulated thinking text streamed so far. */
+  /**
+   * The full accumulated thinking text streamed so far.
+   *
+   * @return the full accumulated thinking text.
+   */
   public String getAccumulatedText() {
     return textBuffer.toString();
   }
 
-  /** Non-blank {@code **Title**} strings extracted from the accumulated thinking text. */
+  /**
+   * Non-blank {@code **Title**} strings extracted from the accumulated thinking text.
+   *
+   * @return the non-blank title strings extracted from the accumulated thinking text.
+   */
   public String[] getExtractedTitles() {
     // Reuse the already-parsed section list rather than re-scanning the buffer.
     return sections.stream()
@@ -395,7 +426,11 @@ public class ThinkingBlock extends Composite {
     return s.substring(0, end);
   }
 
-  /** Update the header title text. */
+  /**
+   * Update the header title text.
+   *
+   * @param text the title text to display.
+   */
   public void setTitle(String text) {
     if (titleLabel == null || titleLabel.isDisposed()) {
       return;

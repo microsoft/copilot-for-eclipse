@@ -23,6 +23,10 @@ public class BlockGhostText extends GhostText {
 
   /**
    * Creates a new EolGhostText.
+   *
+   * @param text the ghost text to display.
+   * @param modelOffset the model offset where the ghost text starts.
+   * @param document the document containing the ghost text.
    */
   public BlockGhostText(String text, int modelOffset, IDocument document) {
     super(text, modelOffset, GhostTextType.BLOCK_LINE);

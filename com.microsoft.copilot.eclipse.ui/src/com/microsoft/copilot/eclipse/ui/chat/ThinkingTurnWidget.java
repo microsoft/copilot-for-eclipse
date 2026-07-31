@@ -44,6 +44,9 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
    * Set the conversation ID and server-assigned turn ID for thinking-block persistence.
    * Sets on both this widget and the current active widget (if different) so that
    * sealThinking/cancel work regardless of which widget is active at call time.
+   *
+   * @param conversationId the conversation ID for thinking-block persistence.
+   * @param persistTurnId the server-assigned turn ID for thinking-block persistence.
    */
   public void setConversationContext(String conversationId, String persistTurnId) {
     this.conversationId = conversationId;
@@ -58,6 +61,8 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
   /**
    * Append a thinking stream fragment from the language server, routing to the active turn (parent or subagent).
    * Must be called on the UI thread.
+   *
+   * @param thinking the thinking stream fragment to append.
    */
   public void appendThinking(Thinking thinking) {
     // Preserve whitespace-only thinking fragments; they can carry markdown boundaries between sections.
@@ -143,7 +148,11 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
         });
   }
 
-  /** Returns the active thinking block ID for persistence context, or {@code null} if none exists. */
+  /**
+   * Returns the active thinking block ID for persistence context, or {@code null} if none exists.
+   *
+   * @return the active thinking block ID, or {@code null} if none exists.
+   */
   public String getActiveThinkingBlockId() {
     ThinkingTurnWidget active = getActiveTurnWidget();
     if (active == null || active.isDisposed() || active.currentBlock == null || active.currentBlock.isDisposed()) {
@@ -192,6 +201,8 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
   /**
    * Restore a completed thinking block from persisted data. Creates a ThinkingBlock that is
    * already in the completed state with the given content and title.
+   *
+   * @param data the persisted thinking block data to restore.
    */
   public void restoreThinkingBlock(ThinkingBlockData data) {
     if (isDisposed() || data == null || StringUtils.isBlank(data.getContent())) {

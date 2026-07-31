@@ -49,6 +49,8 @@ public class ToolSpecificData {
   /**
    * Convenience accessor for todo list data when kind == "todoList".
    * Converts the raw data (LinkedTreeMap from Gson) to List of TodoItem.
+   *
+   * @return the todo list items, or {@code null} when the data is not a todo list.
    */
   public List<TodoItem> getTodoList() {
     if (!"todoList".equals(kind) || data == null) {

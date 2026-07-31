@@ -58,6 +58,9 @@ public class ConversationPersistenceManager {
 
   /**
    * Loads a full conversation by ID.
+   *
+   * @param conversationId the ID of the conversation to load.
+   * @return a future containing the loaded conversation data.
    */
   public CompletableFuture<ConversationData> loadConversation(String conversationId) {
     return CompletableFuture.supplyAsync(() -> {
@@ -113,6 +116,7 @@ public class ConversationPersistenceManager {
    *
    * @param newConversationId the new conversation ID to assign
    * @param historyConversationId the ID of the history record to update
+   * @return a future that completes when the history record has been updated.
    */
   public CompletableFuture<Void> updateConversationIdToHistoryRecord(String newConversationId,
       String historyConversationId) {
@@ -160,6 +164,9 @@ public class ConversationPersistenceManager {
    * @param model the model used for this turn
    * @param chatMode the chat mode for this turn
    * @param customChatModeId the custom chat mode ID (if applicable)
+   * @param currentFile the current file referenced by the user turn.
+   * @param references the additional resources referenced by the user turn.
+   * @return a future containing the updated conversation data.
    */
   public CompletableFuture<ConversationData> persistUserTurnInfo(String conversationId, String turnId, String message,
       CopilotModel model, String chatMode, String customChatModeId, IFile currentFile, List<IResource> references) {
@@ -211,6 +218,7 @@ public class ConversationPersistenceManager {
    * @param conversationId the conversation ID
    * @param progress the progress value
    * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
+   * @return a future that completes when the conversation progress has been cached.
    */
   public CompletableFuture<Void> cacheConversationProgress(String conversationId, ChatProgressValue progress,
       String thinkingBlockId) {
@@ -234,6 +242,7 @@ public class ConversationPersistenceManager {
    * @param conversationId the conversation ID
    * @param progress the progress value
    * @param thinkingBlockId the UI-generated thinking block ID, when the progress belongs to a thinking round
+   * @return a future that completes when the conversation progress has been persisted.
    */
   public CompletableFuture<Void> persistConversationProgress(String conversationId, ChatProgressValue progress,
       String thinkingBlockId) {
@@ -255,6 +264,9 @@ public class ConversationPersistenceManager {
 
   /**
    * Persists a cached conversation to disk if it exists in the cache.
+   *
+   * @param conversationId the ID of the cached conversation to persist.
+   * @return a future that completes when the cached conversation has been persisted.
    */
   public CompletableFuture<Void> persistCachedConversation(String conversationId) {
     return CompletableFuture.runAsync(() -> {
@@ -309,6 +321,10 @@ public class ConversationPersistenceManager {
 
   /**
    * Updates a conversation with progress data. This method is synchronous and handles all IO operations internally.
+   *
+   * @param conversationId the ID of the conversation to update.
+   * @param progress the progress value to apply.
+   * @return a future containing the updated conversation data.
    */
   public CompletableFuture<ConversationData> updateConversationProgress(String conversationId,
       ChatProgressValue progress) {
@@ -360,6 +376,7 @@ public class ConversationPersistenceManager {
    * @param turnId the turn ID
    * @param thinkingBlockId the thinking block ID
    * @param title the generated title
+   * @return a future that completes when the thinking block title has been updated.
    */
   public CompletableFuture<Void> updateThinkingBlockTitle(String conversationId, String turnId, String thinkingBlockId,
       String title) {
@@ -385,6 +402,7 @@ public class ConversationPersistenceManager {
    * @param conversationId the conversation ID
    * @param turnId the turn ID
    * @param thinkingBlockId the thinking block ID
+   * @return a future that completes when the thinking block has been cancelled.
    */
   public CompletableFuture<Void> cancelThinkingBlock(String conversationId, String turnId, String thinkingBlockId) {
     if (StringUtils.isAnyBlank(conversationId, turnId, thinkingBlockId)) {
@@ -561,6 +579,7 @@ public class ConversationPersistenceManager {
    * Removes a conversation by ID from both disk and in-memory cache.
    *
    * @param conversationId the ID of the conversation to remove
+   * @return a future that completes when the conversation has been removed.
    */
   public CompletableFuture<Void> removeConversationById(String conversationId) {
     return CompletableFuture.runAsync(() -> {
@@ -581,6 +600,7 @@ public class ConversationPersistenceManager {
    *
    * @param conversationId the ID of the conversation to update
    * @param newTitle the new title to set
+   * @return a future that completes when the conversation title has been updated.
    */
   public CompletableFuture<Void> updateConversationTitle(String conversationId, String newTitle) {
     return CompletableFuture.runAsync(() -> {
@@ -604,6 +624,7 @@ public class ConversationPersistenceManager {
    *
    * @param conversationId the ID of the conversation to update
    * @param todos the list of todo items to save
+   * @return a future that completes when the todo list has been updated.
    */
   public CompletableFuture<Void> updateTodoList(String conversationId, List<TodoItem> todos) {
     return CompletableFuture.runAsync(() -> {
@@ -627,6 +648,7 @@ public class ConversationPersistenceManager {
    *
    * @param params the coding agent message request parameters
    * @param agentSlug the slug identifier of the coding agent
+   * @return a future that completes when the coding agent message has been added.
    */
   public CompletableFuture<Void> addCodingAgentMessage(CodingAgentMessageRequestParams params, String agentSlug) {
     return CompletableFuture.runAsync(() -> {
@@ -667,6 +689,7 @@ public class ConversationPersistenceManager {
    * @param billingMultiplier the billing multiplier for the model
    * @param reasoningEffort the reasoning effort sent for this turn, or {@code null} when the model does not support
    *     reasoning effort
+   * @return a future that completes when the model information has been persisted.
    */
   public CompletableFuture<Void> persistModelInfo(String conversationId, String turnId, String modelName,
       double billingMultiplier, String reasoningEffort) {

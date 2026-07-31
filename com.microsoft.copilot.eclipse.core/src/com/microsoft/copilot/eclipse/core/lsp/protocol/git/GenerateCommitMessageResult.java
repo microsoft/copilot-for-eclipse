@@ -16,6 +16,8 @@ public class GenerateCommitMessageResult {
 
   /**
    * Creates a new GenerateCommitMessageResult.
+   *
+   * @param commitMessage the generated commit message.
    */
   public GenerateCommitMessageResult(String commitMessage) {
     this.commitMessage = commitMessage;

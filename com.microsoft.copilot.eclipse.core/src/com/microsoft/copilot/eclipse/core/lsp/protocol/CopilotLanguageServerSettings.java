@@ -373,6 +373,11 @@ public class CopilotLanguageServerSettings {
 
   /**
    * Constructor with parameters.
+   *
+   * @param enableAutoCompletions whether automatic completions are enabled.
+   * @param http the HTTP settings.
+   * @param githubEnterprise the GitHub Enterprise settings.
+   * @param githubSettings the GitHub settings.
    */
   public CopilotLanguageServerSettings(@Nullable Boolean enableAutoCompletions, @Nullable Http http,
       @Nullable GithubEnterprise githubEnterprise, @Nullable GitHubSettings githubSettings) {
@@ -465,6 +470,8 @@ public class CopilotLanguageServerSettings {
 
   /**
    * set mcp servers.
+   *
+   * @param mcpServersPreference the MCP servers preference value.
    */
   public void setMcpServers(String mcpServersPreference) {
     String mcpServers = parseMcpServers(mcpServersPreference);
@@ -473,6 +480,8 @@ public class CopilotLanguageServerSettings {
 
   /**
    * add mcp servers.
+   *
+   * @param mcpServersJson the MCP servers JSON to add.
    */
   public void addMcpServers(String mcpServersJson) {
     String mcpServers = parseMcpServers(mcpServersJson);

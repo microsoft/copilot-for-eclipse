@@ -74,6 +74,8 @@ public class SwtUtils {
 
   /**
    * Invokes the given runnable on the display thread.
+   *
+   * @param runnable the runnable to invoke.
    */
   public static void invokeOnDisplayThread(Runnable runnable) {
     Display currentDisplay = Display.getCurrent();
@@ -158,6 +160,8 @@ public class SwtUtils {
 
   /**
    * Get the active editor part from workbench.
+   *
+   * @return the active editor part, or {@code null} when none is active.
    */
   @Nullable
   public static IEditorPart getActiveEditorPart() {
@@ -176,6 +180,8 @@ public class SwtUtils {
    * window. It is more specific to the Eclipse framework and is typically used in handlers for commands or actions
    * within the Eclipse environment.
    *
+   * @param event the execution event from the handler.
+   * @return the shell associated with the active workbench window.
    * @throws ExecutionException if the active workbench window cannot be retrieved from the event.
    */
   public static Shell getShellFromEvent(ExecutionEvent event) throws ExecutionException {
@@ -184,6 +190,8 @@ public class SwtUtils {
 
   /**
    * Get current display.
+   *
+   * @return the current display, or the default display when none is current.
    */
   public static Display getDisplay() {
     Display display = Display.getCurrent();
@@ -195,6 +203,9 @@ public class SwtUtils {
 
   /**
    * Check if the given text viewer is editable.
+   *
+   * @param textViewer the text viewer to inspect.
+   * @return {@code true} when the text viewer is editable.
    */
   public static boolean isEditable(ITextViewer textViewer) {
     AtomicReference<Boolean> ref = new AtomicReference<>(false);
@@ -209,6 +220,10 @@ public class SwtUtils {
   /**
    * Redraw the block ghost texts at the given model offset. If forceRedraw is false, redraw will only be triggered when
    * the model offset if out of the text editor's visible range.
+   *
+   * @param textViewer the text viewer containing the block ghost text.
+   * @param modelOffset the model offset of the line to redraw.
+   * @param forceRedraw whether to redraw even when the line is visible.
    */
   public static void redrawBlockLineAtModelOffset(ITextViewer textViewer, int modelOffset, boolean forceRedraw) {
     if (textViewer == null || textViewer.getDocument() == null) {
@@ -256,6 +271,10 @@ public class SwtUtils {
 
   /**
    * Check if the widget offset is out of the text editor's visible range.
+   *
+   * @param textViewer the text viewer to inspect.
+   * @param widgetOffset the widget offset to test.
+   * @return {@code true} when the widget offset is outside the visible editor range.
    */
   public static boolean isWidgetOffsetOutOfTextEditorVisibleRange(ITextViewer textViewer, int widgetOffset) {
     StyledText styledText = textViewer.getTextWidget();
@@ -287,6 +306,9 @@ public class SwtUtils {
 
   /**
    * Get the registered inline annotation color.
+   *
+   * @param display the display associated with the color lookup.
+   * @return the registered inline annotation color, or {@code null} when unavailable.
    */
   @Nullable
   public static Color getRegisteredInlineAnnotationColor(Display display) {
@@ -299,6 +321,9 @@ public class SwtUtils {
 
   /**
    * Get the default ghost text color.
+   *
+   * @param display the display used to create the color.
+   * @return the default ghost text color.
    */
   public static Color getDefaultGhostTextColor(Display display) {
     return new Color(display, new RGB(DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE, DEFAULT_GHOST_TEXT_SCALE));
@@ -307,6 +332,8 @@ public class SwtUtils {
   /**
    * Forwards vertical mouse wheel scrolling from a nested scrollable to its nearest parent scroller when the nested
    * control is already at the scroll boundary.
+   *
+   * @param scrollable the nested scrollable whose mouse wheel events should be forwarded.
    */
   public static void forwardVerticalMouseWheelToParentScrollerAtBoundary(Scrollable scrollable) {
     scrollable.addListener(SWT.MouseWheel, event -> {
@@ -369,6 +396,11 @@ public class SwtUtils {
 
   /**
    * Resizes a table column to fill the table client area not occupied by the fixed-width columns.
+   *
+   * @param table the table whose client area should be filled.
+   * @param fillColumn the column to resize.
+   * @param minWidth the minimum width required before resizing the fill column.
+   * @param fixedColumns the fixed-width columns to exclude from the available width.
    */
   public static void resizeColumnToFillTable(Table table, TableColumn fillColumn,
       int minWidth, TableColumn... fixedColumns) {
@@ -388,6 +420,9 @@ public class SwtUtils {
 
   /**
    * Copy the given text to the clipboard.
+   *
+   * @param control the control used to access the display thread.
+   * @param text the text to copy.
    */
   public static void copyToClipboard(Control control, String text) {
     invokeOnDisplayThread(() -> {

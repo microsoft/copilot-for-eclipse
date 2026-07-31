@@ -591,6 +591,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
 
   /**
    * Displays the server names and tool names in the tools group using a tree view.
+   *
+   * @param servers the MCP servers and their tools to display.
    */
   public void displayServerToolsInfo(List<McpServerToolsCollection> servers) {
     if (toolsGroup == null || toolsGroup.isDisposed()) {

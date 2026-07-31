@@ -57,6 +57,9 @@ public class FormatOptionProvider {
    * Determines if indentation should use spaces. Copilot will attempt to retrieve the format options from the project
    * preferences. If the project preferences are not set, Copilot will use the workspace preferences. If the workspace
    * preferences are also not set, Copilot will default to using spaces.
+   *
+   * @param file the file whose indentation preferences are requested.
+   * @return true if indentation should use spaces.
    */
   public boolean useSpace(IFile file) {
     FormattingOptions languageFormat = getLanguageFormat(file);
@@ -67,6 +70,9 @@ public class FormatOptionProvider {
    * Retrieves the tab size for indentation. Copilot first attempts to get the format options from the project
    * preferences. If the project preferences are not set, it will use the workspace preferences. If the workspace
    * preferences are also not set, it defaults to a tab size of 4.
+   *
+   * @param file the file whose tab size preferences are requested.
+   * @return the tab size for indentation.
    */
   public int getTabSize(IFile file) {
     FormattingOptions languageFormat = getLanguageFormat(file);

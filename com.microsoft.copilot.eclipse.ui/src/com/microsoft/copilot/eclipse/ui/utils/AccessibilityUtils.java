@@ -25,6 +25,9 @@ public class AccessibilityUtils {
 
   /**
    * Adds an accessibility name to the given UI component.
+   *
+   * @param control the control to receive the accessibility name.
+   * @param name the accessibility name to expose.
    */
   public static void addAccessibilityNameForUiComponent(Control control, String name) {
     addAccessibilityPropertiesForUiComponent(control, name, null);
@@ -32,6 +35,9 @@ public class AccessibilityUtils {
 
   /**
    * Adds an accessibility description to the given UI component.
+   *
+   * @param control the control to receive the accessibility description.
+   * @param description the accessibility description to expose.
    */
   public static void addAccessibilityDescriptionForUiComponent(Control control, String description) {
     addAccessibilityPropertiesForUiComponent(control, null, description);
@@ -39,6 +45,10 @@ public class AccessibilityUtils {
 
   /**
    * Adds accessibility name and description to the given UI component.
+   *
+   * @param control the control to receive the accessibility properties.
+   * @param name the accessibility name to expose.
+   * @param description the accessibility description to expose.
    */
   public static void addAccessibilityPropertiesForUiComponent(Control control, String name, String description) {
     control.getAccessible().addAccessibleListener(new AccessibleAdapter() {

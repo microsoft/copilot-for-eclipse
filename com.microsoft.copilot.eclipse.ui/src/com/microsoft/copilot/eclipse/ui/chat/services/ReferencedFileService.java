@@ -208,6 +208,8 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   /**
    * Binds the current file widget to the current file observable.
+   *
+   * @param widget the current referenced file widget to bind.
    */
   public void bindCurrentFileWidget(CurrentReferencedFile widget) {
     unbindCurrentFileWidget();
@@ -253,6 +255,8 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   /**
    * Binds the action bar with the referenced files observable.
+   *
+   * @param actionBar the action bar to update when referenced files change.
    */
   public void bindReferencedFilesWidget(ActionBar actionBar) {
     ensureRealm(() -> {
@@ -380,6 +384,8 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   /**
    * Update the referenced files observable with a new set of files.
+   *
+   * @param files the resources to set as referenced files.
    */
   public void updateReferencedFiles(List<IResource> files) {
     ensureRealm(() -> {
@@ -391,6 +397,8 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   /**
    * Add files to the existing referenced files observable.
+   *
+   * @param files the resources to add to the referenced files.
    */
   public void addReferencedFiles(List<IResource> files) {
     ensureRealm(() -> {
@@ -423,6 +431,8 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
   /**
    * Remove a specific resource from the referenced files observable.
+   *
+   * @param targetResource the resource to remove from the referenced files.
    */
   public void removeReferencedFile(IResource targetResource) {
     ensureRealm(() -> {

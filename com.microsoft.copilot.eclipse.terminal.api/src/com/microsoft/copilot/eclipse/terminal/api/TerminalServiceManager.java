@@ -108,6 +108,8 @@ public class TerminalServiceManager {
 
   /**
    * Get the singleton instance of TerminalServiceManager.
+   *
+   * @return the singleton {@link TerminalServiceManager} instance.
    */
   public static TerminalServiceManager getInstance() {
     return InstanceHolder.INSTANCE;
@@ -115,6 +117,8 @@ public class TerminalServiceManager {
 
   /**
    * Add a listener for terminal service events.
+   *
+   * @param listener the terminal service listener to register.
    */
   public void addListener(TerminalServiceListener listener) {
     if (listener != null) {
@@ -135,6 +139,8 @@ public class TerminalServiceManager {
 
   /**
    * Remove a listener for terminal service events.
+   *
+   * @param listener the terminal service listener to unregister.
    */
   public void removeListener(TerminalServiceListener listener) {
     listeners.remove(listener);
@@ -142,6 +148,8 @@ public class TerminalServiceManager {
 
   /**
    * Get the current terminal service if available.
+   *
+   * @return the current {@link IRunInTerminalTool} service, or {@code null} if none is available.
    */
   public IRunInTerminalTool getCurrentService() {
     return currentService;
