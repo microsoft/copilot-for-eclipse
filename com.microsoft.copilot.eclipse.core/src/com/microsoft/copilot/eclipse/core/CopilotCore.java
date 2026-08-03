@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
@@ -54,10 +53,10 @@ public class CopilotCore extends Plugin {
   public static final String INIT_JOB_FAMILY = "com.microsoft.copilot.eclipse.core.initJob";
 
   /**
-   * How long {@link #stop(BundleContext)} waits for the initialization job to observe the
-   * cancellation before it gives up and lets the framework shutdown continue.
+   * How long {@link #stop(BundleContext)} waits for the language server wind-down before it gives
+   * up and lets the framework shutdown continue.
    */
-  private static final long INIT_JOB_SHUTDOWN_TIMEOUT_MS = 30_000L;
+  private static final long SHUTDOWN_TIMEOUT_MS = 30_000L;
 
   /**
    * Creates the Copilot core plugin. The plugin is created automatically by the Eclipse framework. Clients must not
@@ -83,29 +82,53 @@ public class CopilotCore extends Plugin {
   public void stop(BundleContext context) throws Exception {
     stopping.set(true);
     exceptionReporter.close();
-    try {
-      Job job = initJob;
-      if (job != null) {
-        // Blocking is intentional: the bundle must not be unloaded while the initialization job is
-        // still touching the language server, so wait for it to observe the cancellation. The wait
-        // is bounded because cancel() only raises a flag the job has to poll, and the job may be
-        // blocked inside language server startup where there is no such checkpoint; waiting forever
-        // there would stall the whole framework shutdown. Giving up is safe: `stopping` is already
-        // set, so the job stops the connection itself at its next checkpoint.
-        job.cancel();
-        if (!job.join(INIT_JOB_SHUTDOWN_TIMEOUT_MS, new NullProgressMonitor())) {
-          LOGGER.error(new IllegalStateException("Gave up waiting for the GitHub Copilot initialization"
-              + " job to stop after " + INIT_JOB_SHUTDOWN_TIMEOUT_MS + " ms."));
+
+    Job job = initJob;
+    if (job != null) {
+      // cancel() only raises a flag the job has to poll, so it cannot unblock a job that is already
+      // inside language server startup; the wait below is what keeps that bounded.
+      job.cancel();
+    }
+
+    // The wind-down can block for an unbounded time: LanguageServerWrapper guards start() and
+    // stop() with the same monitor, so stop() waits for an in-flight start() that may itself be
+    // waiting on a server process that never finishes initializing. Run it on a daemon thread with
+    // a budget so a wedged server delays the framework shutdown instead of blocking it forever.
+    Thread shutdown = new Thread(() -> {
+      try {
+        if (job != null) {
+          job.join();
         }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        stopLanguageServer();
       }
+    }, "Copilot shutdown");
+    shutdown.setDaemon(true);
+    shutdown.start();
+
+    try {
+      shutdown.join(SHUTDOWN_TIMEOUT_MS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw e;
-    } finally {
-      CopilotLanguageServerConnection connection = copilotLanguageServer;
-      if (connection != null) {
-        connection.stop();
-      }
+    }
+    if (shutdown.isAlive()) {
+      LOGGER.error(new IllegalStateException("Gave up waiting for the GitHub Copilot language server"
+          + " to shut down after " + SHUTDOWN_TIMEOUT_MS + " ms."));
+    }
+  }
+
+  private void stopLanguageServer() {
+    CopilotLanguageServerConnection connection = copilotLanguageServer;
+    if (connection == null) {
+      return;
+    }
+    try {
+      connection.stop();
+    } catch (RuntimeException e) {
+      LOGGER.error(e);
     }
   }
 
