@@ -23,6 +23,8 @@ public class Messages extends NLS {
   public static String preferences_page_byok_removeModel;
   public static String preferences_page_byok_changeApi_button;
   public static String preferences_page_byok_deleteApi_button;
+  public static String preferences_page_byok_changeEndpoint_button;
+  public static String preferences_page_byok_deleteEndpoint_button;
   public static String preferences_page_byok_enableModel_button;
   public static String preferences_page_byok_disableModel_button;
   public static String preferences_page_byok_reload_button;
@@ -31,6 +33,9 @@ public class Messages extends NLS {
   public static String preferences_page_byok_addModel_modelId;
   public static String preferences_page_byok_addModel_deploymentUrl;
   public static String preferences_page_byok_addModel_apiKey;
+  public static String preferences_page_byok_ollama_dialog_title;
+  public static String preferences_page_byok_ollama_create_dialog_title;
+  public static String preferences_page_byok_ollama_endpoint;
   public static String preferences_page_byok_addModel_displayName;
   public static String preferences_page_byok_addModel_supportVision;
   public static String preferences_page_byok_addModel_supportToolCalling;
@@ -38,6 +43,8 @@ public class Messages extends NLS {
   public static String preferences_page_byok_changeApi_dialog_description;
   public static String preferences_page_byok_deleteApi_dialog_title;
   public static String preferences_page_byok_deleteApi_dialog_description;
+  public static String preferences_page_byok_deleteEndpoint_dialog_title;
+  public static String preferences_page_byok_deleteEndpoint_dialog_description;
   public static String preferences_page_byok_dialog_add;
   public static String preferences_page_byok_dialog_delete;
   public static String preferences_page_byok_dialog_yes;
