@@ -73,7 +73,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
@@ -587,6 +589,37 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey) {
     Function<LanguageServer, CompletableFuture<ByokListApiKeyResponse>> fn = server -> {
       return ((CopilotLanguageServer) server).listByokApiKeys(apiKey);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Save a built-in BYOK provider configuration.
+   */
+  public CompletableFuture<ByokStatusResponse> saveByokProviderConfig(ByokProviderConfig providerConfig) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).saveByokProviderConfig(providerConfig);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Delete a built-in BYOK provider configuration.
+   */
+  public CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokProviderConfig providerConfig) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).deleteByokProviderConfig(providerConfig);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List built-in BYOK provider configurations.
+   */
+  public CompletableFuture<ByokListProviderConfigResponse> listByokProviderConfigs(
+      ByokProviderConfig providerConfig) {
+    Function<LanguageServer, CompletableFuture<ByokListProviderConfigResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).listByokProviderConfigs(providerConfig);
     };
     return this.languageServerWrapper.execute(fn);
   }
