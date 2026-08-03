@@ -5,8 +5,11 @@ package com.microsoft.copilot.eclipse.core.lsp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -52,11 +55,41 @@ class LsStreamConnectionProviderTests {
 
   @Test
   void testStartLanguageServer() throws IOException {
-    LsStreamConnectionProvider provider = new LsStreamConnectionProvider();
+    TestableLsStreamConnectionProvider provider = new TestableLsStreamConnectionProvider();
+    Process process;
     try {
       provider.start();
+      process = provider.process();
+      assertNotNull(process, "starting the provider must create a language server process");
     } finally {
       provider.stop();
+    }
+
+    assertFalse(process.isAlive(), "the language server process must not outlive stop()");
+  }
+
+  /**
+   * A language server that inherits this JVM's stderr keeps that file descriptor open for as long as
+   * it lives. When the server outlives the IDE - which happens because LSP4E tears servers down
+   * asynchronously - whoever reads the other end of that stream waits forever; in a Tycho test fork
+   * that reader is Maven, and the build hangs long after the tests have finished.
+   */
+  @Test
+  void testCreateProcessBuilderDoesNotInheritErrorStream() {
+    LsStreamConnectionProvider provider = new LsStreamConnectionProvider();
+    provider.setCommands(List.of("copilot-language-server", "--stdio"));
+
+    ProcessBuilder builder = provider.createProcessBuilder();
+
+    assertNotEquals(ProcessBuilder.Redirect.INHERIT, builder.redirectError());
+  }
+
+  /**
+   * Exposes the language server process so tests can assert on the real operating system process.
+   */
+  private static final class TestableLsStreamConnectionProvider extends LsStreamConnectionProvider {
+    Process process() {
+      return getProcess();
     }
   }
 }

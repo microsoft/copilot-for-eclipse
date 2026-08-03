@@ -15,6 +15,9 @@
 		<base.name>GitHub Copilot</base.name>
 		<tycho-version>4.0.13</tycho-version>
 		<checkstyle-version>3.6.0</checkstyle-version>
+		<!-- Kill a forked test JVM that stops making progress instead of letting it stall the build
+		     indefinitely; tycho-surefire reads this as forkedProcessTimeoutInSeconds. -->
+		<surefire.timeout>900</surefire.timeout>
 	</properties>
 
 	<modules>

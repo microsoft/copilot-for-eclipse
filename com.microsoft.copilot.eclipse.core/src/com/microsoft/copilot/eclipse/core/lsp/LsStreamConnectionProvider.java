@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,6 +47,16 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   public static final String EDITOR_NAME = "Eclipse";
   public static final String EDITOR_PLUGIN_NAME = "copilot-eclipse";
+
+  /**
+   * How long a process gets to exit on its own after being asked politely, before it is killed.
+   */
+  private static final long PROCESS_TERMINATION_GRACE_MS = 2000L;
+
+  /**
+   * How long the login shell gets to report its environment before the probe gives up.
+   */
+  private static final long LOGIN_SHELL_TIMEOUT_SECONDS = 5L;
 
   @Override
   public Object getInitializationOptions(@Nullable URI rootUri) {
@@ -91,20 +102,85 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   protected ProcessBuilder createProcessBuilder() {
     ProcessBuilder pb = super.createProcessBuilder();
     pb.environment().putAll(getLoginShellEnvironment());
+    // LSP4E inherits this JVM's stderr, which hands the language server a duplicate of a file
+    // descriptor it has no business owning. A server that outlives the IDE then keeps that stream
+    // open forever - inside a Tycho test fork that is Maven's pipe, and the build never finishes.
+    // Pipe the stream instead and drain it ourselves so the server can never block on a full buffer.
+    pb.redirectError(ProcessBuilder.Redirect.PIPE);
     return pb;
+  }
+
+  /**
+   * Stops the language server and makes sure the process is really gone. LSP4E only calls
+   * {@link Process#destroy()}, which is a request rather than a guarantee on Unix, so a server that
+   * does not react to it would otherwise keep running after the IDE is gone.
+   */
+  @Override
+  public void stop() {
+    Process process = getProcess();
+    super.stop();
+    terminateProcess(process);
   }
 
   private void startBinaryLspAgent() throws IOException {
     CopilotCore.LOGGER.info("Starting language server with binary lsp agent.");
     this.setCommands(getBinaryLspCommands());
-    super.start();
+    startProcess();
     CopilotCore.LOGGER.info("Binary agent started successfully.");
   }
 
   private void startJsLspAgent() throws IOException {
     this.setCommands(getJavaScriptCommands());
-    super.start();
+    startProcess();
     CopilotCore.LOGGER.info("JS agent started successfully.");
+  }
+
+  private void startProcess() throws IOException {
+    super.start();
+    forwardErrorStream();
+  }
+
+  /**
+   * Copies the language server's stderr to this process' stderr, keeping the output visible without
+   * sharing the underlying file descriptor with the server. The pump runs on a daemon thread because
+   * reads on a process pipe cannot be interrupted and must never hold up JVM shutdown.
+   */
+  private void forwardErrorStream() {
+    Process process = getProcess();
+    if (process == null) {
+      return;
+    }
+    InputStream errorStream = process.getErrorStream();
+    Thread pump = new Thread(() -> {
+      try {
+        errorStream.transferTo(System.err);
+      } catch (IOException e) {
+        // The server exited or the stream was closed; there is nothing left to forward.
+      }
+    }, "GitHub Copilot language server stderr");
+    pump.setDaemon(true);
+    pump.start();
+  }
+
+  /**
+   * Terminates a process and its descendants, first politely and then forcibly.
+   *
+   * @param process the process to terminate, may be {@code null}
+   */
+  private static void terminateProcess(@Nullable Process process) {
+    if (process == null || !process.isAlive()) {
+      return;
+    }
+    process.destroy();
+    try {
+      if (process.waitFor(PROCESS_TERMINATION_GRACE_MS, TimeUnit.MILLISECONDS)) {
+        return;
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    process.descendants().forEach(ProcessHandle::destroyForcibly);
+    process.destroyForcibly();
   }
 
   private List<String> getBinaryLspCommands() throws IOException {
@@ -332,6 +408,9 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     try {
       // Execute login shell and get environment variables
       ProcessBuilder pb = new ProcessBuilder("/bin/zsh", "-i", "-l", "-c", "env");
+      // Nobody drains the shell's stderr, so a chatty shell profile would otherwise fill the pipe
+      // buffer and wedge the shell before it ever prints the environment.
+      pb.redirectError(ProcessBuilder.Redirect.DISCARD);
       process = pb.start();
 
       env = getEnvironmentVariables(process);
@@ -350,44 +429,53 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     } catch (IOException e) {
       CopilotCore.LOGGER.error("IOException while getting login shell environment variables", e);
     } finally {
-      if (process != null && process.isAlive()) {
-        process.destroy();
-      }
+      terminateProcess(process);
     }
 
     return env;
   }
 
-  private Map<String, String> getEnvironmentVariables(Process process) throws InterruptedException {
-    // Create a separate thread to read the process output with a timeout, this avoids blocking the original thread
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Future<Map<String, String>> future = executor.submit(() -> {
-      Map<String, String> result = new HashMap<>();
-      try (BufferedReader reader = new BufferedReader(
-          new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          int separator = line.indexOf('=');
-          if (separator > 0) {
-            String key = line.substring(0, separator);
-            String value = line.substring(separator + 1);
-            result.put(key, value);
-          }
-        }
-      }
-      return result;
+  private Map<String, String> getEnvironmentVariables(Process process) {
+    // Reads on a process pipe are not interruptible, so neither cancel(true) nor shutdownNow() can
+    // stop the reader once the shell stops producing output. The thread must therefore be a daemon,
+    // otherwise a wedged shell keeps the whole JVM alive.
+    ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+      Thread thread = new Thread(runnable, "GitHub Copilot login shell environment reader");
+      thread.setDaemon(true);
+      return thread;
     });
+    Future<Map<String, String>> future = executor.submit(() -> readEnvironmentVariables(process));
 
     try {
-      return future.get(5, TimeUnit.SECONDS);
+      return future.get(LOGIN_SHELL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     } catch (TimeoutException e) {
       CopilotCore.LOGGER.error("Timed out waiting for login shell environment variables", e);
       future.cancel(true);
     } catch (ExecutionException e) {
       CopilotCore.LOGGER.error("Error reading login shell environment variables", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      CopilotCore.LOGGER.error("Interrupted while reading login shell environment variables", e);
     } finally {
       executor.shutdownNow();
     }
     return new HashMap<>();
+  }
+
+  private Map<String, String> readEnvironmentVariables(Process process) throws IOException {
+    Map<String, String> result = new HashMap<>();
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        int separator = line.indexOf('=');
+        if (separator > 0) {
+          String key = line.substring(0, separator);
+          String value = line.substring(separator + 1);
+          result.put(key, value);
+        }
+      }
+    }
+    return result;
   }
 }
