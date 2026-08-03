@@ -12,7 +12,8 @@ public enum ByokModelProvider {
   GEMINI("Gemini"),
   GROQ("Groq"),
   OPENROUTER("OpenRouter"),
-  ANTHROPIC("Anthropic");
+  ANTHROPIC("Anthropic"),
+  OLLAMA("Ollama");
 
 
   private final String displayName;
@@ -31,6 +32,20 @@ public enum ByokModelProvider {
    */
   public static boolean isAzure(String providerDisplayName) {
     return AZURE.getDisplayName().equals(providerDisplayName);
+  }
+
+  /**
+   * Utility to check if a provider display name corresponds to Ollama.
+   */
+  public static boolean isOllama(String providerDisplayName) {
+    return OLLAMA.getDisplayName().equals(providerDisplayName);
+  }
+
+  /**
+   * Returns whether the provider requires a provider-level API key.
+   */
+  public static boolean requiresApiKey(String providerDisplayName) {
+    return !isAzure(providerDisplayName) && !isOllama(providerDisplayName);
   }
 
   @Override
