@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.core.logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
@@ -88,5 +89,34 @@ class ExceptionReporterTests {
       assertTrue(secondReportFinished.await(5, TimeUnit.SECONDS));
       assertEquals(2, reportCount.get());
     }
+  }
+
+  @Test
+  void testReport_concurrentWithCloseDoesNotThrow() throws InterruptedException {
+    ExceptionReporter reporter = new ExceptionReporter();
+    reporter.setSink(exception -> {
+    });
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    CountDownLatch finished = new CountDownLatch(1);
+
+    // report() reads the sink and submits to the executor in two steps, so close() can land in
+    // between. Reporting runs on the platform logging thread and must never propagate a failure
+    // there, so the rejected submission has to be discarded instead.
+    Thread reporting = new Thread(() -> {
+      try {
+        for (int i = 0; i < 2000; i++) {
+          reporter.report(new IllegalStateException("test"));
+        }
+      } catch (Throwable e) {
+        failure.set(e);
+      } finally {
+        finished.countDown();
+      }
+    });
+    reporting.start();
+    reporter.close();
+
+    assertTrue(finished.await(10, TimeUnit.SECONDS));
+    assertNull(failure.get());
   }
 }

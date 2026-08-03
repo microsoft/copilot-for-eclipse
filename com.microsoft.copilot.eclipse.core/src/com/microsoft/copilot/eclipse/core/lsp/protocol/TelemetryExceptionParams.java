@@ -112,7 +112,12 @@ public class TelemetryExceptionParams {
 
   private static String computeFileName(StackTraceElement element) {
     String[] classNameParts = element.getClassName().split("\\.");
-    classNameParts[classNameParts.length - 1] = element.getFileName();
+    String fileName = element.getFileName();
+    // getFileName() is null when the class carries no SourceFile attribute; keep the simple class
+    // name then, otherwise the literal string "null" would be spliced into the reported path.
+    if (fileName != null) {
+      classNameParts[classNameParts.length - 1] = fileName;
+    }
     return String.join("/", classNameParts);
   }
 
