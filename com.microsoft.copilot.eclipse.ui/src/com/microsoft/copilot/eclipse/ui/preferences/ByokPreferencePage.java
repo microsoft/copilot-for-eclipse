@@ -930,15 +930,17 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
       boolean canFetch = ByokModelProvider.isOllama(providerName) ? byProviderUrls.containsKey(providerName)
           : byProviderApiKeys.containsKey(providerName);
       if (!canFetch) {
-        remotelyLoadedProviders.add(providerName);
         return;
       }
       byokService.reloadProvider(providerName).whenComplete((result, throwable) -> {
-        if (throwable != null) {
-          handleError(throwable.getMessage());
-        }
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          if (throwable == null) {
+            remotelyLoadedProviders.add(providerName);
+          } else {
+            handleError(throwable.getMessage());
+          }
+        });
       });
-      remotelyLoadedProviders.add(providerName);
     }
   }
 

@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -156,8 +157,11 @@ public class ByokService extends ChatBaseService {
   public CompletableFuture<Void> loadProviderUrls() {
     return lsConnection.listByokProviderConfigs(new ByokProviderConfig(null, null)).thenAccept(response -> {
       Map<String, String> providerUrls = response == null || response.providers() == null ? Map.of()
-          : response.providers().stream().filter(config -> config.url() != null)
-              .collect(Collectors.toMap(ByokProviderConfig::providerName, ByokProviderConfig::url));
+          : response.providers().stream()
+              .filter(config -> config != null && StringUtils.isNotBlank(config.providerName())
+                  && StringUtils.isNotBlank(config.url()))
+              .collect(Collectors.toMap(ByokProviderConfig::providerName, ByokProviderConfig::url,
+                  (firstUrl, duplicateUrl) -> firstUrl));
       ensureRealm(() -> providerUrlsObservable.setValue(providerUrls));
     });
   }

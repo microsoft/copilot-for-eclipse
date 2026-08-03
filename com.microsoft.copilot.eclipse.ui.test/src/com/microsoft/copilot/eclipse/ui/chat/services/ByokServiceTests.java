@@ -75,6 +75,20 @@ class ByokServiceTests {
   }
 
   @Test
+  void testLoadProviderUrls_ignoresBlankUrlsAndKeepsFirstDuplicate() {
+    String duplicateEndpoint = "http://localhost:11435";
+    when(lsConnection.listByokProviderConfigs(any(ByokProviderConfig.class)))
+        .thenReturn(CompletableFuture.completedFuture(new ByokListProviderConfigResponse(List.of(
+            new ByokProviderConfig(OLLAMA_PROVIDER, " "),
+            new ByokProviderConfig(OLLAMA_PROVIDER, OLLAMA_ENDPOINT),
+            new ByokProviderConfig(OLLAMA_PROVIDER, duplicateEndpoint)))));
+
+    byokService.loadProviderUrls().join();
+
+    verify(preferencePage).updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT));
+  }
+
+  @Test
   void testConfigureOllama_emptyDiscoveryRefreshesLocalModels() {
     when(lsConnection.saveByokProviderConfig(any())).thenReturn(completedStatus());
     configureRefreshResponses(List.of());
