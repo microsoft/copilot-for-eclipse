@@ -10,7 +10,6 @@ import java.util.Objects;
 import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.utils.AnonymizeUtils;
 
 /**
@@ -111,6 +110,12 @@ public class TelemetryExceptionParams {
     return builder.toString();
   }
 
+  private static String computeFileName(StackTraceElement element) {
+    String[] classNameParts = element.getClassName().split("\\.");
+    classNameParts[classNameParts.length - 1] = element.getFileName();
+    return String.join("/", classNameParts);
+  }
+
   /**
    * The type of the exception.
    */
@@ -160,7 +165,7 @@ public class TelemetryExceptionParams {
       int idx = 0;
       for (StackTraceElement element : stacktrace) {
         var cst = new CopilotStackTraceElement();
-        cst.setFilename(GithubPanicErrorReport.computeFileName(element));
+        cst.setFilename(computeFileName(element));
         cst.setLineno(String.valueOf(element.getLineNumber()));
         // colno is not available in StackTraceElement
         cst.setColno(String.valueOf(0));

@@ -4,10 +4,10 @@
 package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
@@ -22,7 +22,7 @@ import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
-import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
+import com.microsoft.copilot.eclipse.core.logger.ExceptionReporter;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
 
@@ -32,15 +32,17 @@ import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
  */
 public class CopilotCore extends Plugin {
 
-  private CopilotLanguageServerConnection copilotLanguageServer;
+  private volatile CopilotLanguageServerConnection copilotLanguageServer;
   private AuthStatusManager authStatusManager;
   private CompletionProvider completionProvider;
   private NextEditSuggestionProvider nextEditSuggestionProvider;
   private FormatOptionProvider formatOptionProvider;
-  private GithubPanicErrorReport githubPanicErrorReport;
   private ChatEventsManager chatEventsManager;
   private IChatServiceManager chatServiceManager;
   private FeatureFlags featureFlags;
+  private final ExceptionReporter exceptionReporter;
+  private final AtomicBoolean stopping = new AtomicBoolean();
+  private volatile Job initJob;
 
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
@@ -57,6 +59,7 @@ public class CopilotCore extends Plugin {
   public CopilotCore() {
     super();
     COPILOT_CORE_PLUGIN = this;
+    exceptionReporter = new ExceptionReporter();
   }
 
   public static CopilotCore getPlugin() {
@@ -65,40 +68,66 @@ public class CopilotCore extends Plugin {
 
   @Override
   public void start(BundleContext context) throws Exception {
+    exceptionReporter.start();
     init(context);
   }
 
   @Override
   public void stop(BundleContext context) throws Exception {
-    if (copilotLanguageServer != null) {
-      copilotLanguageServer.stop();
+    stopping.set(true);
+    exceptionReporter.close();
+    try {
+      if (initJob != null) {
+        // Blocking is intentional: the bundle must not be unloaded while the initialization job is
+        // still touching the language server, so wait for it to observe the cancellation.
+        initJob.cancel();
+        initJob.join();
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw e;
+    } finally {
+      CopilotLanguageServerConnection connection = copilotLanguageServer;
+      if (connection != null) {
+        connection.stop();
+      }
     }
   }
 
   @SuppressWarnings("restriction")
   void init(BundleContext context) {
-    final Runnable initRunnable = () -> {
-      addPlatformLogListener();
-      LanguageServersRegistry.LanguageServerDefinition serverDef = LanguageServersRegistry.getInstance()
-          .getDefinition(CopilotLanguageServerConnection.SERVER_ID);
-      if (serverDef == null) {
-        var ex = new IllegalStateException(
-            "Language server definition not found for " + CopilotLanguageServerConnection.SERVER_ID);
-        CopilotCore.LOGGER.error(ex);
-        throw ex;
-      }
-
-      LanguageServerWrapper wrapper = LanguageServiceAccessor.startLanguageServer(serverDef);
-      this.copilotLanguageServer = new CopilotLanguageServerConnection(wrapper);
-      this.authStatusManager = new AuthStatusManager(this.copilotLanguageServer);
-      this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
-      this.githubPanicErrorReport = new GithubPanicErrorReport();
-      this.featureFlags = new FeatureFlags();
-    };
-
-    Job initJob = new Job("GitHub Copilot Initialization...") {
+    initJob = new Job("GitHub Copilot Initialization...") {
+      @Override
       protected IStatus run(IProgressMonitor monitor) {
-        initRunnable.run();
+        if (monitor.isCanceled() || stopping.get()) {
+          return Status.CANCEL_STATUS;
+        }
+
+        LanguageServersRegistry.LanguageServerDefinition serverDef = LanguageServersRegistry.getInstance()
+            .getDefinition(CopilotLanguageServerConnection.SERVER_ID);
+        if (serverDef == null) {
+          var ex = new IllegalStateException(
+              "Language server definition not found for " + CopilotLanguageServerConnection.SERVER_ID);
+          CopilotCore.LOGGER.error(ex);
+          throw ex;
+        }
+
+        LanguageServerWrapper wrapper = LanguageServiceAccessor.startLanguageServer(serverDef);
+        CopilotLanguageServerConnection connection = new CopilotLanguageServerConnection(wrapper);
+        copilotLanguageServer = connection;
+        if (monitor.isCanceled() || stopping.get()) {
+          connection.stop();
+          return Status.CANCEL_STATUS;
+        }
+
+        exceptionReporter.setSink(connection::sendExceptionTelemetry);
+        authStatusManager = new AuthStatusManager(connection);
+        completionProvider = new CompletionProvider(connection, authStatusManager);
+        featureFlags = new FeatureFlags();
+        if (monitor.isCanceled() || stopping.get()) {
+          connection.stop();
+          return Status.CANCEL_STATUS;
+        }
         return Status.OK_STATUS;
       }
 
@@ -109,33 +138,6 @@ public class CopilotCore extends Plugin {
     };
     initJob.setUser(false);
     initJob.schedule();
-  }
-
-  /**
-   * Add platform level log listener to catch the uncaught exceptions.
-   */
-  private void addPlatformLogListener() {
-    Platform.addLogListener((status, plugin) -> {
-      if (status.getSeverity() != IStatus.ERROR || plugin.equals(Constants.PLUGIN_ID)) {
-        // only send telemetry for those errors that are not from the plugin itself
-        return;
-      }
-      Throwable rawException = status.getException();
-      if (rawException == null) {
-        return;
-      }
-      Throwable currentException = rawException;
-      do {
-        StackTraceElement[] traces = currentException.getStackTrace();
-        for (StackTraceElement trace : traces) {
-          if (!trace.getClassName().startsWith(Constants.PLUGIN_ID)) {
-            continue;
-          }
-          reportException(rawException);
-          return;
-        }
-      } while ((currentException = currentException.getCause()) != null);
-    });
   }
 
   public CopilotLanguageServerConnection getCopilotLanguageServer() {
@@ -160,10 +162,6 @@ public class CopilotCore extends Plugin {
     return nextEditSuggestionProvider;
   }
 
-  public GithubPanicErrorReport getGithubPanicErrorReport() {
-    return githubPanicErrorReport;
-  }
-
   public FeatureFlags getFeatureFlags() {
     return featureFlags;
   }
@@ -179,18 +177,12 @@ public class CopilotCore extends Plugin {
   }
 
   /**
-   * Report the exception to the telemetry.
+   * Report an exception without blocking the caller.
    *
    * @param ex the exception to report
    */
   public void reportException(Throwable ex) {
-    if (this.copilotLanguageServer != null) {
-      this.copilotLanguageServer.sendExceptionTelemetry(ex);
-    } else {
-      if (this.githubPanicErrorReport != null) {
-        this.githubPanicErrorReport.report(ex);
-      }
-    }
+    exceptionReporter.report(ex);
   }
 
   /**
