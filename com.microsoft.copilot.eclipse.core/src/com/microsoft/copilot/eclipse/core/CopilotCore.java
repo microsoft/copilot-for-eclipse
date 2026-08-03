@@ -4,6 +4,9 @@
 package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -42,6 +45,23 @@ public class CopilotCore extends Plugin {
   private IChatServiceManager chatServiceManager;
   private FeatureFlags featureFlags;
 
+  /**
+   * Reports exceptions away from the thread that logged them. A platform log listener runs on
+   * whatever thread happened to log, so talking to the language server there would let an unrelated
+   * caller's locks meet the language server's own locks. See {@link #reportException(Throwable)}.
+   */
+  private final ExecutorService exceptionReporter = Executors.newSingleThreadExecutor(runnable -> {
+    Thread thread = new Thread(runnable, "GitHub Copilot exception reporter");
+    thread.setDaemon(true);
+    return thread;
+  });
+
+  /**
+   * Set as soon as the bundle starts stopping, so errors logged during shutdown do not ask a
+   * language server that is going away - or worse, start a fresh one that nothing will ever stop.
+   */
+  private volatile boolean stopping;
+
   private static CopilotCore COPILOT_CORE_PLUGIN = null;
   public static final CopilotForEclipseLogger LOGGER = new CopilotForEclipseLogger(CopilotCore.class.getName());
 
@@ -70,6 +90,8 @@ public class CopilotCore extends Plugin {
 
   @Override
   public void stop(BundleContext context) throws Exception {
+    stopping = true;
+    exceptionReporter.shutdownNow();
     if (copilotLanguageServer != null) {
       copilotLanguageServer.stop();
     }
@@ -181,15 +203,36 @@ public class CopilotCore extends Plugin {
   /**
    * Report the exception to the telemetry.
    *
+   * <p>This is driven by a platform log listener, so it can run on any thread that happens to log an
+   * error - including the language server's own start-up, which holds
+   * {@code LanguageServerWrapper}'s inner context lock. Reaching back into the language server here
+   * would take that class' locks in the opposite order to shutdown, and the two deadlock: start-up
+   * waits for the wrapper that shutdown holds, while shutdown waits for the context that start-up
+   * holds. Nothing then releases, the JVM never exits, and a Tycho test fork hangs until CI gives
+   * up hours later. Report on our own thread instead, so the logging thread is free to move on.</p>
+   *
    * @param ex the exception to report
    */
   public void reportException(Throwable ex) {
-    if (this.copilotLanguageServer != null) {
-      this.copilotLanguageServer.sendExceptionTelemetry(ex);
-    } else {
-      if (this.githubPanicErrorReport != null) {
-        this.githubPanicErrorReport.report(ex);
+    if (stopping) {
+      return;
+    }
+    CopilotLanguageServerConnection server = this.copilotLanguageServer;
+    if (server == null) {
+      GithubPanicErrorReport report = this.githubPanicErrorReport;
+      if (report != null) {
+        report.report(ex);
       }
+      return;
+    }
+    try {
+      exceptionReporter.execute(() -> {
+        if (!stopping) {
+          server.sendExceptionTelemetry(ex);
+        }
+      });
+    } catch (RejectedExecutionException e) {
+      // Shutting down; the exception is already in the platform log, which is all we can offer now.
     }
   }
 

@@ -249,8 +249,15 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Send the exception telemetry to the language server.
+   *
+   * <p>Reporting observes the language server, it never creates one: starting a server here would
+   * mean a failed start-up reports itself by starting up again, and an error logged during shutdown
+   * would resurrect a server that nothing is left to stop.</p>
    */
   public CompletableFuture<Object> sendExceptionTelemetry(Throwable ex) {
+    if (!this.languageServerWrapper.isActive()) {
+      return CompletableFuture.completedFuture(null);
+    }
     TelemetryExceptionParams telemParams = new TelemetryExceptionParams(ex);
     Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
         .sendExceptionTelemetry(telemParams);
