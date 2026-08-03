@@ -29,6 +29,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
@@ -77,7 +78,7 @@ class ByokServiceTests {
   @Test
   void testLoadProviderUrls_ignoresBlankUrlsAndKeepsFirstDuplicate() {
     String duplicateEndpoint = "http://localhost:11435";
-    when(lsConnection.listByokProviderConfigs(any(ByokProviderConfig.class)))
+    when(lsConnection.listByokProviderConfigs(any(ByokListProviderConfigParams.class)))
         .thenReturn(CompletableFuture.completedFuture(new ByokListProviderConfigResponse(List.of(
             new ByokProviderConfig(OLLAMA_PROVIDER, " "),
             new ByokProviderConfig(OLLAMA_PROVIDER, OLLAMA_ENDPOINT),
@@ -136,7 +137,7 @@ class ByokServiceTests {
     });
     when(lsConnection.listByokApiKeys(any(ByokApiKey.class)))
         .thenReturn(CompletableFuture.completedFuture(new ByokListApiKeyResponse(List.of())));
-    when(lsConnection.listByokProviderConfigs(any(ByokProviderConfig.class)))
+    when(lsConnection.listByokProviderConfigs(any(ByokListProviderConfigParams.class)))
         .thenReturn(CompletableFuture.completedFuture(new ByokListProviderConfigResponse(
             List.of(new ByokProviderConfig(OLLAMA_PROVIDER, OLLAMA_ENDPOINT)))));
   }

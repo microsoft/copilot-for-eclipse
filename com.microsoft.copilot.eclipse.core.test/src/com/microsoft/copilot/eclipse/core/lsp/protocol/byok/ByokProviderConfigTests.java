@@ -25,6 +25,25 @@ class ByokProviderConfigTests {
   }
 
   @Test
+  void testListProviderConfigParams_nullProviderSerializesEmptyObject() {
+    ByokListProviderConfigParams params = new ByokListProviderConfigParams(null);
+
+    JsonObject json = JsonParser.parseString(GSON.toJson(params)).getAsJsonObject();
+
+    assertEquals(0, json.size());
+  }
+
+  @Test
+  void testDeleteProviderConfigParams_serializesOnlyProviderName() {
+    ByokDeleteProviderConfigParams params = new ByokDeleteProviderConfigParams("Ollama");
+
+    JsonObject json = JsonParser.parseString(GSON.toJson(params)).getAsJsonObject();
+
+    assertEquals(1, json.size());
+    assertEquals("Ollama", json.get("providerName").getAsString());
+  }
+
+  @Test
   void testListProviderConfigResponse_deserializesClsResponse() {
     ByokListProviderConfigResponse response = GSON.fromJson(
         "{\"providers\":[{\"providerName\":\"Ollama\",\"url\":\"http://localhost:11434\"}]}",

@@ -25,8 +25,7 @@ import org.eclipse.swt.widgets.Text;
  */
 public class AddOllamaUrlDialog extends TrayDialog {
 
-  public static final String DEFAULT_ENDPOINT = "http://localhost:11434";
-
+  private static final String DEFAULT_ENDPOINT = "http://localhost:11434";
   private static final int CONTAINER_WIDTH = 400;
 
   private final String endpoint;

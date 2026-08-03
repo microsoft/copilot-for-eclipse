@@ -70,9 +70,11 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsSt
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
@@ -606,9 +608,9 @@ public class CopilotLanguageServerConnection {
   /**
    * Delete a built-in BYOK provider configuration.
    */
-  public CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokProviderConfig providerConfig) {
+  public CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokDeleteProviderConfigParams params) {
     Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
-      return ((CopilotLanguageServer) server).deleteByokProviderConfig(providerConfig);
+      return ((CopilotLanguageServer) server).deleteByokProviderConfig(params);
     };
     return this.languageServerWrapper.execute(fn);
   }
@@ -617,9 +619,9 @@ public class CopilotLanguageServerConnection {
    * List built-in BYOK provider configurations.
    */
   public CompletableFuture<ByokListProviderConfigResponse> listByokProviderConfigs(
-      ByokProviderConfig providerConfig) {
+      ByokListProviderConfigParams params) {
     Function<LanguageServer, CompletableFuture<ByokListProviderConfigResponse>> fn = server -> {
-      return ((CopilotLanguageServer) server).listByokProviderConfigs(providerConfig);
+      return ((CopilotLanguageServer) server).listByokProviderConfigs(params);
     };
     return this.languageServerWrapper.execute(fn);
   }
@@ -696,7 +698,6 @@ public class CopilotLanguageServerConnection {
         .searchPr(params);
     return this.languageServerWrapper.execute(fn);
   }
-
 
   /**
    * Notify that an inline edit was shown.

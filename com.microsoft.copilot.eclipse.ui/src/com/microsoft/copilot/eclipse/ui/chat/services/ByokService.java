@@ -28,7 +28,9 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
@@ -69,8 +71,8 @@ public class ByokService extends ChatBaseService {
       byokModelsByProviderObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       apiKeysObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       providerUrlsObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
-      byokEnabledObservable = new WritableValue<>(
-          CopilotCore.getPlugin().getFeatureFlags().isByokEnabled(), Boolean.class);
+      byokEnabledObservable = new WritableValue<>(CopilotCore.getPlugin().getFeatureFlags().isByokEnabled(),
+          Boolean.class);
     });
 
     // Subscribe to feature flag changes for BYOK
@@ -155,7 +157,7 @@ public class ByokService extends ChatBaseService {
    * Load provider-level endpoint URLs from persistent storage.
    */
   public CompletableFuture<Void> loadProviderUrls() {
-    return lsConnection.listByokProviderConfigs(new ByokProviderConfig(null, null)).thenAccept(response -> {
+    return lsConnection.listByokProviderConfigs(new ByokListProviderConfigParams(null)).thenAccept(response -> {
       Map<String, String> providerUrls = response == null || response.providers() == null ? Map.of()
           : response.providers().stream()
               .filter(config -> config != null && StringUtils.isNotBlank(config.providerName())
@@ -203,7 +205,7 @@ public class ByokService extends ChatBaseService {
       updateProviderUrl(providerName, endpointUrl);
       return lsConnection.listByokModels(new ByokListModelParams(providerName, true));
     }).thenCompose(response -> {
-      List<ByokModel> models = response == null ? null : response.getModels();
+      List<ByokModel> models = response.getModels();
       if (models == null || models.isEmpty()) {
         return refreshData();
       }
@@ -217,14 +219,15 @@ public class ByokService extends ChatBaseService {
    */
   public CompletableFuture<Void> deleteOllamaConfig() {
     String providerName = ByokModelProvider.OLLAMA.getDisplayName();
-    return lsConnection.deleteByokProviderConfig(new ByokProviderConfig(providerName, null)).thenCompose(response -> {
-      if (!response.isSuccess()) {
-        String message = response.getMessage() != null ? response.getMessage() : "Failed to delete Ollama endpoint";
-        return CompletableFuture.failedFuture(new IllegalStateException(message));
-      }
-      updateProviderUrl(providerName, null);
-      return refreshData();
-    });
+    return lsConnection.deleteByokProviderConfig(new ByokDeleteProviderConfigParams(providerName))
+        .thenCompose(response -> {
+          if (!response.isSuccess()) {
+            String message = response.getMessage() != null ? response.getMessage() : "Failed to delete Ollama endpoint";
+            return CompletableFuture.failedFuture(new IllegalStateException(message));
+          }
+          updateProviderUrl(providerName, null);
+          return refreshData();
+        });
   }
 
   private void updateProviderUrl(String providerName, String endpointUrl) {
@@ -368,8 +371,8 @@ public class ByokService extends ChatBaseService {
   }
 
   /**
-    * Reload all providers sequentially to avoid file write conflicts. Providers with API keys and Ollama with a
-    * configured URL will fetch remote models; Azure only uses its locally stored model configurations.
+   * Reload all providers sequentially to avoid file write conflicts. Providers with API keys and Ollama with a
+   * configured URL will fetch remote models; Azure only uses its locally stored model configurations.
    */
   public CompletableFuture<Void> reloadAllProviders() {
     return fetchAllProvidersSequentially().thenCompose(unused -> refreshData());
