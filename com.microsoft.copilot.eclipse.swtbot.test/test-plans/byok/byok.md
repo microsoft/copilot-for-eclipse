@@ -23,9 +23,9 @@ Entry points exercised:
   com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage`.
 
 Providers covered (`ByokModelProvider`): `Azure`, `OpenAI`, `Gemini`, `Groq`,
-`OpenRouter`, `Anthropic`. Azure is special-cased: it has no top-level API
-key, so the **Change API…** / **Delete API…** buttons stay disabled for it
-even when models are configured.
+`OpenRouter`, `Anthropic`, `Ollama`. Azure has per-model deployment credentials.
+Ollama has no API key and instead uses a provider-level endpoint URL, defaulting
+to `http://localhost:11434`.
 
 Not exercised in this plan (separate scenarios):
 - Actually issuing chat completions through a registered BYOK model — that's
@@ -52,6 +52,8 @@ Not exercised in this plan (separate scenarios):
   language server's secure store as part of the TC.
 - For Azure-specific TCs: a deployment URL and API key for an Azure OpenAI
   deployment (or skip the Azure cases).
+- For Ollama-specific TCs: Ollama 0.6.4 or newer is running and has at least
+   one installed model.
 - No previously opened Preferences dialog. The probe runner pre-suppresses
   Quick Start, What's New, Welcome, and "Terminal Support Unavailable"
   pop-ups — keep that contract when authoring follow-up plans.
@@ -86,8 +88,8 @@ Not exercised in this plan (separate scenarios):
 5. Verify the **Provider** group is visible with the description
    **Select a provider before adding models.**
 6. Verify the tree has two columns — **Custom Models** and **Status** —
-   and contains exactly the six providers `Azure`, `OpenAI`, `Gemini`,
-   `Groq`, `OpenRouter`, `Anthropic`.
+   and contains exactly the seven providers `Azure`, `OpenAI`, `Gemini`,
+   `Groq`, `OpenRouter`, `Anthropic`, `Ollama`.
 7. Verify the action buttons are present on the right side:
    **Add Model...**, **Remove Model**, **Enable** / **Disable**, **Reload**,
    **Change API...**, **Delete API...**. With no selection, **Add Model...**,
@@ -96,7 +98,7 @@ Not exercised in this plan (separate scenarios):
 
 #### Expected Result
 - The page opens without an error dialog.
-- All six providers render as collapsible tree nodes.
+- All seven providers render as collapsible tree nodes.
 - Button enablement matches the no-selection state described above.
 - `workspace.log` contains no `ERROR` entries from
   `com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage` or
@@ -105,7 +107,7 @@ Not exercised in this plan (separate scenarios):
 
 #### 📸 Key Screenshots
 - [ ] **Loading state** — overlay shown immediately after the page opens.
-- [ ] **Loaded state** — provider tree visible with the six providers and
+- [ ] **Loaded state** — provider tree visible with the seven providers and
   the action buttons on the right.
 
 #### Notes on failure modes
@@ -272,6 +274,33 @@ Not exercised in this plan (separate scenarios):
 #### 📸 Key Screenshots
 - [ ] **Azure selected** — Change/Delete API buttons greyed out.
 - [ ] **Add Azure Models dialog** with deployment-URL and API-key fields.
+
+---
+
+### TC-005A: Configure Ollama and expose discovered models in the selector
+
+**Type:** `Happy Path`
+**Priority:** `P0`
+
+#### Preconditions
+- TC-001 preconditions hold.
+- Ollama 0.6.4 or newer is running with at least one installed model.
+
+#### Steps
+1. Open the BYOK page, select **Ollama**, and click **Add Model...**.
+2. Verify the **Configure Ollama** dialog contains an **Endpoint URL** field
+   defaulted to `http://localhost:11434` and no API key field.
+3. Click **OK** and wait for the Ollama loading indicator to clear.
+4. Expand **Ollama** and verify the installed models appear as enabled.
+5. Open the chat view model selector and verify the enabled Ollama models are
+   listed under the Ollama provider.
+6. Return to Model Management, select **Ollama**, and verify the actions read
+   **Change URL...** and **Delete URL...**.
+
+#### Expected Result
+- The endpoint is persisted as provider-level configuration.
+- Discovered Ollama models are registered automatically and appear in the
+  model selector without requiring an API key or a separate enable action.
 
 ---
 
