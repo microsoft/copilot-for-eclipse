@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-import org.eclipse.swt.widgets.Display;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -155,9 +154,6 @@ class ByokServiceTests {
     long timeout = System.currentTimeMillis() + WAIT_TIMEOUT_MS;
     AssertionError lastError = null;
     while (System.currentTimeMillis() < timeout) {
-      Display.getDefault().syncExec(() -> {
-        // Allow queued UI Realm callbacks to run before checking the mock.
-      });
       try {
         verification.run();
         return;
