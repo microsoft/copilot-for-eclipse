@@ -69,6 +69,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
   private Map<String, String> byProviderApiKeys = new HashMap<>();
 
+  private Map<String, String> byProviderUrls = new HashMap<>();
+
   // used to determine whether remote models are fetched
   private Set<String> remotelyLoadedProviders = new HashSet<>();
 
@@ -502,18 +504,22 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     removeModelButton.setEnabled(selectedModel != null && selectedModel.isCustomModel());
     toggleStatusButton.setEnabled(selectedModel != null);
     reloadButton.setEnabled(true);
-    // Check if provider is not Azure and has API key
     boolean canManageApiKey = false;
+    boolean canManageEndpoint = false;
     String providerName = getSelectedProviderName();
     if (providerName != null) {
-      boolean isAzureProvider = ByokModelProvider.isAzure(providerName);
       boolean hasApiKeyForProvider = byProviderApiKeys.containsKey(providerName);
-      canManageApiKey = !isAzureProvider && hasApiKeyForProvider;
+      canManageApiKey = ByokModelProvider.requiresApiKey(providerName) && hasApiKeyForProvider;
+      canManageEndpoint = ByokModelProvider.isOllama(providerName) && byProviderUrls.containsKey(providerName);
     }
-    // Change API: enabled when provider is not Azure and has API key
-    changeApiButton.setEnabled(canManageApiKey);
-    // Delete API: enabled when provider is not Azure and has API key
-    deleteApiButton.setEnabled(canManageApiKey);
+
+    changeApiButton.setText(ByokModelProvider.isOllama(providerName)
+        ? Messages.preferences_page_byok_changeEndpoint_button : Messages.preferences_page_byok_changeApi_button);
+    deleteApiButton.setText(ByokModelProvider.isOllama(providerName)
+        ? Messages.preferences_page_byok_deleteEndpoint_button : Messages.preferences_page_byok_deleteApi_button);
+
+    changeApiButton.setEnabled(canManageApiKey || canManageEndpoint);
+    deleteApiButton.setEnabled(canManageApiKey || canManageEndpoint);
   }
 
   private void initializeTreeViewer() {
@@ -566,6 +572,19 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
       byProviderApiKeys.clear();
       if (apiKeys != null) {
         byProviderApiKeys.putAll(apiKeys);
+      }
+      refreshButtonsEnabled();
+    }
+  }
+
+  /**
+   * Called by service to update provider-level endpoint URLs.
+   */
+  public void updateProviderUrlsDisplay(Map<String, String> providerUrls) {
+    if (viewer != null && !viewer.getControl().isDisposed()) {
+      byProviderUrls.clear();
+      if (providerUrls != null) {
+        byProviderUrls.putAll(providerUrls);
       }
       refreshButtonsEnabled();
     }
@@ -695,8 +714,12 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
     if (providerName != null) {
       final String finalProviderName = providerName;
+      if (ByokModelProvider.isOllama(providerName)) {
+        openAddOllamaUrlDialog();
+        return;
+      }
       boolean hasApiKey = byProviderApiKeys.containsKey(providerName);
-      if (!hasApiKey && !ByokModelProvider.isAzure(providerName)) {
+      if (!hasApiKey && ByokModelProvider.requiresApiKey(providerName)) {
         AddApiKeyDialog apiKeyDialog = new AddApiKeyDialog(getShell(), providerName, apiKey -> {
           if (apiKey != null && StringUtils.isNotBlank(apiKey) && byokService != null) {
             executeAsyncProviderOperation(finalProviderName, byokService.addApiKey(finalProviderName, apiKey),
@@ -815,6 +838,10 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
   private void onChangeProviderApi() {
     String providerName = getSelectedProviderName();
+    if (ByokModelProvider.isOllama(providerName)) {
+      openAddOllamaUrlDialog();
+      return;
+    }
     String apiKey = byProviderApiKeys.get(providerName);
     if (!ByokModelProvider.isAzure(providerName)) {
       final String finalProviderName = providerName;
@@ -844,6 +871,14 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
     final String finalProviderName = providerName;
 
+    if (ByokModelProvider.isOllama(providerName)) {
+      if (showDeleteEndpointConfirmationDialog(providerName)) {
+        executeAsyncProviderOperation(finalProviderName, byokService.deleteOllamaConfig(),
+            "Failed to delete Ollama endpoint");
+      }
+      return;
+    }
+
     if (!ByokModelProvider.isAzure(providerName)) {
       if (showDeleteApiKeyConfirmationDialog(providerName)) {
         executeAsyncProviderOperation(finalProviderName, byokService.deleteApiKey(providerName),
@@ -863,20 +898,42 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     return dialog.open() == 0;
   }
 
+  private boolean showDeleteEndpointConfirmationDialog(String providerName) {
+    MessageDialog dialog = new MessageDialog(getShell(),
+        String.format(Messages.preferences_page_byok_deleteEndpoint_dialog_title, providerName), null,
+        Messages.preferences_page_byok_deleteEndpoint_dialog_description, MessageDialog.QUESTION,
+        new String[] { Messages.preferences_page_byok_dialog_delete, Messages.preferences_page_byok_dialog_cancel }, 0);
+    return dialog.open() == 0;
+  }
+
+  private void openAddOllamaUrlDialog() {
+    String providerName = ByokModelProvider.OLLAMA.getDisplayName();
+    AddOllamaUrlDialog dialog = new AddOllamaUrlDialog(getShell(), byProviderUrls.get(providerName), endpoint -> {
+      if (byokService != null) {
+        executeAsyncProviderOperation(providerName, byokService.configureOllama(endpoint),
+            "Failed to configure Ollama endpoint");
+      }
+    });
+    dialog.open();
+  }
+
   private void onProviderExpanded(String providerName) {
     // If provider is first expanded, need to fetch models for this provider from remote site
     if (!remotelyLoadedProviders.contains(providerName)) {
-      if (byProviderApiKeys == null || !byProviderApiKeys.containsKey(providerName)) {
-        // No API key for provider, skip loading
-        remotelyLoadedProviders.add(providerName);
+      boolean canFetch = ByokModelProvider.isOllama(providerName) ? byProviderUrls.containsKey(providerName)
+          : byProviderApiKeys.containsKey(providerName);
+      if (!canFetch) {
         return;
       }
       byokService.reloadProvider(providerName).whenComplete((result, throwable) -> {
-        if (throwable != null) {
-          handleError(throwable.getMessage());
-        }
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          if (throwable == null) {
+            remotelyLoadedProviders.add(providerName);
+          } else {
+            handleError(throwable.getMessage());
+          }
+        });
       });
-      remotelyLoadedProviders.add(providerName);
     }
   }
 

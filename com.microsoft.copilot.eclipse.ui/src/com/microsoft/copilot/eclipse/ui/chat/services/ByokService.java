@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
@@ -26,9 +28,12 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 
 /**
@@ -40,6 +45,7 @@ public class ByokService extends ChatBaseService {
   // Observable data for UI binding
   private IObservableValue<Map<String, List<ByokModel>>> byokModelsByProviderObservable;
   private IObservableValue<Map<String, String>> apiKeysObservable;
+  private IObservableValue<Map<String, String>> providerUrlsObservable;
   // Feature flag observable (byokEnabled)
   private IObservableValue<Boolean> byokEnabledObservable;
 
@@ -50,6 +56,7 @@ public class ByokService extends ChatBaseService {
   // UI binding
   private ISideEffect modelsSideEffect;
   private ISideEffect apiKeysSideEffect;
+  private ISideEffect providerUrlsSideEffect;
   private ISideEffect byokFlagSideEffect;
 
   /**
@@ -63,8 +70,9 @@ public class ByokService extends ChatBaseService {
     ensureRealm(() -> {
       byokModelsByProviderObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       apiKeysObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
-      byokEnabledObservable = new WritableValue<>(
-          CopilotCore.getPlugin().getFeatureFlags().isByokEnabled(), Boolean.class);
+      providerUrlsObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
+      byokEnabledObservable = new WritableValue<>(CopilotCore.getPlugin().getFeatureFlags().isByokEnabled(),
+          Boolean.class);
     });
 
     // Subscribe to feature flag changes for BYOK
@@ -96,6 +104,9 @@ public class ByokService extends ChatBaseService {
         return apiKeysObservable.getValue();
       }, page::updateApiKeysDisplay);
 
+      providerUrlsSideEffect = ISideEffect.create(() -> providerUrlsObservable.getValue(),
+          page::updateProviderUrlsDisplay);
+
       // Create side effect for byok flag updates
       byokFlagSideEffect = ISideEffect.create(() -> byokEnabledObservable.getValue(),
           flagValue -> page.updatePageState());
@@ -114,6 +125,11 @@ public class ByokService extends ChatBaseService {
     if (apiKeysSideEffect != null) {
       apiKeysSideEffect.dispose();
       apiKeysSideEffect = null;
+    }
+
+    if (providerUrlsSideEffect != null) {
+      providerUrlsSideEffect.dispose();
+      providerUrlsSideEffect = null;
     }
 
     if (byokFlagSideEffect != null) {
@@ -138,6 +154,21 @@ public class ByokService extends ChatBaseService {
   }
 
   /**
+   * Load provider-level endpoint URLs from persistent storage.
+   */
+  public CompletableFuture<Void> loadProviderUrls() {
+    return lsConnection.listByokProviderConfigs(new ByokListProviderConfigParams(null)).thenAccept(response -> {
+      Map<String, String> providerUrls = response == null || response.providers() == null ? Map.of()
+          : response.providers().stream()
+              .filter(config -> config != null && StringUtils.isNotBlank(config.providerName())
+                  && StringUtils.isNotBlank(config.url()))
+              .collect(Collectors.toMap(ByokProviderConfig::providerName, ByokProviderConfig::url,
+                  (firstUrl, duplicateUrl) -> firstUrl));
+      ensureRealm(() -> providerUrlsObservable.setValue(providerUrls));
+    });
+  }
+
+  /**
    * Load BYOK models from persistent storage.
    */
   public CompletableFuture<Void> loadLocalModels() {
@@ -157,7 +188,58 @@ public class ByokService extends ChatBaseService {
    * Refresh BYOK data (including API keys and models).
    */
   public CompletableFuture<Void> refreshData() {
-    return loadApiKeys().thenCompose(unused -> loadLocalModels());
+    return loadApiKeys().thenCompose(unused -> loadProviderUrls()).thenCompose(unused -> loadLocalModels());
+  }
+
+  /**
+   * Save an Ollama endpoint, discover its models, and register them for model selection.
+   */
+  public CompletableFuture<Void> configureOllama(String endpointUrl) {
+    String providerName = ByokModelProvider.OLLAMA.getDisplayName();
+    ByokProviderConfig config = new ByokProviderConfig(providerName, endpointUrl);
+    return lsConnection.saveByokProviderConfig(config).thenCompose(response -> {
+      if (!response.isSuccess()) {
+        String message = response.getMessage() != null ? response.getMessage() : "Failed to save Ollama endpoint";
+        return CompletableFuture.failedFuture(new IllegalStateException(message));
+      }
+      updateProviderUrl(providerName, endpointUrl);
+      return lsConnection.listByokModels(new ByokListModelParams(providerName, true));
+    }).thenCompose(response -> {
+      List<ByokModel> models = response.getModels();
+      if (models == null || models.isEmpty()) {
+        return refreshData();
+      }
+      models.forEach(model -> model.setRegistered(true));
+      return batchSaveByokModels(models).thenCompose(unused -> refreshData());
+    });
+  }
+
+  /**
+   * Delete the Ollama URL configuration and all of its stored models.
+   */
+  public CompletableFuture<Void> deleteOllamaConfig() {
+    String providerName = ByokModelProvider.OLLAMA.getDisplayName();
+    return lsConnection.deleteByokProviderConfig(new ByokDeleteProviderConfigParams(providerName))
+        .thenCompose(response -> {
+          if (!response.isSuccess()) {
+            String message = response.getMessage() != null ? response.getMessage() : "Failed to delete Ollama endpoint";
+            return CompletableFuture.failedFuture(new IllegalStateException(message));
+          }
+          updateProviderUrl(providerName, null);
+          return refreshData();
+        });
+  }
+
+  private void updateProviderUrl(String providerName, String endpointUrl) {
+    ensureRealm(() -> {
+      Map<String, String> providerUrls = new HashMap<>(providerUrlsObservable.getValue());
+      if (endpointUrl == null) {
+        providerUrls.remove(providerName);
+      } else {
+        providerUrls.put(providerName, endpointUrl);
+      }
+      providerUrlsObservable.setValue(providerUrls);
+    });
   }
 
   /**
@@ -261,6 +343,18 @@ public class ByokService extends ChatBaseService {
       return loadLocalModels();
     }
 
+    if (ByokModelProvider.isOllama(providerName)) {
+      AtomicBoolean hasEndpoint = new AtomicBoolean(false);
+      ensureRealm(() -> {
+        Map<String, String> currentProviderUrls = providerUrlsObservable.getValue();
+        hasEndpoint.set(currentProviderUrls != null && currentProviderUrls.containsKey(providerName));
+      });
+      if (!hasEndpoint.get()) {
+        return CompletableFuture.completedFuture(null);
+      }
+      return fetchProviderModels(providerName).thenCompose(changed -> loadLocalModels());
+    }
+
     final AtomicBoolean hasApiKey = new AtomicBoolean(false);
     ensureRealm(() -> {
       Map<String, String> currentKeys = apiKeysObservable != null ? apiKeysObservable.getValue() : null;
@@ -277,12 +371,11 @@ public class ByokService extends ChatBaseService {
   }
 
   /**
-   * Reload all providers sequentially to avoid file write conflicts. Only providers with API keys (excluding Azure)
-   * will fetch remote models.
+   * Reload all providers sequentially to avoid file write conflicts. Providers with API keys and Ollama with a
+   * configured URL will fetch remote models; Azure only uses its locally stored model configurations.
    */
   public CompletableFuture<Void> reloadAllProviders() {
-    return fetchAllProvidersSequentially()
-        .thenCompose(changed -> changed ? refreshData() : CompletableFuture.completedFuture(null));
+    return fetchAllProvidersSequentially().thenCompose(unused -> refreshData());
   }
 
   /**
@@ -331,7 +424,7 @@ public class ByokService extends ChatBaseService {
     List<ByokModel> toAdd = new ArrayList<>();
     for (ByokModel remoteModel : remoteModels) {
       if (!localIds.contains(remoteModel.getModelId())) {
-        remoteModel.setRegistered(false); // newly discovered, keep as unregistered
+        remoteModel.setRegistered(ByokModelProvider.isOllama(providerName));
         toAdd.add(remoteModel);
       }
     }
@@ -364,11 +457,12 @@ public class ByokService extends ChatBaseService {
     AtomicReference<List<String>> providersRef = new AtomicReference<>(List.of());
     ensureRealm(() -> {
       Map<String, String> currentApiKeys = apiKeysObservable.getValue();
-      if (currentApiKeys == null || currentApiKeys.isEmpty()) {
-        providersRef.set(List.of());
-        return;
+      Set<String> providers = currentApiKeys == null ? new HashSet<>() : new HashSet<>(currentApiKeys.keySet());
+      Map<String, String> currentProviderUrls = providerUrlsObservable.getValue();
+      if (currentProviderUrls != null) {
+        providers.addAll(currentProviderUrls.keySet());
       }
-      List<String> providersToFetch = currentApiKeys.keySet().stream()
+      List<String> providersToFetch = providers.stream()
           .filter(providerName -> !ByokModelProvider.isAzure(providerName)).toList();
       providersRef.set(providersToFetch);
     });

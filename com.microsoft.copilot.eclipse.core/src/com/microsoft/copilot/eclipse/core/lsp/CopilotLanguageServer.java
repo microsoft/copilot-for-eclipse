@@ -52,10 +52,14 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsSt
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
@@ -275,6 +279,24 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("copilot/byok/listApiKeys")
   CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey);
+
+  /**
+   * Save a built-in BYOK provider configuration.
+   */
+  @JsonRequest("copilot/byok/saveProviderConfig")
+  CompletableFuture<ByokStatusResponse> saveByokProviderConfig(ByokProviderConfig providerConfig);
+
+  /**
+   * Delete a built-in BYOK provider configuration.
+   */
+  @JsonRequest("copilot/byok/deleteProviderConfig")
+  CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokDeleteProviderConfigParams params);
+
+  /**
+   * List built-in BYOK provider configurations.
+   */
+  @JsonRequest("copilot/byok/listProviderConfigs")
+  CompletableFuture<ByokListProviderConfigResponse> listByokProviderConfigs(ByokListProviderConfigParams params);
 
   /**
    * Update the status of the mcp server and tools.
