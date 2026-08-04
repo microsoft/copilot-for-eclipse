@@ -157,10 +157,17 @@ class ByokServiceTests {
     return CompletableFuture.completedFuture(response);
   }
 
-  // Flushes the UI Realm so the pending ISideEffect callback runs, then returns the last pushed value.
+  // Drains pending UI Realm callbacks so the ISideEffect has pushed the latest value, then returns it.
   @SuppressWarnings("unchecked")
   private Map<String, String> awaitProviderUrlsDisplay() {
-    Display.getDefault().syncExec(() -> { });
+    Display display = Display.getDefault();
+    if (display.getThread() == Thread.currentThread()) {
+      while (display.readAndDispatch()) {
+        // drain queued asyncExec callbacks while on the UI thread
+      }
+    } else {
+      display.syncExec(() -> { });
+    }
     ArgumentCaptor<Map<String, String>> providerUrls = ArgumentCaptor.forClass(Map.class);
     verify(preferencePage, atLeastOnce()).updateProviderUrlsDisplay(providerUrls.capture());
     return providerUrls.getValue();
