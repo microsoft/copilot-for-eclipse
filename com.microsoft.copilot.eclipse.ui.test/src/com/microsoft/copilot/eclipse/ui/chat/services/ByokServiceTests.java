@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +41,7 @@ import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 @ExtendWith(MockitoExtension.class)
 class ByokServiceTests {
 
+  private static final long WAIT_TIMEOUT_MS = 5000;
   private static final String OLLAMA_ENDPOINT = "http://localhost:11434";
   private static final String OLLAMA_PROVIDER = ByokModelProvider.OLLAMA.getDisplayName();
 
@@ -71,7 +73,7 @@ class ByokServiceTests {
 
     assertThrows(CompletionException.class, () -> byokService.configureOllama(OLLAMA_ENDPOINT).join());
 
-    verify(preferencePage).updateProviderUrlsDisplay(argThat(
+    verify(preferencePage, timeout(WAIT_TIMEOUT_MS)).updateProviderUrlsDisplay(argThat(
         providerUrls -> OLLAMA_ENDPOINT.equals(providerUrls.get(OLLAMA_PROVIDER))));
   }
 
@@ -86,7 +88,8 @@ class ByokServiceTests {
 
     byokService.loadProviderUrls().join();
 
-    verify(preferencePage).updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT));
+    verify(preferencePage, timeout(WAIT_TIMEOUT_MS))
+        .updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT));
   }
 
   @Test
@@ -126,7 +129,7 @@ class ByokServiceTests {
 
     byokService.deleteOllamaConfig().join();
 
-    verify(preferencePage).updateProviderUrlsDisplay(argThat(Map::isEmpty));
+    verify(preferencePage, timeout(WAIT_TIMEOUT_MS)).updateProviderUrlsDisplay(argThat(Map::isEmpty));
   }
 
   private void configureRefreshResponses(List<ByokModel> discoveredModels) {
@@ -147,4 +150,5 @@ class ByokServiceTests {
     response.setSuccess(true);
     return CompletableFuture.completedFuture(response);
   }
+
 }
