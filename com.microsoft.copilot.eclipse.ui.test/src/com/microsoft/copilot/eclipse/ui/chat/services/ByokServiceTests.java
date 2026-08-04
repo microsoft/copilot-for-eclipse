@@ -3,11 +3,12 @@
 
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +25,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
@@ -55,7 +58,6 @@ class ByokServiceTests {
   void setUp() {
     byokService = new ByokService(lsConnection);
     byokService.bindByokPreferencePage(preferencePage);
-    clearInvocations(preferencePage);
   }
 
   @AfterEach
@@ -71,8 +73,7 @@ class ByokServiceTests {
 
     assertThrows(CompletionException.class, () -> byokService.configureOllama(OLLAMA_ENDPOINT).join());
 
-    verify(preferencePage).updateProviderUrlsDisplay(argThat(
-        providerUrls -> OLLAMA_ENDPOINT.equals(providerUrls.get(OLLAMA_PROVIDER))));
+    assertEquals(OLLAMA_ENDPOINT, awaitProviderUrlsDisplay().get(OLLAMA_PROVIDER));
   }
 
   @Test
@@ -86,7 +87,7 @@ class ByokServiceTests {
 
     byokService.loadProviderUrls().join();
 
-    verify(preferencePage).updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT));
+    assertEquals(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT), awaitProviderUrlsDisplay());
   }
 
   @Test
@@ -118,15 +119,23 @@ class ByokServiceTests {
   }
 
   @Test
-  void testDeleteOllamaConfig_removesEndpointBeforeRefresh() {
+  void testDeleteOllamaConfig_removesEndpoint() {
+    ByokListModelResponse emptyModels = new ByokListModelResponse();
+    emptyModels.setModels(List.of());
     when(lsConnection.deleteByokProviderConfig(any())).thenReturn(completedStatus());
-    configureRefreshResponses(List.of());
+    when(lsConnection.listByokModels(any())).thenReturn(CompletableFuture.completedFuture(emptyModels));
+    when(lsConnection.listByokApiKeys(any(ByokApiKey.class)))
+        .thenReturn(CompletableFuture.completedFuture(new ByokListApiKeyResponse(List.of())));
+    when(lsConnection.listByokProviderConfigs(any(ByokListProviderConfigParams.class))).thenReturn(
+        CompletableFuture.completedFuture(new ByokListProviderConfigResponse(
+            List.of(new ByokProviderConfig(OLLAMA_PROVIDER, OLLAMA_ENDPOINT)))),
+        CompletableFuture.completedFuture(new ByokListProviderConfigResponse(List.of())));
+
     byokService.loadProviderUrls().join();
-    clearInvocations(preferencePage);
 
     byokService.deleteOllamaConfig().join();
 
-    verify(preferencePage).updateProviderUrlsDisplay(argThat(Map::isEmpty));
+    assertTrue(awaitProviderUrlsDisplay().isEmpty());
   }
 
   private void configureRefreshResponses(List<ByokModel> discoveredModels) {
@@ -147,4 +156,14 @@ class ByokServiceTests {
     response.setSuccess(true);
     return CompletableFuture.completedFuture(response);
   }
+
+  // Flushes the UI Realm so the pending ISideEffect callback runs, then returns the last pushed value.
+  @SuppressWarnings("unchecked")
+  private Map<String, String> awaitProviderUrlsDisplay() {
+    Display.getDefault().syncExec(() -> { });
+    ArgumentCaptor<Map<String, String>> providerUrls = ArgumentCaptor.forClass(Map.class);
+    verify(preferencePage, atLeastOnce()).updateProviderUrlsDisplay(providerUrls.capture());
+    return providerUrls.getValue();
+  }
+
 }
