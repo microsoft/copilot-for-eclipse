@@ -47,6 +47,16 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   public static final String EDITOR_NAME = "Eclipse";
   public static final String EDITOR_PLUGIN_NAME = "copilot-eclipse";
 
+  /**
+   * How long a process gets to exit on its own after being asked politely, before it is killed.
+   */
+  private static final long PROCESS_TERMINATION_GRACE_MS = 2000L;
+
+  /**
+   * How long the login shell gets to report its environment before the probe gives up.
+   */
+  private static final long LOGIN_SHELL_TIMEOUT_SECONDS = 5L;
+
   @Override
   public Object getInitializationOptions(@Nullable URI rootUri) {
     NameAndVersion editorInfo = new NameAndVersion(EDITOR_NAME, PlatformUtils.getEclipseVersionString());
@@ -105,6 +115,27 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     this.setCommands(getJavaScriptCommands());
     super.start();
     CopilotCore.LOGGER.info("JS agent started successfully.");
+  }
+
+  /**
+   * Terminates a process and its descendants, first politely and then forcibly.
+   *
+   * @param process the process to terminate, may be {@code null}
+   */
+  private static void terminateProcess(@Nullable Process process) {
+    if (process == null || !process.isAlive()) {
+      return;
+    }
+    process.destroy();
+    try {
+      if (process.waitFor(PROCESS_TERMINATION_GRACE_MS, TimeUnit.MILLISECONDS)) {
+        return;
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    process.descendants().forEach(ProcessHandle::destroyForcibly);
+    process.destroyForcibly();
   }
 
   private List<String> getBinaryLspCommands() throws IOException {
@@ -332,6 +363,9 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     try {
       // Execute login shell and get environment variables
       ProcessBuilder pb = new ProcessBuilder("/bin/zsh", "-i", "-l", "-c", "env");
+      // Nobody drains the shell's stderr, so a chatty shell profile would otherwise fill the pipe
+      // buffer and wedge the shell before it ever prints the environment.
+      pb.redirectError(ProcessBuilder.Redirect.DISCARD);
       process = pb.start();
 
       env = getEnvironmentVariables(process);
@@ -350,44 +384,53 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     } catch (IOException e) {
       CopilotCore.LOGGER.error("IOException while getting login shell environment variables", e);
     } finally {
-      if (process != null && process.isAlive()) {
-        process.destroy();
-      }
+      terminateProcess(process);
     }
 
     return env;
   }
 
-  private Map<String, String> getEnvironmentVariables(Process process) throws InterruptedException {
-    // Create a separate thread to read the process output with a timeout, this avoids blocking the original thread
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Future<Map<String, String>> future = executor.submit(() -> {
-      Map<String, String> result = new HashMap<>();
-      try (BufferedReader reader = new BufferedReader(
-          new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          int separator = line.indexOf('=');
-          if (separator > 0) {
-            String key = line.substring(0, separator);
-            String value = line.substring(separator + 1);
-            result.put(key, value);
-          }
-        }
-      }
-      return result;
+  private Map<String, String> getEnvironmentVariables(Process process) {
+    // Reads on a process pipe are not interruptible, so neither cancel(true) nor shutdownNow() can
+    // stop the reader once the shell stops producing output. The thread must therefore be a daemon,
+    // otherwise a wedged shell keeps the whole JVM alive.
+    ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+      Thread thread = new Thread(runnable, "GitHub Copilot login shell environment reader");
+      thread.setDaemon(true);
+      return thread;
     });
+    Future<Map<String, String>> future = executor.submit(() -> readEnvironmentVariables(process));
 
     try {
-      return future.get(5, TimeUnit.SECONDS);
+      return future.get(LOGIN_SHELL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     } catch (TimeoutException e) {
       CopilotCore.LOGGER.error("Timed out waiting for login shell environment variables", e);
       future.cancel(true);
     } catch (ExecutionException e) {
       CopilotCore.LOGGER.error("Error reading login shell environment variables", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      CopilotCore.LOGGER.error("Interrupted while reading login shell environment variables", e);
     } finally {
       executor.shutdownNow();
     }
     return new HashMap<>();
+  }
+
+  private Map<String, String> readEnvironmentVariables(Process process) throws IOException {
+    Map<String, String> result = new HashMap<>();
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        int separator = line.indexOf('=');
+        if (separator > 0) {
+          String key = line.substring(0, separator);
+          String value = line.substring(separator + 1);
+          result.put(key, value);
+        }
+      }
+    }
+    return result;
   }
 }
