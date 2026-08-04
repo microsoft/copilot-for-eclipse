@@ -21,8 +21,6 @@
 		     starts a language server that then outlives the fork. Skip the whole execution instead,
 		     and let the swtbot-probe profile below switch it back on when a script is supplied. -->
 		<swtbot.skipTests>true</swtbot.skipTests>
-		<!-- Keeps argLine from expanding to the literal "${probe.script}" when none is given. -->
-		<probe.script></probe.script>
 	</properties>
 
 	<profiles>

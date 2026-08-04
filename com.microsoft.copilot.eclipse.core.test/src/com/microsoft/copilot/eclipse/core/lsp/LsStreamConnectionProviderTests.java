@@ -86,15 +86,22 @@ class LsStreamConnectionProviderTests {
       return;
     }
     process.destroy();
-    try {
-      if (process.waitFor(TERMINATION_GRACE_MS, TimeUnit.MILLISECONDS)) {
-        return;
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+    if (awaitExit(process)) {
+      return;
     }
     process.descendants().forEach(ProcessHandle::destroyForcibly);
     process.destroyForcibly();
+    // destroyForcibly() only delivers the signal; without waiting, isAlive() can still be true.
+    awaitExit(process);
+  }
+
+  private static boolean awaitExit(Process process) {
+    try {
+      return process.waitFor(TERMINATION_GRACE_MS, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return false;
+    }
   }
 
   /**
