@@ -21,6 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.eclipse.swt.widgets.Display;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -71,8 +72,8 @@ class ByokServiceTests {
 
     assertThrows(CompletionException.class, () -> byokService.configureOllama(OLLAMA_ENDPOINT).join());
 
-    verify(preferencePage).updateProviderUrlsDisplay(argThat(
-        providerUrls -> OLLAMA_ENDPOINT.equals(providerUrls.get(OLLAMA_PROVIDER))));
+    waitUntil(() -> verify(preferencePage).updateProviderUrlsDisplay(argThat(
+      providerUrls -> OLLAMA_ENDPOINT.equals(providerUrls.get(OLLAMA_PROVIDER)))));
   }
 
   @Test
@@ -86,7 +87,7 @@ class ByokServiceTests {
 
     byokService.loadProviderUrls().join();
 
-    verify(preferencePage).updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT));
+    waitUntil(() -> verify(preferencePage).updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT)));
   }
 
   @Test
@@ -126,7 +127,7 @@ class ByokServiceTests {
 
     byokService.deleteOllamaConfig().join();
 
-    verify(preferencePage).updateProviderUrlsDisplay(argThat(Map::isEmpty));
+    waitUntil(() -> verify(preferencePage).updateProviderUrlsDisplay(argThat(Map::isEmpty)));
   }
 
   private void configureRefreshResponses(List<ByokModel> discoveredModels) {
@@ -147,4 +148,22 @@ class ByokServiceTests {
     response.setSuccess(true);
     return CompletableFuture.completedFuture(response);
   }
+
+  private static void waitUntil(Runnable verification) {
+    long timeout = System.currentTimeMillis() + 5000;
+    AssertionError lastError = null;
+    while (System.currentTimeMillis() < timeout) {
+      Display.getDefault().syncExec(() -> {
+        // Allow queued UI Realm callbacks to run before checking the mock.
+      });
+      try {
+        verification.run();
+        return;
+      } catch (AssertionError e) {
+        lastError = e;
+      }
+    }
+    throw lastError;
+  }
+
 }
