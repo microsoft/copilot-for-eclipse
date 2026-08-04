@@ -17,11 +17,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import org.eclipse.swt.widgets.Display;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.eclipse.swt.widgets.Display;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,6 +41,8 @@ import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 @ExtendWith(MockitoExtension.class)
 class ByokServiceTests {
 
+  private static final long WAIT_TIMEOUT_MS = 5000;
+  private static final long WAIT_INTERVAL_MS = 25;
   private static final String OLLAMA_ENDPOINT = "http://localhost:11434";
   private static final String OLLAMA_PROVIDER = ByokModelProvider.OLLAMA.getDisplayName();
 
@@ -150,7 +152,7 @@ class ByokServiceTests {
   }
 
   private static void waitUntil(Runnable verification) {
-    long timeout = System.currentTimeMillis() + 5000;
+    long timeout = System.currentTimeMillis() + WAIT_TIMEOUT_MS;
     AssertionError lastError = null;
     while (System.currentTimeMillis() < timeout) {
       Display.getDefault().syncExec(() -> {
@@ -162,8 +164,14 @@ class ByokServiceTests {
       } catch (AssertionError e) {
         lastError = e;
       }
+      try {
+        Thread.sleep(WAIT_INTERVAL_MS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new AssertionError("Interrupted while waiting for UI Realm callback", e);
+      }
     }
-    throw lastError;
+    throw new AssertionError("Timed out waiting for UI Realm callback", lastError);
   }
 
 }
