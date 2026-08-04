@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,6 @@ import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 class ByokServiceTests {
 
   private static final long WAIT_TIMEOUT_MS = 5000;
-  private static final long WAIT_INTERVAL_MS = 25;
   private static final String OLLAMA_ENDPOINT = "http://localhost:11434";
   private static final String OLLAMA_PROVIDER = ByokModelProvider.OLLAMA.getDisplayName();
 
@@ -73,8 +73,8 @@ class ByokServiceTests {
 
     assertThrows(CompletionException.class, () -> byokService.configureOllama(OLLAMA_ENDPOINT).join());
 
-    waitUntil(() -> verify(preferencePage).updateProviderUrlsDisplay(argThat(
-      providerUrls -> OLLAMA_ENDPOINT.equals(providerUrls.get(OLLAMA_PROVIDER)))));
+    verify(preferencePage, timeout(WAIT_TIMEOUT_MS)).updateProviderUrlsDisplay(argThat(
+        providerUrls -> OLLAMA_ENDPOINT.equals(providerUrls.get(OLLAMA_PROVIDER))));
   }
 
   @Test
@@ -88,7 +88,8 @@ class ByokServiceTests {
 
     byokService.loadProviderUrls().join();
 
-    waitUntil(() -> verify(preferencePage).updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT)));
+    verify(preferencePage, timeout(WAIT_TIMEOUT_MS))
+        .updateProviderUrlsDisplay(Map.of(OLLAMA_PROVIDER, OLLAMA_ENDPOINT));
   }
 
   @Test
@@ -128,7 +129,7 @@ class ByokServiceTests {
 
     byokService.deleteOllamaConfig().join();
 
-    waitUntil(() -> verify(preferencePage).updateProviderUrlsDisplay(argThat(Map::isEmpty)));
+    verify(preferencePage, timeout(WAIT_TIMEOUT_MS)).updateProviderUrlsDisplay(argThat(Map::isEmpty));
   }
 
   private void configureRefreshResponses(List<ByokModel> discoveredModels) {
@@ -148,26 +149,6 @@ class ByokServiceTests {
     ByokStatusResponse response = new ByokStatusResponse();
     response.setSuccess(true);
     return CompletableFuture.completedFuture(response);
-  }
-
-  private static void waitUntil(Runnable verification) {
-    long timeout = System.currentTimeMillis() + WAIT_TIMEOUT_MS;
-    AssertionError lastError = null;
-    while (System.currentTimeMillis() < timeout) {
-      try {
-        verification.run();
-        return;
-      } catch (AssertionError e) {
-        lastError = e;
-      }
-      try {
-        Thread.sleep(WAIT_INTERVAL_MS);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new AssertionError("Interrupted while waiting for UI Realm callback", e);
-      }
-    }
-    throw new AssertionError("Timed out waiting for UI Realm callback", lastError);
   }
 
 }
