@@ -5,7 +5,9 @@ Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui.jobs.test;singleton:=true
 Bundle-Version: 0.20.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-RequiredExecutionEnvironment: JavaSE-17
-Fragment-Host: com.microsoft.copilot.eclipse.ui.jobs
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.jobs.test
 Require-Bundle: junit-jupiter-api;bundle-version="5.10.1",
- junit-jupiter-params;bundle-version="5.10.1"
+ junit-jupiter-params;bundle-version="5.10.1",
+ org.eclipse.core.runtime;bundle-version="[3.30.0,4.0.0)",
+ com.microsoft.copilot.eclipse.ui.jobs;bundle-version="0.20.0"
+Import-Package: org.osgi.framework;version="[1.10.0,2.0.0)"
