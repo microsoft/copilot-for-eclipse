@@ -332,6 +332,9 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
     try {
       // Execute login shell and get environment variables
       ProcessBuilder pb = new ProcessBuilder("/bin/zsh", "-i", "-l", "-c", "env");
+      // Nobody drains the shell's stderr, so a chatty shell profile would otherwise fill the pipe
+      // buffer and wedge the shell before it ever prints the environment.
+      pb.redirectError(ProcessBuilder.Redirect.DISCARD);
       process = pb.start();
 
       env = getEnvironmentVariables(process);
@@ -359,8 +362,14 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   private Map<String, String> getEnvironmentVariables(Process process) throws InterruptedException {
-    // Create a separate thread to read the process output with a timeout, this avoids blocking the original thread
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Reads on a process pipe are not interruptible, so neither cancel(true) nor shutdownNow() can
+    // stop the reader once the shell stops producing output. The thread must therefore be a daemon,
+    // otherwise a wedged shell keeps the whole JVM alive.
+    ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+      Thread thread = new Thread(runnable, "GitHub Copilot login shell environment reader");
+      thread.setDaemon(true);
+      return thread;
+    });
     Future<Map<String, String>> future = executor.submit(() -> {
       Map<String, String> result = new HashMap<>();
       try (BufferedReader reader = new BufferedReader(
