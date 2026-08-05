@@ -6,6 +6,8 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
@@ -95,7 +97,10 @@ public class CopilotLanguageServerConnection {
 
   public static final String SERVER_ID = "com.microsoft.copilot.eclipse.ls";
 
-  private LanguageServerWrapper languageServerWrapper;
+  private final LanguageServerWrapper languageServerWrapper;
+  private final AtomicBoolean stopped = new AtomicBoolean();
+  private final AtomicReference<Function<TelemetryExceptionParams, CompletableFuture<Object>>> exceptionSink =
+      new AtomicReference<>();
 
   /**
    * Constructor for the CopilotLanguageServer.
@@ -104,6 +109,22 @@ public class CopilotLanguageServerConnection {
    */
   public CopilotLanguageServerConnection(LanguageServerWrapper languageServerWrapper) {
     this.languageServerWrapper = languageServerWrapper;
+    initializeExceptionSink();
+  }
+
+  private void initializeExceptionSink() {
+    Function<LanguageServer, CompletableFuture<Void>> fn = server -> {
+      if (!stopped.get()) {
+        exceptionSink.set(((CopilotLanguageServer) server)::sendExceptionTelemetry);
+        // stop() may have run between the check above and the set, in which case it already cleared
+        // the sink; re-check so a late registration cannot resurrect it.
+        if (stopped.get()) {
+          exceptionSink.set(null);
+        }
+      }
+      return CompletableFuture.completedFuture(null);
+    };
+    this.languageServerWrapper.execute(fn).exceptionally(exception -> null);
   }
 
   /**
@@ -252,16 +273,35 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Send the exception telemetry to the language server.
+   * Send the exception telemetry to the language server. Reporting is best-effort: the report is silently dropped
+   * when no running server connection is available, and a failed send never propagates to the caller.
    */
   public CompletableFuture<Object> sendExceptionTelemetry(Throwable ex) {
-    TelemetryExceptionParams telemParams = new TelemetryExceptionParams(ex);
-    Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
-        .sendExceptionTelemetry(telemParams);
-    return this.languageServerWrapper.execute(fn).exceptionally(exception -> {
-      // Ignore exceptions to avoid infinite loop.
-      return null;
-    });
+    Function<TelemetryExceptionParams, CompletableFuture<Object>> sink = exceptionSink.get();
+    if (sink == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    try {
+      return sink.apply(new TelemetryExceptionParams(ex)).exceptionally(exception -> {
+        discardSinkIfServerStopped(sink);
+        return null;
+      });
+    } catch (RuntimeException exception) {
+      discardSinkIfServerStopped(sink);
+      return CompletableFuture.completedFuture(null);
+    }
+  }
+
+  /**
+   * Drops the cached sink only when the server is no longer running. A single failed send is not enough to infer
+   * that the connection is gone, and clearing the sink eagerly would silence exception reporting for the rest of
+   * the session.
+   */
+  private void discardSinkIfServerStopped(Function<TelemetryExceptionParams, CompletableFuture<Object>> sink) {
+    if (stopped.get() || !languageServerWrapper.isActive()) {
+      exceptionSink.compareAndSet(sink, null);
+    }
   }
 
   /**
@@ -728,7 +768,10 @@ public class CopilotLanguageServerConnection {
    * Stop the language server.
    */
   public void stop() {
-    this.languageServerWrapper.stop();
+    if (stopped.compareAndSet(false, true)) {
+      exceptionSink.set(null);
+      this.languageServerWrapper.stop();
+    }
   }
 
   private String getModelName(CopilotModel activeModel) {

@@ -36,3 +36,8 @@ project's files are semantically indexed.
 ### Workspace instructions
 Custom instructions associated with workspace folders and loaded into chat.
 They are distinct from semantic search over project files.
+
+### Exception report
+A best-effort diagnostic record of an unexpected failure. Exception reporting
+must not start or delay the language server and may be dropped when no running
+server connection is available.
