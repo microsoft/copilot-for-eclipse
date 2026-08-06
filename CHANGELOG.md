@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.21.0
+### Added
+- Support Ollama as a custom (BYOK) model provider. [#93](https://github.com/microsoft/copilot-for-eclipse/issues/93)
+- Support group policy for Auto model. [#305](https://github.com/microsoft/copilot-for-eclipse/issues/305)
+- Make skills generally available. [#302](https://github.com/microsoft/copilot-for-eclipse/issues/302)
+- Add unique accessible names to chat controls. [#78](https://github.com/microsoft/copilot-for-eclipse/issues/78)
+
+### Changed
+- Always enabling sub-agent. [#304](https://github.com/microsoft/copilot-for-eclipse/issues/304)
+
+### Removed
+- Remove the semantic workspace search integration. [PR#373](https://github.com/microsoft/copilot-for-eclipse/pull/373)
+
+### Fixed
+- Provide a default MCP auto-approve configuration. [#358](https://github.com/microsoft/copilot-for-eclipse/issues/358)
+- Prevent Agent mode from hanging when a PowerShell prompt fails. [#375](https://github.com/microsoft/copilot-for-eclipse/issues/375)
+
+### Engineering
+- Make the UI test bundle a fragment of the UI bundle. [PR#361](https://github.com/microsoft/copilot-for-eclipse/pull/361), contributed by [@travkin79](https://github.com/travkin79)
+- Load images through image registries. [#364](https://github.com/microsoft/copilot-for-eclipse/issues/364), contributed by [@travkin79](https://github.com/travkin79)
+- Prevent test processes from hanging CI. [PR#392](https://github.com/microsoft/copilot-for-eclipse/pull/392)
+- Avoid starting the Copilot language server during Jobs image checks. [PR#396](https://github.com/microsoft/copilot-for-eclipse/pull/396)
+
+
 ## 0.20.0
 ### Added
 - Support organization-enabled custom (BYOK) models automatically in the model picker. [PR#333](https://github.com/microsoft/copilot-for-eclipse/pull/333)
