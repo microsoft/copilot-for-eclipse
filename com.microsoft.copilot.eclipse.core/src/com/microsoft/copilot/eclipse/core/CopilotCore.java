@@ -22,7 +22,6 @@ import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.completion.CompletionProvider;
 import com.microsoft.copilot.eclipse.core.format.FormatOptionProvider;
 import com.microsoft.copilot.eclipse.core.logger.CopilotForEclipseLogger;
-import com.microsoft.copilot.eclipse.core.logger.GithubPanicErrorReport;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.nes.NextEditSuggestionProvider;
 
@@ -37,7 +36,6 @@ public class CopilotCore extends Plugin {
   private CompletionProvider completionProvider;
   private NextEditSuggestionProvider nextEditSuggestionProvider;
   private FormatOptionProvider formatOptionProvider;
-  private GithubPanicErrorReport githubPanicErrorReport;
   private ChatEventsManager chatEventsManager;
   private IChatServiceManager chatServiceManager;
   private FeatureFlags featureFlags;
@@ -92,7 +90,6 @@ public class CopilotCore extends Plugin {
       this.copilotLanguageServer = new CopilotLanguageServerConnection(wrapper);
       this.authStatusManager = new AuthStatusManager(this.copilotLanguageServer);
       this.completionProvider = new CompletionProvider(this.copilotLanguageServer, authStatusManager);
-      this.githubPanicErrorReport = new GithubPanicErrorReport();
       this.featureFlags = new FeatureFlags();
     };
 
@@ -160,10 +157,6 @@ public class CopilotCore extends Plugin {
     return nextEditSuggestionProvider;
   }
 
-  public GithubPanicErrorReport getGithubPanicErrorReport() {
-    return githubPanicErrorReport;
-  }
-
   public FeatureFlags getFeatureFlags() {
     return featureFlags;
   }
@@ -186,10 +179,6 @@ public class CopilotCore extends Plugin {
   public void reportException(Throwable ex) {
     if (this.copilotLanguageServer != null) {
       this.copilotLanguageServer.sendExceptionTelemetry(ex);
-    } else {
-      if (this.githubPanicErrorReport != null) {
-        this.githubPanicErrorReport.report(ex);
-      }
     }
   }
 
