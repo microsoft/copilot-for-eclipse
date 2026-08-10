@@ -3,7 +3,7 @@
 ### Use Ollama Models with BYOK
 You can now connect Ollama as a custom Bring Your Own Key (BYOK) model provider and use locally hosted models in Copilot Chat.
 
-<img src="0.21.0/ollama.png" alt="Ollama" width="600">
+<img src="0.21.0/ollama.png" alt="Ollama" width="600"/>
 
 ---
 
