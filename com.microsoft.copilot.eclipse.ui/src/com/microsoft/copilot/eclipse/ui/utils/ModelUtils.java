@@ -247,11 +247,11 @@ public class ModelUtils {
     * {@code maxContext} ({@code default}, {@code longContext}), in display order. When tiers have the same
     * {@code maxContext}, the default tier takes precedence. Returns an empty list when the model carries no token-based
     * pricing. When the {@code default} tier omits its own {@code maxContext}, falls back to the advertised
-   * {@code maxContextWindowTokens} so the default tier still has a size.
-   *
-   * @param model the model
-   * @return the ordered list of context-window options, possibly empty
-   */
+    * {@code maxContextWindowTokens} so the default tier still has a size.
+    *
+    * @param model the model
+    * @return the ordered list of context-window options, possibly empty
+    */
   public static List<ContextWindowOption> getContextWindowOptions(CopilotModel model) {
     if (model == null || model.getBilling() == null || model.getBilling().tokenPrices() == null) {
       return List.of();

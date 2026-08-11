@@ -177,7 +177,7 @@ public class UserPreference {
    * an explicit selection.
    *
    * @param modelKey the composite model key (matching the {@link #getChatModel()} format)
-    * @return the previously selected context-window size, or {@code null}
+   * @return the previously selected context-window size, or {@code null}
    */
   public Integer getContextWindow(String modelKey) {
     if (modelKey == null) {

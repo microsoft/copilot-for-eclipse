@@ -547,10 +547,10 @@ public class ModelService extends ChatBaseService {
     * Returns the user-selected context-window size (a price tier's {@code maxContext} token count) for the given model,
     * or {@code null} when the user has not made a selection. The persisted snapshot is kept in sync with the current
     * model inventory by {@link #reconcileContextWindows()} after each model fetch, so this method is a pure lookup.
-   *
-   * @param model the model to query
-   * @return the selected context-window size, or {@code null}
-   */
+    *
+    * @param model the model to query
+    * @return the selected context-window size, or {@code null}
+    */
   private Integer getSelectedContextWindow(CopilotModel model) {
     UserPreference preference = getUserPreference();
     return preference != null ? preference.getContextWindow(model.getModelKey()) : null;
