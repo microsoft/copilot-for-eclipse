@@ -17,6 +17,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -46,15 +47,10 @@ public abstract class BaseCopilotDialog extends Dialog {
    * @param shell the shell to set the icon on
    */
   protected void loadCopilotIcon(Shell shell) {
-    Image dialogTitleImage = UiUtils.buildImageFromPngPath("/icons/github_copilot.png");
+    Image dialogTitleImage = CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT);
     if (dialogTitleImage != null) {
       shell.setImage(dialogTitleImage);
     }
-    shell.addDisposeListener(e -> {
-      if (dialogTitleImage != null && !dialogTitleImage.isDisposed()) {
-        dialogTitleImage.dispose();
-      }
-    });
   }
 
   /**

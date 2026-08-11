@@ -14,6 +14,7 @@ import org.eclipse.swt.widgets.Label;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.AgentToolCall;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 
 /**
  * A turn widget for displaying subagent messages within a SubagentMessageBlock.
@@ -69,5 +70,7 @@ public class SubagentTurnWidget extends ThinkingTurnWidget {
     StyledText styledText = this.currentTextBlock.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        nextTextBlockAccessibilityName(Messages.subagentTurnWidget_messageAccessibilityName));
   }
 }

@@ -3,10 +3,13 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.hyperlink.IHyperlink;
 import org.eclipse.jface.text.hyperlink.URLHyperlink;
@@ -59,14 +62,27 @@ public class FileAnnotationHyperlinkDetector extends AnnotationHyperlinkDetector
       String urlString = getURLString();
       if (urlString.startsWith(LSPEclipseUtils.FILE_URI)) {
         IResource targetResource = LSPEclipseUtils.findResourceFor(urlString);
-        if (targetResource != null && targetResource.getType() == IResource.FILE) {
-          Location location = new Location();
-          location.setUri(urlString);
-          LSPEclipseUtils.openInEditor(location);
+        if (targetResource != null) {
+          if (targetResource.getType() == IResource.FILE) {
+            Location location = new Location();
+            location.setUri(urlString);
+            LSPEclipseUtils.openInEditor(location);
+            return;
+          }
+          if (targetResource.getType() == IResource.FOLDER
+              || targetResource.getType() == IResource.PROJECT) {
+            UiUtils.revealInExplorer(targetResource);
+            return;
+          }
+        }
+        Path localPath = FileUtils.getLocalFilePath(urlString);
+        if (localPath != null && Files.isRegularFile(localPath, LinkOption.NOFOLLOW_LINKS)) {
+          UiUtils.openLocalFileInEditor(localPath);
           return;
         }
       } else {
-        IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(urlString));
+        IFile file = ResourcesPlugin.getWorkspace().getRoot()
+            .getFile(new org.eclipse.core.runtime.Path(urlString));
 
         if (file.exists()) {
           var workbenchWindow = PlatformUI.getWorkbench().getActiveWorkbenchWindow();

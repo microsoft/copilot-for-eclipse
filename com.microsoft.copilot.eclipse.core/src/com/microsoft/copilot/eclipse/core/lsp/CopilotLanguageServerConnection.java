@@ -16,11 +16,9 @@ import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
-import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.WorkspaceFolder;
-import org.eclipse.lsp4j.jsonrpc.Endpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -39,18 +37,16 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
@@ -72,11 +68,16 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
@@ -85,7 +86,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrRespons
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
-import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 
 /**
  * Language Server for Copilot agent.
@@ -292,7 +292,6 @@ public class CopilotLanguageServerConnection {
       }
 
       if (StringUtils.isBlank(agentSlug)) {
-        param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(workspaceFolders == null ? List.of() : workspaceFolders);
         param.setTodoList(todos);
       } else {
@@ -345,7 +344,6 @@ public class CopilotLanguageServerConnection {
       param.setCustomChatModeId(customChatModeId);
 
       if (StringUtils.isBlank(agentSlug)) {
-        param.setWorkspaceFolder(PlatformUtils.getWorkspaceRootUri());
         param.setWorkspaceFolders(workspaceFolders == null ? List.of() : workspaceFolders);
         param.setTodoList(todoList);
       } else {
@@ -374,9 +372,49 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ConversationTemplate[]> listConversationTemplates(List<WorkspaceFolder> workspaceFolders) {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
-      return ((CopilotLanguageServer) server).listTemplates(new ConversationTemplatesParams(workspaceFolders));
+      return ((CopilotLanguageServer) server).listTemplates(new WorkspaceFoldersParams(workspaceFolders));
     };
     return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List custom skill files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomSkills(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomSkills(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom prompt files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomPrompts(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomPrompts(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom instruction files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomInstructions(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomInstructions(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom agent files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomAgents(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomAgents(new WorkspaceFoldersParams(workspaceFolders)));
   }
 
   /**
@@ -385,24 +423,6 @@ public class CopilotLanguageServerConnection {
   public CompletableFuture<ConversationMode[]> listConversationModes(ConversationModesParams params) {
     Function<LanguageServer, CompletableFuture<ConversationMode[]>> fn = server -> {
       return ((CopilotLanguageServer) server).listModes(params);
-    };
-    return this.languageServerWrapper.execute(fn);
-  }
-
-  /**
-   * List the conversation agents.
-   */
-  public CompletableFuture<ConversationAgent[]> listConversationAgents() {
-    Function<LanguageServer, CompletableFuture<ConversationAgent[]>> fn = server -> {
-      // return ((CopilotLanguageServer) server).listAgents(new NullParams());
-      // Hard code the only supported @project agent. Should revert this when @github agent is supported.
-      ConversationAgent project = new ConversationAgent();
-      project.setSlug("project");
-      project.setName("Project");
-      project.setDescription("Ask about your project");
-      project.setAvatarUrl(null);
-
-      return CompletableFuture.completedFuture(new ConversationAgent[] { project });
     };
     return this.languageServerWrapper.execute(fn);
   }
@@ -497,27 +517,6 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Notify the language server that watched files have changed.
-   */
-  public void didChangeWatchedFiles(DidChangeCopilotWatchedFilesParams params) {
-    this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeWatchedFiles(params));
-  }
-
-  /**
-   * Send $/progress notification to the language server. Used for reporting partial results during long-running
-   * operations like file indexing.
-   */
-  public CompletableFuture<Void> sendProgressNotification(ProgressParams progressParams) {
-    Function<LanguageServer, CompletableFuture<Void>> fn = server -> {
-      if (server instanceof Endpoint endpoint) {
-        endpoint.notify("$/progress", progressParams);
-      }
-      return CompletableFuture.completedFuture(null);
-    };
-    return this.languageServerWrapper.execute(fn);
-  }
-
-  /**
    * Notify the language server about code acceptance.
    */
   public CompletableFuture<String> notifyCodeAcceptance(NotifyCodeAcceptanceParams params) {
@@ -597,6 +596,37 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
+   * Save a built-in BYOK provider configuration.
+   */
+  public CompletableFuture<ByokStatusResponse> saveByokProviderConfig(ByokProviderConfig providerConfig) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).saveByokProviderConfig(providerConfig);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * Delete a built-in BYOK provider configuration.
+   */
+  public CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokDeleteProviderConfigParams params) {
+    Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).deleteByokProviderConfig(params);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List built-in BYOK provider configurations.
+   */
+  public CompletableFuture<ByokListProviderConfigResponse> listByokProviderConfigs(
+      ByokListProviderConfigParams params) {
+    Function<LanguageServer, CompletableFuture<ByokListProviderConfigResponse>> fn = server -> {
+      return ((CopilotLanguageServer) server).listByokProviderConfigs(params);
+    };
+    return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
    * Save a BYOK API key.
    */
   public CompletableFuture<ByokStatusResponse> saveByokApiKey(ByokApiKey apiKey) {
@@ -669,7 +699,6 @@ public class CopilotLanguageServerConnection {
     return this.languageServerWrapper.execute(fn);
   }
 
-
   /**
    * Notify that an inline edit was shown.
    */
@@ -708,19 +737,15 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Builds the {@link ModelInfo} payload to forward with chat requests. Returns {@code null} when no reasoning effort
-   * is available so we do not send redundant {@code id}/{@code providerName} fields ahead of the future migration
-   * away from the legacy {@code model}/{@code modelProviderName} fields. Today the language server only consumes
-   * {@code modelInfo.reasoningEffort}, so suppressing the payload when there is nothing meaningful to forward keeps
-   * the protocol surface minimal and avoids implicit behaviour changes if the server starts honouring id/providerName
-   * before the client migration lands.
+   * Builds the {@link ModelInfo} payload for chat requests. Always sends the concrete model id (which the server
+   * prefers over the legacy {@code model} family field), since the family is not unique across models. Returns
+   * {@code null} when no model id is available.
    */
   private static ModelInfo buildModelInfo(CopilotModel activeModel, String reasoningEffort) {
-    if (StringUtils.isBlank(reasoningEffort)) {
+    if (activeModel == null || StringUtils.isBlank(activeModel.getId())) {
       return null;
     }
-    String id = activeModel != null ? activeModel.getId() : null;
-    String providerName = activeModel != null ? activeModel.getProviderName() : null;
-    return new ModelInfo(id, providerName, reasoningEffort);
+    String effort = StringUtils.isBlank(reasoningEffort) ? null : reasoningEffort;
+    return new ModelInfo(activeModel.getId(), activeModel.getProviderName(), effort, null);
   }
 }

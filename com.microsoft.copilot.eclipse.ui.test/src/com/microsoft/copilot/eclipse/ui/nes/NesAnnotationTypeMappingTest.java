@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IConfigurationElement;
+import org.eclipse.core.runtime.IExtension;
 import org.eclipse.core.runtime.IExtensionPoint;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.ui.texteditor.AnnotationTypeLookup;
@@ -19,7 +21,7 @@ class NesAnnotationTypeMappingTest {
 
   private static final String ANNOTATION_TYPES_EXTENSION_POINT = "org.eclipse.ui.editors.annotationTypes";
   private static final String FOREIGN_TEXT_MARKER =
-      "com.microsoft.copilot.eclipse.ui.test.foreignTextMarker";
+      "com.microsoft.copilot.eclipse.ui.foreignTextMarker";
   private static final String NES_ANNOTATION_PREFIX = "com.microsoft.copilot.eclipse.ui.nes.";
   private static final String NES_CHANGE_ANNOTATION = NES_ANNOTATION_PREFIX + "change";
   private static final String NES_DELETE_ANNOTATION = NES_ANNOTATION_PREFIX + "delete";
@@ -31,8 +33,21 @@ class NesAnnotationTypeMappingTest {
 
     String annotationType = lookup.getAnnotationType(FOREIGN_TEXT_MARKER, IMarker.SEVERITY_INFO);
 
+    // assert our marker type is properly registered, before checking annotation type mapping
+    assertTrue(isMarkerTypeDeclared(FOREIGN_TEXT_MARKER));
     assertNotEquals(NES_CHANGE_ANNOTATION, annotationType);
     assertNotEquals(NES_DELETE_ANNOTATION, annotationType);
+  }
+  
+  private boolean isMarkerTypeDeclared(String markerTypeId) {
+    IExtensionPoint point = Platform.getExtensionRegistry().getExtensionPoint(ResourcesPlugin.PI_RESOURCES,
+        "markers");
+    for (IExtension ext : point.getExtensions()) {
+      if (markerTypeId.equals(ext.getUniqueIdentifier())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test

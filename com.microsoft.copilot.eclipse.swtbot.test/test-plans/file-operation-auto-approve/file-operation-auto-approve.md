@@ -340,3 +340,76 @@ approval
 #### 📸 Key Screenshots
 - [ ] Preference page after reset — only defaults.
 - [ ] `.java` file shows confirmation dialog post-reset.
+
+---
+
+## 9. Customization file reads (skills, instructions, prompts, agents)
+
+Reading a Copilot customization file is always auto-approved, even with
+"Auto approve file operations not covered by rules" **unchecked** and even
+when a deny rule would otherwise match (e.g. the default `.github/instructions/*`
+rule). The exemption is read-only and covers both workspace and user-global
+(`~/.copilot`, `~/.claude`, `~/.agents`) locations. Recognized files:
+`<skills-dir>/<name>/**` (the whole skill folder, including helper files),
+`*.instructions.md`, `*.prompt.md`, `*.agent.md`, and the fixed names
+`copilot-instructions.md`, `git-commit-instructions.md`, `AGENTS.md`, `CLAUDE.md`.
+
+### TC-010: Customization reads auto-approve; edits and ordinary files still prompt
+
+**Type:** `Happy Path`
+**Priority:** `P0`
+
+#### Preconditions
+- "Auto approve file operations not covered by rules" is **unchecked**.
+- The project contains `.github/skills/demo/SKILL.md` (whose body also tells
+  Copilot to read a sibling `notes.md`), `.github/instructions/coding.instructions.md`,
+  and `.github/copilot-instructions.md`.
+
+#### Steps
+1. In Agent Mode, invoke the demo skill (or ask Copilot to read
+   `.github/skills/demo/SKILL.md`).
+2. Observe **no confirmation** for `SKILL.md` **or** the referenced `notes.md`.
+3. Type: `read the project instructions and summarize them`.
+4. Observe **no confirmation** for `coding.instructions.md` — even though the
+   default `.github/instructions/*` deny rule matches.
+5. Type: `read .github/copilot-instructions.md`.
+6. Observe **no confirmation**.
+7. Type: `add a comment line to .github/skills/demo/SKILL.md`.
+8. Observe **confirmation dialog appears** — editing is not exempt.
+9. Type: `read src/demo/App.java`.
+10. Observe **confirmation dialog appears** — ordinary files are unaffected.
+
+#### Expected Result
+- Reads of skill files (and their helpers), instruction/prompt/agent files, and
+  the fixed well-known files auto-approve with no dialog.
+- Editing a customization file still prompts.
+- Ordinary (non-customization) reads still prompt.
+
+#### 📸 Key Screenshots
+- [ ] Skill `SKILL.md` + `notes.md` read with no confirmation.
+- [ ] Instruction file read with no confirmation despite the deny rule.
+- [ ] Edit to `SKILL.md` shows a confirmation dialog.
+
+---
+
+### TC-011: User-global customization files auto-approve
+
+**Type:** `Edge Case`
+**Priority:** `P1`
+
+#### Preconditions
+- "Auto approve file operations not covered by rules" is **unchecked**.
+- A user-global skill exists, e.g. `~/.copilot/skills/demo-global/SKILL.md`.
+
+#### Steps
+1. In Agent Mode, invoke the global demo skill (or ask Copilot to read its
+   `SKILL.md`).
+2. Observe **no confirmation** — global customization files are exempt even
+   though they live outside the workspace (an ordinary outside-workspace file
+   would still prompt, per TC-006).
+
+#### Expected Result
+- User-global customization reads auto-approve without a dialog.
+
+#### 📸 Key Screenshots
+- [ ] Global skill read with no confirmation.

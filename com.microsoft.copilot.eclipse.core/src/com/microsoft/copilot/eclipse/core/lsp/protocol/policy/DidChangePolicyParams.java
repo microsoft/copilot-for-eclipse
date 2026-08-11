@@ -16,14 +16,14 @@ public class DidChangePolicyParams {
   @SerializedName("mcp.contributionPoint.enabled")
   private boolean mcpContributionPointEnabled;
 
-  @SerializedName("subAgent.enabled")
-  private boolean subAgentEnabled = true;
-
   @SerializedName("customAgent.enabled")
   private boolean customAgentEnabled = true;
 
   @SerializedName("agentMode.autoApproval.enabled")
   private boolean autoApprovalPolicyEnabled = true;
+
+  @SerializedName("autoModel.enabled")
+  private boolean autoModelEnabled = true;
 
   public boolean isMcpContributionPointEnabled() {
     return mcpContributionPointEnabled;
@@ -31,14 +31,6 @@ public class DidChangePolicyParams {
 
   public void setMcpContributionPointEnabled(boolean mcpContributionPointEnabled) {
     this.mcpContributionPointEnabled = mcpContributionPointEnabled;
-  }
-
-  public boolean isSubAgentEnabled() {
-    return subAgentEnabled;
-  }
-
-  public void setSubAgentEnabled(boolean subAgentEnabled) {
-    this.subAgentEnabled = subAgentEnabled;
   }
 
   public boolean isCustomAgentEnabled() {
@@ -57,10 +49,18 @@ public class DidChangePolicyParams {
     this.autoApprovalPolicyEnabled = autoApprovalPolicyEnabled;
   }
 
+  public boolean isAutoModelEnabled() {
+    return autoModelEnabled;
+  }
+
+  public void setAutoModelEnabled(boolean autoModelEnabled) {
+    this.autoModelEnabled = autoModelEnabled;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(mcpContributionPointEnabled, subAgentEnabled, customAgentEnabled,
-        autoApprovalPolicyEnabled);
+    return Objects.hash(mcpContributionPointEnabled, customAgentEnabled,
+        autoApprovalPolicyEnabled, autoModelEnabled);
   }
 
   @Override
@@ -76,18 +76,18 @@ public class DidChangePolicyParams {
     }
     DidChangePolicyParams other = (DidChangePolicyParams) obj;
     return mcpContributionPointEnabled == other.mcpContributionPointEnabled
-        && subAgentEnabled == other.subAgentEnabled
         && customAgentEnabled == other.customAgentEnabled
-        && autoApprovalPolicyEnabled == other.autoApprovalPolicyEnabled;
+        && autoApprovalPolicyEnabled == other.autoApprovalPolicyEnabled
+        && autoModelEnabled == other.autoModelEnabled;
   }
 
   @Override
   public String toString() {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.append("mcpContributionPointEnabled", mcpContributionPointEnabled);
-    builder.append("subAgentEnabled", subAgentEnabled);
     builder.append("customAgentEnabled", customAgentEnabled);
     builder.append("autoApprovalPolicyEnabled", autoApprovalPolicyEnabled);
+    builder.append("autoModelEnabled", autoModelEnabled);
     return builder.toString();
   }
 }

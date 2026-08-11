@@ -5,10 +5,15 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -19,12 +24,14 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.lsp4j.FileChangeType;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,6 +59,9 @@ class CreateFileToolTest {
   @Mock
   private FileToolService mockFileToolService;
 
+  @TempDir
+  private Path tempDir;
+
   private MockedStatic<CopilotUi> mockedCopilotUi;
 
   @BeforeEach
@@ -78,6 +88,7 @@ class CreateFileToolTest {
     
     // Clean up test project
     cleanupTestProject();
+    FileToolCacheAccessor.clearCaches();
   }
 
   private IProject setupTestProject() throws Exception {
@@ -252,10 +263,91 @@ class CreateFileToolTest {
   }
 
   @Test
+  void testInvokeWithExternalLocalFilePathCreatesFile() throws Exception {
+    setupMocks();
+    Path newFile = tempDir.resolve("external-file.txt");
+
+    Map<String, Object> input = new HashMap<>();
+    input.put("filePath", newFile.toString());
+    input.put("content", "test content");
+
+    CompletableFuture<LanguageModelToolResult[]> future = createFileTool.invoke(input, null);
+    LanguageModelToolResult[] results = future.get();
+
+    assertSuccessResult(results, "File created at");
+    assertTrue(Files.exists(newFile));
+    assertEquals("test content", Files.readString(newFile));
+    verify(mockFileToolService).addChangedFile(ChangedFile.local(newFile), FileChangeType.Created);
+  }
+
+  @Test
+  void testInvokeWithExternalLocalFileUriCreatesFile() throws Exception {
+    setupMocks();
+    Path newFile = tempDir.resolve("external-file-uri.txt");
+
+    Map<String, Object> input = new HashMap<>();
+    input.put("filePath", newFile.toUri().toString());
+    input.put("content", "test content");
+
+    CompletableFuture<LanguageModelToolResult[]> future = createFileTool.invoke(input, null);
+    LanguageModelToolResult[] results = future.get();
+
+    assertSuccessResult(results, "File created at");
+    assertTrue(Files.exists(newFile));
+    assertEquals("test content", Files.readString(newFile));
+    verify(mockFileToolService).addChangedFile(ChangedFile.local(newFile), FileChangeType.Created);
+  }
+
+  @Test
+  void testOnKeepChangeWithWorkspaceFileClearsOriginalContentCache() {
+    IFile newFile = mock(IFile.class);
+    FileToolCacheAccessor.putWorkspaceFileContentCache(newFile, "");
+
+    createFileTool.onKeepChange(ChangedFile.workspace(newFile));
+
+    assertNull(FileToolCacheAccessor.getWorkspaceFileContentCache(newFile));
+  }
+
+  @Test
+  void testOnUndoChangeWithWorkspaceFileDeletesFileAndClearsOriginalContentCache() throws Exception {
+    IProject project = setupTestProject();
+    IFile newFile = project.getFile("workspace-file-to-undo.txt");
+    newFile.create(new java.io.ByteArrayInputStream("test content".getBytes()), true, null);
+    FileToolCacheAccessor.putWorkspaceFileContentCache(newFile, "");
+
+    createFileTool.onUndoChange(ChangedFile.workspace(newFile));
+
+    assertTrue(!newFile.exists());
+    assertNull(FileToolCacheAccessor.getWorkspaceFileContentCache(newFile));
+  }
+
+  @Test
+  void testOnKeepChangeWithExternalLocalFileClearsOriginalContentCache() {
+    Path newFile = tempDir.resolve("external-file-to-keep.txt");
+    FileToolCacheAccessor.putFileContentCache(newFile, "");
+
+    createFileTool.onKeepChange(ChangedFile.local(newFile));
+
+    assertNull(FileToolCacheAccessor.getFileContentCache(newFile));
+  }
+
+  @Test
+  void testOnUndoChangeWithExternalLocalFileDeletesFile() throws Exception {
+    Path newFile = tempDir.resolve("external-file-to-undo.txt");
+    Files.writeString(newFile, "test content");
+    FileToolCacheAccessor.putFileContentCache(newFile, "");
+
+    createFileTool.onUndoChange(ChangedFile.local(newFile));
+
+    assertTrue(Files.notExists(newFile));
+    assertNull(FileToolCacheAccessor.getFileContentCache(newFile));
+  }
+
+  @Test
   void testInvokeWithInvalidPathReturnsErrorStatus() throws InterruptedException, ExecutionException {
     // Arrange
     Map<String, Object> input = new HashMap<>();
-    input.put("filePath", "/invalid/path/that/does/not/exist.txt");
+    input.put("filePath", "relative/path/that/does/not/exist.txt");
     input.put("content", "test content");
 
     // Act
@@ -263,7 +355,7 @@ class CreateFileToolTest {
     LanguageModelToolResult[] results = future.get();
 
     // Assert
-    assertErrorResult(results, "Error creating file");
+    assertErrorResult(results, "does not exist in the workspace");
   }
 
   @Test
@@ -286,4 +378,26 @@ class CreateFileToolTest {
    * Note: CoreException and IOException scenarios are difficult to test in unit tests
    * without complex mocking and would be better covered by integration tests.
    */
+
+  private static final class FileToolCacheAccessor extends CreateFileTool {
+    private static void clearCaches() {
+      fileContentCache.clear();
+    }
+
+    private static void putWorkspaceFileContentCache(IFile file, String content) {
+      fileContentCache.put(ChangedFile.workspace(file), content);
+    }
+
+    private static String getWorkspaceFileContentCache(IFile file) {
+      return fileContentCache.get(ChangedFile.workspace(file));
+    }
+
+    private static void putFileContentCache(Path file, String content) {
+      fileContentCache.put(ChangedFile.local(file), content);
+    }
+
+    private static String getFileContentCache(Path file) {
+      return fileContentCache.get(ChangedFile.local(file));
+    }
+  }
 }

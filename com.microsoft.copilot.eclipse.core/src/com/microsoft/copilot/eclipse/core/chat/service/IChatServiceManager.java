@@ -17,4 +17,9 @@ public interface IChatServiceManager {
    * Get the MCP config service.
    */
   IMcpConfigService getMcpConfigService();
+
+  /**
+   * Get the customization file service tracking skill/prompt/instruction/agent file locations.
+   */
+  ICustomizationFileService getCustomizationFileService();
 }

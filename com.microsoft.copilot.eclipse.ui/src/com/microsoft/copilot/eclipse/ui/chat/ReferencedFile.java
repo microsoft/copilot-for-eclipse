@@ -24,10 +24,10 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -81,15 +81,9 @@ public class ReferencedFile extends Composite {
     lblClose.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
     setCloseClickAction();
 
-    lblImage = UiUtils.buildImageFromPngPath("/icons/close.png");
+    lblImage = CopilotImages.getImage(CopilotImages.IMG_CLOSE);
 
     setFile(file);
-
-    this.addDisposeListener(e -> {
-      if (lblImage != null && !lblImage.isDisposed()) {
-        lblImage.dispose();
-      }
-    });
     this.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_HAND));
 
     // Add keyboard support for Enter activation
@@ -170,7 +164,14 @@ public class ReferencedFile extends Composite {
     setLayoutData(layoutData);
     ChatView chatView = UiUtils.getView(Constants.CHAT_VIEW_ID, ChatView.class);
     if (chatView != null) {
-      chatView.layout(true, true);
+      // Pass every child whose content setFile()/setupXDisplay() can touch (icon image, file name
+      // text/CSS class, close button image) -- not just this composite or a single child. SWT's
+      // targeted requestLayout() only flushes cached sizes for the exact controls it's given (plus
+      // their ancestor chains up to cmpFileRef and beyond); passing a subset silently leaves the
+      // others' cached sizes stale (previously: a clipped icon, and before that a chip that didn't
+      // shrink). Since all three are descendants of this composite, their ancestor walk-up already
+      // covers this chip's own RowData/visibility change too -- no need to pass `this` separately.
+      chatView.requestLayout(lblfileIcon, lblFileName, lblClose);
     }
   }
 
@@ -195,7 +196,7 @@ public class ReferencedFile extends Composite {
    */
   private void setupUnsupportedFileDisplay() {
     // Set warning icon
-    lblfileIcon.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK));
+    lblfileIcon.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK));
     // Set tooltip with model name
     String modelName = CopilotUi.getPlugin().getChatServiceManager().getModelService().getActiveModel()
         .getModelName();

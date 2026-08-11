@@ -67,12 +67,12 @@ class ContextWindowPopup extends BaseHoverPopup {
     tokenUsageLabel = createSecondaryTextLabel(tokenRow, formatTokenRow(latestInfo));
     tokenUsageLabel.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
     percentageLabel = createSecondaryTextLabel(tokenRow,
-        formatPercentage(latestInfo.utilizationPercentage()));
+        formatPercentage(contextWindowService.getDisplayUtilizationPercentage(latestInfo)));
     percentageLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, false, false));
 
     progressBar = new ContextWindowBar(parent, SWT.NONE);
     progressBar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    progressBar.setPercentage((int) Math.round(latestInfo.utilizationPercentage()));
+    progressBar.setPercentage((int) Math.round(contextWindowService.getDisplayUtilizationPercentage(latestInfo)));
 
     addSeparator(parent, SECTION_SPACING);
 
@@ -107,7 +107,7 @@ class ContextWindowPopup extends BaseHoverPopup {
       return;
     }
     setLabelText(tokenUsageLabel, formatTokenRow(info));
-    setLabelText(percentageLabel, formatPercentage(info.utilizationPercentage()));
+    setLabelText(percentageLabel, formatPercentage(contextWindowService.getDisplayUtilizationPercentage(info)));
     setLabelText(systemInstructionsValue,
         percentageOf(info.systemPromptTokens(), info.totalTokenLimit()));
     setLabelText(toolDefinitionsValue,
@@ -120,7 +120,7 @@ class ContextWindowPopup extends BaseHoverPopup {
     setLabelText(toolResultsValue,
         percentageOf(info.toolResultsTokens(), info.totalTokenLimit()));
     if (progressBar != null && !progressBar.isDisposed()) {
-      progressBar.setPercentage((int) Math.round(info.utilizationPercentage()));
+      progressBar.setPercentage((int) Math.round(contextWindowService.getDisplayUtilizationPercentage(info)));
     }
     shell.requestLayout();
   }
@@ -146,9 +146,9 @@ class ContextWindowPopup extends BaseHoverPopup {
     return String.format("%.1f%%", pct);
   }
 
-  private static String formatTokenRow(ContextSizeInfo info) {
+  private String formatTokenRow(ContextSizeInfo info) {
     return MessageFormat.format(Messages.context_window_tokens,
-        formatTokens(info.totalUsedTokens()), formatTokens(info.totalTokenLimit()));
+        formatTokens(info.totalUsedTokens()), formatTokens(contextWindowService.getDisplayTokenLimit(info)));
   }
 
   private static String percentageOf(int tokens, int totalLimit) {

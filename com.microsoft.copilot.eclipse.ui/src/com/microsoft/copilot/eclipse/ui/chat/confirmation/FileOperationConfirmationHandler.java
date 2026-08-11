@@ -28,8 +28,11 @@ import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.chat.FileOperationAutoApproveRule;
+import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolMetadata;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.chat.Messages;
 
 /**
@@ -168,6 +171,17 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
         if (normalizedPath.startsWith(folder + "/")) {
           return ConfirmationResult.AUTO_APPROVED;
         }
+      }
+    }
+
+    // Auto-approve reads of Copilot customization files (skills, instructions, prompts, agents)
+    // discovered by the language server. Reading them is normal agent operation; edits still prompt.
+    if (isFileRead(params)) {
+      Path localPath = FileUtils.getLocalFilePath(filePath);
+      ICustomizationFileService service = getCustomizationFileService();
+      if (localPath != null && service != null && isCustomizationRead(
+          localPath, service.getCustomizationFiles(), service.getSkillFolders())) {
+        return ConfirmationResult.AUTO_APPROVED;
       }
     }
 
@@ -334,6 +348,39 @@ public class FileOperationConfirmationHandler implements ConfirmationHandler {
     ToolMetadata metadata = params.getToolMetadata();
     if (metadata != null && metadata.getSensitiveFileData() != null) {
       return metadata.getSensitiveFileData().isGlobal();
+    }
+    return false;
+  }
+
+  private static boolean isFileRead(InvokeClientToolConfirmationParams params) {
+    return FileToolType.fromValue(ConfirmationHandler.extractToolType(params))
+        == FileToolType.FILE_READ;
+  }
+
+  private static ICustomizationFileService getCustomizationFileService() {
+    IChatServiceManager chatServiceManager = CopilotCore.getPlugin().getChatServiceManager();
+    return chatServiceManager == null ? null : chatServiceManager.getCustomizationFileService();
+  }
+
+  /**
+   * Returns whether reading {@code file} is a customization-file read that is safe to auto-approve.
+   * A read matches when the file exactly equals a language-server-reported customization file, or
+   * sits inside a reported skill folder (covering {@code SKILL.md} and the helper files it uses).
+   *
+   * @param file the absolute path being read
+   * @param customizationFiles reported single-file customizations (prompts, instructions, agents)
+   * @param skillFolders reported skill folders (each directory containing a {@code SKILL.md})
+   * @return {@code true} when the read is a recognized customization read
+   */
+  public static boolean isCustomizationRead(Path file, Set<Path> customizationFiles, Set<Path> skillFolders) {
+    Path normalized = file.toAbsolutePath().normalize();
+    if (customizationFiles.contains(normalized)) {
+      return true;
+    }
+    for (Path skillFolder : skillFolders) {
+      if (normalized.startsWith(skillFolder)) {
+        return true;
+      }
     }
     return false;
   }

@@ -16,12 +16,13 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.chat.QuotaActions.QuotaAction;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -111,7 +112,7 @@ public class WarnWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
     Label iconLabel = new Label(composite, SWT.TOP);
-    Image warnImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+    Image warnImage = CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK);
     iconLabel.setImage(warnImage);
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;
@@ -123,6 +124,8 @@ public class WarnWidget extends Composite {
     StyledText styledText = textLabel.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
     styledText.setEditable(false);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        Messages.chat_warnWidget_message_accessibilityName);
     textLabel.setMarkup(message);
 
     requestLayout();

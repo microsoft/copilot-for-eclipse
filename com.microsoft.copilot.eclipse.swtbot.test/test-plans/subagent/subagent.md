@@ -15,6 +15,7 @@ Entry points exercised:
 - Agent mode with a prompt that triggers `run_subagent`.
 - Chat history panel: switching to a different conversation and back.
 - Cancel (stop) button during subagent execution.
+- Cancel button on a subagent tool-confirmation dialog.
 - `conversation/destroy` LSP call on session switch.
 
 Not exercised:
@@ -222,3 +223,47 @@ Not exercised:
 
 #### Key Screenshots
 - [ ] **After restore** — conversation unchanged, no extra messages.
+
+---
+
+## 6. Tool-confirmation dialog cancel layout
+
+### TC-007: Subagent panel collapses after confirmation dialog is cancelled
+
+**Type:** `Regression`
+**Priority:** `P1`
+
+#### Preconditions
+- The Chat view is open in Agent mode.
+- A new conversation (fresh session).
+- The selected agent triggers a tool that requires confirmation
+  (e.g., a command that needs to run in the terminal).
+
+#### Steps
+1. Send a prompt that triggers subagent execution where the subagent
+   wants to run a command (e.g., `scan for CVEs`, or
+   `run ls in the terminal`).
+2. Wait for the subagent's tool **confirmation dialog** to appear inside
+   the subagent card (Allow / Skip buttons).
+3. Click **Skip** on the confirmation dialog.
+4. Observe the subagent card area after the dialog disposes.
+
+#### Expected Result
+- The subagent panel resizes/collapses to fit its remaining content.
+- **No empty/blank gap** is left at the bottom of the subagent area where
+  the confirmation dialog used to be (the bug in #169).
+- A skip label/message is shown where appropriate, and the scroller
+  minimum height is recomputed in a single layout pass.
+- The send button returns to the send state.
+
+#### Key Screenshots
+- [ ] **Confirmation dialog visible** — Allow / Skip buttons shown
+  inside the subagent card.
+- [ ] **After skip** — subagent panel collapsed with no empty area below.
+
+#### Notes on failure modes
+- Empty area left below the subagent card → `cancelConfirmation()` did not
+  trigger `requestRefreshScrollerLayout()`; the `ScrolledComposite`
+  `setMinHeight()` was never recomputed after the dialog disposal.
+- Verify the Allow path is unaffected: clicking **Allow** on a
+  separate invocation should still lay out correctly (no regression).

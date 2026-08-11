@@ -18,6 +18,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRegistryEntry;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Icon;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NullParams;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferenceInitializer;
@@ -139,29 +140,32 @@ public class McpUtils {
   /**
    * Loads the server icon from the given URL, scaled to the requested size.
    *
-   * <p>The caller is responsible for attaching the returned image to a widget and disposing it when the widget is
-   * disposed.</p>
+   * <p>The returned image must be disposed by the caller, i.e. by attaching it to a widget and disposing the image
+   * using a widget dispose listener. When no icon can be loaded (blank URL or load failure) the future completes
+   * with {@code null}. In that case callers should fall back to {@link #loadDefaultServerIcon()},
+   * whose image is registry-owned and must never be disposed.</p>
    *
-   * @param iconUrl the icon URL to load; if blank, the returned future completes with the default MCP icon image
+   * @param iconUrl the icon URL to load
    * @param width desired icon width in pixels
    * @param height desired icon height in pixels
-   * @return a future that completes with the loaded and scaled image, or {@code null} if the image cannot be loaded
+   * @return a future that completes with the loaded, caller-owned image, or {@code null} if the image cannot be loaded
    */
-  public static CompletableFuture<Image> loadServerIcon(String iconUrl, int width, int height) {
+  public static CompletableFuture<Image> loadDisposableServerIcon(String iconUrl, int width, int height) {
     if (StringUtils.isBlank(iconUrl)) {
-      return CompletableFuture.completedFuture(loadDefaultServerIcon());
+      return CompletableFuture.completedFuture(null);
     }
 
     return UiUtils.loadImageFromUrl(iconUrl, width, height)
-        .exceptionally(e -> loadDefaultServerIcon());
+        .exceptionally(e -> null);
   }
 
   /**
-   * Builds the default MCP server icon image.
+   * Loads the shared default MCP server icon.
+   * The image must not be disposed by the caller.
    *
-   * @return the default MCP icon image, or {@code null} if it cannot be loaded
+   * @return the default MCP icon image; callers must not dispose it
    */
   public static Image loadDefaultServerIcon() {
-    return UiUtils.buildImageFromPngPath("/icons/mcp/mcp_default_icon.png");
+    return CopilotImages.getImage(CopilotImages.IMG_MCP_DEFAULT_ICON);
   }
 }

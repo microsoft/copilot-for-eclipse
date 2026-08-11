@@ -25,6 +25,13 @@ public final class Messages extends NLS {
   public static String agentMessageWidget_openInBrowserTooltip;
   public static String agentMessageWidget_openJobListButton;
   public static String agentMessageWidget_openJobListTooltip;
+  public static String agentMessageWidget_titleAccessibilityName;
+  public static String agentMessageWidget_messageAccessibilityName;
+  public static String subagentTurnWidget_messageAccessibilityName;
+  public static String agentStatusLabel_accessibilityName;
+  public static String sourceViewerComposite_codeBlockAccessibilityName;
+  public static String sourceViewerComposite_copyButtonAccessibilityName;
+  public static String sourceViewerComposite_insertButtonAccessibilityName;
   public static String handoffContainer_proceedFrom;
   public static String fileChangeSummary_filesChanged;
   public static String fileChangeSummary_fileChanged;
@@ -40,6 +47,8 @@ public final class Messages extends NLS {
   public static String thinking_title;
   public static String thinking_expandTooltip;
   public static String thinking_collapseTooltip;
+  public static String thinkingSection_headingAccessibilityName;
+  public static String thinkingSection_detailsAccessibilityName;
 
   // Confirmation dialog action labels
   public static String confirmation_action_allowOnce;

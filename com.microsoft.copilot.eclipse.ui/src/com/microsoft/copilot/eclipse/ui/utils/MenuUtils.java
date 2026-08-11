@@ -19,6 +19,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 /**
@@ -82,19 +83,19 @@ public final class MenuUtils {
    */
   public static ImageDescriptor getUsageIcon(double percentRemaining) {
     if (percentRemaining <= 10) {
-      return UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_red.png");
+      return CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_USAGE_RED);
     }
     if (percentRemaining <= 25) {
-      return UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_yellow.png");
+      return CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_USAGE_YELLOW);
     }
-    return UiUtils.buildImageDescriptorFromPngPath("/icons/quota/usage_blue.png");
+    return CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_USAGE_BLUE);
   }
 
   /**
    * Returns the shared blank icon descriptor used for indented usage rows.
    */
   public static ImageDescriptor getBlankIcon() {
-    return UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+    return CopilotImages.getImageDescriptor(CopilotImages.IMG_BLANK);
   }
 
   /**

@@ -17,8 +17,9 @@ class CopilotUiTests {
 
   @Test
   void testCopilotCoreWakeUp() throws Exception {
-    CopilotUi ui = new CopilotUi();
-    ui.start(null);
+    Bundle uiBundle = Platform.getBundle("com.microsoft.copilot.eclipse.ui");
+    assertNotNull(uiBundle);
+    uiBundle.start();
 
     Job.getJobManager().join(CopilotCore.INIT_JOB_FAMILY, null);
 

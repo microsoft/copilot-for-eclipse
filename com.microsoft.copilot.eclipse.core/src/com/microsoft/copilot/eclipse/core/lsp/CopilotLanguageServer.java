@@ -22,17 +22,16 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleResponse;
@@ -51,11 +50,16 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.SignInInitiateResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TelemetryExceptionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
@@ -146,7 +150,39 @@ public interface CopilotLanguageServer extends LanguageServer {
    * @param params includes workspace folders for discovering workspace-specific prompt files and skills
    */
   @JsonRequest("conversation/templates")
-  CompletableFuture<ConversationTemplate[]> listTemplates(ConversationTemplatesParams params);
+  CompletableFuture<ConversationTemplate[]> listTemplates(WorkspaceFoldersParams params);
+
+  /**
+   * List custom skill files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customSkill/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomSkills(WorkspaceFoldersParams params);
+
+  /**
+   * List custom prompt files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customPrompt/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomPrompts(WorkspaceFoldersParams params);
+
+  /**
+   * List custom instruction files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customInstruction/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomInstructions(WorkspaceFoldersParams params);
+
+  /**
+   * List custom agent files (each carries its on-disk {@code uri}).
+   *
+   * @param params includes the workspace folders to scan
+   */
+  @JsonRequest("copilot/customAgent/list")
+  CompletableFuture<CustomizationFileInfo[]> listCustomAgents(WorkspaceFoldersParams params);
 
   /**
    * List conversation modes.
@@ -189,12 +225,6 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("copilot/models")
   CompletableFuture<CopilotModel[]> listModels(NullParams param);
-
-  /**
-   * Get the conversation agents.
-   */
-  @JsonRequest("conversation/agents")
-  CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
 
   /**
    * Notify the code acceptance.
@@ -249,6 +279,24 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("copilot/byok/listApiKeys")
   CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey);
+
+  /**
+   * Save a built-in BYOK provider configuration.
+   */
+  @JsonRequest("copilot/byok/saveProviderConfig")
+  CompletableFuture<ByokStatusResponse> saveByokProviderConfig(ByokProviderConfig providerConfig);
+
+  /**
+   * Delete a built-in BYOK provider configuration.
+   */
+  @JsonRequest("copilot/byok/deleteProviderConfig")
+  CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokDeleteProviderConfigParams params);
+
+  /**
+   * List built-in BYOK provider configurations.
+   */
+  @JsonRequest("copilot/byok/listProviderConfigs")
+  CompletableFuture<ByokListProviderConfigResponse> listByokProviderConfigs(ByokListProviderConfigParams params);
 
   /**
    * Update the status of the mcp server and tools.

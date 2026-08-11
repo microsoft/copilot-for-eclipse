@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.IInformationControlCreator;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.source.AbstractRulerColumn;
@@ -32,6 +31,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.rulers.IContributedRulerColumn;
 import org.eclipse.ui.texteditor.rulers.RulerColumnDescriptor;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.completion.EditorsManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -263,28 +263,22 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
 
   private void ensureIcon() {
     if (icon == null || icon.isDisposed()) {
-      ImageDescriptor desc = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/gutter-arrow.png");
-      if (desc != null) {
-        icon = desc.createImage(true);
+      icon = CopilotImages.getImage(CopilotImages.IMG_CHAT_GUTTER_ARROW);
 
-        // Update column width based on actual icon size
-        if (icon != null && !icon.isDisposed()) {
-          Rectangle bounds = icon.getBounds();
-          int iconSize = Math.max(bounds.width, bounds.height);
-          int requiredWidth = iconSize + COLUMN_PADDING;
-          if (getWidth() != requiredWidth) {
-            setWidth(requiredWidth);
-          }
+      // Update column width based on actual icon size
+      if (icon != null && !icon.isDisposed()) {
+        Rectangle bounds = icon.getBounds();
+        int iconSize = Math.max(bounds.width, bounds.height);
+        int requiredWidth = iconSize + COLUMN_PADDING;
+        if (getWidth() != requiredWidth) {
+          setWidth(requiredWidth);
         }
       }
     }
   }
 
   private void disposeResources() {
-    if (icon != null && !icon.isDisposed()) {
-      icon.dispose();
-    }
-    icon = null;
+    icon = null; // the icon is disposed by the image-registry
     RenderManager manager = resolveNesRenderManager();
     if (manager != null) {
       manager.detachColumn(this);

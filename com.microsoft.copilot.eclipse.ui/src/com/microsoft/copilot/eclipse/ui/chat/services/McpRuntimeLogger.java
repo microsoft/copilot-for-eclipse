@@ -9,9 +9,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
-import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.PlatformUI;
@@ -20,12 +17,12 @@ import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
-import org.osgi.framework.Bundle;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRuntimeLog;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 
 /**
  * Console handler for MCP Runtime logs that writes to a dedicated Eclipse console.
@@ -34,8 +31,6 @@ public class McpRuntimeLogger {
 
   private final String consoleName = "Copilot (MCP)";
   private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-  private final String uiPluginId = "com.microsoft.copilot.eclipse.ui";
-  private final String iconPath = "icons/github_copilot.png";
 
   private MessageConsole mcpConsole;
   private MessageConsoleStream mcpConsoleStream;
@@ -95,16 +90,7 @@ public class McpRuntimeLogger {
    * @return ImageDescriptor for the console icon
    */
   private ImageDescriptor getIconImageDescriptor() {
-    try {
-      Bundle bundle = Platform.getBundle(uiPluginId);
-      if (bundle != null) {
-        return ImageDescriptor.createFromURL(
-            FileLocator.find(bundle, new Path(iconPath), null));
-      }
-    } catch (Exception e) {
-      // Fall back to null icon if there's any problem loading
-    }
-    return null;
+    return CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT);
   }
 
   /**

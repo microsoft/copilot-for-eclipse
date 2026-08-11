@@ -24,6 +24,7 @@ import org.eclipse.ui.PlatformUI;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelProvider;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -135,23 +136,14 @@ public class AddByokModelDialog extends TrayDialog {
     apiKeyText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     apiKeyText.addModifyListener(this::onFieldChanged);
 
-    eyeOpenImg = UiUtils
-        .buildImageFromPngPath(UiUtils.isDarkTheme() ? "/icons/chat/eye_dark.png" : "/icons/chat/eye.png");
-    eyeClosedImg = UiUtils.buildImageFromPngPath(
-        UiUtils.isDarkTheme() ? "/icons/chat/eye_closed_dark.png" : "/icons/chat/eye_closed.png");
+    eyeOpenImg = CopilotImages.getThemedImage(CopilotImages.IMG_CHAT_EYE, CopilotImages.IMG_CHAT_EYE_DARK);
+    eyeClosedImg = CopilotImages.getThemedImage(CopilotImages.IMG_CHAT_EYE_CLOSED,
+        CopilotImages.IMG_CHAT_EYE_CLOSED_DARK);
 
     toggleEyeBtn = new Button(apiKeyRow, SWT.FLAT);
     toggleEyeBtn.setImage(eyeClosedImg);
     toggleEyeBtn.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
     toggleEyeBtn.addListener(SWT.Selection, e -> togglePasswordVisibility());
-    toggleEyeBtn.addDisposeListener(e -> {
-      if (eyeOpenImg != null && !eyeOpenImg.isDisposed()) {
-        eyeOpenImg.dispose();
-      }
-      if (eyeClosedImg != null && !eyeClosedImg.isDisposed()) {
-        eyeClosedImg.dispose();
-      }
-    });
   }
 
   /**

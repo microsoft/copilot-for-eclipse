@@ -32,13 +32,13 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Handler for showing GitHub Copilot menu bar menu.
@@ -87,7 +87,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     // menu: username/Sign In
     if (CopilotStatusResult.NOT_SIGNED_IN.equals(status)) {
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signIn", Messages.menu_signToGitHub,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png")));
+          CopilotImages.getImageDescriptor(CopilotImages.IMG_SIGNIN)));
     } else if (CopilotStatusResult.OK.equals(status)) {
       String userName = authStatusManager.getUserName();
       String planLabel = MenuUtils.getPlanLabel(authStatusManager.getQuotaStatus().copilotPlan());
@@ -102,7 +102,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     // menu: openChatView
     items.add(new Separator());
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openChatView", Messages.menu_openChatView,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png")));
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT)));
 
     // menu:(label options) Turn off Completions or Turn on Completions
     LanguageServerSettingManager languageServerSettingManager = CopilotUi.getPlugin().getLanguageServerSettingManager();
@@ -111,29 +111,29 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
       String label = languageServerSettingManager.isAutoShowCompletionEnabled() ? Messages.menu_turnOffCompletions
           : Messages.menu_turnOnCompletions;
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.autoShowCompletions", label,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+          CopilotImages.getImageDescriptor(CopilotImages.IMG_BLANK)));
     }
 
     // menu: editKeyboardShortcuts
     items.add(new Separator());
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts",
         Messages.menu_editKeyboardShortcuts,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/edit_keyboard_shortcuts.png")));
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_EDIT_KEYBOARD_SHORTCUTS)));
 
     // menu: editPreferences
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.openPreferences", Messages.menu_editPreferences,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/edit_preferences.png")));
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_EDIT_PREFERENCES)));
 
     // menu: giveFeedback
     items.add(new Separator());
     Map<String, String> parameters = Map.of(UiConstants.OPEN_URL_PARAMETER_NAME,
         UiConstants.COPILOT_FEEDBACK_FORUM_URL);
     items.add(createCommandItem(UiConstants.OPEN_URL_COMMAND_ID, Messages.menu_giveFeedback, parameters,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png")));
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_FEEDBACK_FORUM)));
 
     // menu: whatIsNew
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.showWhatIsNew", Messages.menu_whatIsNew,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png")));
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_BLANK)));
 
     // menu: Copilot settings and Sign Out
     addAuthenticationActions(items, status);
@@ -222,7 +222,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     }
 
     // Upsell actions based on the user's plan
-    ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
+    ImageDescriptor upgradeIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_UPGRADE);
 
     // For non-free users (excluding org-unlimited business/enterprise):
     // show "Enable Additional Usage" or "Increase Budget" depending on overage state.
@@ -319,7 +319,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
     }
 
     // Upsell actions based on the user's plan (legacy wording).
-    ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
+    ImageDescriptor upgradeIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_UPGRADE);
     if (plan == CopilotPlan.free) {
       items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan",
           Messages.menu_quota_updateCopilotToPro, Messages.menu_quota_updateCopilotToProPlus, upgradeIcon));
@@ -339,7 +339,7 @@ public class ShowMenuBarMenuHandler extends CompoundContributionItem implements 
           Messages.menu_configureGitHubCopilotSettings, null));
     }
     items.add(createCommandItem("com.microsoft.copilot.eclipse.commands.signOut", Messages.menu_signOutOfGitHub,
-        UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png")));
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_SIGNOUT)));
   }
 
   /**

@@ -70,6 +70,7 @@ import com.microsoft.copilot.eclipse.core.utils.ChatMessageUtils;
 import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.contextwindow.ContextSizeDonut;
@@ -336,21 +337,6 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Update send to job button and send button together
     updateButtonsLayout();
-
-    this.addDisposeListener(e -> {
-      if (mcpToolImage != null && !mcpToolImage.isDisposed()) {
-        mcpToolImage.dispose();
-      }
-      if (mcpToolDisabledImage != null && !mcpToolDisabledImage.isDisposed()) {
-        mcpToolDisabledImage.dispose();
-      }
-      if (mcpToolDetectedImage != null && !mcpToolDetectedImage.isDisposed()) {
-        mcpToolDetectedImage.dispose();
-      }
-      if (redNoticeImage != null && !redNoticeImage.isDisposed()) {
-        redNoticeImage.dispose();
-      }
-    });
   }
 
   /**
@@ -437,11 +423,11 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Add sendToJob button - only visible if clientPreviewFeaturesEnabled
     if (clientPreviewFeaturesEnabled) {
-      if (sendToJobImage == null || sendToJobImage.isDisposed()) {
-        sendToJobImage = UiUtils.buildImageFromPngPath("/icons/chat/send_to_job.png");
+      if (sendToJobImage == null) {
+        sendToJobImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_TO_JOB);
       }
-      if (sendToJobDisabledImage == null || sendToJobDisabledImage.isDisposed()) {
-        sendToJobDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/send_to_job_disabled.png");
+      if (sendToJobDisabledImage == null) {
+        sendToJobDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_TO_JOB_DISABLED);
       }
 
       this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
@@ -450,6 +436,8 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendToJobButton.setEnabled(hasText);
       this.sendToJobButton.setImage(hasText ? sendToJobImage : sendToJobDisabledImage);
       this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
+      AccessibilityUtils.addAccessibilityNameForUiComponent(this.sendToJobButton,
+          Messages.chat_actionBar_sendToJobButton_Tooltip);
       GridData sendToJobGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
       sendToJobGd.widthHint = sendToJobImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       sendToJobGd.heightHint = sendToJobImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -465,8 +453,8 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Add toggle button for all modes if it has not been created
     if (btnMsgToggle == null || btnMsgToggle.isDisposed()) {
-      this.sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
-      this.sendDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/send_disabled.png");
+      this.sendImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND);
+      this.sendDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_DISABLED);
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
       this.btnMsgToggle.setEnabled(isEnabled);
@@ -484,14 +472,6 @@ public class ActionBar extends Composite implements NewConversationListener {
           } else {
             handleCancelMessage();
           }
-        }
-      });
-      this.btnMsgToggle.addDisposeListener(e -> {
-        if (sendImage != null && !sendImage.isDisposed()) {
-          sendImage.dispose();
-        }
-        if (sendDisabledImage != null && !sendDisabledImage.isDisposed()) {
-          sendDisabledImage.dispose();
         }
       });
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.btnMsgToggle,
@@ -537,19 +517,21 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void setUpMcpToolButtonInControlBar(Composite parent) {
-    if (mcpToolImage == null || mcpToolImage.isDisposed()) {
-      mcpToolImage = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+    if (mcpToolImage == null) {
+      mcpToolImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_TOOLS);
     }
-    if (mcpToolDisabledImage == null || mcpToolDisabledImage.isDisposed()) {
-      mcpToolDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_disabled.png");
+    if (mcpToolDisabledImage == null) {
+      mcpToolDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_TOOLS_DISABLED);
     }
-    if (mcpToolDetectedImage == null || mcpToolDetectedImage.isDisposed()) {
-      mcpToolDetectedImage = UiUtils.buildImageFromPngPath("/icons/chat/tools_detected.png");
+    if (mcpToolDetectedImage == null) {
+      mcpToolDetectedImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_TOOLS_DETECTED);
     }
 
     this.mcpToolButton = UiUtils.createIconButton(parent, SWT.PUSH | SWT.FLAT);
     this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
         mcpToolDisabledImage, mcpToolDetectedImage);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(this.mcpToolButton,
+        Messages.chat_actionBar_toolButton_accessibilityName);
 
     GridData mcpToolGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
     mcpToolGd.widthHint = mcpToolImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
@@ -584,11 +566,11 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void setUpAutoBreakpointButtonInControlBar(Composite parent) {
-    if (autoBreakpointImage == null || autoBreakpointImage.isDisposed()) {
-      autoBreakpointImage = UiUtils.buildImageFromPngPath("/icons/chat/breakpoint_auto.png");
+    if (autoBreakpointImage == null) {
+      autoBreakpointImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_BREAKPOINT_AUTO);
     }
-    if (autoBreakpointDisabledImage == null || autoBreakpointDisabledImage.isDisposed()) {
-      autoBreakpointDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/breakpoint_auto_disabled.png");
+    if (autoBreakpointDisabledImage == null) {
+      autoBreakpointDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_BREAKPOINT_AUTO_DISABLED);
     }
 
     this.autoBreakpointButton = UiUtils.createIconButton(parent, SWT.CHECK | SWT.FLAT);
@@ -884,7 +866,7 @@ public class ActionBar extends Composite implements NewConversationListener {
         break;
       case CANCEL_ENABLED:
         isSendButton = false;
-        Image cancelImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_STOP);
+        Image cancelImage = CopilotImages.getSharedImage(ISharedImages.IMG_ELCL_STOP);
         updateSendOrCancelMsgBtn(true, cancelImage, Messages.chat_actionBar_cancelButton_Tooltip);
         updateSendToJobBtn(false);
         break;
@@ -1090,17 +1072,14 @@ public class ActionBar extends Composite implements NewConversationListener {
     // First menu item
     MenuItem approvalItem = new MenuItem(contextMenu, SWT.NONE);
     approvalItem.setText(Messages.chat_actionBar_toolButton_detected_toolTip);
-    if (redNoticeImage == null || redNoticeImage.isDisposed()) {
-      redNoticeImage = UiUtils.buildImageFromPngPath("/icons/chat/red_notice.png");
+    if (redNoticeImage == null) {
+      redNoticeImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_RED_NOTICE);
     }
     approvalItem.setImage(redNoticeImage);
     approvalItem.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        String res = chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
-        if (StringUtils.isNotBlank(res)) {
-          CopilotUi.getPlugin().getLanguageServerSettingManager().syncMcpRegistrationConfiguration();
-        }
+        chatServiceManager.getMcpExtensionPointManager().approveExtMcpRegistration();
       }
     });
 

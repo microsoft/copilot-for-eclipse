@@ -8,6 +8,8 @@ import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +31,8 @@ import org.eclipse.core.commands.NotEnabledException;
 import org.eclipse.core.commands.NotHandledException;
 import org.eclipse.core.commands.ParameterizedCommand;
 import org.eclipse.core.commands.common.NotDefinedException;
+import org.eclipse.core.filesystem.EFS;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -37,7 +41,6 @@ import org.eclipse.e4.ui.services.IStylingEngine;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.resource.FontRegistry;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.ITextViewerExtension5;
 import org.eclipse.jface.viewers.ISelectionProvider;
@@ -222,6 +225,27 @@ public class UiUtils {
   }
 
   /**
+   * Opens the given local filesystem file in an editor.
+   */
+  public static IEditorPart openLocalFileInEditor(Path file) {
+    if (file == null || !Files.exists(file)) {
+      CopilotCore.LOGGER.error(new IllegalArgumentException("Cannot open editor: local file is null or doesn't exist"));
+      return null;
+    }
+
+    try {
+      IWorkbenchPage page = getActivePage();
+      if (page != null) {
+        IFileStore fileStore = EFS.getLocalFileSystem().getStore(file.toUri());
+        return IDE.openEditorOnFileStore(page, fileStore);
+      }
+    } catch (PartInitException e) {
+      CopilotCore.LOGGER.error(e);
+    }
+    return null;
+  }
+
+  /**
    * Opens the file in the editor.
    */
   public static List<IFile> getOpenedFiles() {
@@ -305,21 +329,6 @@ public class UiUtils {
   }
 
   /**
-   * Resizes the icon at the given path to the given width and height. Icon size is 16x16 by default, which is the
-   * recommended size for toolbar icons. For more details: https://eclipse-platform.github.io/ui-best-practices/#toolbar
-   */
-  public static ImageDescriptor resizeIcon(String path, int width, int height) {
-    ImageLoader loader = new ImageLoader();
-    ImageData[] imageDataArray = loader.load(UiUtils.class.getResourceAsStream(path));
-    if (imageDataArray.length > 0) {
-      ImageData imageData = imageDataArray[0].scaledTo(width, height);
-      Image image = new Image(Display.getDefault(), imageData);
-      return ImageDescriptor.createFromImage(image);
-    }
-    return null;
-  }
-
-  /**
    * Resizes the given image to the given width and height.
    */
   public static Image resizeImage(Display display, Image originalImage, int width, int height) {
@@ -379,20 +388,6 @@ public class UiUtils {
       return ext5.modelLine2WidgetLine(modelLine);
     }
     return modelLine;
-  }
-
-  /**
-   * Builds an image descriptor from a PNG file at the given path.
-   */
-  public static ImageDescriptor buildImageDescriptorFromPngPath(String path) {
-    return ImageDescriptor.createFromURL(UiUtils.class.getResource(path));
-  }
-
-  /**
-   * Builds an image from a PNG file at the given path.
-   */
-  public static Image buildImageFromPngPath(String path) {
-    return buildImageDescriptorFromPngPath(path).createImage();
   }
 
   /**

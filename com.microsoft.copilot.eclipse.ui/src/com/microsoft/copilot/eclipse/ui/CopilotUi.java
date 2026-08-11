@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.net.proxy.IProxyService;
+import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
@@ -18,6 +19,7 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
@@ -42,7 +44,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class CopilotUi extends AbstractUIPlugin {
 
-  private static CopilotUi COPILOT_UI_PLUGIN = null;
+  private static volatile CopilotUi COPILOT_UI_PLUGIN;
 
   private CopilotStatusManager copilotStatusManager;
   private EditorLifecycleListener editorLifecycleListener;
@@ -58,15 +60,24 @@ public class CopilotUi extends AbstractUIPlugin {
    */
   public CopilotUi() {
     super();
-    COPILOT_UI_PLUGIN = this;
   }
 
+  /** Returns the shared plugin instance. */
   public static CopilotUi getPlugin() {
+    Assert.isNotNull(COPILOT_UI_PLUGIN);
     return COPILOT_UI_PLUGIN;
   }
 
   @Override
+  protected void initializeImageRegistry(ImageRegistry registry) {
+    CopilotImages.initialize(registry);
+  }
+
+  @Override
   public void start(BundleContext context) throws Exception {
+    super.start(context);
+    COPILOT_UI_PLUGIN = this;
+
     // Explicitly call method from core to ensure core is activated
     CopilotCore.getPlugin();
 
@@ -226,6 +237,9 @@ public class CopilotUi extends AbstractUIPlugin {
     if (this.chatServiceManager != null) {
       this.chatServiceManager.dispose();
     }
+
+    super.stop(context);
+    COPILOT_UI_PLUGIN = null;
   }
 
   public EditorsManager getEditorsManager() {

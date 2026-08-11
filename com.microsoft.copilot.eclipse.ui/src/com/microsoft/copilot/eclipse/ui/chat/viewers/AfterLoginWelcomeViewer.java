@@ -14,9 +14,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A widget that displays a initial chat introduction.
@@ -82,13 +82,8 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    Image mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
+    Image mainIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_WELCOME);
     this.copilotIconLabel = new Label(iconLabelComposite, SWT.NONE);
-    this.copilotIconLabel.addDisposeListener(e -> {
-      if (mainIcon != null && !mainIcon.isDisposed()) {
-        mainIcon.dispose();
-      }
-    });
     this.copilotIconLabel.setImage(mainIcon);
     this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 
@@ -137,12 +132,7 @@ public class AfterLoginWelcomeViewer extends BaseViewer {
     gridData.minimumHeight = 70;
     instructionComposite.setLayoutData(gridData);
 
-    Image attachContextIcon = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
-    instructionComposite.addDisposeListener(e -> {
-      if (attachContextIcon != null && !attachContextIcon.isDisposed()) {
-        attachContextIcon.dispose();
-      }
-    });
+    Image attachContextIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_ATTACH_CONTEXT);
     buildLabelWithIcon(instructionComposite, attachContextIcon, Messages.chat_initialChatView_attachContextSuffix);
 
     WrapLabel subLabel = new WrapLabel(instructionComposite, SWT.CENTER);

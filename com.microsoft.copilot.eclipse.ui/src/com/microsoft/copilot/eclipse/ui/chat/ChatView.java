@@ -4,7 +4,9 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +34,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.ScrollBar;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
@@ -60,6 +62,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStep;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepTitles;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionCompletedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionStartedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ContextSizeInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -84,7 +88,6 @@ import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
-import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
@@ -148,6 +151,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler autoBreakpointToggleHandler;
   private EventHandler rateLimitWarningHandler;
   private EventHandler quotaWarningHandler;
+  private EventHandler compressionStartedHandler;
+  private EventHandler compressionCompletedHandler;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
@@ -160,6 +165,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private IContextActivation chatViewContextActivation;
   private IPartListener2 partListener;
+
+  /** Controls whose {@link #requestLayout(Control...)} call was suppressed while this view was hidden. */
+  private final Set<Control> pendingLayoutRequests = new LinkedHashSet<>();
 
   @Override
   public void createPartControl(Composite parent) {
@@ -398,6 +406,45 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_QUOTA_WARNING, this.quotaWarningHandler);
 
+    this.compressionStartedHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (!(data instanceof CompressionStartedParams params)) {
+        return;
+      }
+      if (!isCompressionForActiveConversation(params.conversationId())) {
+        return;
+      }
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
+          return;
+        }
+        this.chatContentViewer.showCompactingStatusOnLatestCopilotTurn();
+      }, parent);
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_STARTED,
+        this.compressionStartedHandler);
+
+    this.compressionCompletedHandler = event -> {
+      Object data = event.getProperty(IEventBroker.DATA);
+      if (!(data instanceof CompressionCompletedParams params)) {
+        return;
+      }
+      if (!isCompressionForActiveConversation(params.conversationId())) {
+        return;
+      }
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
+          return;
+        }
+        this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
+        if (params.contextInfo() != null) {
+          this.chatServiceManager.getContextWindowService().updateContextSize(params.contextInfo());
+        }
+      }, parent);
+    };
+    this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_COMPLETED,
+        this.compressionCompletedHandler);
+
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
   }
@@ -475,7 +522,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       @Override
       public void partVisible(IWorkbenchPartReference partRef) {
-        // No action needed
+        // Replay layout requests skipped while this view was hidden behind another part in the same
+        // stack, targeted at just the specific control(s) that changed -- avoids a blind full-tree
+        // relayout of the (possibly long) chat conversation.
+        if (partRef.getPart(false) == ChatView.this) {
+          flushPendingLayoutRequests();
+        }
       }
     };
 
@@ -977,10 +1029,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
-    String processedMessage = replaceWorkspaceCommand(message);
-
     // Persist the user input to history
-    chatServiceManager.getUserPreferenceService().addInputToHistory(processedMessage);
+    chatServiceManager.getUserPreferenceService().addInputToHistory(message);
 
     final ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
 
@@ -1043,7 +1093,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       flushPendingAttachedFiles(this.conversationId);
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, message,
             activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
@@ -1057,7 +1107,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       String turnReasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          processedMessage, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
+          message, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
           customChatModeId, currentTodos, agentSlug, agentJobWorkspaceFolder,
           deriveWorkspaceFolders(currentFile, references));
       conversationFutures.add(addConversationFuture);
@@ -1093,7 +1143,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            message, activeModel, chatModeName, customChatModeId, currentFile, references);
 
         // Set conversationId and last completed turnId for CLS server-side session restoration.
         restoredConversationId = this.conversationId;
@@ -1116,20 +1166,20 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            message, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
       String reasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
-        createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
+        createConversationFuture = ls.createConversation(workDoneToken, message, references, currentFile,
             currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, todosToRestore, null,
             null, restoredConversationId, restoreToTurnId, workspaceFolders);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
-        createConversationFuture = ls.createConversation(workDoneToken, processedMessage, references, currentFile,
+        createConversationFuture = ls.createConversation(workDoneToken, message, references, currentFile,
             currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, null, agentSlug,
             agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
       }
@@ -1210,21 +1260,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
-   * Align with @Workspace of vscode, because we are actually indexing the whole workspace, not a single project.
-   * (@Project is only for IntelliJ.)
-   *
-   * @param message the original message
-   * @return the processed message
+   * Checks whether a compression notification targets either the main conversation or the active subagent
+   * conversation, so the UI can reflect compaction happening at either level.
    */
-  private String replaceWorkspaceCommand(String message) {
-    if (!StringUtils.isBlank(message)
-        && chatServiceManager.getUserPreferenceService().getActiveChatMode() == ChatMode.Ask
-        && message.trim().startsWith(ChatCompletionService.AGENT_MARK + "workspace")) {
-      return message.replaceFirst(ChatCompletionService.AGENT_MARK + "workspace",
-          ChatCompletionService.AGENT_MARK + "project");
-    }
-
-    return message;
+  private boolean isCompressionForActiveConversation(String compressionConversationId) {
+    return StringUtils.equals(compressionConversationId, this.conversationId)
+        || StringUtils.equals(compressionConversationId, this.subagentConversationId);
   }
 
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {
@@ -1376,6 +1417,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     // Reset send button in case the conversation was cancelled while in-progress
     if (this.actionBar != null && !this.actionBar.isDisposed()) {
       this.actionBar.resetSendButton();
+    }
+    if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
+      this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
     }
   }
 
@@ -1565,6 +1609,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         this.eventBroker.unsubscribe(this.quotaWarningHandler);
         quotaWarningHandler = null;
       }
+      if (compressionStartedHandler != null) {
+        this.eventBroker.unsubscribe(this.compressionStartedHandler);
+        compressionStartedHandler = null;
+      }
+      if (compressionCompletedHandler != null) {
+        this.eventBroker.unsubscribe(this.compressionCompletedHandler);
+        compressionCompletedHandler = null;
+      }
     }
 
     if (this.chatServiceManager != null) {
@@ -1640,16 +1692,75 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       getSite().getPage().removePartListener(this.partListener);
       this.partListener = null;
     }
+    pendingLayoutRequests.clear();
     deactivateChatViewContext();
 
     super.dispose();
   }
 
   /**
-   * Layout the view.
+   * Request a layout of the given control(s), which must be part of this view's widget tree.
+   *
+   * <p>Passing every control whose content actually changed (rather than a blind {@code
+   * parent.layout(true, true)}) lets SWT flush exactly those controls' cached sizes -- and only the
+   * ancestor chains leading to them -- so it never touches unrelated subtrees like the chat
+   * conversation history. Passing only a subset of what changed (e.g. a text label but not a
+   * sibling icon label that also changed) will leave the omitted control's cached size stale.
+   *
+   * <p>Skipped while the view isn't visible (e.g. stacked behind another part) to avoid layout cost
+   * on every editor switch; {@code changed} is instead remembered and replayed by {@link
+   * #flushPendingLayoutRequests()} once the view becomes visible again.
+   *
+   * @param changed every control whose content/layout data just changed
    */
-  public void layout(boolean changed, boolean all) {
-    parent.layout(changed, all);
+  public void requestLayout(Control... changed) {
+    if (getSite() == null || getSite().getPage() == null || !getSite().getPage().isPartVisible(this)) {
+      if (changed != null) {
+        Collections.addAll(pendingLayoutRequests, changed);
+      }
+      return;
+    }
+    layoutNow(changed);
+  }
+
+  /**
+   * Replays layout requests that were suppressed by {@link #requestLayout(Control...)} while this
+   * view was hidden, targeted at just the specific control(s) that changed.
+   */
+  private void flushPendingLayoutRequests() {
+    if (pendingLayoutRequests.isEmpty()) {
+      return;
+    }
+    // Snapshot and clear before replaying: a control's requestLayout() could in principle
+    // synchronously trigger a new call back into requestLayout(Control...), which would otherwise
+    // mutate pendingLayoutRequests while it's being iterated.
+    Set<Control> toFlush = new LinkedHashSet<>(pendingLayoutRequests);
+    pendingLayoutRequests.clear();
+    layoutNow(toFlush.toArray(new Control[0]));
+  }
+
+  /**
+   * Flushes cached sizes for exactly the given controls (and the ancestor chains leading to them)
+   * and lays them out, in a single batched pass. Silently ignores {@code null} or disposed
+   * controls.
+   */
+  private void layoutNow(Control... controls) {
+    List<Control> valid = new ArrayList<>();
+    if (controls != null) {
+      for (Control control : controls) {
+        if (control != null && !control.isDisposed()) {
+          valid.add(control);
+        }
+      }
+    }
+    if (valid.isEmpty()) {
+      return;
+    }
+    Shell shell = valid.get(0).getShell();
+    if (shell == null || shell.isDisposed()) {
+      return;
+    }
+    shell.layout(valid.toArray(new Control[0]), SWT.DEFER);
   }
 
   /**
@@ -1756,16 +1867,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       return;
     }
 
-    chatContentViewer.getDisplay().asyncExec(() -> {
-      if (chatContentViewer.isDisposed()) {
-        return;
-      }
-      chatContentViewer.refreshScrollerLayout();
-      ScrollBar verticalBar = chatContentViewer.getVerticalBar();
-      if (verticalBar != null && !verticalBar.isDisposed()) {
-        chatContentViewer.setOrigin(0, verticalBar.getMaximum());
-      }
-    });
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      chatContentViewer.refreshLayoutFull();
+      chatContentViewer.scrollToBottomIfAutoScroll();
+    }, chatContentViewer);
   }
 
   /**
@@ -1784,8 +1889,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
       copilotWidget.renderModelInfo(modelName, billingMultiplier, reasoningEffort);
 
-      // Refresh the scroller layout to ensure the footer is visible
-      SwtUtils.invokeOnDisplayThreadAsync(() -> this.chatContentViewer.refreshScrollerLayout(), this.chatContentViewer);
+      // Refresh the scroller layout to ensure the footer is visible.
+      SwtUtils.invokeOnDisplayThreadAsync(() -> {
+        this.chatContentViewer.refreshLayoutFull();
+        this.chatContentViewer.scrollToBottomIfAutoScroll();
+      }, this.chatContentViewer);
     }
   }
 
@@ -1821,17 +1929,17 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       if (userTurn.getMessage() == null || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
         BaseTurnWidget userTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
         userTurnWidget.appendMessage(userTurn.getMessage().getText());
-        userTurnWidget.notifyTurnEnd();
+        userTurnWidget.flushMessageBuffer();
         return;
       }
     } else if (turn instanceof CopilotTurnData copilotTurn) {
       BaseTurnWidget copilotTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), true, true);
       restoreCopilotTurnContent(copilotTurn, copilotTurnWidget);
 
-      copilotTurnWidget.notifyTurnEnd();
+      copilotTurnWidget.flushMessageBuffer();
 
       // Restore model info footer if model name is present
-      // This must be done AFTER notifyTurnEnd() to ensure footer appears at the bottom
+      // This must be done AFTER flushMessageBuffer() to ensure footer appears at the bottom
       ReplyData replyData = copilotTurn.getReply();
       if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
         // Reasoning effort was captured and persisted at send time so the footer reflects what was actually used

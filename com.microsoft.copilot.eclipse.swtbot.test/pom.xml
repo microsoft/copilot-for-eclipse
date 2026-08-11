@@ -15,6 +15,12 @@
 		<checkstyle.skip>true</checkstyle.skip>
 		<!-- Default to empty; the osx profile below overrides to -XstartOnFirstThread. -->
 		<swtbot.platformArgLine></swtbot.platformArgLine>
+		<!-- This module owns no tests of its own: ProbeRunner exists only to execute the JSON
+		     script named by -Dprobe.script. Without a script it can do nothing, and its @BeforeClass
+		     Assume only fires once Tycho has already provisioned and launched a workbench - which
+		     starts a language server that then outlives the fork. Skip the whole execution instead,
+		     and let the swtbot-probe profile below switch it back on when a script is supplied. -->
+		<swtbot.skipTests>true</swtbot.skipTests>
 	</properties>
 
 	<profiles>
@@ -28,6 +34,19 @@
 			<properties>
 				<!-- SWT on macOS must be started on the main thread. -->
 				<swtbot.platformArgLine>-XstartOnFirstThread</swtbot.platformArgLine>
+			</properties>
+		</profile>
+		<profile>
+			<!-- Activated by -Dprobe.script=<path> on the command line. Profile activation only
+			     considers user properties, so the empty POM default above never triggers it. -->
+			<id>swtbot-probe</id>
+			<activation>
+				<property>
+					<name>probe.script</name>
+				</property>
+			</activation>
+			<properties>
+				<swtbot.skipTests>false</swtbot.skipTests>
 			</properties>
 		</profile>
 	</profiles>
@@ -59,6 +78,7 @@
 				<artifactId>tycho-surefire-plugin</artifactId>
 				<version>${tycho-version}</version>
 				<configuration>
+					<skipTests>${swtbot.skipTests}</skipTests>
 					<useUIHarness>true</useUIHarness>
 					<useUIThread>false</useUIThread>
 					<includes>

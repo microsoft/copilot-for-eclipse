@@ -17,7 +17,9 @@ import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -55,21 +57,18 @@ public class AgentMessageWidget extends Composite {
 
       // Pull request icon
       Label iconLabel = new Label(titleComposite, SWT.TOP);
-      Image prImage = UiUtils.isDarkTheme() ? UiUtils.buildImageFromPngPath("/icons/jobs/pull_request_white.png")
-          : UiUtils.buildImageFromPngPath("/icons/jobs/pull_request_black.png");
+      Image prImage = CopilotImages.getThemedImage(CopilotImages.IMG_JOBS_PULL_REQUEST_BLACK,
+          CopilotImages.IMG_JOBS_PULL_REQUEST_WHITE);
       iconLabel.setImage(prImage);
       iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
-      iconLabel.addDisposeListener(e -> {
-        if (prImage != null && !prImage.isDisposed()) {
-          prImage.dispose();
-        }
-      });
 
       // Title label
       ChatMarkupViewer titleLabel = new ChatMarkupViewer(titleComposite, SWT.LEFT | SWT.WRAP);
       StyledText titleText = titleLabel.getTextWidget();
       titleText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
       titleText.setEditable(false);
+      AccessibilityUtils.addAccessibilityNameForUiComponent(titleText,
+          Messages.agentMessageWidget_titleAccessibilityName);
       titleLabel.setMarkup("**" + params.getTitle() + "**");
     }
 
@@ -83,6 +82,8 @@ public class AgentMessageWidget extends Composite {
       StyledText descText = descLabel.getTextWidget();
       descText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
       descText.setEditable(false);
+      AccessibilityUtils.addAccessibilityNameForUiComponent(descText,
+          Messages.agentMessageWidget_messageAccessibilityName);
 
       String reducedDescription = StringUtils.isBlank(params.getDescription()) ? ""
           : params.getDescription().substring(0, 100) + "...";

@@ -87,14 +87,14 @@ public class CopilotEventConstants {
       + "MCP_CONTRIBUTION_POINT_ENABLED";
 
   /**
-   * Event when the sub-agent policy flag is updated.
-   */
-  public static final String TOPIC_DID_CHANGE_SUB_AGENT_POLICY = TOPIC_POLICY + "SUB_AGENT_ENABLED";
-
-  /**
    * Event when the custom agent policy flag is updated.
    */
   public static final String TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY = TOPIC_POLICY + "CUSTOM_AGENT_ENABLED";
+
+  /**
+   * Event when the Auto model policy flag is updated.
+   */
+  public static final String TOPIC_DID_CHANGE_AUTO_MODEL_POLICY = TOPIC_POLICY + "AUTO_MODEL_ENABLED";
 
   /**
    * Event when the chat mode is changed.
@@ -152,6 +152,17 @@ public class CopilotEventConstants {
   public static final String TOPIC_MCP_SERVER_STATE_CHANGE = TOPIC_MCP + "SERVER_STATE_CHANGE";
 
   /**
+   * Event when the MCP registration extension-point manager has finished detecting and verifying
+   * the contributed servers (either at startup or after a policy toggle / user approval) and the
+   * approved-servers JSON for the language server is ready to be pushed.
+   *
+   * <p>Payload (via {@code IEventBroker.DATA}): the approved-servers JSON {@code String}, or
+   * {@code null} when no extension-contributed servers are approved.
+   */
+  public static final String TOPIC_MCP_EXTENSION_POINT_REGISTRATION_COMPLETED = TOPIC_MCP
+      + "EXTENSION_POINT_REGISTRATION_COMPLETED";
+
+  /**
    * Event when NES suggestion is accepted.
    */
   public static final String TOPIC_NES_ACCEPT_SUGGESTION = TOPIC_NES + "ACCEPT_SUGGESTION";
@@ -172,8 +183,18 @@ public class CopilotEventConstants {
   public static final String TOPIC_QUOTA_WARNING = TOPIC_QUOTA + "WARNING";
 
   /**
-   * Event when custom prompts, skills, agents, or instructions change on the language server. Clients should re-fetch
-   * conversation templates on receipt.
+   * Event when custom prompts, skills, agents, or instructions change on the language server. The event data is the
+   * {@link com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType} that changed.
    */
   public static final String TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES = TOPIC_CHAT + "DID_CHANGE_CUSTOMIZATION_FILES";
+
+  /**
+   * Event when automatic conversation compression starts.
+   */
+  public static final String TOPIC_CHAT_COMPRESSION_STARTED = TOPIC_CHAT + "COMPRESSION_STARTED";
+
+  /**
+   * Event when automatic conversation compression completes.
+   */
+  public static final String TOPIC_CHAT_COMPRESSION_COMPLETED = TOPIC_CHAT + "COMPRESSION_COMPLETED";
 }

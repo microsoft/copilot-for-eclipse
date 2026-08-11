@@ -9,8 +9,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
 
 /**
@@ -40,7 +40,7 @@ public class ErrorWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
     Label icon = new Label(composite, SWT.CENTER);
-    icon.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK));
+    icon.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_ERROR_TSK));
 
     WrapLabel label = new WrapLabel(composite, SWT.LEFT);
     label.setText(message);

@@ -23,6 +23,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
+import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -36,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -65,6 +67,7 @@ public abstract class BaseTurnWidget extends Composite {
   protected int codeBlockIndex;
   protected boolean inSubagentBlock;
   protected String overrideRoleName;
+  private int textBlockIndex;
 
   // Resource
   protected Image icon = null;
@@ -104,6 +107,7 @@ public abstract class BaseTurnWidget extends Composite {
     this.isCopilot = isCopilot;
     this.turnId = turnId;
     this.codeBlockIndex = 1;
+    this.textBlockIndex = 1;
     this.statusLabels = new HashMap<>();
     this.subagentBlocks = new HashMap<>();
     // editor group
@@ -331,7 +335,7 @@ public abstract class BaseTurnWidget extends Composite {
       case "completed":
         // End of subagent block
         if (currentSubagentBlock != null) {
-          currentSubagentBlock.notifyTurnEnd();
+          currentSubagentBlock.flushMessageBuffer();
           inSubagentBlock = false;
           currentSubagentBlock = null;
           requestLayout();
@@ -349,7 +353,7 @@ public abstract class BaseTurnWidget extends Composite {
       case "error":
         // Handle errors in subagent
         if (currentSubagentBlock != null) {
-          currentSubagentBlock.notifyTurnEnd();
+          currentSubagentBlock.flushMessageBuffer();
           inSubagentBlock = false;
           currentSubagentBlock = null;
         }
@@ -443,7 +447,7 @@ public abstract class BaseTurnWidget extends Composite {
       }
     }
 
-    block.notifyTurnEnd();
+    block.flushMessageBuffer();
   }
 
   /**
@@ -521,9 +525,10 @@ public abstract class BaseTurnWidget extends Composite {
   }
 
   /**
-   * Notify the end of the turn.
+   * Flushes any buffered, not-yet-newline-terminated message text by processing it as a final
+   * line and clearing the buffer.
    */
-  public void notifyTurnEnd() {
+  public void flushMessageBuffer() {
     if (messageBuffer.length() > 0) {
       this.processMessageLine(messageBuffer.toString());
       messageBuffer.setLength(0);
@@ -575,6 +580,13 @@ public abstract class BaseTurnWidget extends Composite {
   protected abstract void createTextBlock();
 
   /**
+   * Returns the next unique accessible name for a text block in this turn.
+   */
+  protected String nextTextBlockAccessibilityName(String pattern) {
+    return NLS.bind(pattern, textBlockIndex++);
+  }
+
+  /**
    * Create an optional footer component. Subclasses can override this to define footer structure.
    * The footer is placed at the bottom of the turn widget.
    * This should be called only when there is content to display (e.g., model info is available).
@@ -603,16 +615,16 @@ public abstract class BaseTurnWidget extends Composite {
    * @param code the server error code
    * @param modelProviderName the BYOK model-provider name, or {@code null} for built-in models
    */
-  protected void createWarnDialog(String message, int code, String modelProviderName) {
+  protected Composite createWarnDialog(String message, int code, String modelProviderName) {
     // TODO: Remove this legacy fallback after TBB is officially released.
     // When the language server has not enabled token-based billing yet, restore the original
     // main-branch warning behavior (no plan-driven actions; single upgrade button on the legacy
     // 30-day free trial message).
     if (!this.serviceManager.getAuthStatusManager().getQuotaStatus().tokenBasedBillingEnabled()) {
-      new WarnWidget(this, SWT.BOTTOM, message, code);
+      WarnWidget warnWidget = new WarnWidget(this, SWT.BOTTOM, message, code);
       ensureFooterAtBottom();
       requestLayout();
-      return;
+      return warnWidget;
     }
     boolean byokQuotaExceeded = QuotaActions.isByokQuotaExceeded(code, modelProviderName);
     String displayMessage = byokQuotaExceeded ? Messages.chat_warnWidget_byokQuotaUsageMessage : message;
@@ -626,9 +638,11 @@ public abstract class BaseTurnWidget extends Composite {
           && quotaStatus.premiumInteractions().overagePermitted();
       canUpgradePlan = quotaStatus.canUpgradePlan();
     }
-    new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
+    WarnWidget warnWidget =
+        new WarnWidget(this, SWT.NONE, displayMessage, planForActions, overageEnabled, canUpgradePlan);
     ensureFooterAtBottom();
     requestLayout();
+    return warnWidget;
   }
 
   /**
@@ -653,8 +667,8 @@ public abstract class BaseTurnWidget extends Composite {
     this.confirmDialog.addDisposeListener(e -> {
       Composite ancestor = this.getParent();
       while (ancestor != null && !ancestor.isDisposed()) {
-        if (ancestor instanceof ChatContentViewer) {
-          ((ChatContentViewer) ancestor).requestRefreshScrollerLayout();
+        if (ancestor instanceof ChatContentViewer viewer) {
+          SwtUtils.invokeOnDisplayThreadAsync(() -> viewer.refreshLayoutFull(), viewer);
           break;
         }
         ancestor = ancestor.getParent();
@@ -664,6 +678,19 @@ public abstract class BaseTurnWidget extends Composite {
         .getConfirmationFuture();
 
     this.getParent().requestLayout();
+
+    // Ensure the chat content viewer scrolls to show the newly created confirmation
+    // dialog. Walk up the composite hierarchy to find a ChatContentViewer
+    // and request scrolling. Use async exec because layout needs to complete first.
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      ChatContentViewer viewer = SwtUtils.findParentOfType(this.getParent(), ChatContentViewer.class);
+      if (viewer != null) {
+        if (this.confirmDialog != null && !this.confirmDialog.isDisposed()) {
+          viewer.showControl(this.confirmDialog);
+        }
+      }
+
+    }, this.getParent());
 
     return toolConfirmationFuture;
   }

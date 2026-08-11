@@ -15,6 +15,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -23,7 +24,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * A widget that displays a no Copilot subscription info.
  */
 public class NoSubscriptionViewer extends BaseViewer {
-  private Image mainIcon;
   private Font mainLabelFont;
 
   /**
@@ -49,7 +49,7 @@ public class NoSubscriptionViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_not_authorized.png");
+    Image mainIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_NOT_AUTHORIZED);
     Label icon = new Label(iconLabelComposite, SWT.NONE);
     icon.setImage(mainIcon);
     icon.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
@@ -88,9 +88,6 @@ public class NoSubscriptionViewer extends BaseViewer {
 
   @Override
   public void dispose() {
-    if (this.mainIcon != null) {
-      this.mainIcon.dispose();
-    }
     if (this.mainLabelFont != null) {
       this.mainLabelFont.dispose();
     }

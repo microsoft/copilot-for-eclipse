@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.service.CustomizationFileService;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
@@ -29,6 +30,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private ReferencedFileService referencedFileService;
   private McpConfigService mcpConfigService;
   private McpExtensionPointManager mcpExtensionPointManager;
+  private CustomizationFileService customizationFileService;
 
   private McpRuntimeLogger mcpRuntimeLogger;
   private ConversationPersistenceManager persistenceManager;
@@ -51,10 +53,12 @@ public class ChatServiceManager implements IChatServiceManager {
     referencedFileService = new ReferencedFileService();
     mcpConfigService = new McpConfigService();
     mcpExtensionPointManager = new McpExtensionPointManager(mcpConfigService);
+    customizationFileService = new CustomizationFileService(this.lsConnection);
+    customizationFileService.refreshAllAsync();
     mcpRuntimeLogger = new McpRuntimeLogger();
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
     chatFontService = new ChatFontService();
-    contextWindowService = new ContextWindowService();
+    contextWindowService = new ContextWindowService(modelService);
   }
 
   /**
@@ -140,6 +144,11 @@ public class ChatServiceManager implements IChatServiceManager {
     return mcpConfigService;
   }
 
+  @Override
+  public CustomizationFileService getCustomizationFileService() {
+    return customizationFileService;
+  }
+
   /**
    * Get the persistence manager.
    *
@@ -202,6 +211,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpConfigService.dispose();
+    this.customizationFileService.dispose();
     this.contextWindowService.dispose();
     if (this.byokService != null) {
       this.byokService.dispose();

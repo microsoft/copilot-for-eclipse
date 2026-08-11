@@ -3,10 +3,12 @@
 
 package com.microsoft.copilot.eclipse.ui.jobs;
 
+import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
@@ -17,11 +19,31 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
  */
 public class CopilotJobs extends AbstractUIPlugin {
 
+  private static volatile CopilotJobs COPILOT_JOBS_PLUGIN;
+
+  /**
+   * Returns the shared plugin instance.
+   *
+   * @return the shared plugin instance
+   */
+  public static CopilotJobs getPlugin() {
+    Assert.isNotNull(COPILOT_JOBS_PLUGIN);
+    return COPILOT_JOBS_PLUGIN;
+  }
+
+  @Override
+  protected void initializeImageRegistry(ImageRegistry registry) {
+    CopilotJobsImages.initialize(registry);
+  }
+
   @Override
   public void start(BundleContext context) throws Exception {
     super.start(context);
+    COPILOT_JOBS_PLUGIN = this;
 
+    // Explicitly call method from core to ensure core is activated
     CopilotCore.getPlugin();
+
     Job initWaitJob = new Job("Waiting for Copilot initialization") {
       @Override
       protected IStatus run(IProgressMonitor monitor) {
@@ -42,5 +64,6 @@ public class CopilotJobs extends AbstractUIPlugin {
   @Override
   public void stop(BundleContext context) throws Exception {
     super.stop(context);
+    COPILOT_JOBS_PLUGIN = null;
   }
 }

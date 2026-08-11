@@ -14,6 +14,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelTokenPriceTier;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
@@ -100,6 +101,11 @@ public class ModelUtils {
     if (model.getProviderName() != null) {
       return model.getProviderName();
     }
+    // Organization/enterprise-contributed custom models arrive through copilot/models without a providerName, but
+    // still carry their underlying provider in the custom-model metadata. Surface it so they read like BYOK models.
+    if (model.getCustomModel() != null && StringUtils.isNotBlank(model.getCustomModel().provider())) {
+      return model.getCustomModel().provider();
+    }
     if (isAutoModel(model)) {
       return Messages.model_billing_multiplier_variable;
     }
@@ -162,15 +168,62 @@ public class ModelUtils {
   /**
    * Returns the formatted context window size for the model, or {@code null} if unavailable.
    */
-  private static String getContextWindowText(CopilotModel model) {
+  public static String getContextWindowText(CopilotModel model) {
+    Integer contextWindow = resolveContextWindowSize(model);
+    if (contextWindow == null || contextWindow <= 0) {
+      return null;
+    }
+    return formatTokenCount(contextWindow);
+  }
+
+  /**
+   * Resolves the user-facing context window size for the model, mirroring the language-server / IntelliJ behavior.
+   *
+   * <p>When the model advertises a {@code default} price tier with its own {@code maxContext} (the input budget), the
+   * full window is {@code maxContext + maxOutputTokens}. Otherwise, token-based billing models fall back to
+   * {@code maxInputTokens + maxOutputTokens}, and finally to the advertised {@code maxContextWindowTokens}.
+   *
+   * @param model the model
+   * @return the context window size in tokens, or {@code null} when it cannot be determined
+   */
+  public static Integer resolveContextWindowSize(CopilotModel model) {
     if (model.getCapabilities() == null || model.getCapabilities().limits() == null) {
       return null;
     }
-    Integer maxContextWindowTokens = model.getCapabilities().limits().maxContextWindowTokens();
-    if (maxContextWindowTokens == null || maxContextWindowTokens <= 0) {
+    CopilotModelCapabilitiesLimits limits = model.getCapabilities().limits();
+    Integer maxOutputTokens = limits.maxOutputTokens();
+    int output = maxOutputTokens == null ? 0 : maxOutputTokens;
+
+    CopilotModelTokenPriceTier defaultTier = getDefaultTokenPriceTier(model);
+    if (defaultTier != null && defaultTier.maxContext() != null) {
+      return defaultTier.maxContext() + output;
+    }
+
+    // TODO: Remove this legacy fallback after TBB is officially released.
+    if (isTokenBasedBillingEnabled(model)) {
+      Integer maxInputTokens = limits.maxInputTokens();
+      if (maxInputTokens != null && maxOutputTokens != null) {
+        return maxInputTokens + maxOutputTokens;
+      }
+    }
+
+    return limits.maxContextWindowTokens();
+  }
+
+  // TODO: Remove this legacy fallback after TBB is officially released.
+  private static boolean isTokenBasedBillingEnabled(CopilotModel model) {
+    return model.getBilling() != null && model.getBilling().tokenBasedBillingEnabled();
+  }
+
+  /**
+   * Returns the model's {@code default} token price tier, or {@code null} when the model carries no token-based
+   * pricing.
+   */
+  private static CopilotModelTokenPriceTier getDefaultTokenPriceTier(CopilotModel model) {
+    if (model.getBilling() == null || model.getBilling().tokenPrices() == null) {
       return null;
     }
-    return formatTokenCount(maxContextWindowTokens);
+    return model.getBilling().tokenPrices().defaultTier();
   }
 
   /**
@@ -299,7 +352,7 @@ public class ModelUtils {
    * @return {@code true} when the model is the Auto model
    */
   public static boolean isAutoModel(CopilotModel model) {
-    return model != null && "Auto".equals(model.getModelName());
+    return model != null && "auto".equals(model.getId());
   }
 
   /**

@@ -19,7 +19,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
@@ -27,17 +26,17 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCustomModel;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Renders the full hover UI for model items in the model picker dropdown. The layout consists of the bold title header,
- * an optional category badge, an optional degradation warning, and model-specific details such as context size and
+ * an optional category badge, an optional degradation warning, and model-specific details such as context window and
  * token pricing.
  */
 public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
@@ -49,10 +48,6 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   private static final int THINKING_EFFORT_ROW_H_PADDING = 4;
   /** Vertical padding inside a thinking effort row, so the hover background has breathing room. */
   private static final int THINKING_EFFORT_ROW_V_PADDING = 2;
-
-  private static Image arrowUpIcon;
-  private static Image arrowDownIcon;
-  private static Image effortCheckIcon;
 
   private final CopilotModel model;
   private final IStylingEngine stylingEngine;
@@ -80,9 +75,9 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
       addWarningRow(parent, model.getDegradationReason());
     }
 
-    CopilotModelCapabilitiesLimits limits = model.getCapabilities() != null ? model.getCapabilities().limits() : null;
+    addCustomModelInfoSection(parent, item.getLabel());
 
-    addContextSizeSection(parent, limits);
+    addContextWindowSection(parent);
     addPricingSection(parent, model.getModelPickerPriceCategory());
     addThinkingEffortSection(parent, closeRequest);
   }
@@ -95,49 +90,44 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     titleLabel.setLayoutData(headerGd);
   }
 
-  private void addContextSizeSection(Composite parent, CopilotModelCapabilitiesLimits limits) {
-    if (limits == null) {
+  /**
+   * Renders the "contributed by" line for organization/enterprise-contributed custom (BYOK) models. Mirrors the
+   * IntelliJ model tooltip: the row only appears when the model carries custom-model metadata with a non-blank owner
+   * and key name, communicating that the model was provided by an owner through a specific key.
+   *
+   * @param parent the hover composite to render into
+   * @param displayedName the model name as shown in the hover header
+   */
+  private void addCustomModelInfoSection(Composite parent, String displayedName) {
+    CopilotModelCustomModel customModel = model.getCustomModel();
+    if (customModel == null) {
       return;
     }
-    boolean hasInput = isPositive(limits.maxInputTokens());
-    boolean hasOutput = isPositive(limits.maxOutputTokens());
-    if (!hasInput && !hasOutput) {
+    String ownerName = StringUtils.trimToNull(customModel.ownerName());
+    String keyName = StringUtils.trimToNull(customModel.keyName());
+    if (ownerName == null || keyName == null) {
+      return;
+    }
+
+    String modelLabel = StringUtils.defaultIfBlank(displayedName, model.getModelName());
+    String infoText = NLS.bind(Messages.model_hover_customModelInfo,
+        new Object[] { modelLabel, ownerName, keyName });
+    Label infoLabel = new Label(parent, SWT.WRAP);
+    infoLabel.setText(infoText);
+    setCssClass(infoLabel, POPUP_SECONDARY_TEXT_CLASS);
+    GridData gd = new GridData(SWT.FILL, SWT.NONE, true, false);
+    gd.verticalIndent = SECTION_SPACING;
+    infoLabel.setLayoutData(gd);
+  }
+
+  private void addContextWindowSection(Composite parent) {
+    String contextWindowText = ModelUtils.getContextWindowText(model);
+    if (StringUtils.isBlank(contextWindowText)) {
       return;
     }
 
     addSeparator(parent);
-
-    Composite row = createKeyValueRow(parent);
-    ((GridData) row.getLayoutData()).verticalIndent = SECTION_SPACING;
-
-    // Context Size:
-    Label keyLabel = createSecondaryTextLabel(row, Messages.model_hover_contextSize);
-    keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, false, false));
-
-    Composite valueComp = new Composite(row, SWT.NONE);
-    valueComp.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, true, false));
-    RowLayout valueLayout = new RowLayout(SWT.HORIZONTAL);
-    valueLayout.marginTop = 0;
-    valueLayout.marginBottom = 0;
-    valueLayout.marginLeft = 0;
-    valueLayout.marginRight = 0;
-
-    // Add spacing between input and output token labels if both are present
-    if (hasInput && hasOutput) {
-      valueLayout.spacing = 4;
-    } else {
-      valueLayout.spacing = 0;
-    }
-    valueComp.setLayout(valueLayout);
-
-    // ex. ↑128K
-    if (hasInput) {
-      addArrowTokenLabel(valueComp, true, ModelUtils.formatTokenCount(limits.maxInputTokens()));
-    }
-    // ex. ↓16K
-    if (hasOutput) {
-      addArrowTokenLabel(valueComp, false, ModelUtils.formatTokenCount(limits.maxOutputTokens()));
-    }
+    addKeyValueRow(parent, Messages.model_hover_contextWindow, contextWindowText);
   }
 
   private void addPricingSection(Composite parent, String priceCategory) {
@@ -221,7 +211,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     row.setLayout(rowLayout);
     row.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
 
-    Image checkIcon = getCheckIcon(parent);
+    Image checkIcon = getCheckIcon();
     Label iconLabel = new Label(row, SWT.NONE);
     GridData iconGd = new GridData(SWT.LEFT, SWT.CENTER, false, false);
     if (checkIcon != null) {
@@ -325,63 +315,14 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     return row;
   }
 
-  private void addArrowTokenLabel(Composite parent, boolean isInput, String tokenText) {
-    GridLayout pairLayout = new GridLayout(2, false);
-    pairLayout.marginWidth = 0;
-    pairLayout.marginHeight = 0;
-    pairLayout.horizontalSpacing = 0;
-    Composite pairComp = new Composite(parent, SWT.NONE);
-    pairComp.setLayout(pairLayout);
-
-    initArrowIcons(pairComp);
-    Label arrowLabel = new Label(pairComp, SWT.NONE);
-    Image arrowImage = isInput ? arrowUpIcon : arrowDownIcon;
-    arrowLabel.setImage(arrowImage);
-
-    createSecondaryTextLabel(pairComp, tokenText);
-  }
-
-  private static void initArrowIcons(Composite parent) {
-    if (arrowUpIcon == null || arrowUpIcon.isDisposed()) {
-      boolean isDark = UiUtils.isDarkTheme();
-      arrowUpIcon = UiUtils.buildImageFromPngPath(isDark ? "/icons/dropdown/context_size_arrow_up_dark.png"
-          : "/icons/dropdown/context_size_arrow_up_light.png");
-      arrowDownIcon = UiUtils.buildImageFromPngPath(isDark ? "/icons/dropdown/context_size_arrow_down_dark.png"
-          : "/icons/dropdown/context_size_arrow_down_light.png");
-      parent.getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
-    }
-  }
-
-  private static void disposeStaticIcons() {
-    if (arrowUpIcon != null && !arrowUpIcon.isDisposed()) {
-      arrowUpIcon.dispose();
-      arrowUpIcon = null;
-    }
-    if (arrowDownIcon != null && !arrowDownIcon.isDisposed()) {
-      arrowDownIcon.dispose();
-      arrowDownIcon = null;
-    }
-    if (effortCheckIcon != null && !effortCheckIcon.isDisposed()) {
-      effortCheckIcon.dispose();
-      effortCheckIcon = null;
-    }
-  }
-
   /**
    * Returns the cached check-mark image used to indicate the selected thinking effort row, lazily loaded on first
    * access. The icon shares the asset used by the dropdown popup so the leading column lines up visually with the
    * checkmarks shown next to selected model items.
    */
-  private static Image getCheckIcon(Composite parent) {
-    if (effortCheckIcon == null || effortCheckIcon.isDisposed()) {
-      effortCheckIcon = UiUtils.isDarkTheme()
-          ? UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status_dark.png")
-          : UiUtils.buildImageFromPngPath("/icons/dropdown/dropdown_complete_status.png");
-      if (parent != null && !parent.isDisposed()) {
-        parent.getDisplay().addListener(SWT.Dispose, e -> disposeStaticIcons());
-      }
-    }
-    return effortCheckIcon;
+  private static Image getCheckIcon() {
+    return CopilotImages.getThemedImage(CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS,
+        CopilotImages.IMG_DROPDOWN_COMPLETE_STATUS_DARK);
   }
 
   private static boolean isPositive(Integer value) {

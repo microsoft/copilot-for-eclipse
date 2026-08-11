@@ -17,6 +17,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCustomModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
@@ -131,7 +132,8 @@ class ModelUtilsTests {
   @Test
   void testSupportsReasoningEffortLevel_falseForAutoModel() {
     CopilotModel model = new CopilotModel();
-    model.setModelName("Auto");
+    model.setId("auto");
+    model.setModelName("Automatic");
     // Even if the server were to advertise the capability, the Auto model routes to other models and does not
     // own its own effort selection.
     model.setCapabilities(new CopilotModelCapabilities(
@@ -151,18 +153,50 @@ class ModelUtilsTests {
   }
 
   @Test
-  void testIsAutoModel() {
+  void testGetModelSuffix_customModelUsesProvider() {
+    // Organization-contributed custom models arrive without a providerName but carry their provider in the
+    // custom-model metadata; the suffix should surface that provider like a BYOK model.
+    CopilotModel model = new CopilotModel();
+    model.setModelName("Sonnet (Org)");
+    model.setCustomModel(new CopilotModelCustomModel("Contoso Azure Key", "Contoso", "organization", "Azure"));
+
+    assertEquals("Azure", ModelUtils.getModelSuffix(model, null));
+  }
+
+  @Test
+  void testGetModelSuffix_providerNameTakesPrecedenceOverCustomModel() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("GPT-4o");
+    model.setProviderName("OpenAI");
+    model.setCustomModel(new CopilotModelCustomModel("Key", "Contoso", "organization", "Azure"));
+
+    assertEquals("OpenAI", ModelUtils.getModelSuffix(model, null));
+  }
+
+  @Test
+  void testGetModelSuffix_autoUsesStableModelId() {
     CopilotModel auto = new CopilotModel();
-    auto.setModelName("Auto");
+    auto.setId("auto");
+    auto.setModelName("Automatic");
+    assertEquals("Variable", ModelUtils.getModelSuffix(auto, null));
+
+    CopilotModel matchingDisplayName = new CopilotModel();
+    matchingDisplayName.setId("gpt-5");
+    matchingDisplayName.setModelName("Auto");
+    assertEquals("", ModelUtils.getModelSuffix(matchingDisplayName, null));
+  }
+
+  @Test
+  void testIsAutoModel_usesStableModelId() {
+    CopilotModel auto = new CopilotModel();
+    auto.setId("auto");
+    auto.setModelName("Automatic");
     assertTrue(ModelUtils.isAutoModel(auto));
 
-    CopilotModel autoLower = new CopilotModel();
-    autoLower.setModelName("auto");
-    assertFalse(ModelUtils.isAutoModel(autoLower));
-
-    CopilotModel other = new CopilotModel();
-    other.setModelName("gpt-5");
-    assertFalse(ModelUtils.isAutoModel(other));
+    CopilotModel matchingDisplayName = new CopilotModel();
+    matchingDisplayName.setId("gpt-5");
+    matchingDisplayName.setModelName("Auto");
+    assertFalse(ModelUtils.isAutoModel(matchingDisplayName));
 
     assertFalse(ModelUtils.isAutoModel(null));
   }

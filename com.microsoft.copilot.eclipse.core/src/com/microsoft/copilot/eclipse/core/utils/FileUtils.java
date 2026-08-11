@@ -182,6 +182,53 @@ public class FileUtils {
   }
 
   /**
+   * Resolves an absolute local filesystem path from a path or file URI.
+   *
+   * @param filePath the path or URI to resolve
+   * @return the local filesystem path, or null if the input is not an absolute local path
+   */
+  @Nullable
+  public static Path getLocalFilePath(String filePath) {
+    if (StringUtils.isBlank(filePath)) {
+      return null;
+    }
+
+    try {
+      // For file URIs, '#' is always a fragment delimiter (literal '#' in filenames is encoded as %23).
+      if (filePath.startsWith("file:")) {
+        String uriWithoutFragment = stripFragment(filePath);
+        return Paths.get(new URI(uriWithoutFragment)).toAbsolutePath().normalize();
+      }
+
+      String pathWithoutFragment = stripFragment(filePath);
+      if (URI_SCHEME_PATTERN.matcher(pathWithoutFragment).find() && !hasDriveLetter(pathWithoutFragment)) {
+        return null;
+      }
+
+      // For raw paths, try the full string first since '#' is a valid filename character on Unix/Linux.
+      // Only fall back to stripping the fragment if the full path doesn't exist.
+      Path fullPath = Paths.get(filePath);
+      if (fullPath.isAbsolute()) {
+        if (Files.exists(fullPath)) {
+          return fullPath.toAbsolutePath().normalize();
+        }
+        // Fall back: treat '#...' as a line-number fragment
+        Path strippedPath = Paths.get(pathWithoutFragment);
+        return strippedPath.isAbsolute() ? strippedPath.toAbsolutePath().normalize() : null;
+      }
+      return null;
+    } catch (IllegalArgumentException | URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid local file path: " + filePath, e);
+      return null;
+    }
+  }
+
+  private static String stripFragment(String pathOrUri) {
+    int fragmentIndex = pathOrUri.indexOf('#');
+    return fragmentIndex > 0 ? pathOrUri.substring(0, fragmentIndex) : pathOrUri;
+  }
+
+  /**
    * Normalizes a file path or URI string to a proper file URI string. Handles Windows absolute paths, POSIX absolute
    * paths, and existing URI strings. Line number fragments (e.g., #L123) are preserved.
    *

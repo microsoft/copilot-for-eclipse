@@ -23,7 +23,6 @@ import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
-import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -37,12 +36,15 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.chat.service.IMcpConfigService;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpRuntimeLog;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionCompletedParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CompressionStartedParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationContextParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CurrentEditorContext;
@@ -51,8 +53,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FindFilesResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.FindTextInFilesResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesRequest;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.GetWatchedFilesResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
@@ -76,8 +76,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   private static final String HTTP = "http"; //$NON-NLS-1$
   private static final String COPILOT_FILE_ENCODING_SECTION = "copilot.file.encoding"; //$NON-NLS-1$
-
-  private WatchedFileManager watchedFileManager;
 
   private IEventBroker eventBroker;
 
@@ -183,20 +181,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
     });
   }
 
-  // TODO: Should remove workspace-root folder as the projects are not directly under it in Eclipse, and can cause
-  // confusion in CLS.
-  @Override
-  public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
-    // Ideally, we should return each IProject as a workspace folder, but given that when
-    // creating a new conversation or new conversation turn, the uri of the workspace folder
-    // is required to use the @project (or @workspace) agent. There is no easy way to guess which
-    // IProject should be used. So we are returning the workspace root as a single workspace folder.
-    final WorkspaceFolder folder = new WorkspaceFolder();
-    folder.setUri(PlatformUtils.getWorkspaceRootUri());
-    folder.setName("workspace-root"); // $NON-NLS-1$
-    return CompletableFuture.completedFuture(List.of(folder));
-  }
-
   @Override
   public CompletableFuture<List<Object>> configuration(ConfigurationParams params) {
     return CompletableFuture.supplyAsync(() -> {
@@ -218,17 +202,6 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
       return results;
     });
-  }
-
-  /**
-   * Get the conversation context for the given request.
-   */
-  @JsonRequest("copilot/watchedFiles")
-  public CompletableFuture<GetWatchedFilesResponse> getWatchedFiles(GetWatchedFilesRequest params) {
-    if (watchedFileManager == null) {
-      watchedFileManager = new WatchedFileManager();
-    }
-    return watchedFileManager.getWatchedFilesWithProgress(params);
   }
 
   /**
@@ -262,24 +235,42 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Notify when custom skills change (global or workspace). Signal-only; clients re-fetch templates.
+   * Notify when custom skills change (global or workspace).
    */
   @JsonNotification("copilot/customSkill/didChange")
   public void onDidChangeCustomSkill(Object params) {
-    notifyCustomizationFilesChanged();
+    postCustomizationFilesChanged(CustomizationType.SKILL);
   }
 
   /**
-   * Notify when custom prompts change (global or workspace). Signal-only; clients re-fetch templates.
+   * Notify when custom prompts change (global or workspace).
    */
   @JsonNotification("copilot/customPrompt/didChange")
   public void onDidChangeCustomPrompt(Object params) {
-    notifyCustomizationFilesChanged();
+    postCustomizationFilesChanged(CustomizationType.PROMPT);
   }
 
-  private void notifyCustomizationFilesChanged() {
+  /**
+   * Notify when custom instructions change (global or workspace).
+   */
+  @JsonNotification("copilot/customInstruction/didChange")
+  public void onDidChangeCustomInstruction(Object params) {
+    postCustomizationFilesChanged(CustomizationType.INSTRUCTION);
+  }
+
+  /**
+   * Notify when custom agents change (global or workspace).
+   */
+  @JsonNotification("copilot/customAgent/didChange")
+  public void onDidChangeCustomAgent(Object params) {
+    postCustomizationFilesChanged(CustomizationType.AGENT);
+  }
+
+  // Broadcasts the change on the event bus; subscribers (the customization-file service and the
+  // slash-command service) react without this class depending on them directly.
+  private void postCustomizationFilesChanged(CustomizationType type) {
     if (eventBroker != null) {
-      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, type);
     }
   }
 
@@ -330,15 +321,17 @@ public class CopilotLanguageClient extends LanguageClientImpl {
         eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_MCP_CONTRIBUTION_POINT_POLICY,
             params.isMcpContributionPointEnabled());
       }
-      if (flags.isSubAgentPolicyEnabled() != params.isSubAgentEnabled()) {
-        flags.setSubAgentPolicyEnabled(params.isSubAgentEnabled());
-        eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_SUB_AGENT_POLICY, params.isSubAgentEnabled());
-      }
       if (flags.isCustomAgentPolicyEnabled() != params.isCustomAgentEnabled()) {
         flags.setCustomAgentPolicyEnabled(params.isCustomAgentEnabled());
         eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_CUSTOM_AGENT_POLICY, params.isCustomAgentEnabled());
       }
       flags.setAutoApprovalPolicyEnabled(params.isAutoApprovalPolicyEnabled());
+      if (flags.isAutoModelPolicyEnabled() != params.isAutoModelEnabled()) {
+        flags.setAutoModelPolicyEnabled(params.isAutoModelEnabled());
+        if (eventBroker != null) {
+          eventBroker.post(CopilotEventConstants.TOPIC_DID_CHANGE_AUTO_MODEL_POLICY, params.isAutoModelEnabled());
+        }
+      }
     }
   }
 
@@ -363,6 +356,26 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   public void onQuotaWarning(QuotaWarningParams params) {
     if (eventBroker != null) {
       eventBroker.post(CopilotEventConstants.TOPIC_QUOTA_WARNING, params);
+    }
+  }
+
+  /**
+   * Notify when automatic conversation compression starts.
+   */
+  @JsonNotification("$/copilot/compressionStarted")
+  public void onCompressionStarted(CompressionStartedParams params) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_STARTED, params);
+    }
+  }
+
+  /**
+   * Notify when automatic conversation compression completes.
+   */
+  @JsonNotification("$/copilot/compressionCompleted")
+  public void onCompressionCompleted(CompressionCompletedParams params) {
+    if (eventBroker != null) {
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_COMPLETED, params);
     }
   }
 

@@ -36,6 +36,7 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ConversationUtils;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
@@ -76,10 +77,10 @@ public class ChatHistoryViewer extends Composite {
     this.stylingEngine = PlatformUI.getWorkbench().getService(IStylingEngine.class);
     this.chatFontService = CopilotUi.getPlugin().getChatServiceManager().getChatFontService();
     this.currentConversationId = currentConversationId;
-    this.backImage = UiUtils.buildImageFromPngPath(
-        UiUtils.isDarkTheme() ? "/icons/chat/back_arrow_grey.png" : "/icons/chat/back_arrow.png");
-    this.enterImage = UiUtils.buildImageFromPngPath("/icons/chat/enter.png");
-    this.editImage = UiUtils.buildImageFromPngPath("/icons/chat/chat_history_edit.png");
+    this.backImage = CopilotImages.getThemedImage(CopilotImages.IMG_CHAT_BACK_ARROW,
+        CopilotImages.IMG_CHAT_BACK_ARROW_GREY);
+    this.enterImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_ENTER);
+    this.editImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_HISTORY_EDIT);
 
     // Assign CSS id for styling
     this.setData(CssConstants.CSS_ID_KEY, "chat-history-viewer");
@@ -91,17 +92,6 @@ public class ChatHistoryViewer extends Composite {
     setLayout(layout);
 
     createChatHistoryComposite(conversations, currentConversationId);
-    this.addDisposeListener(e -> {
-      if (backImage != null && !backImage.isDisposed()) {
-        backImage.dispose();
-      }
-      if (enterImage != null && !enterImage.isDisposed()) {
-        enterImage.dispose();
-      }
-      if (editImage != null && !editImage.isDisposed()) {
-        editImage.dispose();
-      }
-    });
   }
 
   /**
@@ -484,7 +474,7 @@ public class ChatHistoryViewer extends Composite {
 
     if (!isCurrentConversation) {
       deleteIcon = new Label(actionsComposite, SWT.NONE);
-      deleteImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
+      deleteImage = CopilotImages.getSharedImage(ISharedImages.IMG_ELCL_REMOVE);
       deleteIcon.setImage(deleteImage);
       deleteIcon.setToolTipText(Messages.chat_historyView_deleteIcon_tooltip);
       deleteIcon.setCursor(Display.getCurrent().getSystemCursor(SWT.CURSOR_HAND));

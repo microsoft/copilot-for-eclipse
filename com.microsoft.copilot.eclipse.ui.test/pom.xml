@@ -15,6 +15,29 @@
 		<checkstyle.skip>true</checkstyle.skip>
 	</properties>
 
+	<profiles>
+		<profile>
+			<id>skip-tests-during-ui-probe</id>
+			<activation>
+				<property>
+					<name>probe.script</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>tycho-surefire-plugin</artifactId>
+						<version>${tycho-version}</version>
+						<configuration>
+							<skipTests>true</skipTests>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 	<build>
 		<plugins>
 			<plugin>

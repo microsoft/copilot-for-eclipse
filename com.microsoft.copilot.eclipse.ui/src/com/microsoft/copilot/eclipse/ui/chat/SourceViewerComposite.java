@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
@@ -29,14 +28,12 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
-import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -57,7 +54,6 @@ public class SourceViewerComposite extends Composite {
   private Composite actionsComposite;
 
   private Image copyIcon;
-  private Image insertIcon;
   private Runnable fontChangeCallback;
 
   /**
@@ -154,6 +150,8 @@ public class SourceViewerComposite extends Composite {
     };
     serviceManager.getChatFontService().registerCallback(fontChangeCallback);
     AccessibilityUtils.addFocusBorderToComposite(styledText);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        Messages.sourceViewerComposite_codeBlockAccessibilityName);
 
     return viewer;
   }
@@ -171,8 +169,9 @@ public class SourceViewerComposite extends Composite {
     layout.pack = true; // Pack the composite tightly
     result.setLayout(layout);
 
-    this.copyIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_COPY);
-    Button copyButton = createActionButton(result, SWT.PUSH | SWT.FLAT, copyIcon, "Copy", "Copy to clipboard");
+    this.copyIcon = CopilotImages.getSharedImage(ISharedImages.IMG_TOOL_COPY);
+    Button copyButton = createActionButton(result, SWT.PUSH | SWT.FLAT, copyIcon, "Copy", "Copy to clipboard",
+        Messages.sourceViewerComposite_copyButtonAccessibilityName);
     copyButton.addListener(SWT.Selection, e -> {
       String content = this.sourceViewer.getDocument().get();
       if (StringUtils.isNotEmpty(content)) {
@@ -181,13 +180,9 @@ public class SourceViewerComposite extends Composite {
       }
     });
 
-    ImageDescriptor insertDesc = AbstractUIPlugin.imageDescriptorFromPlugin(UiConstants.WORKBENCH_TEXTEDITOR,
-        UiConstants.INSERT_ICON);
-    this.insertIcon = Optional.ofNullable(insertDesc).map(desc -> desc.createImage()).orElse(null);
-    Image pasteIcon = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_PASTE);
-    Image insertButtonIcon = this.insertIcon != null ? this.insertIcon : pasteIcon;
-    Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertButtonIcon, "Insert",
-        "Insert into editor");
+    Image insertIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_INSERT_TEMPLATE);
+    Button insertButton = createActionButton(result, SWT.PUSH | SWT.FLAT, insertIcon, "Insert",
+        "Insert into editor", Messages.sourceViewerComposite_insertButtonAccessibilityName);
     insertButton.addListener(SWT.Selection, this::insert);
 
     result.setVisible(false);
@@ -195,9 +190,11 @@ public class SourceViewerComposite extends Composite {
     return result;
   }
 
-  private Button createActionButton(Composite parent, int style, Image image, String text, String tooltip) {
+  private Button createActionButton(Composite parent, int style, Image image, String text, String tooltip,
+      String accessibilityName) {
     Button result = new Button(parent, style);
     result.setToolTipText(tooltip);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(result, accessibilityName);
     result.setVisible(true);
     if (image == null) {
       result.setText(text);
@@ -213,6 +210,24 @@ public class SourceViewerComposite extends Composite {
     return result;
   }
 
+  @Override
+  public Point computeSize(int widthHint, int heightHint, boolean changed) {
+    if (this.sourceViewer == null) {
+      return super.computeSize(widthHint, heightHint, changed);
+    }
+
+    StyledText textWidget = this.sourceViewer.getTextWidget();
+    if (textWidget == null || textWidget.isDisposed()) {
+      return super.computeSize(widthHint, heightHint, changed);
+    }
+
+    Point textSize = textWidget.computeSize(widthHint, SWT.DEFAULT, changed);
+    Rectangle trim = computeTrim(0, 0, textSize.x, getSourceViewerHeight(textWidget, textSize));
+    int width = widthHint == SWT.DEFAULT ? trim.width : widthHint;
+    int height = heightHint == SWT.DEFAULT ? trim.height : heightHint;
+    return new Point(Math.max(0, width), Math.max(0, height));
+  }
+
   private void refreshScrollerLayout() {
     if (this.sourceViewer == null) {
       return;
@@ -224,14 +239,18 @@ public class SourceViewerComposite extends Composite {
       }
       Point size = textWidget.computeSize(SWT.DEFAULT, SWT.DEFAULT);
       Rectangle clientArea = this.getClientArea();
-      // remove scroll-bar height
-      ScrollBar horizontalBar = textWidget.getHorizontalBar();
-      int scrollbarHeight = horizontalBar != null ? horizontalBar.getSize().y : 0;
-      int height = size.y - scrollbarHeight;
+      int height = getSourceViewerHeight(textWidget, size);
       // Set bounds on SourceViewer's control (the direct child), not just the textWidget
       this.sourceViewer.getControl().setBounds(0, 0, clientArea.width, height);
       textWidget.redraw();
     });
+  }
+
+  private int getSourceViewerHeight(StyledText textWidget, Point textSize) {
+    // remove scroll-bar height
+    ScrollBar horizontalBar = textWidget.getHorizontalBar();
+    int scrollbarHeight = horizontalBar != null ? horizontalBar.getSize().y : 0;
+    return Math.max(0, textSize.y - scrollbarHeight);
   }
 
   private void insert(Event e) {
@@ -303,9 +322,6 @@ public class SourceViewerComposite extends Composite {
     super.dispose();
     if (fontChangeCallback != null) {
       serviceManager.getChatFontService().unregisterCallback(fontChangeCallback);
-    }
-    if (insertIcon != null) {
-      insertIcon.dispose();
     }
   }
 

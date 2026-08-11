@@ -9,15 +9,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -45,6 +48,9 @@ class FileOperationConfirmationHandlerTests {
 
   private AttachedFileRegistry attachedFileRegistry;
   private FileOperationConfirmationHandler handler;
+
+  @TempDir
+  private Path customizationBase;
 
   @BeforeEach
   void setUp() {
@@ -675,6 +681,90 @@ class FileOperationConfirmationHandlerTests {
     InvokeClientToolConfirmationParams params =
         buildParams("/external/dir/another.txt", true);
     assertTrue(evaluate(params, CONV_ID).isAutoApproved());
+  }
+
+  // --- customization file read recognition (isCustomizationRead) ---
+
+  private Set<Path> customizationFiles() {
+    return Set.of(
+        customizationBase.resolve(".github/prompts/example.prompt.md"),
+        customizationBase.resolve(".github/instructions/coding.instructions.md"),
+        customizationBase.resolve(".github/agents/my.agent.md"));
+  }
+
+  private Set<Path> skillFolders() {
+    return Set.of(customizationBase.resolve(".github/skills/demo"));
+  }
+
+  @Test
+  void isCustomizationRead_promptFileExactMatch_isTrue() {
+    Path prompt = customizationBase.resolve(".github/prompts/example.prompt.md");
+    assertTrue(FileOperationConfirmationHandler.isCustomizationRead(
+        prompt, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_instructionFileExactMatch_isTrue() {
+    Path instruction = customizationBase.resolve(".github/instructions/coding.instructions.md");
+    assertTrue(FileOperationConfirmationHandler.isCustomizationRead(
+        instruction, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_agentFileExactMatch_isTrue() {
+    Path agent = customizationBase.resolve(".github/agents/my.agent.md");
+    assertTrue(FileOperationConfirmationHandler.isCustomizationRead(
+        agent, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_skillMarkdownInsideFolder_isTrue() {
+    Path skill = customizationBase.resolve(".github/skills/demo/SKILL.md");
+    assertTrue(FileOperationConfirmationHandler.isCustomizationRead(
+        skill, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_skillHelperFileInsideFolder_isTrue() {
+    Path helper = customizationBase.resolve(".github/skills/demo/notes.md");
+    assertTrue(FileOperationConfirmationHandler.isCustomizationRead(
+        helper, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_nestedSkillHelperFile_isTrue() {
+    Path helper = customizationBase.resolve(".github/skills/demo/scripts/run.py");
+    assertTrue(FileOperationConfirmationHandler.isCustomizationRead(
+        helper, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_unrelatedFile_isFalse() {
+    Path other = customizationBase.resolve("src/Main.java");
+    assertFalse(FileOperationConfirmationHandler.isCustomizationRead(
+        other, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_promptOutsideReportedSet_isFalse() {
+    // A *.prompt.md the language server did not report must not be auto-approved.
+    Path loose = customizationBase.resolve("docs/other.prompt.md");
+    assertFalse(FileOperationConfirmationHandler.isCustomizationRead(
+        loose, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_fileInUnreportedSkillFolder_isFalse() {
+    Path other = customizationBase.resolve(".github/skills/other/SKILL.md");
+    assertFalse(FileOperationConfirmationHandler.isCustomizationRead(
+        other, customizationFiles(), skillFolders()));
+  }
+
+  @Test
+  void isCustomizationRead_emptyInputs_isFalse() {
+    Path prompt = customizationBase.resolve(".github/prompts/example.prompt.md");
+    assertFalse(FileOperationConfirmationHandler.isCustomizationRead(
+        prompt, Set.of(), Set.of()));
   }
 
   // --- Helpers ---

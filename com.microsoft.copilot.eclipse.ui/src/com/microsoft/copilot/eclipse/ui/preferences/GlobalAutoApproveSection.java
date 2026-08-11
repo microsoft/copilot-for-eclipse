@@ -15,9 +15,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 
 /**
  * Global auto-approve preference section with a YOLO mode checkbox
@@ -80,8 +80,7 @@ public class GlobalAutoApproveSection extends Composite {
     });
 
     Label warningIcon = new Label(yoloRow, SWT.NONE);
-    warningIcon.setImage(PlatformUI.getWorkbench().getSharedImages()
-        .getImage(ISharedImages.IMG_OBJS_WARN_TSK));
+    warningIcon.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK));
     warningIcon.setToolTipText(wrapTooltip(
         Messages.preferences_page_global_auto_approve_confirm_message));
     warningIcon.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));

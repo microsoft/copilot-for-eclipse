@@ -9,7 +9,6 @@ import org.eclipse.jface.preference.IPreferenceStore;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.AutoApprovePreferencePage;
@@ -38,16 +37,12 @@ public class PreferencesUtils {
   }
 
   /**
-   * Returns whether the skills feature is enabled. Skills require both the user preference
-   * {@link Constants#ENABLE_SKILLS} to be set and the client preview feature flag to be enabled.
+   * Returns whether the skills feature is enabled.
    *
    * @return {@code true} if skills are enabled, {@code false} otherwise
    */
   public static boolean isSkillsEnabled() {
-    CopilotCore plugin = CopilotCore.getPlugin();
-    FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
-    return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS)
-        && flags != null && flags.isClientPreviewFeatureEnabled();
+    return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS);
   }
 
   /**

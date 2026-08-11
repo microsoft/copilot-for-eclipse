@@ -22,7 +22,6 @@ import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
-import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
@@ -269,18 +268,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     // Set the file location column to take remaining width (table width - project name column width)
     fileLocationColumn.setWidth(tableGridData.widthHint > 0 ? tableGridData.widthHint - 150 : 400);
 
-    // Add resize listener to make the file location column take remaining width
-    table.addControlListener(new ControlAdapter() {
-      @Override
-      public void controlResized(org.eclipse.swt.events.ControlEvent e) {
-        int tableWidth = table.getClientArea().width;
-        int projectNameWidth = projectNameColumn.getWidth();
-        int remainingWidth = tableWidth - projectNameWidth;
-        if (remainingWidth > 100) { // Minimum width for file location column
-          fileLocationColumn.setWidth(remainingWidth);
-        }
-      }
-    });
+    SwtUtils.resizeColumnToFillTable(table, fileLocationColumn, 100, projectNameColumn);
 
     // Populate table with actual workspace projects
     populateProjectTable(table);

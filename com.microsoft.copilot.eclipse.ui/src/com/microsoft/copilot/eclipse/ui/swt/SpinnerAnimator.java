@@ -7,22 +7,21 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 
 /**
  * Drives a rotating spinner animation on a target {@link Label}.
  *
- * <p>The animator owns the lifecycle of the per-frame {@link Image} resources: each new frame is
- * loaded, the previous one is disposed, and {@link #stop()} guarantees that the label no longer
- * holds a reference to a disposed image. After {@link #stop()} the caller is free to swap in a
- * final image (e.g. a "completed" icon) on the same label.
+ * <p>Frames are taken from the image registry ({@link CopilotImages}) and must never be disposed.
+ * {@link #stop()} only detaches the current frame from the label so the caller can swap
+ * in a final image (e.g. a "completed" icon) on the same label.
  *
- * <p>The animator hooks the target label's dispose listener so the animation is cancelled and the
- * running frame is freed automatically when the label goes away.
+ * <p>The animator hooks the target label's dispose listener so the animation is cancelled
+ * automatically when the label goes away.
  */
 public final class SpinnerAnimator {
-  /** Total number of frames in the spinner animation under {@code /icons/spinner/}. */
-  private static final int TOTAL_FRAMES = 8;
+  /** Total number of frames. */
+  private static final int TOTAL_FRAMES = CopilotImages.SPINNER_FRAME_COUNT;
   /** Per-frame interval in milliseconds. */
   private static final int FRAME_INTERVAL_MS = 100;
 
@@ -58,10 +57,6 @@ public final class SpinnerAnimator {
         if (target.isDisposed()) {
           return;
         }
-        // Dispose the previous frame before loading the next one.
-        if (currentFrameImage != null && !currentFrameImage.isDisposed()) {
-          currentFrameImage.dispose();
-        }
         currentFrameImage = buildFrame(currentFrame);
         target.setImage(currentFrameImage);
         // Request layout so the icon scale stays correct as frames change.
@@ -74,27 +69,23 @@ public final class SpinnerAnimator {
   }
 
   /**
-   * Stop the animation and release the frame image. Detaches the image from the target label
-   * before disposing it so the label never points at a disposed image. Safe to call repeatedly.
+   * Stop the animation and detach the current frame from the target label.
+   * Frames owned by the image registry are never disposed. Safe to call repeatedly.
    */
   public void stop() {
     if (animationRunnable != null && !target.isDisposed()) {
       target.getDisplay().timerExec(-1, animationRunnable);
     }
     animationRunnable = null;
-    // Detach the image from the label before disposing it so the label never points at a
-    // disposed image. Callers that want a final icon (completed/cancelled/error) set it
-    // immediately after stop(), avoiding any visible flicker.
+    // Detach the registry-owned frame from the label. Callers that want a final icon
+    // (completed/cancelled/error) set it immediately after stop(), avoiding any visible flicker.
     if (!target.isDisposed() && target.getImage() == currentFrameImage) {
       target.setImage(null);
-    }
-    if (currentFrameImage != null && !currentFrameImage.isDisposed()) {
-      currentFrameImage.dispose();
     }
     currentFrameImage = null;
   }
 
   private static Image buildFrame(int frame) {
-    return UiUtils.buildImageFromPngPath(String.format("/icons/spinner/%d.png", frame));
+    return CopilotImages.getSpinnerFrame(frame);
   }
 }

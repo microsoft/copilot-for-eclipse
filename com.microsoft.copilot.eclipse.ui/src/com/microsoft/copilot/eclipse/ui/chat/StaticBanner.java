@@ -18,8 +18,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -64,7 +64,7 @@ public class StaticBanner extends Composite {
     // Severity icon
     Label iconLabel = new Label(this, SWT.NONE);
     String iconKey = warning ? ISharedImages.IMG_OBJS_WARN_TSK : ISharedImages.IMG_OBJS_INFO_TSK;
-    Image iconImage = PlatformUI.getWorkbench().getSharedImages().getImage(iconKey);
+    Image iconImage = CopilotImages.getSharedImage(iconKey);
     iconLabel.setImage(iconImage);
     iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
 
@@ -75,7 +75,7 @@ public class StaticBanner extends Composite {
 
     // Close (×) button
     Label closeButton = new Label(this, SWT.NONE);
-    Image closeImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ELCL_REMOVE);
+    Image closeImage = CopilotImages.getSharedImage(ISharedImages.IMG_ELCL_REMOVE);
     closeButton.setImage(closeImage);
     closeButton.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, false));
     closeButton.setToolTipText(closeTooltip);
