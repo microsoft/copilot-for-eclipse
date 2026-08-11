@@ -235,6 +235,18 @@ class ModelUtilsTests {
   }
 
   @Test
+  void testGetContextWindowOptions_deduplicatesEquivalentTiersWithDefaultPrecedence() {
+    CopilotModel model = modelWithTiers(1000000, 1000000, 16000);
+
+    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
+
+    assertEquals(1, options.size());
+    assertTrue(options.get(0).isDefault());
+    assertEquals(1000000, options.get(0).maxContext());
+    assertFalse(ModelUtils.supportsContextWindowSelection(model));
+  }
+
+  @Test
   void testGetContextWindowOptions_emptyWhenNoTokenPrices() {
     CopilotModel model = new CopilotModel();
     model.setModelName("gpt-5");

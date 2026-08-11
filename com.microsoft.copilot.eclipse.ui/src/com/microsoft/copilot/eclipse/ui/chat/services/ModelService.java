@@ -552,9 +552,6 @@ public class ModelService extends ChatBaseService {
    * @return the selected context-window size, or {@code null}
    */
   private Integer getSelectedContextWindow(CopilotModel model) {
-    if (model == null) {
-      return null;
-    }
     UserPreference preference = getUserPreference();
     return preference != null ? preference.getContextWindow(model.getModelKey()) : null;
   }

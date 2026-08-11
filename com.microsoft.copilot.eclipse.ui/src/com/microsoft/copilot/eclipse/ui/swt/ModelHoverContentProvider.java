@@ -220,15 +220,15 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
     Label keyLabel = createSecondaryTextLabel(section, titleText);
     keyLabel.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
-    Composite optionsComposite = new Composite(section, SWT.NONE);
-    optionsComposite.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    Composite options = new Composite(section, SWT.NONE);
+    options.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
     GridLayout optionsLayout = new GridLayout(1, false);
     optionsLayout.marginWidth = 0;
     optionsLayout.marginHeight = 0;
     optionsLayout.verticalSpacing = 2;
-    optionsComposite.setLayout(optionsLayout);
+    options.setLayout(optionsLayout);
 
-    return optionsComposite;
+    return options;
   }
 
   private void populateThinkingEffortOptions(Composite options, List<String> efforts, Runnable closeRequest) {

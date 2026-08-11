@@ -243,9 +243,10 @@ public class ModelUtils {
   }
 
   /**
-   * Returns the selectable context-window sizes a model offers, one per billing price tier ({@code default},
-   * {@code longContext}), in display order. Returns an empty list when the model carries no token-based pricing. When
-   * the {@code default} tier omits its own {@code maxContext}, falls back to the advertised
+    * Returns the selectable context-window sizes a model offers, one per distinct billing price-tier
+    * {@code maxContext} ({@code default}, {@code longContext}), in display order. When tiers have the same
+    * {@code maxContext}, the default tier takes precedence. Returns an empty list when the model carries no token-based
+    * pricing. When the {@code default} tier omits its own {@code maxContext}, falls back to the advertised
    * {@code maxContextWindowTokens} so the default tier still has a size.
    *
    * @param model the model
@@ -269,7 +270,11 @@ public class ModelUtils {
     }
     CopilotModelTokenPriceTier longContextTier = tokenPrices.longContext();
     if (longContextTier != null && longContextTier.maxContext() != null && longContextTier.maxContext() > 0) {
-      options.add(new ContextWindowOption(longContextTier.maxContext(), longContextTier, false));
+      boolean duplicateMaxContext = options.stream()
+          .anyMatch(option -> option.maxContext() == longContextTier.maxContext());
+      if (!duplicateMaxContext) {
+        options.add(new ContextWindowOption(longContextTier.maxContext(), longContextTier, false));
+      }
     }
     return options;
   }
@@ -292,8 +297,8 @@ public class ModelUtils {
 
   /**
    * Returns whether the user can select among multiple context-window sizes for the model. True only when the model
-   * advertises more than one price tier (a {@code default} tier and a {@code longContext} tier), so a single-tier
-   * model keeps its static, non-selectable context-window row.
+    * advertises more than one distinct context-window size, so a single-tier model keeps its static, non-selectable
+    * context-window row.
    *
    * @param model the model
    * @return {@code true} when a selectable context-window UI should be shown
