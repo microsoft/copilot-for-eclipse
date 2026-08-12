@@ -205,28 +205,30 @@ public class UserPreference {
    * the old or the new snapshot, never a partially mutated map.
    *
    * @param modelKey the composite model key (matching the {@link #getChatModel()} format)
-    * @param contextWindow the context-window size to store, or {@code null} to clear
+   * @param contextWindow the context-window size to store, or {@code null} to clear
+   * @return {@code true} when the stored context window changed, {@code false} otherwise
    */
-  public synchronized void setContextWindow(String modelKey, Integer contextWindow) {
+  public synchronized boolean setContextWindow(String modelKey, Integer contextWindow) {
     if (modelKey == null) {
-      return;
+      return false;
     }
     Map<String, Integer> current = contextWindowByModel;
     if (contextWindow == null) {
       if (!current.containsKey(modelKey)) {
-        return;
+        return false;
       }
       Map<String, Integer> next = new HashMap<>(current);
       next.remove(modelKey);
       contextWindowByModel = Map.copyOf(next);
-      return;
+      return true;
     }
     if (contextWindow.equals(current.get(modelKey))) {
-      return;
+      return false;
     }
     Map<String, Integer> next = new HashMap<>(current);
     next.put(modelKey, contextWindow);
     contextWindowByModel = Map.copyOf(next);
+    return true;
   }
 
   /**

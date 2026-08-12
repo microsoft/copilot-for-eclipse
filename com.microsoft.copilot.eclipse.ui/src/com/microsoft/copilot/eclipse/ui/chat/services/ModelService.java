@@ -379,6 +379,10 @@ public class ModelService extends ChatBaseService {
         .findFirst()
         .orElse(null);
     if (model != null) {
+      CopilotModel activeModel = getActiveModel();
+      if (activeModel != null && activeModel.getModelKey().equals(model.getModelKey())) {
+        return;
+      }
       // Persist asynchronously to avoid deadlock: persistUserPreference() calls
       // persistence().get() which blocks waiting for the LSP listener thread.
       // If called on the UI thread while the listener is in syncExec, both threads
@@ -607,7 +611,7 @@ public class ModelService extends ChatBaseService {
    * Persists the user-selected context-window size for the given model and updates dependent observers.
    *
    * @param model the model to update
-    * @param contextWindow the context-window size to store, or {@code null} to clear
+   * @param contextWindow the context-window size to store, or {@code null} to clear
    */
   public void setSelectedContextWindow(CopilotModel model, Integer contextWindow) {
     if (model == null) {
@@ -617,7 +621,9 @@ public class ModelService extends ChatBaseService {
     if (preference == null) {
       return;
     }
-    preference.setContextWindow(model.getModelKey(), contextWindow);
+    if (!preference.setContextWindow(model.getModelKey(), contextWindow)) {
+      return;
+    }
     CompletableFuture.runAsync(this::persistUserPreference);
     // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
     // resolveEffectiveContextWindowText (which queries UserPreference), so this observable serves purely as a change
