@@ -220,9 +220,13 @@ class ModelServiceTests {
     modelService = new ModelService(lsConnection, authStatusManager);
     waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
 
-    modelService.setActiveModel(defaultModel.getModelName());
+    AtomicReference<CopilotModel> activeModel = new AtomicReference<>();
+    Display.getDefault().syncExec(() -> {
+      modelService.setActiveModel(defaultModel.getModelName());
+      activeModel.set(modelService.getActiveModel());
+    });
 
-    assertSame(defaultModel, modelService.getActiveModel());
+    assertSame(defaultModel, activeModel.get());
     Thread.sleep(100);
     assertFalse(Files.exists(getPreferenceFile()));
   }
