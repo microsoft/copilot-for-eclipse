@@ -68,4 +68,5 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.21.0",
  org.eclipse.ui.editors,
  org.eclipse.debug.core;resolution:=optional,
  org.eclipse.jdt.core;resolution:=optional,
+ org.eclipse.jdt.ui;resolution:=optional,
  org.eclipse.jdt.debug;resolution:=optional

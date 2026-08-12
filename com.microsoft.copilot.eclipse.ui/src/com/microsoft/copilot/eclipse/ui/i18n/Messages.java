@@ -20,6 +20,8 @@ public final class Messages extends NLS {
   public static String menu_turnOnCompletions;
   public static String menu_turnOffCompletions;
   public static String menu_openChatView;
+  public static String quickFix_fixWithCopilot;
+  public static String quickFix_prompt;
   public static String menu_quota_copilotUsage;
   public static String menu_quota_codeCompletions;
   public static String menu_quota_chatMessages;

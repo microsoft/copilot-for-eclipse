@@ -7,6 +7,14 @@
 			class="com.microsoft.copilot.eclipse.ui.StartUp">
 		</startup>
 	</extension>
+	<extension
+		point="org.eclipse.jdt.ui.quickAssistProcessors">
+		<quickAssistProcessor
+			class="com.microsoft.copilot.eclipse.ui.quickfix.JavaCopilotQuickAssistProcessor"
+			id="com.microsoft.copilot.eclipse.ui.quickfix.java"
+			name="%quickAssist.processor.name">
+		</quickAssistProcessor>
+	</extension>
 
 	<!-- Extension Points Definition -->
 	<extension-point
