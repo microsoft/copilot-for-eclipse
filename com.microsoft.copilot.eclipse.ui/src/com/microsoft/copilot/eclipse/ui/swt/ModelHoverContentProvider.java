@@ -122,11 +122,10 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
   }
 
   private void addContextWindowSection(Composite parent, Runnable closeRequest) {
-    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
-    if (options.size() >= 2) {
+    if (ModelUtils.supportsContextWindowSelection(model)) {
       // Multiple price tiers -> let the user pick a context-window size, mirroring the thinking-effort section.
       Composite optionsComposite = createOptionsSection(parent, Messages.model_hover_contextWindow_title);
-      populateContextWindowOptions(optionsComposite, options, closeRequest);
+      populateContextWindowOptions(optionsComposite, ModelUtils.getContextWindowOptions(model), closeRequest);
       return;
     }
 
