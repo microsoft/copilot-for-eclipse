@@ -268,7 +268,7 @@ public class ModelHoverContentProvider implements IDropdownItemHoverProvider {
         // to update its label/suffix so the dropdown control reflects the (model, effort) pair the user just
         // chose -- even when they clicked an effort on a non-active model.
         modelService.setSelectedReasoningEffort(model, effort);
-        modelService.setActiveModel(model.getModelName());
+        modelService.setActiveModel(model.getModelKey());
         // Close the entire dropdown (hover + main popup) via the host-provided callback so the user sees an
         // immediate dismiss. Next time the dropdown opens, refreshBoundModelPickers (invoked from
         // setSelectedReasoningEffort) has updated the model row's suffix to reflect the newly selected effort.

@@ -58,7 +58,6 @@ public class ModelService extends ChatBaseService {
   private Map<String, CopilotModel> copilotModels = new HashMap<>();
   private Map<String, CopilotModel> registeredByokModels = new HashMap<>();
   private CopilotModel defaultModel;
-  private CopilotModel fallbackModel;
 
   private ChatMode currentChatMode = ChatMode.Agent;
 
@@ -152,8 +151,11 @@ public class ModelService extends ChatBaseService {
         currentChatMode = ChatMode.Agent;
         updateModelsForChatMode(ChatMode.Agent);
 
-        // Then switch to the specified model (setActiveModel will be called after models are loaded)
-        setActiveModel(modelName);
+        // Resolve name to key, then activate
+        String modelKey = findModelKeyByName(modelName);
+        if (modelKey != null) {
+          setActiveModel(modelKey);
+        }
       }
     };
   }
@@ -202,7 +204,6 @@ public class ModelService extends ChatBaseService {
     CopilotModel[] modelArray = lsConnection.listModels().get();
     Map<String, CopilotModel> newModels = new HashMap<>();
     CopilotModel newDefaultModel = null;
-    CopilotModel newFallbackModel = null;
 
     for (CopilotModel model : modelArray) {
       boolean supportsChat = model.getScopes().contains(CopilotScope.CHAT_PANEL);
@@ -213,14 +214,10 @@ public class ModelService extends ChatBaseService {
       if (model.isChatDefault()) {
         newDefaultModel = model;
       }
-      if (model.isChatFallback()) {
-        newFallbackModel = model;
-      }
     }
 
     copilotModels = newModels;
     defaultModel = newDefaultModel;
-    fallbackModel = newFallbackModel;
   }
 
   private void fetchByokModels() throws InterruptedException, ExecutionException {
@@ -357,28 +354,35 @@ public class ModelService extends ChatBaseService {
     }
   }
 
-  /**
-   * Set the active model by name.
-   *
-   * @param modelName the name of the model
-   */
-  public void setActiveModel(String modelName) {
+  // TODO(#261): if a BYOK model and a native model share the same modelName this returns the first
+  // match regardless of provider. Fix by extending the custom-mode event protocol to carry the
+  // composite key so the lookup can be unambiguous.
+  private String findModelKeyByName(String modelName) {
     Map<String, CopilotModel> currentModels = modelObservable.getValue();
-
-    final CopilotModel model = currentModels.values().stream()
-        .filter(candidateModel -> candidateModel.getModelName().equals(modelName))
-        .findFirst()
-        .orElse(null);
-    if (model != null) {
-      // Persist asynchronously to avoid deadlock: persistUserPreference() calls
-      // persistence().get() which blocks waiting for the LSP listener thread.
-      // If called on the UI thread while the listener is in syncExec, both threads
-      // deadlock.
-      persistModelSelection(model);
-
-      // Update observable
-      ensureRealm(() -> activeModelObservable.setValue(model));
+    for (Map.Entry<String, CopilotModel> entry : currentModels.entrySet()) {
+      if (entry.getValue().getModelName().equals(modelName)) {
+        return entry.getKey();
+      }
     }
+    return null;
+  }
+
+  /**
+   * Set the active model by its composite key.
+   *
+   * @param modelKey the composite key of the model
+   */
+  public void setActiveModel(String modelKey) {
+    CopilotModel model = modelObservable.getValue().get(modelKey);
+    if (model == null) {
+      return;
+    }
+    // Persist asynchronously to avoid deadlock: persistUserPreference() calls
+    // persistence().get() which blocks waiting for the LSP listener thread.
+    // If called on the UI thread while the listener is in syncExec, both threads
+    // deadlock.
+    persistModelSelection(model);
+    ensureRealm(() -> activeModelObservable.setValue(model));
   }
 
   /**
@@ -397,24 +401,6 @@ public class ModelService extends ChatBaseService {
    */
   public Map<String, CopilotModel> getModels() {
     return modelObservable.getValue();
-  }
-
-  /**
-   * Get the fallback model.
-   *
-   * @return the fallback model
-   */
-  public CopilotModel getFallbackModel() {
-    return fallbackModel;
-  }
-
-  /**
-   * Set the fallback model as the active model.
-   */
-  public void setFallBackModelAsActiveModel() {
-    if (fallbackModel != null) {
-      setActiveModel(fallbackModel.getModelName());
-    }
   }
 
   /**
@@ -568,7 +554,7 @@ public class ModelService extends ChatBaseService {
             if (activeModel == null || picker.isDisposed()) {
               return;
             }
-            picker.setSelectedItemId(activeModel.getModelName());
+            picker.setSelectedItemId(activeModel.getModelKey());
             String suffix = StringUtils.isNotBlank(activeModel.getDegradationReason())
                 ? " - " + activeModel.getDegradationReason() : "";
             picker.setToolTipText(NLS.bind(Messages.chat_actionBar_modelPicker_Tooltip, suffix));
