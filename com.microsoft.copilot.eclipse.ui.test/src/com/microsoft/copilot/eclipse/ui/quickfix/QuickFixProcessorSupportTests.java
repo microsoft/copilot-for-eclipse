@@ -18,6 +18,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.swt.graphics.Point;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,9 +59,9 @@ class QuickFixProcessorSupportTests {
     createMarker("Fix the second line", 11, 25, 2);
 
     assertEquals(List.of("Fix the second line"),
-        QuickFixProcessorSupport.findProblemMessages(file, document, 18, 0));
-    assertTrue(QuickFixProcessorSupport.findProblemMessages(file, document, 10, 0).isEmpty());
-    assertTrue(QuickFixProcessorSupport.findProblemMessages(file, document, 25, 0).isEmpty());
+        QuickFixProcessorSupport.findProblemContext(file, document, 18, 0).messages());
+    assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, 10, 0).messages().isEmpty());
+    assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, 25, 0).messages().isEmpty());
   }
 
   @Test
@@ -70,7 +71,21 @@ class QuickFixProcessorSupportTests {
     createMarker("Second problem", 15, 20, 2);
 
     assertEquals(List.of("Second problem", "Third problem"),
-        QuickFixProcessorSupport.findProblemMessages(file, document, 11, 28));
+        QuickFixProcessorSupport.findProblemContext(file, document, 11, 28).messages());
+  }
+
+  @Test
+  void combinesProblemsAtSameRangeAndSelectsAffectedRange() throws Exception {
+    createMarker("Second problem", 11, 25, 2);
+    createMarker("Another problem", 11, 25, 2);
+    createMarker("Second problem", 11, 25, 2);
+
+    QuickFixProcessorSupport.ProblemContext problemContext =
+        QuickFixProcessorSupport.findProblemContext(file, document, 18, 0);
+
+    assertEquals(List.of("Another problem", "Second problem"), problemContext.messages());
+    assertEquals(11, problemContext.selectionOffset());
+    assertEquals(14, problemContext.selectionLength());
   }
 
   @Test
@@ -81,9 +96,9 @@ class QuickFixProcessorSupportTests {
     lineMarker.setAttribute(IMarker.LINE_NUMBER, 3);
 
     assertEquals(List.of("Insertion problem"),
-        QuickFixProcessorSupport.findProblemMessages(file, document, 11, 0));
+        QuickFixProcessorSupport.findProblemContext(file, document, 11, 0).messages());
     assertEquals(List.of("Line problem"),
-        QuickFixProcessorSupport.findProblemMessages(file, document, 30, 0));
+        QuickFixProcessorSupport.findProblemContext(file, document, 30, 0).messages());
   }
 
   @Test
@@ -94,7 +109,7 @@ class QuickFixProcessorSupportTests {
     lineMarker.setAttribute(IMarker.LINE_NUMBER, 2);
 
     assertEquals(List.of("Second problem", "Third problem"),
-        QuickFixProcessorSupport.findProblemMessages(file, document, 11, 28));
+        QuickFixProcessorSupport.findProblemContext(file, document, 11, 28).messages());
   }
 
   @Test
@@ -103,19 +118,19 @@ class QuickFixProcessorSupportTests {
     marker.setAttribute(IMarker.CHAR_START, 0);
     marker.setAttribute(IMarker.CHAR_END, 5);
 
-    assertTrue(QuickFixProcessorSupport.findProblemMessages(file, document, 2, 0).isEmpty());
-    assertTrue(QuickFixProcessorSupport.findProblemMessages(file, document, -1, 0).isEmpty());
-    assertTrue(QuickFixProcessorSupport.findProblemMessages(file, document, document.getLength() + 1, 0)
-        .isEmpty());
+    assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, 2, 0).messages().isEmpty());
+    assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, -1, 0).messages().isEmpty());
+    assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, document.getLength() + 1, 0)
+        .messages().isEmpty());
   }
 
   @Test
   void handlesInvalidAndVeryLargeSelectionLengths() throws Exception {
     createMarker("Second problem", 11, 25, 2);
 
-    assertTrue(QuickFixProcessorSupport.findProblemMessages(file, document, 10, -1).isEmpty());
+    assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, 10, -1).messages().isEmpty());
     assertEquals(List.of("Second problem"),
-        QuickFixProcessorSupport.findProblemMessages(file, document, 10, Integer.MAX_VALUE));
+        QuickFixProcessorSupport.findProblemContext(file, document, 10, Integer.MAX_VALUE).messages());
   }
 
   @Test
@@ -127,11 +142,12 @@ class QuickFixProcessorSupportTests {
     assertEquals(expectedPrompt, prompt);
 
     AtomicReference<String> openedPrompt = new AtomicReference<>();
-    CopilotQuickFixProposal proposal = new CopilotQuickFixProposal(prompt, openedPrompt::set);
+    CopilotQuickFixProposal proposal = new CopilotQuickFixProposal(prompt, 11, 14, openedPrompt::set);
     proposal.apply(document);
 
     assertEquals(expectedPrompt, openedPrompt.get());
     assertEquals(Messages.quickFix_fixWithCopilot, proposal.getDisplayString());
+    assertEquals(new Point(11, 14), proposal.getSelection(document));
 
     Map<String, Object> parameters = QuickFixProcessorSupport.createOpenChatParameters(prompt);
     assertEquals(expectedPrompt, parameters.get(UiConstants.OPEN_CHAT_VIEW_INPUT_VALUE));

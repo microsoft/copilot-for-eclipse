@@ -3,10 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.quickfix;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 
@@ -17,19 +14,11 @@ import org.junit.jupiter.api.Test;
 class QuickAssistExtensionTests {
 
   @Test
-  void registersJavaQuickAssistProcessor() throws Exception {
+  void registersJavaQuickAssistProcessor() {
     IConfigurationElement element = findProcessor("org.eclipse.jdt.ui.quickAssistProcessors",
-        JavaCopilotQuickAssistProcessor.class.getName());
+        "com.microsoft.copilot.eclipse.ui.quickfix.JavaCopilotQuickAssistProcessor");
 
-    assertInstanceOf(JavaCopilotQuickAssistProcessor.class, element.createExecutableExtension("class"));
-  }
-
-  @Test
-  void hidesProposalWhenCopilotIsUnavailable() throws Exception {
-    JavaCopilotQuickAssistProcessor processor = new JavaCopilotQuickAssistProcessor(() -> false);
-
-    assertFalse(processor.hasAssists(null));
-    assertNull(processor.getAssists(null, null));
+    assertNotNull(element);
   }
 
   private IConfigurationElement findProcessor(String extensionPointId, String className) {

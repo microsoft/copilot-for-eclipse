@@ -16,14 +16,18 @@ import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 
 class CopilotQuickFixProposal implements ICompletionProposal {
   private final String prompt;
+  private final int selectionOffset;
+  private final int selectionLength;
   private final Consumer<String> openChat;
 
-  CopilotQuickFixProposal(String prompt) {
-    this(prompt, QuickFixProcessorSupport::openChat);
+  CopilotQuickFixProposal(String prompt, int selectionOffset, int selectionLength) {
+    this(prompt, selectionOffset, selectionLength, QuickFixProcessorSupport::openChat);
   }
 
-  CopilotQuickFixProposal(String prompt, Consumer<String> openChat) {
+  CopilotQuickFixProposal(String prompt, int selectionOffset, int selectionLength, Consumer<String> openChat) {
     this.prompt = prompt;
+    this.selectionOffset = selectionOffset;
+    this.selectionLength = selectionLength;
     this.openChat = openChat;
   }
 
@@ -34,7 +38,7 @@ class CopilotQuickFixProposal implements ICompletionProposal {
 
   @Override
   public Point getSelection(IDocument document) {
-    return null;
+    return new Point(selectionOffset, selectionLength);
   }
 
   @Override

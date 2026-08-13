@@ -38,10 +38,10 @@ final class QuickFixProcessorSupport {
     return authStatusManager != null && authStatusManager.isSignedIn();
   }
 
-  static List<String> findProblemMessages(IFile file, IDocument document, int offset, int length)
+  static ProblemContext findProblemContext(IFile file, IDocument document, int offset, int length)
       throws CoreException {
     if (file == null || document == null || offset < 0 || offset > document.getLength()) {
-      return List.of();
+      return ProblemContext.empty();
     }
 
     int selectionLength = Math.max(0, length);
@@ -52,7 +52,8 @@ final class QuickFixProcessorSupport {
         continue;
       }
 
-      problems.add(new ProblemMarker(sortOffset(marker, document), message));
+      int start = sortOffset(marker, document);
+      problems.add(new ProblemMarker(start, selectionEnd(marker, document, start), message));
     }
 
     problems.sort(Comparator.comparingInt(ProblemMarker::start).thenComparing(ProblemMarker::message));
@@ -60,7 +61,17 @@ final class QuickFixProcessorSupport {
     for (ProblemMarker problem : problems) {
       uniqueMessages.add(problem.message());
     }
-    return List.copyOf(uniqueMessages);
+    if (uniqueMessages.isEmpty()) {
+      return ProblemContext.empty();
+    }
+
+    int contextStart = offset;
+    int contextEnd = (int) Math.min(document.getLength(), (long) offset + selectionLength);
+    if (selectionLength == 0) {
+      contextStart = problems.stream().mapToInt(ProblemMarker::start).min().orElse(offset);
+      contextEnd = problems.stream().mapToInt(ProblemMarker::end).max().orElse(contextStart);
+    }
+    return new ProblemContext(List.copyOf(uniqueMessages), contextStart, Math.max(0, contextEnd - contextStart));
   }
 
   private static boolean overlaps(IMarker marker, IDocument document, int offset, int selectionLength)
@@ -114,6 +125,25 @@ final class QuickFixProcessorSupport {
     }
   }
 
+  private static int selectionEnd(IMarker marker, IDocument document, int start) throws CoreException {
+    int markerStart = marker.getAttribute(IMarker.CHAR_START, -1);
+    int markerEnd = marker.getAttribute(IMarker.CHAR_END, -1);
+    if (markerStart >= 0 && markerEnd >= markerStart) {
+      return Math.min(document.getLength(), markerEnd);
+    }
+
+    int markerLine = marker.getAttribute(IMarker.LINE_NUMBER, -1);
+    if (markerLine < 1) {
+      return start;
+    }
+
+    try {
+      return start + document.getLineInformation(markerLine - 1).getLength();
+    } catch (BadLocationException e) {
+      return start;
+    }
+  }
+
   static String buildPrompt(List<String> messages) {
     StringBuilder prompt = new StringBuilder(Messages.quickFix_prompt).append(System.lineSeparator());
     for (String message : messages) {
@@ -133,6 +163,12 @@ final class QuickFixProcessorSupport {
     return parameters;
   }
 
-  private record ProblemMarker(int start, String message) {
+  record ProblemContext(List<String> messages, int selectionOffset, int selectionLength) {
+    private static ProblemContext empty() {
+      return new ProblemContext(List.of(), 0, 0);
+    }
+  }
+
+  private record ProblemMarker(int start, int end, String message) {
   }
 }

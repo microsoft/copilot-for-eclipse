@@ -3,7 +3,6 @@
 
 package com.microsoft.copilot.eclipse.ui.quickfix;
 
-import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import org.eclipse.core.resources.IFile;
@@ -58,19 +57,21 @@ public class JavaCopilotQuickAssistProcessor implements IQuickAssistProcessor {
     }
 
     IDocument document = new Document(compilationUnit.getBuffer().getContents());
-    List<String> messages = QuickFixProcessorSupport.findProblemMessages(file, document, context.getSelectionOffset(),
+    QuickFixProcessorSupport.ProblemContext problemContext = QuickFixProcessorSupport.findProblemContext(file,
+        document, context.getSelectionOffset(),
         context.getSelectionLength());
-    if (messages.isEmpty()) {
+    if (problemContext.messages().isEmpty()) {
       return null;
     }
-    return new JavaCopilotQuickFixProposal(QuickFixProcessorSupport.buildPrompt(messages));
+    return new JavaCopilotQuickFixProposal(QuickFixProcessorSupport.buildPrompt(problemContext.messages()),
+        problemContext.selectionOffset(), problemContext.selectionLength());
   }
 
   private static final class JavaCopilotQuickFixProposal extends CopilotQuickFixProposal
       implements IJavaCompletionProposal {
 
-    private JavaCopilotQuickFixProposal(String prompt) {
-      super(prompt);
+    private JavaCopilotQuickFixProposal(String prompt, int selectionOffset, int selectionLength) {
+      super(prompt, selectionOffset, selectionLength);
     }
 
     @Override
