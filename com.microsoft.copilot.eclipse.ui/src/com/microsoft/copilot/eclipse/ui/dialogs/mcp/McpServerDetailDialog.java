@@ -48,6 +48,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Package;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.Remote;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerDetail;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.registry.ServerResponse;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpServerInstallManager.ButtonState;
 import com.microsoft.copilot.eclipse.ui.utils.McpUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
@@ -179,15 +180,10 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
         : Messages.mcpServerDetailDialog_title;
     newShell.setText(title);
 
-    Image dialogIcon = UiUtils.buildImageFromPngPath("/icons/mcp/mcp_registry.png");
+    Image dialogIcon = CopilotImages.getImage(CopilotImages.IMG_MCP_REGISTRY);
     if (dialogIcon != null) {
       newShell.setImage(dialogIcon);
     }
-    newShell.addDisposeListener(e -> {
-      if (dialogIcon != null && !dialogIcon.isDisposed()) {
-        dialogIcon.dispose();
-      }
-    });
   }
 
   @Override
@@ -288,17 +284,21 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     List<Icon> icons = serverDetail != null ? serverDetail.icons() : null;
     String iconUrl = McpUtils.getPreferredIconUrl(icons);
 
-    McpUtils.loadServerIcon(iconUrl, iconSize, iconSize).thenAccept(image -> {
-      if (image == null) {
-        return;
-      }
+    McpUtils.loadDisposableServerIcon(iconUrl, iconSize, iconSize).thenAccept(image -> {
       if (iconLabel == null || iconLabel.isDisposed()) {
-        if (!image.isDisposed()) {
+        // label disposed -> also dispose freshly loaded image
+        if (image != null && !image.isDisposed()) {
           image.dispose();
         }
         return;
       }
+      if (image == null) {
+        iconLabel.setImage(McpUtils.loadDefaultServerIcon());
+        // never dispose image-registry-owned iamges; thus, return here
+        return;
+      }
       iconLabel.setImage(image);
+      // we need to dispose all images loaded via loadDisposableServerIcon(...)
       iconLabel.addDisposeListener(e -> {
         if (!image.isDisposed()) {
           image.dispose();
@@ -395,7 +395,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   private void createVersionContent(Composite parent) {
     ServerDetail serverDetail = getServerDetail();
     String version = serverDetail == null ? Messages.mcpServer_unknown : serverDetail.version();
-    createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/versions_dark.png" : "/icons/mcp/versions.png",
+    Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_VERSIONS, CopilotImages.IMG_MCP_VERSIONS_DARK);
+    createIconTextRow(parent, icon,
         Messages.mcpServerDetailDialog_version + " " + version, Messages.mcpServerDetailDialog_version + " " + version);
   }
 
@@ -405,8 +406,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     String detailedDate = getDetailedFormattedDate(publishedAt);
     String text = relativeTime != null ? Messages.mcpServerDetailDialog_published + " " + relativeTime
         : Messages.mcpServerDetailDialog_noPublishedDate;
-    createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/history_dark.png" : "/icons/mcp/history.png", text,
-        detailedDate);
+    Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_HISTORY, CopilotImages.IMG_MCP_HISTORY_DARK);
+    createIconTextRow(parent, icon, text, detailedDate);
   }
 
   private void createUpdatedContent(Composite parent) {
@@ -415,13 +416,13 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     String detailedDate = getDetailedFormattedDate(updatedAt);
     String text = relativeTime != null ? Messages.mcpServerDetailDialog_updated + " " + relativeTime
         : Messages.mcpServerDetailDialog_noUpdatedDate;
-    createIconTextRow(parent, UiUtils.isDarkTheme() ? "/icons/mcp/update_dark.png" : "/icons/mcp/update.png", text,
-        detailedDate);
+    Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_UPDATE, CopilotImages.IMG_MCP_UPDATE_DARK);
+    createIconTextRow(parent, icon, text, detailedDate);
   }
 
   private void createRepositoryLink(Composite parent) {
-    Composite row = createRowWithIcon(parent,
-        UiUtils.isDarkTheme() ? "/icons/mcp/repository_dark.png" : "/icons/mcp/repository.png");
+    Image icon = CopilotImages.getThemedImage(CopilotImages.IMG_MCP_REPOSITORY, CopilotImages.IMG_MCP_REPOSITORY_DARK);
+    Composite row = createRowWithIcon(parent, icon);
 
     Link repoLink = new Link(row, SWT.NONE);
     repoLink.setText("<a>" + Messages.mcpServerDetailDialog_repository + "</a>");
@@ -438,11 +439,10 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
   }
 
   /**
-   * Builds a two-column row with an icon on the left and a text label on the right. Disposes the image when the icon
-   * label is disposed.
+   * Builds a two-column row with an icon on the left and a text label on the right.
    */
-  private Composite createIconTextRow(Composite parent, String imagePath, String text, String tooltip) {
-    Composite row = createRowWithIcon(parent, imagePath);
+  private Composite createIconTextRow(Composite parent, Image icon, String text, String tooltip) {
+    Composite row = createRowWithIcon(parent, icon);
 
     Label textLabel = new Label(row, SWT.NONE);
     textLabel.setText(text != null ? text : "");
@@ -454,7 +454,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     return row;
   }
 
-  private Composite createRowWithIcon(Composite parent, String imagePath) {
+  private Composite createRowWithIcon(Composite parent, Image icon) {
     GridLayout rowLayout = new GridLayout(2, false);
     rowLayout.marginWidth = 0;
     rowLayout.marginHeight = 0;
@@ -462,14 +462,8 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
     row.setLayout(rowLayout);
 
     Label iconLabel = new Label(row, SWT.NONE);
-    final Image icon = UiUtils.buildImageFromPngPath(imagePath);
     iconLabel.setImage(icon);
     iconLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
-    iconLabel.addDisposeListener(e -> {
-      if (icon != null && !icon.isDisposed()) {
-        icon.dispose();
-      }
-    });
 
     return row;
   }

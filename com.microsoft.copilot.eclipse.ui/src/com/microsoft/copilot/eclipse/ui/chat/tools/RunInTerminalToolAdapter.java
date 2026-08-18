@@ -10,10 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.swt.graphics.Image;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConfirmationMessages;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -25,12 +27,12 @@ import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalCommandProcessor;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Adapter that bridges the UI tool interface with SPI-based terminal implementations.
@@ -199,7 +201,8 @@ public class RunInTerminalToolAdapter extends BaseTool {
       isBackground = Boolean.parseBoolean((String) isBackgroundObj);
     }
 
-    impl.setTerminalIconDescriptor(UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png"));
+    Supplier<Image> terminalIconSupplier = () -> CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT);
+    impl.setTerminalIconSupplier(terminalIconSupplier);
     String workingDirectory = resolveWorkingDirectory();
 
     return impl.executeCommand(command, isBackground, workingDirectory)

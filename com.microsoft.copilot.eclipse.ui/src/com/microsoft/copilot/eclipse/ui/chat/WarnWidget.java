@@ -16,9 +16,9 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.chat.QuotaActions.QuotaAction;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
@@ -112,7 +112,7 @@ public class WarnWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
     Label iconLabel = new Label(composite, SWT.TOP);
-    Image warnImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+    Image warnImage = CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK);
     iconLabel.setImage(warnImage);
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;

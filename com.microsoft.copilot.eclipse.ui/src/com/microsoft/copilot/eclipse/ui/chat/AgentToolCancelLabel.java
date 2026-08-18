@@ -10,8 +10,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A label with icon that displays the cancel status of the agent tool.
@@ -30,7 +30,7 @@ public class AgentToolCancelLabel extends Composite {
     setLayout(new GridLayout(2, false));
     setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
-    this.cancelIcon = UiUtils.buildImageFromPngPath("/icons/cancel_status.png");
+    this.cancelIcon = CopilotImages.getImage(CopilotImages.IMG_CANCEL_STATUS);
     Label iconLabel = new Label(this, SWT.LEFT);
     iconLabel.setImage(this.cancelIcon);
 
@@ -38,11 +38,5 @@ public class AgentToolCancelLabel extends Composite {
     textLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     textLabel.setText(cancelMessage);
     textLabel.setData(CssConstants.CSS_CLASS_NAME_KEY, "text-secondary");
-
-    this.addDisposeListener(e -> {
-      if (this.cancelIcon != null && !this.cancelIcon.isDisposed()) {
-        this.cancelIcon.dispose();
-      }
-    });
   }
 }

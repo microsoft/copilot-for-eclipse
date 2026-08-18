@@ -14,11 +14,15 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelBilling;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelBillingTokenPrices;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCustomModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelTokenPriceTier;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
+import com.microsoft.copilot.eclipse.ui.utils.ModelUtils.ContextWindowOption;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
 
@@ -160,7 +164,7 @@ class ModelUtilsTests {
     model.setModelName("Sonnet (Org)");
     model.setCustomModel(new CopilotModelCustomModel("Contoso Azure Key", "Contoso", "organization", "Azure"));
 
-    assertEquals("Azure", ModelUtils.getModelSuffix(model, null));
+    assertEquals("Azure", ModelUtils.getModelSuffix(model, null, null));
   }
 
   @Test
@@ -170,7 +174,7 @@ class ModelUtilsTests {
     model.setProviderName("OpenAI");
     model.setCustomModel(new CopilotModelCustomModel("Key", "Contoso", "organization", "Azure"));
 
-    assertEquals("OpenAI", ModelUtils.getModelSuffix(model, null));
+    assertEquals("OpenAI", ModelUtils.getModelSuffix(model, null, null));
   }
 
   @Test
@@ -178,12 +182,12 @@ class ModelUtilsTests {
     CopilotModel auto = new CopilotModel();
     auto.setId("auto");
     auto.setModelName("Automatic");
-    assertEquals("Variable", ModelUtils.getModelSuffix(auto, null));
+    assertEquals("Variable", ModelUtils.getModelSuffix(auto, null, null));
 
     CopilotModel matchingDisplayName = new CopilotModel();
     matchingDisplayName.setId("gpt-5");
     matchingDisplayName.setModelName("Auto");
-    assertEquals("", ModelUtils.getModelSuffix(matchingDisplayName, null));
+    assertEquals("", ModelUtils.getModelSuffix(matchingDisplayName, null, null));
   }
 
   @Test
@@ -199,5 +203,115 @@ class ModelUtilsTests {
     assertFalse(ModelUtils.isAutoModel(matchingDisplayName));
 
     assertFalse(ModelUtils.isAutoModel(null));
+  }
+
+  private static CopilotModel modelWithTiers(Integer defaultMaxContext, Integer longContextMaxContext,
+      Integer maxOutputTokens) {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("gpt-5");
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, null, false),
+        new CopilotModelCapabilitiesLimits(null, maxOutputTokens, null, null)));
+    CopilotModelTokenPriceTier defaultTier = defaultMaxContext == null ? null
+        : new CopilotModelTokenPriceTier(null, 1.0, 2.0, defaultMaxContext);
+    CopilotModelTokenPriceTier longContextTier = longContextMaxContext == null ? null
+        : new CopilotModelTokenPriceTier(null, 3.0, 4.0, longContextMaxContext);
+    model.setBilling(new CopilotModelBilling(true, 1.0, true,
+        new CopilotModelBillingTokenPrices(1_000_000.0, defaultTier, longContextTier)));
+    return model;
+  }
+
+  @Test
+  void testGetContextWindowOptions_returnsOnePerTier() {
+    CopilotModel model = modelWithTiers(128000, 1000000, 16000);
+
+    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
+
+    assertEquals(2, options.size());
+    assertTrue(options.get(0).isDefault());
+    assertEquals(128000, options.get(0).maxContext());
+    assertFalse(options.get(1).isDefault());
+    assertEquals(1000000, options.get(1).maxContext());
+  }
+
+  @Test
+  void testGetContextWindowOptions_deduplicatesEquivalentTiersWithDefaultPrecedence() {
+    CopilotModel model = modelWithTiers(1000000, 1000000, 16000);
+
+    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
+
+    assertEquals(1, options.size());
+    assertTrue(options.get(0).isDefault());
+    assertEquals(1000000, options.get(0).maxContext());
+    assertFalse(ModelUtils.supportsContextWindowSelection(model));
+  }
+
+  @Test
+  void testGetContextWindowOptions_emptyWhenNoTokenPrices() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("gpt-5");
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, null, false),
+        new CopilotModelCapabilitiesLimits(200000, 16000, null, null)));
+
+    assertTrue(ModelUtils.getContextWindowOptions(model).isEmpty());
+  }
+
+  @Test
+  void testGetContextWindowOptions_defaultTierFallsBackToMaxContextWindowTokens() {
+    CopilotModel model = new CopilotModel();
+    model.setModelName("gpt-5");
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(false, null, false),
+        new CopilotModelCapabilitiesLimits(200000, 16000, null, null)));
+    // Default tier without its own maxContext -> falls back to maxContextWindowTokens (200000).
+    model.setBilling(new CopilotModelBilling(true, 1.0, true, new CopilotModelBillingTokenPrices(1_000_000.0,
+        new CopilotModelTokenPriceTier(null, 1.0, 2.0, null), null)));
+
+    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
+
+    assertEquals(1, options.size());
+    assertEquals(200000, options.get(0).maxContext());
+  }
+
+  @Test
+  void testGetContextWindowDisplaySize_addsMaxOutputWhenTierHasMaxContext() {
+    CopilotModel model = modelWithTiers(128000, 1000000, 16000);
+    List<ContextWindowOption> options = ModelUtils.getContextWindowOptions(model);
+
+    assertEquals(144000, ModelUtils.getContextWindowDisplaySize(model, options.get(0)));
+    assertEquals(1016000, ModelUtils.getContextWindowDisplaySize(model, options.get(1)));
+  }
+
+  @Test
+  void testSupportsContextWindowSelection_trueOnlyForMultipleTiers() {
+    assertTrue(ModelUtils.supportsContextWindowSelection(modelWithTiers(128000, 1000000, 16000)));
+    assertFalse(ModelUtils.supportsContextWindowSelection(modelWithTiers(128000, null, 16000)));
+    assertFalse(ModelUtils.supportsContextWindowSelection(new CopilotModel()));
+  }
+
+  @Test
+  void testFindContextWindowOption_matchesByMaxContext() {
+    CopilotModel model = modelWithTiers(128000, 1000000, 16000);
+
+    ContextWindowOption match = ModelUtils.findContextWindowOption(model, 1000000);
+    assertNotNull(match);
+    assertFalse(match.isDefault());
+    assertEquals(1000000, match.maxContext());
+
+    assertNull(ModelUtils.findContextWindowOption(model, 999));
+    assertNull(ModelUtils.findContextWindowOption(model, null));
+  }
+
+  @Test
+  void testResolveDefaultContextWindowOption_prefersDefaultTier() {
+    CopilotModel model = modelWithTiers(128000, 1000000, 16000);
+
+    ContextWindowOption option = ModelUtils.resolveDefaultContextWindowOption(model);
+
+    assertNotNull(option);
+    assertTrue(option.isDefault());
+    assertEquals(128000, option.maxContext());
+    assertNull(ModelUtils.resolveDefaultContextWindowOption(new CopilotModel()));
   }
 }

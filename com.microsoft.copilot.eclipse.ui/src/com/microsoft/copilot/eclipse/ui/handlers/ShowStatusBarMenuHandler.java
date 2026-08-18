@@ -41,13 +41,13 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.Quota;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 import com.microsoft.copilot.eclipse.ui.utils.MenuUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Handler for showing GitHub Copilot status bar menu.
@@ -198,36 +198,33 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         return;
       } else {
         String copilotStatus = authStatusManager.getCopilotStatus();
-        String iconPath = null;
+        String iconKey = null;
 
         switch (copilotStatus) {
           case CopilotStatusResult.OK:
-            iconPath = "/icons/github_copilot_signed_in.png";
+            iconKey = CopilotImages.IMG_GITHUB_COPILOT_SIGNED_IN;
             break;
           case CopilotStatusResult.LOADING:
             scheduleSpinnerJob(element);
             return;
           case CopilotStatusResult.ERROR, CopilotStatusResult.WARNING:
-            iconPath = "/icons/github_copilot_error.png";
+            iconKey = CopilotImages.IMG_GITHUB_COPILOT_ERROR;
             break;
           case CopilotStatusResult.NOT_AUTHORIZED:
-            iconPath = "/icons/github_copilot_not_authorized.png";
+            iconKey = CopilotImages.IMG_GITHUB_COPILOT_NOT_AUTHORIZED;
             break;
           case CopilotStatusResult.NOT_SIGNED_IN:
           default:
-            iconPath = "/icons/github_copilot_not_signed_in.png";
+            iconKey = CopilotImages.IMG_GITHUB_COPILOT_NOT_SIGNED_IN;
         }
-        setIconOnDisplayThread(element, iconPath);
+        setIconOnDisplayThread(element, CopilotImages.getImageDescriptor(iconKey));
       }
     }
   }
 
-  private void setIconOnDisplayThread(UIElement element, String iconPath) {
-    if (iconPath != null) {
-      SwtUtils.invokeOnDisplayThread(() -> {
-        ImageDescriptor newIcon = UiUtils.buildImageDescriptorFromPngPath(iconPath);
-        element.setIcon(newIcon);
-      });
+  private void setIconOnDisplayThread(UIElement element, ImageDescriptor icon) {
+    if (icon != null) {
+      SwtUtils.invokeOnDisplayThread(() -> element.setIcon(icon));
     }
   }
 
@@ -236,7 +233,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
 
     if (CopilotStatusResult.NOT_SIGNED_IN.equals(status)) {
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_signToGitHub,
-          UiUtils.buildImageDescriptorFromPngPath("/icons/signin.png"), handlerService,
+          CopilotImages.getImageDescriptor(CopilotImages.IMG_SIGNIN), handlerService,
           "com.microsoft.copilot.eclipse.commands.signIn", true);
     } else if (CopilotStatusResult.OK.equals(status)) {
       String userName = authStatusManager.getUserName();
@@ -326,7 +323,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     }
 
     // Upsell actions based on the user's plan
-    ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
+    ImageDescriptor upgradeIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_UPGRADE);
 
     // For non-free users (excluding org-unlimited business/enterprise):
     // show "Enable Additional Usage" or "Increase Budget" depending on overage state.
@@ -423,7 +420,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
     }
 
     // Upsell actions based on the user's plan (legacy wording).
-    ImageDescriptor upgradeIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/quota/upgrade.png");
+    ImageDescriptor upgradeIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_QUOTA_UPGRADE);
     if (plan == CopilotPlan.free) {
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_quota_updateCopilotToPro, upgradeIcon,
           handlerService, "com.microsoft.copilot.eclipse.commands.upgradeCopilotPlan", true);
@@ -435,7 +432,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addOpenChatViewAction(MenuManager menuManager) {
-    ImageDescriptor icon = UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png");
+    ImageDescriptor icon = CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT);
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_openChatView, icon, handlerService,
         "com.microsoft.copilot.eclipse.commands.openChatView", true);
   }
@@ -443,26 +440,26 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   private void addLinkToFeedbackForumAction(MenuManager menuManager) {
     Map<String, String> parameters = Map.of(UiConstants.OPEN_URL_PARAMETER_NAME,
         UiConstants.COPILOT_FEEDBACK_FORUM_URL);
-    ImageDescriptor feedbackIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/feedback_forum.png");
+    ImageDescriptor feedbackIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_FEEDBACK_FORUM);
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_giveFeedback, feedbackIcon, handlerService,
         UiConstants.OPEN_URL_COMMAND_ID, parameters, true);
   }
 
   private void addPreferencesAction(MenuManager menuManager) {
-    ImageDescriptor editPreferencesIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/edit_preferences.png");
+    ImageDescriptor editPreferencesIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_EDIT_PREFERENCES);
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_editPreferences, editPreferencesIcon, handlerService,
         "com.microsoft.copilot.eclipse.commands.openPreferences", true);
   }
 
   private void addEditKeyboardShortcutsAction(MenuManager menuManager) {
-    ImageDescriptor editKeyboardShortcutsIcon = UiUtils
-        .buildImageDescriptorFromPngPath("/icons/edit_keyboard_shortcuts.png");
+    ImageDescriptor editKeyboardShortcutsIcon =
+        CopilotImages.getImageDescriptor(CopilotImages.IMG_EDIT_KEYBOARD_SHORTCUTS);
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_editKeyboardShortcuts, editKeyboardShortcutsIcon,
         handlerService, "com.microsoft.copilot.eclipse.commands.openEditKeyboardShortcuts", true);
   }
 
   private void addCompletionSettingsAction(MenuManager menuManager) {
-    ImageDescriptor placeHolder = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+    ImageDescriptor placeHolder = CopilotImages.getImageDescriptor(CopilotImages.IMG_BLANK);
     if (languageServerSettingManager.isAutoShowCompletionEnabled()) {
       MenuActionFactory.createMenuAction(menuManager, Messages.menu_turnOffCompletions, placeHolder, handlerService,
           "com.microsoft.copilot.eclipse.commands.autoShowCompletions", true);
@@ -473,7 +470,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
   }
 
   private void addShowWhatIsNewAction(MenuManager menuManager) {
-    ImageDescriptor placeHolder = UiUtils.buildImageDescriptorFromPngPath("/icons/blank.png");
+    ImageDescriptor placeHolder = CopilotImages.getImageDescriptor(CopilotImages.IMG_BLANK);
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_whatIsNew, placeHolder, handlerService,
         "com.microsoft.copilot.eclipse.commands.showWhatIsNew", true);
   }
@@ -499,7 +496,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
           handlerService, "com.microsoft.copilot.eclipse.commands.configureCopilotSettings", true);
     }
     // Only show sign out action when the user is in OK, NOT_AUTHORIZED, WARNING, or ERROR state.
-    ImageDescriptor signOutIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/signout.png");
+    ImageDescriptor signOutIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_SIGNOUT);
     MenuActionFactory.createMenuAction(menuManager, Messages.menu_signOutOfGitHub, signOutIcon, handlerService,
         "com.microsoft.copilot.eclipse.commands.signOut", true);
   }
@@ -607,7 +604,7 @@ public class ShowStatusBarMenuHandler extends CopilotHandler implements IElement
         if (this.uiElement == null) {
           throw new IllegalStateException("UI element is not set. Spinner cannot be set.");
         }
-        setIconOnDisplayThread(this.uiElement, String.format("/icons/spinner/%d.png", currentIconIndex));
+        setIconOnDisplayThread(this.uiElement, CopilotImages.getSpinnerFrameDescriptor(currentIconIndex));
         currentIconIndex = (currentIconIndex % TOTAL_SPINNER_ICONS) + 1;
         if (CopilotCore.getPlugin().getAuthStatusManager() != null
             && CopilotCore.getPlugin().getAuthStatusManager().isLoading()) {

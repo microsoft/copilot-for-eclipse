@@ -40,10 +40,10 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager.McpRegistrationInfo;
 import com.microsoft.copilot.eclipse.ui.preferences.WrappableNoteLabel;
 import com.microsoft.copilot.eclipse.ui.utils.TextMateUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * Dialog for approving third-party MCP providers.
@@ -85,13 +85,8 @@ public class McpApprovalDialog extends Dialog {
   }
 
   private void loadImages(Shell shell) {
-    approvedImage = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
-    deniedImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_DELETE);
-    shell.addDisposeListener(e -> {
-      if (approvedImage != null && !approvedImage.isDisposed()) {
-        approvedImage.dispose();
-      }
-    });
+    approvedImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_KEEP);
+    deniedImage = CopilotImages.getSharedImage(ISharedImages.IMG_TOOL_DELETE);
   }
 
   @Override

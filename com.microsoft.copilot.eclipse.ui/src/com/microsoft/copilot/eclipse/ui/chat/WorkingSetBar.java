@@ -28,6 +28,7 @@ import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.ChangedFile;
@@ -210,15 +211,6 @@ public class WorkingSetBar extends Composite {
       addMouseListener(clickListener);
 
       updateTitleBarButtons();
-
-      this.addDisposeListener(e -> {
-        if (downArrowImage != null && !downArrowImage.isDisposed()) {
-          downArrowImage.dispose();
-        }
-        if (rightArrowImage != null && !rightArrowImage.isDisposed()) {
-          rightArrowImage.dispose();
-        }
-      });
     }
 
     /**
@@ -234,14 +226,14 @@ public class WorkingSetBar extends Composite {
       if (isExpanded) {
         // Expanded state: show down arrow and collapse tooltip
         if (downArrowImage == null) {
-          downArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/down_arrow.png");
+          downArrowImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_DOWN_ARROW);
         }
         expandIcon.setImage(downArrowImage);
         tooltipMessage = NLS.bind(Messages.fileChangeSummary_collapseTooltip, changeFilesTitle);
       } else {
         // Collapsed state: show right arrow and expand tooltip
         if (rightArrowImage == null) {
-          rightArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/right_arrow.png");
+          rightArrowImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_RIGHT_ARROW);
         }
         expandIcon.setImage(rightArrowImage);
         tooltipMessage = NLS.bind(Messages.fileChangeSummary_expandTooltip, changeFilesTitle);
@@ -354,7 +346,7 @@ public class WorkingSetBar extends Composite {
         }
 
         Image image = file.isWorkspaceFile() ? labelProvider.getImage(file.getWorkspaceFile())
-            : PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_FILE);
+            : CopilotImages.getSharedImage(ISharedImages.IMG_OBJ_FILE);
         fileRows.add(new FileRow(contentArea, SWT.NONE, image, file));
       }
 
@@ -488,12 +480,7 @@ public class WorkingSetBar extends Composite {
       actionsArea.setVisible(false);
 
       keepButton = new Label(actionsArea, SWT.NONE);
-      Image keepImg = UiUtils.buildImageFromPngPath("/icons/chat/keep.png");
-      this.addDisposeListener(e -> {
-        if (keepImg != null && !keepImg.isDisposed()) {
-          keepImg.dispose();
-        }
-      });
+      Image keepImg = CopilotImages.getImage(CopilotImages.IMG_CHAT_KEEP);
       keepButton.setImage(keepImg);
       keepButton.setToolTipText(Messages.fileChangeSummary_keepButton);
       GridData keepGridData = new GridData(SWT.END, SWT.CENTER, false, false);
@@ -506,7 +493,7 @@ public class WorkingSetBar extends Composite {
       });
 
       undoButton = new Label(actionsArea, SWT.NONE);
-      Image undoImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_UNDO);
+      Image undoImage = CopilotImages.getSharedImage(ISharedImages.IMG_TOOL_UNDO);
       undoButton.setImage(undoImage);
       undoButton.setToolTipText(Messages.fileChangeSummary_undoButton);
       GridData undoGridData = new GridData(SWT.END, SWT.CENTER, false, false);

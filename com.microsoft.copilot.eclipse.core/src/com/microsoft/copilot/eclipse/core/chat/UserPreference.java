@@ -28,6 +28,12 @@ public class UserPreference {
   private volatile Map<String, String> reasoningEffortByModel = Map.of();
 
   /**
+   * User-selected context-window size (a price tier's {@code maxContext} token count) keyed by the composite model
+   * key (matching the {@link #chatModel} format).
+   */
+  private volatile Map<String, Integer> contextWindowByModel = Map.of();
+
+  /**
    * Gets the id of the Chat model.
    *
    * @return the model id
@@ -166,9 +172,98 @@ public class UserPreference {
     return true;
   }
 
+  /**
+   * Returns the user-selected context-window size for the given model key, or {@code null} when the user has not made
+   * an explicit selection.
+   *
+   * @param modelKey the composite model key (matching the {@link #getChatModel()} format)
+   * @return the previously selected context-window size, or {@code null}
+   */
+  public Integer getContextWindow(String modelKey) {
+    if (modelKey == null) {
+      return null;
+    }
+    return contextWindowByModel.get(modelKey);
+  }
+
+  /**
+   * Returns an immutable snapshot of the model-key to context-window map. Useful as an observable value that changes
+   * by equality whenever any individual entry is added, updated, or removed.
+   *
+   * @return an immutable snapshot of the current context-window map (never {@code null})
+   */
+  public Map<String, Integer> getContextWindowSnapshot() {
+    return contextWindowByModel;
+  }
+
+  /**
+   * Stores the user-selected context-window size for the given model key. Passing a {@code null} value clears any
+   * previously stored value for that key.
+   *
+   * <p>The underlying map is replaced atomically with a fresh immutable snapshot via {@link Map#copyOf}, so concurrent
+   * readers (including Gson reflectively serializing this preference on a background thread) always observe either
+   * the old or the new snapshot, never a partially mutated map.
+   *
+   * @param modelKey the composite model key (matching the {@link #getChatModel()} format)
+   * @param contextWindow the context-window size to store, or {@code null} to clear
+   * @return {@code true} when the stored context window changed, {@code false} otherwise
+   */
+  public synchronized boolean setContextWindow(String modelKey, Integer contextWindow) {
+    if (modelKey == null) {
+      return false;
+    }
+    Map<String, Integer> current = contextWindowByModel;
+    if (contextWindow == null) {
+      if (!current.containsKey(modelKey)) {
+        return false;
+      }
+      Map<String, Integer> next = new HashMap<>(current);
+      next.remove(modelKey);
+      contextWindowByModel = Map.copyOf(next);
+      return true;
+    }
+    if (contextWindow.equals(current.get(modelKey))) {
+      return false;
+    }
+    Map<String, Integer> next = new HashMap<>(current);
+    next.put(modelKey, contextWindow);
+    contextWindowByModel = Map.copyOf(next);
+    return true;
+  }
+
+  /**
+   * Atomically replaces the entire context-window map with the given snapshot, dropping any keys not present in
+   * {@code contextWindowsByModel}. {@code null} entries in the input map are ignored. Returns {@code true} when the
+   * new snapshot differs from the previous one (so callers can decide whether to persist or notify observers).
+   *
+   * @param contextWindowsByModel the new context-window map keyed by composite model key (matching the
+   *     {@link #getChatModel()} format); may be {@code null} or empty to clear all entries
+   * @return {@code true} when the stored map changed, {@code false} otherwise
+   */
+  public synchronized boolean setContextWindows(Map<String, Integer> contextWindowsByModel) {
+    Map<String, Integer> updatedContextWindows;
+    if (contextWindowsByModel == null || contextWindowsByModel.isEmpty()) {
+      updatedContextWindows = Map.of();
+    } else {
+      Map<String, Integer> copy = new HashMap<>();
+      for (Map.Entry<String, Integer> entry : contextWindowsByModel.entrySet()) {
+        if (entry.getKey() != null && entry.getValue() != null) {
+          copy.put(entry.getKey(), entry.getValue());
+        }
+      }
+      updatedContextWindows = Map.copyOf(copy);
+    }
+    if (updatedContextWindows.equals(this.contextWindowByModel)) {
+      return false;
+    }
+    this.contextWindowByModel = updatedContextWindows;
+    return true;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(chatModeName, chatModel, userInputs, skipGitHubJobConfirmDialog, reasoningEffortByModel);
+    return Objects.hash(chatModeName, chatModel, userInputs, skipGitHubJobConfirmDialog, reasoningEffortByModel,
+        contextWindowByModel);
   }
 
   @Override
@@ -186,7 +281,8 @@ public class UserPreference {
     return Objects.equals(chatModeName, other.chatModeName) && Objects.equals(chatModel, other.chatModel)
         && Objects.equals(userInputs, other.userInputs)
         && skipGitHubJobConfirmDialog == other.skipGitHubJobConfirmDialog
-        && Objects.equals(reasoningEffortByModel, other.reasoningEffortByModel);
+        && Objects.equals(reasoningEffortByModel, other.reasoningEffortByModel)
+        && Objects.equals(contextWindowByModel, other.contextWindowByModel);
   }
 
   @Override
@@ -197,6 +293,7 @@ public class UserPreference {
     builder.append("userInputs", userInputs);
     builder.append("skipGitHubJobConfirmDialog", skipGitHubJobConfirmDialog);
     builder.append("reasoningEffortByModel", reasoningEffortByModel);
+    builder.append("contextWindowByModel", contextWindowByModel);
     return builder.toString();
   }
 }

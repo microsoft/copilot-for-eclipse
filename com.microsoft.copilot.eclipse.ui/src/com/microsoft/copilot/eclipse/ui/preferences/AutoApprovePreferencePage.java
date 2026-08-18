@@ -15,10 +15,10 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
@@ -47,9 +47,8 @@ public class AutoApprovePreferencePage extends PreferencePage
   protected Control createContents(Composite parent) {
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isAutoApprovalEnabled()) {
-      return WrappableIconLink.createWithSharedImage(parent,
-          PlatformUI.getWorkbench().getSharedImages()
-              .getImage(ISharedImages.IMG_OBJS_INFO_TSK),
+      return WrappableIconLink.create(parent,
+          CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_INFO_TSK),
           Messages.preferences_page_auto_approve_disabled_by_organization);
     }
 

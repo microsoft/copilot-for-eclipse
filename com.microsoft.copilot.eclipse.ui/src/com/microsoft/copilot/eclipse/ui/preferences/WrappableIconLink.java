@@ -5,7 +5,6 @@ package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.URL;
 
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -19,11 +18,10 @@ import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A composite that displays an icon and a wrappable link. The component automatically resizes when the parent composite
- * is resized and handles proper image disposal.
+ * is resized. The icon image is not owned by this widget and is therefore not disposed by it.
  */
 public class WrappableIconLink extends Composite {
 
@@ -35,61 +33,54 @@ public class WrappableIconLink extends Composite {
 
   // Icon
   private Label iconLabel;
-  private String iconPath; // only used for customized image case
-  private Image icon; // holds the created (non-shared) image if any
-  private boolean isSharedImage; // true when using shared workbench image
+  private Image icon;
 
   // Link
   private Link linkControl;
   private String linkText;
 
   /**
-   * Creates a new WrappableIconLink with default layout settings and no icon.
+   * Creates a new WrappableIconLink.
    *
    * @param parent the parent composite
+   * @param icon the icon image (not owned by this widget)
    * @param linkText the text for the link (may contain HTML link tags)
+   * @param widthMargin the horizontal margin to subtract when computing the link width
    */
-  private WrappableIconLink(Composite parent, String iconPath, Image sharedImage, String linkText, int widthMargin) {
+  private WrappableIconLink(Composite parent, Image icon, String linkText, int widthMargin) {
     super(parent, SWT.NONE);
     this.widthMargin = widthMargin;
     this.parent = parent;
     this.linkText = linkText;
-    this.iconPath = iconPath;
-    this.isSharedImage = sharedImage != null;
-    this.icon = sharedImage;
+    this.icon = icon;
     createControls();
     setupResizeListener();
   }
 
   // ------------- Factory methods -------------
   /**
-   * Creates a WrappableIconLink with a shared workbench image.
+   * Creates a WrappableIconLink with the given icon image.
+   *
+   * @param parent the parent composite
+   * @param icon the icon image (not owned by this widget)
+   * @param linkText the text for the link (may contain HTML link tags)
+   * @return the created {@link WrappableIconLink}
    */
-  public static WrappableIconLink createWithSharedImage(Composite parent, Image sharedImage, String linkText) {
-    return new WrappableIconLink(parent, null, sharedImage, linkText, DEFAULT_MARGIN);
+  public static WrappableIconLink create(Composite parent, Image icon, String linkText) {
+    return new WrappableIconLink(parent, icon, linkText, DEFAULT_MARGIN);
   }
 
   /**
-   * Creates a WrappableIconLink with a shared workbench image and custom width margin.
+   * Creates a WrappableIconLink with the given icon image and custom width margin.
+   *
+   * @param parent the parent composite
+   * @param icon the icon image (not owned by this widget)
+   * @param linkText the text for the link (may contain HTML link tags)
+   * @param widthMargin the horizontal margin to subtract when computing the link width
+   * @return the created {@link WrappableIconLink}
    */
-  public static WrappableIconLink createWithSharedImage(Composite parent, Image sharedImage, String linkText,
-      int widthMargin) {
-    return new WrappableIconLink(parent, null, sharedImage, linkText, widthMargin);
-  }
-
-  /**
-   * Creates a WrappableIconLink with a customized image from the given path.
-   */
-  public static WrappableIconLink createWithCustomizedImage(Composite parent, String iconPath, String linkText) {
-    return new WrappableIconLink(parent, iconPath, null, linkText, DEFAULT_MARGIN);
-  }
-
-  /**
-   * Creates a WrappableIconLink with a customized image from the given path and custom width margin.
-   */
-  public static WrappableIconLink createWithCustomizedImage(Composite parent, String iconPath, String linkText,
-      int widthMargin) {
-    return new WrappableIconLink(parent, iconPath, null, linkText, widthMargin);
+  public static WrappableIconLink create(Composite parent, Image icon, String linkText, int widthMargin) {
+    return new WrappableIconLink(parent, icon, linkText, widthMargin);
   }
 
   /**
@@ -103,14 +94,8 @@ public class WrappableIconLink extends Composite {
     // Create icon label
     iconLabel = new Label(this, SWT.NONE);
     iconLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false));
-    if (isSharedImage && icon != null) {
-      iconLabel.setImage(icon); // shared image
-    } else if (iconPath != null) {
-      ImageDescriptor imageDescriptor = UiUtils.buildImageDescriptorFromPngPath(iconPath);
-      if (imageDescriptor != null) {
-        icon = imageDescriptor.createImage();
-        iconLabel.setImage(icon);
-      }
+    if (icon != null) {
+      iconLabel.setImage(icon);
     }
 
     // Create link control
@@ -128,13 +113,6 @@ public class WrappableIconLink extends Composite {
         } catch (Exception ex) {
           CopilotCore.LOGGER.error("Failed to open URL: " + e.text, ex);
         }
-      }
-    });
-
-    // Dispose image when composite is disposed
-    addDisposeListener(e -> {
-      if (!isSharedImage && icon != null && !icon.isDisposed()) {
-        icon.dispose();
       }
     });
   }

@@ -28,6 +28,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -47,7 +48,6 @@ public class FeaturePage extends Composite {
   private Composite selectedCard;
   private Color normalBackgroundColor;
   private Color selectedBackgroundColor;
-  private Image currentContentImage;
   private Display display;
   private boolean isDarkTheme;
 
@@ -179,12 +179,12 @@ public class FeaturePage extends Composite {
     leftPanel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
 
     // Create clickable feature cards (Agent selected by default)
-    selectedCard = createClickableFeatureCard(leftPanel, "/icons/github_copilot.png", Messages.quickStart_agent_title,
-        Messages.quickStart_agent_description, Feature.AGENT);
-    createClickableFeatureCard(leftPanel, "/icons/chat/chatview_icon_chat.png", Messages.quickStart_ask_title,
-        Messages.quickStart_ask_description, Feature.ASK);
-    createClickableFeatureCard(leftPanel, "/icons/chat/chatview_icon_code.png", Messages.quickStart_completion_title,
-        Messages.quickStart_completion_description, Feature.COMPLETION);
+    selectedCard = createClickableFeatureCard(leftPanel, CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT),
+        Messages.quickStart_agent_title, Messages.quickStart_agent_description, Feature.AGENT);
+    createClickableFeatureCard(leftPanel, CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_CHAT),
+        Messages.quickStart_ask_title, Messages.quickStart_ask_description, Feature.ASK);
+    createClickableFeatureCard(leftPanel, CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_CODE),
+        Messages.quickStart_completion_title, Messages.quickStart_completion_description, Feature.COMPLETION);
   }
 
   private void createRightPanel(Composite parent) {
@@ -198,11 +198,6 @@ public class FeaturePage extends Composite {
     // Content area that will change based on selection
     rightPanelContent = new Label(rightPanel, SWT.WRAP | SWT.CENTER);
     rightPanelContent.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
-    rightPanelContent.addDisposeListener(e -> {
-      if (currentContentImage != null && !currentContentImage.isDisposed()) {
-        currentContentImage.dispose();
-      }
-    });
 
     // Add resize listener to properly size the content
     rightPanel.addListener(SWT.Resize, e -> {
@@ -213,7 +208,7 @@ public class FeaturePage extends Composite {
     updateRightPanelContent(Feature.AGENT);
   }
 
-  private Composite createClickableFeatureCard(Composite parent, String imagePath, String title, String description,
+  private Composite createClickableFeatureCard(Composite parent, Image iconImage, String title, String description,
       Feature feature) {
     // Create a canvas for custom rounded painting
     Canvas cardCanvas = new Canvas(parent, SWT.NONE);
@@ -284,8 +279,7 @@ public class FeaturePage extends Composite {
     iconTitleComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     iconTitleComposite.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
 
-    // Icon - Load image from path using UiUtils
-    Image iconImage = UiUtils.buildImageFromPngPath(imagePath);
+    // Icon
     Label iconLabel = new Label(iconTitleComposite, SWT.NONE);
     iconLabel.setImage(iconImage);
     iconLabel.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-feature-card");
@@ -293,13 +287,6 @@ public class FeaturePage extends Composite {
     iconData.widthHint = 20;
     iconData.heightHint = 20;
     iconLabel.setLayoutData(iconData);
-
-    // Dispose image when label is disposed
-    iconLabel.addDisposeListener(e -> {
-      if (iconImage != null && !iconImage.isDisposed()) {
-        iconImage.dispose();
-      }
-    });
 
     // Make icon clickable too
     addClickableToControls(clickHandler, iconLabel);
@@ -434,28 +421,20 @@ public class FeaturePage extends Composite {
   }
 
   private void updateRightPanelContent(Feature feature) {
-    // Dispose previous image if it exists
-    if (currentContentImage != null && !currentContentImage.isDisposed()) {
-      currentContentImage.dispose();
-      currentContentImage = null;
-    }
-
-    String imagePath;
+    String key;
     switch (feature) {
       case ASK:
-        imagePath = "/intro/quickstart/quick_start_ask.png";
+        key = CopilotImages.IMG_QUICKSTART_ASK;
         break;
       case COMPLETION:
-        imagePath = "/intro/quickstart/quick_start_completion.png";
+        key = CopilotImages.IMG_QUICKSTART_COMPLETION;
         break;
       case AGENT:
       default:
-        imagePath = "/intro/quickstart/quick_start_agent.png";
+        key = CopilotImages.IMG_QUICKSTART_AGENT;
     }
 
-    // Load and set the new image
-    currentContentImage = UiUtils.buildImageFromPngPath(imagePath);
-    rightPanelContent.setImage(currentContentImage);
+    rightPanelContent.setImage(CopilotImages.getImage(key));
     rightPanelContent.requestLayout();
   }
 
@@ -483,8 +462,8 @@ public class FeaturePage extends Composite {
    * Creates a close button with hover effects.
    */
   private Label createCloseButton(Composite parent) {
-    Image normalImage = UiUtils
-        .buildImageFromPngPath(isDarkTheme ? "/intro/quickstart/close_dark.png" : "/intro/quickstart/close_light.png");
+    Image normalImage = CopilotImages.getThemedImage(
+        CopilotImages.IMG_QUICKSTART_CLOSE_LIGHT, CopilotImages.IMG_QUICKSTART_CLOSE_DARK);
     Label closeButton = new Label(parent, SWT.NONE);
     closeButton.setImage(normalImage);
     closeButton.setData(CSSSWTConstants.CSS_ID_KEY, "quick-start-container");
@@ -501,17 +480,8 @@ public class FeaturePage extends Composite {
       }
     });
 
-    Image hoverImage = UiUtils.buildImageFromPngPath(
-        isDarkTheme ? "/intro/quickstart/close_hover_dark.png" : "/intro/quickstart/close_hover_light.png");
-    // Add dispose listener for close button images
-    closeButton.addDisposeListener(e -> {
-      if (normalImage != null && !normalImage.isDisposed()) {
-        normalImage.dispose();
-      }
-      if (hoverImage != null && !hoverImage.isDisposed()) {
-        hoverImage.dispose();
-      }
-    });
+    Image hoverImage = CopilotImages.getThemedImage(
+        CopilotImages.IMG_QUICKSTART_CLOSE_HOVER_LIGHT, CopilotImages.IMG_QUICKSTART_CLOSE_HOVER_DARK);
 
     // Add hover effect for close button
     closeButton.addMouseTrackListener(new MouseTrackAdapter() {

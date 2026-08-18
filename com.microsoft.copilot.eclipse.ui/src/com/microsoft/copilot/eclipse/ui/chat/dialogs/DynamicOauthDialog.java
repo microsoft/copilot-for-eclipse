@@ -24,7 +24,7 @@ import org.eclipse.swt.widgets.Text;
 
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest.DynamicOauthInput;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 
 /**
  * Dialog for handling Dynamic OAuth requests from MCP servers.
@@ -57,7 +57,7 @@ public class DynamicOauthDialog extends Dialog {
       newShell.setText(request.getTitle());
     }
 
-    icon = UiUtils.buildImageFromPngPath("/icons/github_copilot.png");
+    icon = CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT);
     if (icon != null) {
       newShell.setImage(icon);
     }
@@ -212,10 +212,6 @@ public class DynamicOauthDialog extends Dialog {
     if (headerFont != null && !headerFont.isDisposed()) {
       headerFont.dispose();
       headerFont = null;
-    }
-    if (icon != null && !icon.isDisposed()) {
-      icon.dispose();
-      icon = null;
     }
   }
 

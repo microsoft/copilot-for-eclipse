@@ -301,13 +301,32 @@ CompletableFuture.supplyAsync(() -> {
 
 #### Resource Management
 
-**When** creating SWT resources (fonts, images) → dispose them when done; Colors do not need disposal in modern SWT
+**When** accessing SWT resources (fonts, images) → prefer accessing them via a plug-in's registry; in that case never dispose them
+
+**When** accessing SWT resources via a registry is not possible → you must dispose the resources you create
+yourself: `Image`, `GC`, `Cursor`, `Region`, `Path`, `Pattern`. `Color` and `Font` are auto-disposed in recent
+SWT. Never dispose system colors/fonts, registry-owned images/fonts, or `Display`/`Shell` (framework-managed)
+
+**When** designing a registry → store `ImageDescriptor`s (not eagerly created `Image`s); the registry creates
+and caches the `Image` lazily on first access and disposes it at display shutdown
 
 **When** using shared resources → do not dispose resources from other bundles
 
 **When** child has a parent → resources with a defined parent (e.g., Label with parent Composite) do not need explicit disposal
 
 **When** using streams/files → use try-with-resources for Eclipse resources (IFile, IDocument)
+
+##### Image Registries
+
+A plug-in's images can be offered using an `ImageRegistry`. We have `CopilotImages` in 
+`com.microsoft.copilot.eclipse.ui` and `CopilotJobsImages` in `com.microsoft.copilot.eclipse.ui.jobs`.
+The registry loads each image once, caches it, and disposes it automatically when the workbench shuts down.
+
+**When** accessing *static* images, always prefer using image registries. Do NOT pass image path `"/icons/...png"`
+string literals around the code base.
+
+**When** disposing → do NOT dispose images obtained from a registry or from shared images; the registry owns
+them. Only dispose images you constructed yourself with `new Image(...)`.
 
 #### Error Handling
 

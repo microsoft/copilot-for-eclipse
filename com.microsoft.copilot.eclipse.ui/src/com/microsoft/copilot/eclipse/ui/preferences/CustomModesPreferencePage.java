@@ -55,6 +55,7 @@ import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.service.ICustomModeService;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -90,7 +91,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
       disabledCompositeLayout.marginHeight = 0;
       disabledComposite.setLayout(disabledCompositeLayout);
       disabledComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-      WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
+      WrappableIconLink.create(disabledComposite, CopilotImages.getImage(CopilotImages.IMG_INFORMATION),
           Messages.setting_disabled_by_organization);
       return container;
     }

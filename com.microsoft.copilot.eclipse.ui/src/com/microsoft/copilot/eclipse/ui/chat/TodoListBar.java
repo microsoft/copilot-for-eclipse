@@ -23,6 +23,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
@@ -59,32 +60,15 @@ public class TodoListBar extends Composite {
     this.todoListService = CopilotUi.getPlugin().getChatServiceManager().getTodoListService();
     this.chatFontService = CopilotUi.getPlugin().getChatServiceManager().getChatFontService();
     loadStatusImages();
-    this.addDisposeListener(e -> disposeStatusImages());
-  }
-
-  private void disposeStatusImages() {
-    if (completedImage != null && !completedImage.isDisposed()) {
-      completedImage.dispose();
-    }
-    if (inProgressImage != null && !inProgressImage.isDisposed()) {
-      inProgressImage.dispose();
-    }
-    if (notStartedImage != null && !notStartedImage.isDisposed()) {
-      notStartedImage.dispose();
-    }
   }
 
   private void loadStatusImages() {
-    boolean isDarkTheme = UiUtils.isDarkTheme();
-    if (isDarkTheme) {
-      completedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_finish_dark.png");
-      inProgressImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_running_dark.png");
-      notStartedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_waiting_dark.png");
-    } else {
-      completedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_finish.png");
-      inProgressImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_running.png");
-      notStartedImage = UiUtils.buildImageFromPngPath("/icons/chat/todos_waiting.png");
-    }
+    completedImage = CopilotImages.getThemedImage(CopilotImages.IMG_TODOS_FINISH,
+        CopilotImages.IMG_TODOS_FINISH_DARK);
+    inProgressImage = CopilotImages.getThemedImage(CopilotImages.IMG_TODOS_RUNNING,
+        CopilotImages.IMG_TODOS_RUNNING_DARK);
+    notStartedImage = CopilotImages.getThemedImage(CopilotImages.IMG_TODOS_WAITING,
+        CopilotImages.IMG_TODOS_WAITING_DARK);
   }
 
   Image getStatusImage(String status) {
@@ -228,8 +212,6 @@ public class TodoListBar extends Composite {
       addMouseListener(clickListener);
 
       updateDisplay();
-
-      addDisposeListener(e -> disposeImages());
     }
 
     private void createExpandIcon() {
@@ -280,8 +262,8 @@ public class TodoListBar extends Composite {
     }
 
     private void loadClearButtonImages() {
-      clearEnabledImage = UiUtils.buildImageFromPngPath("/icons/chat/clear_todo.png");
-      clearDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/clear_todo_disable.png");
+      clearEnabledImage = CopilotImages.getImage(CopilotImages.IMG_CLEAR_TODO);
+      clearDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CLEAR_TODO_DISABLED);
     }
 
     public void updateDisplay() {
@@ -322,13 +304,13 @@ public class TodoListBar extends Composite {
 
       if (isExpanded) {
         if (downArrowImage == null) {
-          downArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/down_arrow.png");
+          downArrowImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_DOWN_ARROW);
         }
         expandIcon.setImage(downArrowImage);
         setToolTipText(Messages.todoList_collapseTooltip);
       } else {
         if (rightArrowImage == null) {
-          rightArrowImage = UiUtils.buildImageFromPngPath("/icons/chat/right_arrow.png");
+          rightArrowImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_RIGHT_ARROW);
         }
         expandIcon.setImage(rightArrowImage);
         setToolTipText(Messages.todoList_expandTooltip);
@@ -391,24 +373,6 @@ public class TodoListBar extends Composite {
       }
     }
 
-    private void disposeImages() {
-      if (downArrowImage != null && !downArrowImage.isDisposed()) {
-        downArrowImage.dispose();
-        downArrowImage = null;
-      }
-      if (rightArrowImage != null && !rightArrowImage.isDisposed()) {
-        rightArrowImage.dispose();
-        rightArrowImage = null;
-      }
-      if (clearEnabledImage != null && !clearEnabledImage.isDisposed()) {
-        clearEnabledImage.dispose();
-        clearEnabledImage = null;
-      }
-      if (clearDisabledImage != null && !clearDisabledImage.isDisposed()) {
-        clearDisabledImage.dispose();
-        clearDisabledImage = null;
-      }
-    }
   }
 
   class TodoListContent extends Composite {

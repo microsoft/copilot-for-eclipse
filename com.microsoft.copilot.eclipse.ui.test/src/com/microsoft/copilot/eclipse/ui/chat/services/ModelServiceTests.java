@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -208,6 +209,26 @@ class ModelServiceTests {
 
     assertSame(inventoryModel, pickerModel.get());
     assertSame(pickerModel.get(), activeModel.get());
+  }
+
+  @Test
+  void testSetActiveModel_AlreadyActiveModelDoesNotPersistPreference() throws InterruptedException {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }));
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+    waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
+
+    AtomicReference<CopilotModel> activeModel = new AtomicReference<>();
+    Display.getDefault().syncExec(() -> {
+      modelService.setActiveModel(defaultModel.getModelName());
+      activeModel.set(modelService.getActiveModel());
+    });
+
+    assertSame(defaultModel, activeModel.get());
+    Thread.sleep(100);
+    assertFalse(Files.exists(getPreferenceFile()));
   }
 
   private static CopilotModel createModel(String id, String name, boolean isChatDefault) {

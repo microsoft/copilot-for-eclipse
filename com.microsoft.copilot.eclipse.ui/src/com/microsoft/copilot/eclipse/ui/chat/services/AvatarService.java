@@ -23,6 +23,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -31,9 +32,6 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class AvatarService {
   private static final String AVATAR_URL = "https://avatars.githubusercontent.com/%s?s=24&v=4";
-  private static final String DEFAULT_COPILOT_AVATAR_NAME = "/icons/chat/chat_message_copilot_avatar.png";
-  private static final String DEFAULT_USER_AVATAR_NAME = "/icons/chat/chat_message_user_avatar.png";
-
   private Map<String, Image> avatarCache = new ConcurrentHashMap<>();
   private Map<String, Job> jobs = new ConcurrentHashMap<>();
 
@@ -48,8 +46,8 @@ public class AvatarService {
    */
   public AvatarService(AuthStatusManager authStatusManager) {
     this.authStatusManager = authStatusManager;
-    this.defaultGithubAvatar = UiUtils.buildImageFromPngPath(DEFAULT_COPILOT_AVATAR_NAME);
-    this.defaultUserAvatar = UiUtils.buildImageFromPngPath(DEFAULT_USER_AVATAR_NAME);
+    this.defaultGithubAvatar = CopilotImages.getImage(CopilotImages.IMG_CHAT_COPILOT_AVATAR);
+    this.defaultUserAvatar = CopilotImages.getImage(CopilotImages.IMG_CHAT_USER_AVATAR);
     this.authStatusChangedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof CopilotStatusResult statusResult && statusResult.isSignedIn()) {
@@ -67,7 +65,8 @@ public class AvatarService {
   }
 
   /**
-   * Gets the avatar for the current user.
+   * Gets the avatar for the current user or a default user icon.
+   * The returned {@link Image} must never be disposed by the caller.
    *
    * @param display the display
    * @return the avatar
@@ -85,7 +84,8 @@ public class AvatarService {
   }
 
   /**
-   * Gets the avatar for a user.
+   * Gets the avatar icon for a user or a default user icon.
+   * The returned {@link Image} must never be disposed by the caller.
    *
    * @param display the display
    * @param user the user
@@ -137,8 +137,6 @@ public class AvatarService {
    * Disposes the resources.
    */
   public void dispose() {
-    defaultGithubAvatar.dispose();
-    defaultUserAvatar.dispose();
     avatarCache.values().forEach(Image::dispose);
     jobs.values().forEach(Job::cancel);
     if (this.eventBroker != null) {

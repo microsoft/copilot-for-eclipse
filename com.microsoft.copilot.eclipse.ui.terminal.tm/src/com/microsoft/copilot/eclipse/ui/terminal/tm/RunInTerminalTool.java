@@ -9,10 +9,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.DisposeListener;
@@ -61,8 +61,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   private ITerminalControl terminalControl;
   private CTabFolder tabFolder;
   private CTabItem copilotTabItem;
-  private Image terminalIcon;
-  private ImageDescriptor terminalIconDescriptor;
+  private Supplier<Image> terminalIconSupplier;
 
   // Output and command state
   private StringBuilder sb;
@@ -298,10 +297,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
             if (tabFolder != null) {
               for (CTabItem item : tabFolder.getItems()) {
                 if (terminalTitle.equals(item.getText())) {
-                  if (terminalIconDescriptor != null) {
-                    if (terminalIcon == null || terminalIcon.isDisposed()) {
-                      terminalIcon = terminalIconDescriptor.createImage();
-                    }
+                  Image terminalIcon = resolveTerminalIcon();
+                  if (terminalIcon != null && !terminalIcon.isDisposed()) {
                     item.setImage(terminalIcon);
                   }
                   item.addDisposeListener(
@@ -381,10 +378,6 @@ public class RunInTerminalTool implements IRunInTerminalTool {
 
       if (backgroundCommandOutputs.isEmpty() && persistentTerminalViewControl == null) {
         terminalControl = null;
-        if (terminalIcon != null && !terminalIcon.isDisposed()) {
-          terminalIcon.dispose();
-          terminalIcon = null;
-        }
       }
     };
   }
@@ -430,7 +423,15 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   }
 
   @Override
-  public void setTerminalIconDescriptor(ImageDescriptor iconDescriptor) {
-    this.terminalIconDescriptor = iconDescriptor;
+  public void setTerminalIconSupplier(Supplier<Image> terminalIconSupplier) {
+    this.terminalIconSupplier = terminalIconSupplier;
+  }
+
+  /** Call this method from UI thread only. */
+  private Image resolveTerminalIcon() {
+    if (terminalIconSupplier == null) {
+      return null;
+    }
+    return terminalIconSupplier.get();
   }
 }

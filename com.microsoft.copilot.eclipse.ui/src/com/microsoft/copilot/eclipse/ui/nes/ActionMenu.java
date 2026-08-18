@@ -15,7 +15,7 @@ import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 
 /**
  * Action menu for accepting/rejecting suggestions.
@@ -68,8 +68,8 @@ public class ActionMenu {
     String acceptLabel = buildAlignedMenuLabel(Messages.actionMenu_accept, "Tab");
     String rejectLabel = buildAlignedMenuLabel(Messages.actionMenu_reject, "Esc");
 
-    ImageDescriptor acceptImage = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/keyboard-tab.png");
-    ImageDescriptor cancelImage = UiUtils.buildImageDescriptorFromPngPath("/icons/close.png");
+    ImageDescriptor acceptImage = CopilotImages.getImageDescriptor(CopilotImages.IMG_CHAT_KEYBOARD_TAB);
+    ImageDescriptor cancelImage = CopilotImages.getImageDescriptor(CopilotImages.IMG_CLOSE);
 
     menuManager.add(new Action(acceptLabel, acceptImage) {
       @Override

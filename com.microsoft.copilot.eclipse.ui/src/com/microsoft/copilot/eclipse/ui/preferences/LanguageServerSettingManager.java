@@ -137,7 +137,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   @Override
   public void proxyInfoChanged(IProxyChangeEvent event) {
     updateProxySettings();
-    updateGithubPanicErrorReport();
     syncSingleConfiguration(new CopilotLanguageServerSettings(null, settings.getHttp(), null, null));
   }
 
@@ -156,7 +155,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
       case Constants.ENABLE_STRICT_SSL:
         settings.getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
         singleSetting = new CopilotLanguageServerSettings(null, settings.getHttp(), null, null);
-        updateGithubPanicErrorReport();
         break;
       case Constants.PROXY_KERBEROS_SP:
         settings.getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
@@ -232,7 +230,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   public void syncConfiguration() {
     DidChangeConfigurationParams params = new DidChangeConfigurationParams();
     params.setSettings(settings);
-    updateGithubPanicErrorReport();
     this.copilotLanguageServerConnection.updateConfig(params);
   }
 
@@ -243,14 +240,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     DidChangeConfigurationParams params = new DidChangeConfigurationParams();
     params.setSettings(singleSetting);
     this.copilotLanguageServerConnection.updateConfig(params);
-  }
-
-  private void updateGithubPanicErrorReport() {
-    CopilotCore copilotCore = CopilotCore.getPlugin();
-    if (copilotCore != null && copilotCore.getGithubPanicErrorReport() != null) {
-      copilotCore.getGithubPanicErrorReport().setProxyStrictSsl(settings.getHttp().isProxyStrictSsl());
-      copilotCore.getGithubPanicErrorReport().setProxyData(proxyData);
-    }
   }
 
   /**

@@ -19,6 +19,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.IHandlerService;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.swt.WrapLabel;
@@ -113,7 +114,7 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     iconLabelComposite.setLayout(iconLabelGridlayout);
     iconLabelComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
-    this.mainIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_welcome.png");
+    this.mainIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_WELCOME);
     this.copilotIconLabel = new Label(iconLabelComposite, SWT.CENTER);
     this.copilotIconLabel.setImage(mainIcon);
     this.copilotIconLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, true));
@@ -139,28 +140,16 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
     subComposite.setLayoutData(gridData);
     subComposite.setLayout(new GridLayout(1, true));
 
-    if (this.agentIcon != null && !this.agentIcon.isDisposed()) {
-      this.agentIcon.dispose();
-    }
-    this.agentIcon = UiUtils.buildImageFromPngPath("/icons/github_copilot.png");
+    this.agentIcon = CopilotImages.getImage(CopilotImages.IMG_GITHUB_COPILOT);
     buildLabelWithIcon(subComposite, agentIcon, Messages.chat_welcomeView_agentSuffix);
 
-    if (this.mcpIcon != null && !this.mcpIcon.isDisposed()) {
-      this.mcpIcon.dispose();
-    }
-    this.mcpIcon = UiUtils.buildImageFromPngPath("/icons/chat/tools.png");
+    this.mcpIcon = CopilotImages.getImage(CopilotImages.IMG_CHAT_TOOLS);
     buildLabelWithIcon(subComposite, mcpIcon, Messages.chat_welcomeView_mcpSuffix);
 
-    if (this.chatIcon != null && !this.chatIcon.isDisposed()) {
-      this.chatIcon.dispose();
-    }
-    this.chatIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_chat.png");
+    this.chatIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_CHAT);
     buildLabelWithIcon(subComposite, chatIcon, Messages.chat_welcomeView_chatSuffix);
 
-    if (this.codeIcon != null && !this.codeIcon.isDisposed()) {
-      this.codeIcon.dispose();
-    }
-    this.codeIcon = UiUtils.buildImageFromPngPath("/icons/chat/chatview_icon_code.png");
+    this.codeIcon = CopilotImages.getImage(CopilotImages.IMG_CHATVIEW_ICON_CODE);
     buildLabelWithIcon(subComposite, codeIcon, Messages.chat_welcomeView_completionSuffix);
   }
 
@@ -242,23 +231,8 @@ public class BeforeLoginWelcomeViewer extends BaseViewer {
 
   @Override
   public void dispose() {
-    if (this.mainIcon != null) {
-      this.mainIcon.dispose();
-    }
     if (this.mainLabelFont != null) {
       this.mainLabelFont.dispose();
-    }
-    if (this.codeIcon != null) {
-      this.codeIcon.dispose();
-    }
-    if (this.chatIcon != null) {
-      this.chatIcon.dispose();
-    }
-    if (this.agentIcon != null) {
-      this.agentIcon.dispose();
-    }
-    if (this.mcpIcon != null) {
-      this.mcpIcon.dispose();
     }
     super.dispose();
   }

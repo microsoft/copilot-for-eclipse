@@ -1106,9 +1106,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
 
       String turnReasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
+      Integer turnContextSize = chatServiceManager.getModelService().resolveEffectiveContextWindow(activeModel);
       CompletableFuture<ChatTurnResult> addConversationFuture = ls.addConversationTurn(workDoneToken, conversationId,
-          message, references, currentFile, currentSelection, activeModel, turnReasoningEffort, chatModeName,
-          customChatModeId, currentTodos, agentSlug, agentJobWorkspaceFolder,
+          message, references, currentFile, currentSelection, activeModel, turnReasoningEffort,
+          turnContextSize, chatModeName, customChatModeId, currentTodos, agentSlug, agentJobWorkspaceFolder,
           deriveWorkspaceFolders(currentFile, references));
       conversationFutures.add(addConversationFuture);
 
@@ -1171,17 +1172,18 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
       String reasoningEffort = chatServiceManager.getModelService().resolveEffectiveReasoningEffort(activeModel);
+      Integer contextSize = chatServiceManager.getModelService().resolveEffectiveContextWindow(activeModel);
       CompletableFuture<ChatCreateResult> createConversationFuture = null;
       if (StringUtils.isBlank(agentSlug)) {
         createConversationFuture = ls.createConversation(workDoneToken, message, references, currentFile,
-            currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, todosToRestore, null,
-            null, restoredConversationId, restoreToTurnId, workspaceFolders);
+            currentSelection, turns, activeModel, reasoningEffort, contextSize, chatModeName, customChatModeId,
+            todosToRestore, null, null, restoredConversationId, restoreToTurnId, workspaceFolders);
       } else {
         // For conversations sending to agents, include agentSlug and specify the target agentJobWorkspaceFolder
         // Don't send todo list for agent jobs - agents manage their own todo state independently
         createConversationFuture = ls.createConversation(workDoneToken, message, references, currentFile,
-            currentSelection, turns, activeModel, reasoningEffort, chatModeName, customChatModeId, null, agentSlug,
-            agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
+            currentSelection, turns, activeModel, reasoningEffort, contextSize, chatModeName, customChatModeId, null,
+            agentSlug, agentJobWorkspaceFolder, restoredConversationId, restoreToTurnId, workspaceFolders);
       }
       conversationFutures.add(createConversationFuture);
 

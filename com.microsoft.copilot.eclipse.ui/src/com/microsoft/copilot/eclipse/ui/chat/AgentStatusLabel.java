@@ -16,10 +16,10 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.swt.SpinnerAnimator;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A label with icon that displays the running status of the agent.
@@ -49,12 +49,6 @@ public class AgentStatusLabel extends Composite {
     setLayout(layout);
     setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
     this.addDisposeListener(e -> {
-      if (this.completedIcon != null && !this.completedIcon.isDisposed()) {
-        this.completedIcon.dispose();
-      }
-      if (this.cancelledIcon != null && !this.cancelledIcon.isDisposed()) {
-        this.cancelledIcon.dispose();
-      }
       if (this.eventBroker != null) {
         this.eventBroker.unsubscribe(cancelStatusHandler);
       }
@@ -82,7 +76,7 @@ public class AgentStatusLabel extends Composite {
     spinner.stop();
 
     if (this.completedIcon == null) {
-      this.completedIcon = UiUtils.buildImageFromPngPath("/icons/complete_status.png");
+      this.completedIcon = CopilotImages.getImage(CopilotImages.IMG_COMPLETE_STATUS);
     }
     iconLabel.setImage(completedIcon);
 
@@ -109,7 +103,7 @@ public class AgentStatusLabel extends Composite {
     if (this.status == Status.RUNNING) {
       spinner.stop();
     }
-    iconLabel.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK));
+    iconLabel.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_ERROR_TSK));
     this.status = Status.ERROR;
   }
 
@@ -121,7 +115,7 @@ public class AgentStatusLabel extends Composite {
       spinner.stop();
 
       if (this.cancelledIcon == null) {
-        this.cancelledIcon = UiUtils.buildImageFromPngPath("/icons/cancel_status.png");
+        this.cancelledIcon = CopilotImages.getImage(CopilotImages.IMG_CANCEL_STATUS);
       }
       iconLabel.setImage(cancelledIcon);
 

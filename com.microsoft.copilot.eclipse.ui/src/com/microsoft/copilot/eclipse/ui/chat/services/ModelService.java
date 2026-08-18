@@ -43,6 +43,7 @@ import com.microsoft.copilot.eclipse.ui.chat.ModelPickerGroupsBuilder;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.DropdownButton;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
+import com.microsoft.copilot.eclipse.ui.utils.ModelUtils.ContextWindowOption;
 
 /**
  * Service for managing AI models and their selection. Handles all model-related functionality including persistence,
@@ -54,6 +55,7 @@ public class ModelService extends ChatBaseService {
   private IObservableValue<Map<String, CopilotModel>> modelObservable;
   private IObservableValue<CopilotModel> activeModelObservable;
   private IObservableValue<Map<String, String>> reasoningEffortObservable;
+  private IObservableValue<Map<String, Integer>> contextWindowObservable;
   // Used to update modelObservable
   private Map<String, CopilotModel> copilotModels = new HashMap<>();
   private Map<String, CopilotModel> registeredByokModels = new HashMap<>();
@@ -89,6 +91,11 @@ public class ModelService extends ChatBaseService {
         initialEfforts = initialPreference.getReasoningEffortSnapshot();
       }
       reasoningEffortObservable = new WritableValue<>(initialEfforts, Map.class);
+      Map<String, Integer> initialContextWindows = Map.of();
+      if (initialPreference != null) {
+        initialContextWindows = initialPreference.getContextWindowSnapshot();
+      }
+      contextWindowObservable = new WritableValue<>(initialContextWindows, Map.class);
     });
 
     initializeEventHandlers();
@@ -119,6 +126,7 @@ public class ModelService extends ChatBaseService {
         Map<String, List<ByokModel>> byokModels = (Map<String, List<ByokModel>>) modelsMap;
         saveRegisteredByokModels(byokModels);
         reconcileReasoningEfforts();
+        reconcileContextWindows();
         ensureRealm(() -> updateModelsForChatMode(currentChatMode));
       }
     };
@@ -183,6 +191,7 @@ public class ModelService extends ChatBaseService {
             fetchCopilotModels();
             fetchByokModels();
             reconcileReasoningEfforts();
+            reconcileContextWindows();
             ensureRealm(() -> {
               updateModelsForChatMode(currentChatMode);
             });
@@ -370,6 +379,10 @@ public class ModelService extends ChatBaseService {
         .findFirst()
         .orElse(null);
     if (model != null) {
+      CopilotModel activeModel = getActiveModel();
+      if (activeModel != null && activeModel.getModelKey().equals(model.getModelKey())) {
+        return;
+      }
       // Persist asynchronously to avoid deadlock: persistUserPreference() calls
       // persistence().get() which blocks waiting for the LSP listener thread.
       // If called on the UI thread while the listener is in syncExec, both threads
@@ -535,6 +548,134 @@ public class ModelService extends ChatBaseService {
   }
 
   /**
+    * Returns the user-selected context-window size (a price tier's {@code maxContext} token count) for the given model,
+    * or {@code null} when the user has not made a selection. The persisted snapshot is kept in sync with the current
+    * model inventory by {@link #reconcileContextWindows()} after each model fetch, so this method is a pure lookup.
+    *
+    * @param model the model to query
+    * @return the selected context-window size, or {@code null}
+    */
+  private Integer getSelectedContextWindow(CopilotModel model) {
+    UserPreference preference = getUserPreference();
+    return preference != null ? preference.getContextWindow(model.getModelKey()) : null;
+  }
+
+  /**
+   * Resolves the effective context-window option for the given model: the option matching the user's persisted
+   * selection when it is still offered, otherwise the model's default option (see
+   * {@link ModelUtils#resolveDefaultContextWindowOption(CopilotModel)}). Returns {@code null} for models that offer no
+   * selectable context-window options.
+   *
+   * @param model the model to query
+   * @return the effective context-window option, or {@code null}
+   */
+  public ContextWindowOption resolveEffectiveContextWindowOption(CopilotModel model) {
+    if (model == null) {
+      return null;
+    }
+    Integer selectedValue = getSelectedContextWindow(model);
+    ContextWindowOption selected = ModelUtils.findContextWindowOption(model, selectedValue);
+    return selected != null ? selected : ModelUtils.resolveDefaultContextWindowOption(model);
+  }
+
+  /**
+   * Resolves the effective context-window display size (e.g. {@code 1M}) to show in the model picker suffix for the
+   * given model, or {@code null} when the model offers no context-window options.
+   *
+   * @param model the model to query
+   * @return the formatted display size, or {@code null}
+   */
+  public String resolveEffectiveContextWindowText(CopilotModel model) {
+    ContextWindowOption option = resolveEffectiveContextWindowOption(model);
+    return option == null ? null : ModelUtils.formatTokenCount(ModelUtils.getContextWindowDisplaySize(model, option));
+  }
+
+  /**
+   * Resolves the context-window size that should be forwarded to the language server for the given model: the user's
+   * explicit selection when present, otherwise the model's default tier. Returns {@code null} for models that do not
+   * expose a selectable context window (see {@link ModelUtils#supportsContextWindowSelection(CopilotModel)}), so the
+   * field is omitted for single-tier models and older servers are unaffected.
+   *
+   * @param model the model that will receive the request
+   * @return the {@code maxContext} token count, or {@code null} to omit
+   */
+  public Integer resolveEffectiveContextWindow(CopilotModel model) {
+    if (!ModelUtils.supportsContextWindowSelection(model)) {
+      return null;
+    }
+    ContextWindowOption option = resolveEffectiveContextWindowOption(model);
+    return option == null ? null : Integer.valueOf(option.maxContext());
+  }
+
+  /**
+   * Persists the user-selected context-window size for the given model and updates dependent observers.
+   *
+   * @param model the model to update
+   * @param contextWindow the context-window size to store, or {@code null} to clear
+   */
+  public void setSelectedContextWindow(CopilotModel model, Integer contextWindow) {
+    if (model == null) {
+      return;
+    }
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
+    if (!preference.setContextWindow(model.getModelKey(), contextWindow)) {
+      return;
+    }
+    CompletableFuture.runAsync(this::persistUserPreference);
+    // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
+    // resolveEffectiveContextWindowText (which queries UserPreference), so this observable serves purely as a change
+    // signal.
+    ensureRealm(() -> contextWindowObservable.setValue(preference.getContextWindowSnapshot()));
+  }
+
+  /**
+   * Reconciles the persisted context-window snapshot with the current model inventory
+   * ({@link #copilotModels} ∪ {@link #registeredByokModels}). Entries are kept only when the model still exists and
+   * the stored size still matches one of that model's advertised context-window options; everything else is dropped.
+   * The map is replaced atomically.
+   *
+   * <p>Skipped when the inventory is empty (e.g. the very first fetch has not produced results yet or both fetches
+   * failed) so a transient outage cannot wipe every stored selection.
+   */
+  private void reconcileContextWindows() {
+    if (copilotModels.isEmpty() && registeredByokModels.isEmpty()) {
+      return;
+    }
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
+    Map<String, Integer> snapshot = preference.getContextWindowSnapshot();
+    if (snapshot.isEmpty()) {
+      return;
+    }
+    Map<String, CopilotModel> inventory = new HashMap<>();
+    for (CopilotModel model : copilotModels.values()) {
+      inventory.put(model.getModelKey(), model);
+    }
+    for (CopilotModel model : registeredByokModels.values()) {
+      inventory.put(model.getModelKey(), model);
+    }
+    Map<String, Integer> reconciled = new HashMap<>();
+    for (Map.Entry<String, Integer> entry : snapshot.entrySet()) {
+      CopilotModel model = inventory.get(entry.getKey());
+      if (model == null) {
+        continue;
+      }
+      if (ModelUtils.findContextWindowOption(model, entry.getValue()) != null) {
+        reconciled.put(entry.getKey(), entry.getValue());
+      }
+    }
+    if (preference.setContextWindows(reconciled)) {
+      CompletableFuture.runAsync(this::persistUserPreference);
+      ensureRealm(() -> contextWindowObservable.setValue(preference.getContextWindowSnapshot()));
+    }
+  }
+
+  /**
    * Binds a {@link DropdownButton} to this service for model selection. The button displays model groups with per-item
    * tooltips and billing suffixes.
    *
@@ -553,6 +694,7 @@ public class ModelService extends ChatBaseService {
       ISideEffect modelsSideEffect = ISideEffect.create(() -> {
         Map<String, CopilotModel> modelMap = this.modelObservable.getValue();
         this.reasoningEffortObservable.getValue();
+        this.contextWindowObservable.getValue();
         if (picker.isDisposed() || modelMap.isEmpty()) {
           return Collections.emptyMap();
         }
@@ -560,9 +702,8 @@ public class ModelService extends ChatBaseService {
       }, (Map<String, CopilotModel> modelMap) -> rebuildPickerItems(picker, modelMap));
 
       // Active-model render path: only depends on the active model. The button-face text is read from the matching
-      // DropdownItem's selectedLabel (populated by ModelPickerGroupsBuilder with the effective effort), which is
-      // refreshed by modelsSideEffect above whenever the reasoning-effort observable changes. There is no need to
-      // track the effort observable here.
+      // DropdownItem's selectedLabel, which modelsSideEffect refreshes whenever the effective reasoning effort or
+      // context window changes. There is no need to track those observables here.
       ISideEffect activeModelSideEffect = ISideEffect.create(this.activeModelObservable::getValue,
           (CopilotModel activeModel) -> {
             if (activeModel == null || picker.isDisposed()) {
@@ -596,7 +737,7 @@ public class ModelService extends ChatBaseService {
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     boolean showByokManageOption = flags == null || flags.isByokEnabled();
     picker.setItemGroups(ModelPickerGroupsBuilder.build(modelMap, showAddPremiumModelOption, showByokManageOption,
-        this::resolveEffectiveReasoningEffort));
+        this::resolveEffectiveReasoningEffort, this::resolveEffectiveContextWindowText));
   }
 
   /**

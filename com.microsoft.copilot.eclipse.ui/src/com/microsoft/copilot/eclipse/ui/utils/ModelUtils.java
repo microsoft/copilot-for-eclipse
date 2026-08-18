@@ -11,6 +11,7 @@ import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelBillingTokenPrices;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesLimits;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
@@ -92,9 +93,11 @@ public class ModelUtils {
    *
    * @param model the model
    * @param reasoningEffort the effective reasoning effort to display, or {@code null} to omit
+   * @param contextWindowText the effective context-window size to display (e.g. the user-selected tier's display
+   *     size), or {@code null} to fall back to the model's default context window
    * @return the suffix string, or an empty string if no suffix applies
    */
-  public static String getModelSuffix(CopilotModel model, String reasoningEffort) {
+  public static String getModelSuffix(CopilotModel model, String reasoningEffort, String contextWindowText) {
     if (model == null) {
       return "";
     }
@@ -116,16 +119,18 @@ public class ModelUtils {
     if (model.getBilling() != null && !model.getBilling().tokenBasedBillingEnabled()) {
       return formatBillingMultiplier(model.getBilling().multiplier());
     }
-    return String.join(SUFFIX_PART_SEPARATOR, buildSuffixParts(model, reasoningEffort));
+    return String.join(SUFFIX_PART_SEPARATOR, buildSuffixParts(model, reasoningEffort, contextWindowText));
   }
 
   /**
    * Builds the ordered list of suffix parts for a model. Add new parts (e.g. thinking effort) here in the desired
    * display order. Blank values are filtered out by the caller.
    */
-  private static List<String> buildSuffixParts(CopilotModel model, String reasoningEffort) {
+  private static List<String> buildSuffixParts(CopilotModel model, String reasoningEffort, String contextWindowText) {
     List<String> parts = new ArrayList<>();
-    addIfNotBlank(parts, getContextWindowText(model));
+    // Prefer the caller-supplied effective context-window size (which reflects the user's tier selection) and fall
+    // back to the model's default context window when none is provided.
+    addIfNotBlank(parts, StringUtils.isNotBlank(contextWindowText) ? contextWindowText : getContextWindowText(model));
     // Only surface a reasoning-effort suffix when the language server has explicitly advertised the model as
     // supporting selectable effort levels. The server only sets supportsReasoningEffortLevel when the model has
     // more than one effort level AND is hosted on a compatible endpoint.
@@ -224,6 +229,138 @@ public class ModelUtils {
       return null;
     }
     return model.getBilling().tokenPrices().defaultTier();
+  }
+
+  /**
+   * A selectable context-window size for a model, derived from one of its billing price tiers.
+   *
+   * @param maxContext the tier's max context (input) token threshold; the canonical value persisted for the
+   *     selection and forwarded to the language server
+   * @param tier the billing price tier backing this option
+   * @param isDefault whether this option is the model's {@code default} price tier
+   */
+  public record ContextWindowOption(int maxContext, CopilotModelTokenPriceTier tier, boolean isDefault) {
+  }
+
+  /**
+    * Returns the selectable context-window sizes a model offers, one per distinct billing price-tier
+    * {@code maxContext} ({@code default}, {@code longContext}), in display order. When tiers have the same
+    * {@code maxContext}, the default tier takes precedence. Returns an empty list when the model carries no token-based
+    * pricing. When the {@code default} tier omits its own {@code maxContext}, falls back to the advertised
+    * {@code maxContextWindowTokens} so the default tier still has a size.
+    *
+    * @param model the model
+    * @return the ordered list of context-window options, possibly empty
+    */
+  public static List<ContextWindowOption> getContextWindowOptions(CopilotModel model) {
+    if (model == null || model.getBilling() == null || model.getBilling().tokenPrices() == null) {
+      return List.of();
+    }
+    CopilotModelBillingTokenPrices tokenPrices = model.getBilling().tokenPrices();
+    Integer fallback = model.getCapabilities() != null && model.getCapabilities().limits() != null
+        ? model.getCapabilities().limits().maxContextWindowTokens() : null;
+
+    List<ContextWindowOption> options = new ArrayList<>();
+    CopilotModelTokenPriceTier defaultTier = tokenPrices.defaultTier();
+    if (defaultTier != null) {
+      Integer max = defaultTier.maxContext() != null ? defaultTier.maxContext() : fallback;
+      if (max != null && max > 0) {
+        options.add(new ContextWindowOption(max, defaultTier, true));
+      }
+    }
+    CopilotModelTokenPriceTier longContextTier = tokenPrices.longContext();
+    if (longContextTier != null && longContextTier.maxContext() != null && longContextTier.maxContext() > 0) {
+      boolean duplicateMaxContext = options.stream()
+          .anyMatch(option -> option.maxContext() == longContextTier.maxContext());
+      if (!duplicateMaxContext) {
+        options.add(new ContextWindowOption(longContextTier.maxContext(), longContextTier, false));
+      }
+    }
+    return options;
+  }
+
+  /**
+   * Returns the user-facing display size for a context-window option: when the tier advertises its own input limit
+   * ({@code tier.maxContext}), the full window is that limit plus the model's max output tokens; otherwise the option
+   * fell back to the advertised {@code maxContextWindowTokens} (already a full-window figure) and is returned as-is.
+   *
+   * @param model the model that owns the option
+   * @param option the context-window option
+   * @return the display size in tokens
+   */
+  public static int getContextWindowDisplaySize(CopilotModel model, ContextWindowOption option) {
+    Integer maxOutput = model.getCapabilities() != null && model.getCapabilities().limits() != null
+        ? model.getCapabilities().limits().maxOutputTokens() : null;
+    int output = maxOutput == null ? 0 : maxOutput;
+    return option.tier().maxContext() != null ? option.maxContext() + output : option.maxContext();
+  }
+
+  /**
+   * Returns whether the user can select among multiple context-window sizes for the model. True only when the model
+    * advertises more than one distinct context-window size, so a single-tier model keeps its static, non-selectable
+    * context-window row.
+   *
+   * @param model the model
+   * @return {@code true} when a selectable context-window UI should be shown
+   */
+  public static boolean supportsContextWindowSelection(CopilotModel model) {
+    return getContextWindowOptions(model).size() >= 2;
+  }
+
+  /**
+   * Returns the model's default context-window option to use when the user has not made a selection: the
+   * {@code default} tier, falling back to the first advertised option. Returns {@code null} when the model offers no
+   * options.
+   *
+   * @param model the model
+   * @return the default option, or {@code null} when the model has no options
+   */
+  public static ContextWindowOption resolveDefaultContextWindowOption(CopilotModel model) {
+    List<ContextWindowOption> options = getContextWindowOptions(model);
+    if (options.isEmpty()) {
+      return null;
+    }
+    for (ContextWindowOption option : options) {
+      if (option.isDefault()) {
+        return option;
+      }
+    }
+    return options.get(0);
+  }
+
+  /**
+    * Returns the context-window option whose {@code maxContext} matches the given persisted value, or {@code null}
+    * when {@code maxContext} is {@code null} or no longer offered by the model.
+   *
+   * @param model the model
+   * @param maxContext the persisted {@code maxContext} value, or {@code null}
+   * @return the matching option, or {@code null}
+   */
+  public static ContextWindowOption findContextWindowOption(CopilotModel model, Integer maxContext) {
+    if (maxContext == null) {
+      return null;
+    }
+    for (ContextWindowOption option : getContextWindowOptions(model)) {
+      if (option.maxContext() == maxContext) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns the localized secondary description for a context-window option: {@code Default} for the default tier and
+   * a "long context" description for the long-context tier. Returns {@code null} when {@code option} is {@code null}.
+   *
+   * @param option the context-window option
+   * @return the localized description, or {@code null}
+   */
+  public static String formatContextWindowDescription(ContextWindowOption option) {
+    if (option == null) {
+      return null;
+    }
+    return option.isDefault() ? Messages.model_contextWindow_default_description
+        : Messages.model_contextWindow_longContext_description;
   }
 
   /**

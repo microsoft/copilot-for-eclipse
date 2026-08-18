@@ -8,9 +8,6 @@ package com.microsoft.copilot.eclipse.ui;
  */
 public class UiConstants {
 
-  public static final String WORKBENCH_TEXTEDITOR = "org.eclipse.ui.workbench.texteditor";
-  public static final String INSERT_ICON = "icons/full/elcl16/insert_template.png";
-
   private UiConstants() {
     // prevent instantiation
   }

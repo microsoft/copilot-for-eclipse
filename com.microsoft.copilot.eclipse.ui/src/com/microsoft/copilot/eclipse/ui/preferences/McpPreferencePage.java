@@ -54,9 +54,9 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.PlatformUI;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -70,6 +70,7 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
 import com.microsoft.copilot.eclipse.ui.dialogs.mcp.McpRegistryDialog;
@@ -167,8 +168,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     // Create a simple note for the feature disabled case
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
     if (flags != null && !flags.isMcpEnabled()) {
-      return WrappableIconLink.createWithSharedImage(parent,
-          PlatformUI.getWorkbench().getSharedImages().getImage(org.eclipse.ui.ISharedImages.IMG_OBJS_INFO_TSK),
+      return WrappableIconLink.create(parent,
+          CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_INFO_TSK),
           Messages.preferences_page_mcp_disabled_tip);
     }
 
@@ -377,8 +378,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     }
 
     // Create info message composite using WrappableIconLink
-    registryInfoMessageComposite = WrappableIconLink.createWithCustomizedImage(mcpRegistryGroup,
-        "/icons/information.png", message);
+    registryInfoMessageComposite = WrappableIconLink.create(mcpRegistryGroup,
+        CopilotImages.getImage(CopilotImages.IMG_INFORMATION), message);
 
     // Trigger layout update on the entire hierarchy to ensure proper sizing
     mcpRegistryGroup.requestLayout();
@@ -403,20 +404,14 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     var service = CopilotUi.getPlugin().getChatServiceManager().getMcpConfigService();
     boolean newExtMcpRegFound = service.isNewExtMcpRegFound();
     if (newExtMcpRegFound) {
-      if (redNotice == null || redNotice.isDisposed()) {
-        redNotice = UiUtils.buildImageFromPngPath("/icons/chat/red_notice.png");
+      if (redNotice == null) {
+        redNotice = CopilotImages.getImage(CopilotImages.IMG_CHAT_RED_NOTICE);
       }
       redNoticeLabel = new Label(extMcpTitleComposite, SWT.NONE);
       redNoticeLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false));
       redNoticeLabel.setImage(redNotice);
       redNoticeLabel
           .setToolTipText(com.microsoft.copilot.eclipse.ui.i18n.Messages.chat_actionBar_toolButton_detected_toolTip);
-      redNoticeLabel.addDisposeListener(e -> {
-        if (redNotice != null && !redNotice.isDisposed()) {
-          redNotice.dispose();
-          redNotice = null;
-        }
-      });
     }
 
     // Title label
@@ -448,11 +443,6 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
       redNoticeLabel.setImage(null); // detach before dispose
       redNoticeLabel.dispose();
       redNoticeLabel = null;
-    }
-
-    if (redNotice != null && !redNotice.isDisposed()) {
-      redNotice.dispose();
-      redNotice = null;
     }
 
     // Refresh layout to reflect changes immediately

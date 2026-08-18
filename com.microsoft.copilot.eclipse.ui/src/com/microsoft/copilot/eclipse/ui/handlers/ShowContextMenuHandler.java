@@ -18,9 +18,8 @@ import org.eclipse.ui.actions.CompoundContributionItem;
 import org.eclipse.ui.menus.CommandContributionItem;
 import org.eclipse.ui.menus.CommandContributionItemParameter;
 
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
-import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
-
 
 /**
  * Handler to show context menu items for adding files or folders to references in package explorer/project explorer.
@@ -31,7 +30,6 @@ public class ShowContextMenuHandler extends CompoundContributionItem {
   protected IContributionItem[] getContributionItems() {
     IWorkbenchWindow win = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
     var sel = win != null ? win.getSelectionService().getSelection() : null;
-
 
     if (!(sel instanceof IStructuredSelection s) || s.isEmpty()) {
       return new IContributionItem[0];
@@ -49,7 +47,7 @@ public class ShowContextMenuHandler extends CompoundContributionItem {
 
     items.add(new Separator("com.microsoft.copilot.eclipse.ui.contextMenu.start"));
 
-    ImageDescriptor menuIcon = UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png");
+    ImageDescriptor menuIcon = CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT);
 
     MenuManager submenu = new MenuManager("Copilot", menuIcon, "com.microsoft.copilot.eclipse.ui.contextMenu");
 

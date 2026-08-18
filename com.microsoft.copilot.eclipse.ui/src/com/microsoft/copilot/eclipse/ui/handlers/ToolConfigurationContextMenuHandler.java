@@ -19,6 +19,7 @@ import org.eclipse.ui.menus.CommandContributionItemParameter;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -41,7 +42,7 @@ public class ToolConfigurationContextMenuHandler extends CompoundContributionIte
 
       // Create submenu for Copilot tool configuration
       MenuManager submenu = new MenuManager("Copilot",
-          UiUtils.buildImageDescriptorFromPngPath("/icons/github_copilot.png"),
+          CopilotImages.getImageDescriptor(CopilotImages.IMG_GITHUB_COPILOT),
           "com.microsoft.copilot.eclipse.ui.toolConfigMenu");
 
       // Add "Configure Tools..." command
@@ -49,7 +50,7 @@ public class ToolConfigurationContextMenuHandler extends CompoundContributionIte
       CommandContributionItemParameter param = new CommandContributionItemParameter(window, null,
           "com.microsoft.copilot.eclipse.commands.configureTools", CommandContributionItem.STYLE_PUSH);
       param.label = "Configure Tools...";
-      param.icon = UiUtils.buildImageDescriptorFromPngPath("/icons/chat/tools.png");
+      param.icon = CopilotImages.getImageDescriptor(CopilotImages.IMG_CHAT_TOOLS);
 
       submenu.add(new CommandContributionItem(param));
       items.add(submenu);
