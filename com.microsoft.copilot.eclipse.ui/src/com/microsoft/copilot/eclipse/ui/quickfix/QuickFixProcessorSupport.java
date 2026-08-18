@@ -38,6 +38,22 @@ final class QuickFixProcessorSupport {
     return authStatusManager != null && authStatusManager.isSignedIn();
   }
 
+  static boolean hasOverlappingProblemMarker(IFile file, IDocument document, int offset, int length)
+      throws CoreException {
+    if (file == null || document == null || offset < 0 || offset > document.getLength()) {
+      return false;
+    }
+
+    int selectionLength = Math.max(0, length);
+    for (IMarker marker : file.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO)) {
+      String message = marker.getAttribute(IMarker.MESSAGE, "").trim();
+      if (!message.isEmpty() && overlaps(marker, document, offset, selectionLength)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   static ProblemContext findProblemContext(IFile file, IDocument document, int offset, int length)
       throws CoreException {
     if (file == null || document == null || offset < 0 || offset > document.getLength()) {

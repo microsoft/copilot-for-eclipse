@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.quickfix;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -58,6 +59,9 @@ class QuickFixProcessorSupportTests {
   void findsProblemAtCaret() throws Exception {
     createMarker("Fix the second line", 11, 25, 2);
 
+    assertTrue(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 18, 0));
+    assertFalse(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 10, 0));
+    assertFalse(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 25, 0));
     assertEquals(List.of("Fix the second line"),
         QuickFixProcessorSupport.findProblemContext(file, document, 18, 0).messages());
     assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, 10, 0).messages().isEmpty());
@@ -70,6 +74,7 @@ class QuickFixProcessorSupportTests {
     createMarker("Second problem", 11, 25, 2);
     createMarker("Second problem", 15, 20, 2);
 
+    assertTrue(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 11, 28));
     assertEquals(List.of("Second problem", "Third problem"),
         QuickFixProcessorSupport.findProblemContext(file, document, 11, 28).messages());
   }
@@ -95,6 +100,8 @@ class QuickFixProcessorSupportTests {
     lineMarker.setAttribute(IMarker.MESSAGE, "Line problem");
     lineMarker.setAttribute(IMarker.LINE_NUMBER, 3);
 
+    assertTrue(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 11, 0));
+    assertTrue(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 30, 0));
     assertEquals(List.of("Insertion problem"),
         QuickFixProcessorSupport.findProblemContext(file, document, 11, 0).messages());
     assertEquals(List.of("Line problem"),
@@ -118,6 +125,9 @@ class QuickFixProcessorSupportTests {
     marker.setAttribute(IMarker.CHAR_START, 0);
     marker.setAttribute(IMarker.CHAR_END, 5);
 
+    assertFalse(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, 2, 0));
+    assertFalse(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, -1, 0));
+    assertFalse(QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, document.getLength() + 1, 0));
     assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, 2, 0).messages().isEmpty());
     assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, -1, 0).messages().isEmpty());
     assertTrue(QuickFixProcessorSupport.findProblemContext(file, document, document.getLength() + 1, 0)

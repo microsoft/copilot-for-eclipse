@@ -35,7 +35,19 @@ public class JavaCopilotQuickAssistProcessor implements IQuickAssistProcessor {
 
   @Override
   public boolean hasAssists(IInvocationContext context) throws CoreException {
-    return createProposal(context) != null;
+    if (!isCopilotAvailable.getAsBoolean() || context == null) {
+      return false;
+    }
+
+    ICompilationUnit compilationUnit = context.getCompilationUnit();
+    IResource resource = compilationUnit == null ? null : compilationUnit.getResource();
+    if (!(resource instanceof IFile file)) {
+      return false;
+    }
+
+    IDocument document = new Document(compilationUnit.getBuffer().getContents());
+    return QuickFixProcessorSupport.hasOverlappingProblemMarker(file, document, context.getSelectionOffset(),
+        context.getSelectionLength());
   }
 
   @Override
