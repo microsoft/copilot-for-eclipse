@@ -256,7 +256,11 @@ public class InvokeToolConfirmationDialog extends Composite {
 
     for (ConfirmationAction action : actions) {
       if (isReviewPromptAction(action)) {
-        reviewAction = action;
+        // Only offer the "Review Prompt" button when prompt text was actually
+        // extracted into a control to reveal; otherwise it would be a no-op.
+        if (samplingPromptText != null) {
+          reviewAction = action;
+        }
       } else if (!action.isAccept()) {
         dismissAction = action;
       } else if (action.isPrimary()) {

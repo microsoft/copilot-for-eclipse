@@ -131,7 +131,7 @@ public class McpConfirmationHandler implements ConfirmationHandler {
       }
     }
 
-    // 2. Session: specific tool approved for this conversation
+    // 3. Session: specific tool approved for this conversation
     if (toolKey != null) {
       Set<String> sessionTools =
           approvedTools.get(sessionConversationId);
