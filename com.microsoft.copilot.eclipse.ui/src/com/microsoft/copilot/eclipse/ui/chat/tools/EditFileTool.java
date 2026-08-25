@@ -15,11 +15,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.core.filebuffers.FileBuffers;
+import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.semantic.ISemanticFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.QualifiedName;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.lsp4j.FileChangeType;
+import org.eclipse.swt.widgets.Display;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InputSchema;
@@ -197,6 +203,8 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
     if (!validateEdit(file)) {
       throw new IllegalStateException("File validation failed for " + file.getFullPath());
     }
+    verifyTransportRequestForAdtLock(file);
+
     ByteArrayInputStream inputStream = getInputStream(changedContent, file);
 
     // Set the file contents
@@ -207,6 +215,73 @@ public class EditFileTool extends FileToolBase implements WorkingSetHandler {
 
     // Close the input stream
     inputStream.close();
+
+    var buffer = FileBuffers.getTextFileBufferManager().getTextFileBuffer(file.getFullPath(), LocationKind.IFILE);
+    if (buffer != null && buffer.isDirty()) {
+      // Some editors (e.g. the ABAP source editor) do not listen for changes to the underlying file and
+      // therefore leave a dirty, out-of-date buffer after we have written the new contents to disk. Force
+      // the buffer to reload from disk by reverting it, so the open editor reflects the edit we just applied.
+      Display.getDefault().asyncExec(() -> {
+        try {
+          buffer.revert(new NullProgressMonitor());
+        } catch (CoreException e) {
+          CopilotCore.LOGGER.error(e);
+        }
+      });
+    }
+  }
+
+  private static final String ADT_LOCK_RESULT_CLASS = "com.sap.adt.tools.core.internal.locking.AdtLockResult";
+  private static final QualifiedName ADT_LOCK_RESULT_PROPERTY = new QualifiedName("com.sap.adt.tools.filesystem",
+      "LockResult");
+
+  /**
+   * When an ADT (ABAP Development Tools) file is locked in a transport-relevant way, it must be associated with a
+   * transport request before it can be edited. The lock result is stored as a session property on the semantic file
+   * and is accessed reflectively, as the ADT classes are not available at compile time.
+   *
+   * <p>
+   * A distinction is made between the lock information being read successfully (in which case the transport
+   * request is enforced) and the reflective read failing, e.g. because the ADT API changed. In the latter case
+   * the check cannot be performed reliably, so the failure is logged and the edit is allowed to continue rather
+   * than blocking the user.
+   *
+   * @param file the file about to be changed
+   * @throws CoreException if the file is transport-relevant but has no transport request number assigned
+   */
+  private void verifyTransportRequestForAdtLock(IFile file) throws CoreException {
+    var semanticFile = file.getAdapter(ISemanticFile.class);
+    if (semanticFile == null) {
+      return;
+    }
+    Object lockResult = semanticFile.getSessionProperty(ADT_LOCK_RESULT_PROPERTY);
+    if (lockResult == null || !ADT_LOCK_RESULT_CLASS.equals(lockResult.getClass().getCanonicalName())) {
+      return;
+    }
+    try {
+      Boolean transportRelevant = readField(lockResult, "transportRelevant", Boolean.class);
+      if (!Boolean.TRUE.equals(transportRelevant)) {
+        return;
+      }
+      String transportRequestNumber = readField(lockResult, "transportRequestNumber", String.class);
+      if (transportRequestNumber == null || transportRequestNumber.isEmpty()) {
+        throw new CoreException(Status.error(String.format(
+            "Cannot edit %s: the file is transport-relevant but no transport request number is assigned.",
+            file.getFullPath())));
+      }
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      // The lock result is a genuine AdtLockResult, but its fields could not be read reflectively (e.g. the ADT
+      // API changed or setAccessible was denied). The transport check cannot be performed reliably, so log the
+      // failure and allow the edit to continue instead of blocking the user.
+      CopilotCore.LOGGER.error("Could not verify ADT transport lock for " + file.getFullPath()
+          + "; allowing the edit to continue.", e);
+    }
+  }
+
+  private <T> T readField(Object target, String fieldName, Class<T> type) throws ReflectiveOperationException {
+    var field = target.getClass().getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return type.cast(field.get(target));
   }
 
   private ByteArrayInputStream getInputStream(String changedContent, IFile file) {
