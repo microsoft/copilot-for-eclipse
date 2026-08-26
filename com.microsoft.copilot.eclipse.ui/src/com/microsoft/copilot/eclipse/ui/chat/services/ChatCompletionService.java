@@ -15,7 +15,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
@@ -31,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 /**
@@ -103,7 +103,17 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     // Pass workspace folders so the language server returns workspace-specific
     // prompt files (.prompt.md) and skills (SKILL.md) alongside built-in templates.
     try {
-      List<WorkspaceFolder> workspaceFolders = LSPEclipseUtils.getWorkspaceFolders();
+      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
+      // Log workspace folders for debugging prompt/skill discovery
+      if (!workspaceFolders.isEmpty()) {
+        StringBuilder folderLog = new StringBuilder("Discovering prompts and skills from workspace folders: ");
+        for (WorkspaceFolder folder : workspaceFolders) {
+          folderLog.append("[").append(folder.getName()).append(": ").append(folder.getUri()).append("] ");
+        }
+        CopilotCore.LOGGER.info(folderLog.toString());
+      } else {
+        CopilotCore.LOGGER.info("No workspace folders available for prompt and skill discovery");
+      }
       ConversationTemplate[] rawTemplates = this.lsConnection.listConversationTemplates(workspaceFolders).get();
       if (monitor.isCanceled()) {
         return;
