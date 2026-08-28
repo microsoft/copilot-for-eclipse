@@ -10,12 +10,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IResourceChangeListener;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
@@ -31,6 +35,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 
 /**
@@ -49,6 +54,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   private AuthStatusManager authStatusManager;
   private IEventBroker eventBroker;
   private EventHandler customPromptsChangedHandler;
+  private IResourceChangeListener resourceChangeListener;
 
   /**
    * Constructor for the SlashCommandService.
@@ -69,7 +75,31 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES,
           customPromptsChangedHandler);
     }
+    this.resourceChangeListener = event -> {
+      if (event.getType() == IResourceChangeEvent.POST_CHANGE && hasProjectChanges(event.getDelta())) {
+        fetchAsync();
+      }
+    };
+    try {
+      ResourcesPlugin.getWorkspace().addResourceChangeListener(this.resourceChangeListener,
+          IResourceChangeEvent.POST_CHANGE);
+    } catch (IllegalStateException e) {
+      // Workspace may not be available in standalone headless unit test environments
+    }
     syncCommands(this.authStatusManager.getCopilotStatus());
+  }
+
+  private boolean hasProjectChanges(IResourceDelta delta) {
+    if (delta == null) {
+      return false;
+    }
+    // If the delta is at the root level, check each child
+    for (IResourceDelta child : delta.getAffectedChildren()) {
+      if (child.getResource() instanceof IProject) {
+        return true;
+      }
+    }
+    return delta.getResource() instanceof IProject;
   }
 
   private void fetchAsync() {
@@ -103,7 +133,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     // Pass workspace folders so the language server returns workspace-specific
     // prompt files (.prompt.md) and skills (SKILL.md) alongside built-in templates.
     try {
-      List<WorkspaceFolder> workspaceFolders = LSPEclipseUtils.getWorkspaceFolders();
+      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
       ConversationTemplate[] rawTemplates = this.lsConnection.listConversationTemplates(workspaceFolders).get();
       if (monitor.isCanceled()) {
         return;
@@ -215,6 +245,13 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     this.authStatusManager.removeCopilotAuthStatusListener(this);
     if (this.eventBroker != null && this.customPromptsChangedHandler != null) {
       this.eventBroker.unsubscribe(this.customPromptsChangedHandler);
+    }
+    if (this.resourceChangeListener != null) {
+      try {
+        ResourcesPlugin.getWorkspace().removeResourceChangeListener(this.resourceChangeListener);
+      } catch (IllegalStateException e) {
+        // Workspace may not be available during shutdown
+      }
     }
   }
 }
