@@ -84,7 +84,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       ResourcesPlugin.getWorkspace().addResourceChangeListener(this.resourceChangeListener,
           IResourceChangeEvent.POST_CHANGE);
     } catch (IllegalStateException e) {
-      // Workspace may not be available in standalone headless unit test environments
+      CopilotCore.LOGGER.info("Workspace not available; skipping resource change listener registration.");
     }
     syncCommands(this.authStatusManager.getCopilotStatus());
   }
@@ -93,13 +93,24 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     if (delta == null) {
       return false;
     }
-    // If the delta is at the root level, check each child
+    if (delta.getResource() instanceof IProject) {
+      int kind = delta.getKind();
+      int flags = delta.getFlags();
+      if (kind == IResourceDelta.ADDED || kind == IResourceDelta.REMOVED) {
+        return true;
+      }
+      return (flags & (IResourceDelta.OPEN
+          | IResourceDelta.DESCRIPTION
+          | IResourceDelta.MOVED_FROM
+          | IResourceDelta.MOVED_TO
+          | IResourceDelta.REPLACED)) != 0;
+    }
     for (IResourceDelta child : delta.getAffectedChildren()) {
-      if (child.getResource() instanceof IProject) {
+      if (hasProjectChanges(child)) {
         return true;
       }
     }
-    return delta.getResource() instanceof IProject;
+    return false;
   }
 
   private void fetchAsync() {
@@ -250,7 +261,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
       try {
         ResourcesPlugin.getWorkspace().removeResourceChangeListener(this.resourceChangeListener);
       } catch (IllegalStateException e) {
-        // Workspace may not be available during shutdown
+        CopilotCore.LOGGER.info("Workspace not available; skipping resource change listener unregistration.");
       }
     }
   }
