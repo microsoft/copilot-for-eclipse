@@ -22,7 +22,7 @@ import com.microsoft.copilot.eclipse.ui.utils.CompletionUtils;
 public class BlockGhostText extends GhostText {
 
   /**
-   * Creates a new EolGhostText.
+   * Creates a new BlockGhostText.
    *
    * @param text the ghost text to display.
    * @param modelOffset the model offset where the ghost text starts.

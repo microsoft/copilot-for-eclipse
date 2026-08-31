@@ -82,7 +82,7 @@ public interface CopilotLanguageServer extends LanguageServer {
   CompletableFuture<CopilotStatusResult> checkStatus(CheckStatusParams param);
 
   /**
-   * Check the uesr's quota status.
+   * Check the user's quota status.
    *
    * @param param the empty quota request parameters.
    * @return the current quota status.
