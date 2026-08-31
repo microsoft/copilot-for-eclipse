@@ -625,7 +625,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
   }
 
   /**
-   * Gets the if auto show completions is enabled.
+   * Returns whether auto show completions is enabled.
    *
    * @return true if auto show completions is enabled, or false otherwise.
    */

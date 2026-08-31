@@ -477,7 +477,7 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   }
 
   /**
-   * Get the current suggestion line number in the document, or null if no active suggestion.
+   * Get the current suggestion line number in the document, or -1 if no active suggestion.
    *
    * @return the current suggestion line number, or -1 if no suggestion line is available.
    */
