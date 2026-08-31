@@ -32,10 +32,10 @@ jobs:
       working-directory: com.microsoft.copilot.eclipse.core/copilot-agent
       run: npm i -f
 
-    - name: Set up JDK 17
+    - name: Set up JDK 21
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
         cache: maven
 

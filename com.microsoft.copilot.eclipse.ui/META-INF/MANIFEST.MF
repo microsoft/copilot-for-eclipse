@@ -21,7 +21,7 @@ Export-Package: com.microsoft.copilot.eclipse.ui,
  com.microsoft.copilot.eclipse.ui.extensions,
  com.microsoft.copilot.eclipse.ui.nes;x-friends:="com.microsoft.copilot.eclipse.ui.test"
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui
 Bundle-ActivationPolicy: lazy
 Import-Package: org.osgi.framework;version="[1.10.0,2.0.0)"

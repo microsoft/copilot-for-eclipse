@@ -16,10 +16,10 @@ When you submit a pull request, a CLA bot will automatically determine whether y
 
 ### Prerequisites
 
-- **Java 17** or later (CI uses Temurin 17; use a newer JDK if required by your Eclipse IDE)
+- **Java 21** or later (CI uses Temurin 21; use a newer JDK if required by your Eclipse IDE)
 - **Maven 3.8+** (or use the provided Maven wrapper `./mvnw`)
 - **Node.js 22.13** or later, with npm
-- **Eclipse IDE for Eclipse Committers 2024-03** or later (for development)
+- **Eclipse IDE for Eclipse Committers 2025-12** or later (for development)
 - Recommended: **Eclipse Checkstyle plugin** for code style compliance
   (e.g. install from update site: https://checkstyle.org/eclipse-cs-update-site/)
 
@@ -61,8 +61,8 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
    * Do also import the agent bundle for your OS (e.g., `com.microsoft.copilot.eclipse.core.agent.win32`)
      after building the project with npm and maven or import all OS-specific agent bundles.
 2. Activate one of the target platforms, i.e. open one of the target definition files and select `Set As Active Target Platform`.
-   * target-terminal.target (Eclipse 4.37+)
-   * target-tm-terminal.target (Eclipse 4.36 and earlier)
+   * `target-platforms/2025-12.target` (Eclipse 4.38 and later)
+   * `target-platforms/2024-12.target` (Eclipse 4.36 and earlier)
 3. For using the Checkstyle configuration (assuming you have installed the Eclipse Checkstyle plugin, see prerequisites),
    add a new named Checkstyle configuration.
    * Select *Window > Preferences > Checkstyle* and press the *New...* button.
