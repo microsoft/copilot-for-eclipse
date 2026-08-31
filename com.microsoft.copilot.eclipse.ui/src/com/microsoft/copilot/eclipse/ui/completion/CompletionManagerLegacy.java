@@ -27,6 +27,11 @@ public class CompletionManagerLegacy extends BaseCompletionManager {
 
   /**
    * Creates a new legacy completion manager for environments without code mining support.
+   *
+   * @param lsConnection the connection to the Copilot language server.
+   * @param provider the completion provider that supplies suggestions.
+   * @param editor the text editor managed by this completion manager.
+   * @param settingsManager the language server settings manager.
    */
   public CompletionManagerLegacy(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
       ITextEditor editor, LanguageServerSettingManager settingsManager) {
@@ -94,6 +99,7 @@ public class CompletionManagerLegacy extends BaseCompletionManager {
    * @param documentLine the line in the document where the completion is triggered.
    * @param completionLine the first line of the inline suggestion.
    * @param triggerOffset the offset where the completion is triggered in the document.
+   * @return the ghost texts to render for the completion.
    */
   public static List<GhostText> getGhostTexts(String documentLine, String completionLine, int triggerOffset) {
     List<GhostText> ghostTexts = new ArrayList<>();

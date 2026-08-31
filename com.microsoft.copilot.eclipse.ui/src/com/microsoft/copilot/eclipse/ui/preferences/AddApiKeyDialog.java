@@ -42,6 +42,10 @@ public class AddApiKeyDialog extends TrayDialog {
 
   /**
    * Constructor for AddApiKeyDialog.
+   *
+   * @param parentShell the parent shell for the dialog.
+   * @param providerName the provider name shown in the dialog.
+   * @param onSave the callback invoked with the saved API key.
    */
   public AddApiKeyDialog(Shell parentShell, String providerName, Consumer<String> onSave) {
     this(parentShell, providerName, null, onSave);
@@ -49,6 +53,11 @@ public class AddApiKeyDialog extends TrayDialog {
 
   /**
    * Constructor for ChangeApiKeyDialog with existing API key.
+   *
+   * @param parentShell the parent shell for the dialog.
+   * @param providerName the provider name shown in the dialog.
+   * @param existingApiKey the existing API key to edit.
+   * @param onSave the callback invoked with the saved API key.
    */
   public AddApiKeyDialog(Shell parentShell, String providerName, String existingApiKey, Consumer<String> onSave) {
     super(parentShell);

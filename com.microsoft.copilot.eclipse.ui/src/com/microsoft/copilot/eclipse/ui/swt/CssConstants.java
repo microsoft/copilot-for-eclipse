@@ -35,6 +35,9 @@ public class CssConstants {
 
   /**
    * Get the placeholder color for input fields based on the current theme.
+   *
+   * @param display the display used to create the color.
+   * @return the placeholder color for input fields.
    */
   public static Color getInputPlaceHolderColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -45,6 +48,9 @@ public class CssConstants {
 
   /**
    * Get the border color for UI elements based on the current theme.
+   *
+   * @param display the display used to create the color.
+   * @return the border color.
    */
   public static Color getBorderColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -55,6 +61,9 @@ public class CssConstants {
 
   /**
    * Get the separator color for dropdown popup groups based on the current theme.
+   *
+   * @param display the display used to create the color.
+   * @return the separator color.
    */
   public static Color getSeparatorColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -65,6 +74,9 @@ public class CssConstants {
 
   /**
    * Get the button focus background color based on the current theme.
+   *
+   * @param display the display used to create the color.
+   * @return the button focus background color.
    */
   public static Color getButtonFocusBgColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -75,6 +87,9 @@ public class CssConstants {
 
   /**
    * Get the background color for dropdown popup based on the current theme.
+   *
+   * @param display the display used to create the color.
+   * @return the dropdown popup background color.
    */
   public static Color getPopupBgColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -85,6 +100,9 @@ public class CssConstants {
 
   /**
    * Returns the color for the "Powerful" model picker category badge.
+   *
+   * @param display the display used to create the color.
+   * @return the Powerful category badge color.
    */
   public static Color getCategoryPowerfulColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -95,6 +113,9 @@ public class CssConstants {
 
   /**
    * Returns the color for the "Versatile" model picker category badge.
+   *
+   * @param display the display used to create the color.
+   * @return the Versatile category badge color.
    */
   public static Color getCategoryVersatileColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -105,6 +126,9 @@ public class CssConstants {
 
   /**
    * Returns the color for the "Lightweight" model picker category badge.
+   *
+   * @param display the display used to create the color.
+   * @return the Lightweight category badge color.
    */
   public static Color getCategoryLightweightColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -115,6 +139,9 @@ public class CssConstants {
 
   /**
    * Get the focused background color for dropdown popup items based on the current theme.
+   *
+   * @param display the display used to create the color.
+   * @return the focused popup item background color.
    */
   public static Color getPopupItemFocusBgColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -125,6 +152,9 @@ public class CssConstants {
 
   /**
    * Get the focus border color for widgets.
+   *
+   * @param display the display used to create the color.
+   * @return the widget focus border color.
    */
   public static Color getWidgetFocusBorderColor(Display display) {
     return new Color(display, 55, 134, 246);
@@ -132,6 +162,9 @@ public class CssConstants {
 
   /**
    * Get the border color for the currently selected/focused item in list-like widgets (chat history, popup menus).
+   *
+   * @param display the display used to create the color.
+   * @return the selected item border color.
    */
   public static Color getSelectedItemBorderColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -142,6 +175,9 @@ public class CssConstants {
 
   /**
    * Returns the background color used to highlight replace text for next edit suggestions.
+   *
+   * @param display the display used to create the color.
+   * @return the replace background color for next edit suggestions.
    */
   public static Color getNesReplaceBackground(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -152,6 +188,9 @@ public class CssConstants {
 
   /**
    * Returns the background color used to highlight insert text for next edit suggestions.
+   *
+   * @param display the display used to create the color.
+   * @return the insert background color for next edit suggestions.
    */
   public static Color getNesInsertBackground(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -162,6 +201,9 @@ public class CssConstants {
 
   /**
    * Returns the highlight color used to highlight replace text for next edit suggestions.
+   *
+   * @param display the display used to create the color.
+   * @return the replace highlight color for next edit suggestions.
    */
   public static Color getNesReplaceHighlight(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -173,6 +215,9 @@ public class CssConstants {
 
   /**
    * Returns the highlight color used to highlight insert text for next edit suggestions.
+   *
+   * @param display the display used to create the color.
+   * @return the insert highlight color for next edit suggestions.
    */
   public static Color getNesInsertHighlight(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -183,6 +228,9 @@ public class CssConstants {
 
   /**
    * Returns the border color for the NES bottom bar.
+   *
+   * @param display the display used to create the color.
+   * @return the next edit suggestion bottom bar border color.
    */
   public static Color getNesBottomBarBorderColor(Display display) {
     return new Color(display, 53, 132, 241);
@@ -190,6 +238,9 @@ public class CssConstants {
 
   /**
    * Returns the color for the filled portion of the context size donut.
+   *
+   * @param display the display used to create the color.
+   * @return the filled portion color for the context size donut.
    */
   public static Color getDonutFilledColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -200,6 +251,9 @@ public class CssConstants {
 
   /**
    * Returns the warning color for the filled portion when utilisation is high (>= 90%).
+   *
+   * @param display the display used to create the color.
+   * @return the high-utilisation warning color for the context size donut.
    */
   public static Color getDonutWarningColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -210,6 +264,9 @@ public class CssConstants {
 
   /**
    * Returns the color for the track portion of the context size donut.
+   *
+   * @param display the display used to create the color.
+   * @return the track portion color for the context size donut.
    */
   public static Color getDonutTrackColor(Display display) {
     if (UiUtils.isDarkTheme()) {
@@ -220,6 +277,9 @@ public class CssConstants {
 
   /**
    * Returns the active (blue) fill color for the usage bar.
+   *
+   * @param display the display used to create the color.
+   * @return the active fill color for the usage bar.
    */
   public static Color getUsageBarActiveColor(Display display) {
     return new Color(display, 53, 116, 240);
@@ -227,6 +287,9 @@ public class CssConstants {
 
   /**
    * Returns the approaching (yellow) fill color for the usage bar.
+   *
+   * @param display the display used to create the color.
+   * @return the approaching-limit fill color for the usage bar.
    */
   public static Color getUsageBarApproachingColor(Display display) {
     return new Color(display, 255, 184, 36);
@@ -234,6 +297,9 @@ public class CssConstants {
 
   /**
    * Returns the exhausted (red) fill color for the usage bar.
+   *
+   * @param display the display used to create the color.
+   * @return the exhausted-limit fill color for the usage bar.
    */
   public static Color getUsageBarExhaustedColor(Display display) {
     return new Color(display, 224, 81, 81);
@@ -241,6 +307,9 @@ public class CssConstants {
 
   /**
    * Returns the remaining (gray) track color for the usage bar.
+   *
+   * @param display the display used to create the color.
+   * @return the remaining-capacity track color for the usage bar.
    */
   public static Color getUsageBarRemainingColor(Display display) {
     return new Color(display, 223, 225, 229);

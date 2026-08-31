@@ -45,6 +45,9 @@ public class ConversationCreateParams {
 
   /**
    * Creates a new ConversationCreateParams.
+   *
+   * @param prompt the initial prompt for the conversation.
+   * @param workDoneToken the work-done progress token for the conversation request.
    */
   public ConversationCreateParams(Either<String, List<ChatCompletionContentPart>> prompt, String workDoneToken) {
     this.workDoneToken = workDoneToken;

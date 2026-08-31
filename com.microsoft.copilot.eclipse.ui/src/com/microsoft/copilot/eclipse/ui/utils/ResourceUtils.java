@@ -31,6 +31,9 @@ public final class ResourceUtils {
 
   /**
    * Collect valid resources from the selection.
+   *
+   * @param selection the structured selection to inspect.
+   * @return the valid file and folder resources in the selection.
    */
   public static List<IResource> collectValidResources(IStructuredSelection selection) {
     List<IResource> validResources = new ArrayList<>();
@@ -51,6 +54,9 @@ public final class ResourceUtils {
 
   /**
    * Analyze the selection and return statistics about files, folders, and invalid resources.
+   *
+   * @param selection the structured selection to analyze.
+   * @return statistics describing the selected resources.
    */
   public static SelectionStats analyzeSelection(IStructuredSelection selection) {
     int fileCount = 0;

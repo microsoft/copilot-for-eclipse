@@ -22,6 +22,10 @@ public class Turn {
 
   /**
    * Creates a new Turn.
+   *
+   * @param request the request content for the turn.
+   * @param response the response text for the turn.
+   * @param agentSlug the slug of the agent that handled the turn.
    */
   public Turn(@NonNull Either<String, List<ChatCompletionContentPart>> request, String response, String agentSlug) {
     this.request = request;
@@ -31,6 +35,11 @@ public class Turn {
 
   /**
    * Creates a new Turn with turnId.
+   *
+   * @param request the request content for the turn.
+   * @param response the response text for the turn.
+   * @param agentSlug the slug of the agent that handled the turn.
+   * @param turnId the identifier of the turn.
    */
   public Turn(@NonNull Either<String, List<ChatCompletionContentPart>> request, String response, String agentSlug,
       String turnId) {

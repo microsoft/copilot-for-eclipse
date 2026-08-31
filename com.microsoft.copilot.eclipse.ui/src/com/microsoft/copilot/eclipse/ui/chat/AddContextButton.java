@@ -42,6 +42,8 @@ public class AddContextButton extends Composite {
 
   /**
    * Creates a new AddContextButton.
+   *
+   * @param parent the parent composite.
    */
   public AddContextButton(Composite parent) {
     super(parent, SWT.NONE);

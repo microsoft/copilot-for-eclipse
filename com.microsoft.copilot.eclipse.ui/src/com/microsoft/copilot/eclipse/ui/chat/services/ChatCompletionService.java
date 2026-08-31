@@ -52,6 +52,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
 
   /**
    * Constructor for the SlashCommandService.
+   *
+   * @param lsConnection the language server connection used to list conversation templates.
+   * @param authStatusManager the authentication status manager used to refresh commands on sign-in changes.
    */
   public ChatCompletionService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
     this.authStatusManager = authStatusManager;
@@ -130,6 +133,9 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
   /**
    * Returns templates filtered by the scope appropriate for the given chat mode. In Agent mode only {@code agent-panel}
    * scoped templates (including skills) are shown; in Ask mode only {@code chat-panel} scoped templates are shown.
+   *
+   * @param chatMode the chat mode used to choose the template scope.
+   * @return the templates available for the given chat mode.
    */
   public ConversationTemplate[] getFilteredTemplates(ChatMode chatMode) {
     String scope = chatMode == ChatMode.Agent ? CopilotScope.AGENT_PANEL : CopilotScope.CHAT_PANEL;
@@ -141,6 +147,7 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
    * Find a broken slash command in the given text.
    *
    * @param text the text
+   * @param cursorPosition the cursor position within the text.
    * @return the start and end index of the broken slash command
    */
   public boolean isBrokenCommand(String text, int cursorPosition) {

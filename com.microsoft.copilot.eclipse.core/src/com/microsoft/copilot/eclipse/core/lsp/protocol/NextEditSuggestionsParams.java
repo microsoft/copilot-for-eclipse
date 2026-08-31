@@ -28,6 +28,9 @@ public class NextEditSuggestionsParams {
 
   /**
    * Constructor with fields.
+   *
+   * @param textDocument the versioned text document for next edit suggestions.
+   * @param position the cursor position for next edit suggestions.
    */
   public NextEditSuggestionsParams(VersionedTextDocumentIdentifier textDocument, Position position) {
     this.textDocument = textDocument;

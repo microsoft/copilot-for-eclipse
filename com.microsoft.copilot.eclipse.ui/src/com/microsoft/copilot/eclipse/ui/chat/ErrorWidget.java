@@ -23,6 +23,7 @@ public class ErrorWidget extends Composite {
    * Create the composite.
    *
    * @param parent the parent composite
+   * @param style the widget style.
    * @param message the message to display
    */
   public ErrorWidget(Composite parent, int style, String message) {

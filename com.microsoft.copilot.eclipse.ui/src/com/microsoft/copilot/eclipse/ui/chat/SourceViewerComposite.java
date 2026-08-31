@@ -58,6 +58,13 @@ public class SourceViewerComposite extends Composite {
 
   /**
    * Constructs a new SourceViewerComposite.
+   *
+   * @param parent the parent composite.
+   * @param style the widget style.
+   * @param serviceManager the chat service manager used by the source viewer.
+   * @param language the language of the source content.
+   * @param turnId the turn ID associated with the source content.
+   * @param codeBlockIndex the index of the code block within the turn.
    */
   public SourceViewerComposite(Composite parent, int style, ChatServiceManager serviceManager, String language,
       String turnId, int codeBlockIndex) {
@@ -71,6 +78,8 @@ public class SourceViewerComposite extends Composite {
 
   /**
    * Sets the text to be displayed in the source viewer.
+   *
+   * @param text the text to display in the source viewer.
    */
   public void setText(String text) {
     if (sourceViewer.getDocument() == null) {

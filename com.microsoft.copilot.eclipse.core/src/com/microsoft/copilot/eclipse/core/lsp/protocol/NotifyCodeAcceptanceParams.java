@@ -25,6 +25,10 @@ public class NotifyCodeAcceptanceParams {
 
   /**
    * Constructor.
+   *
+   * @param turnId the identifier of the turn containing the accepted code.
+   * @param acceptedFileCount the number of files accepted by the user.
+   * @param totalFileCount the initial number of files pending decision in this turn.
    */
   public NotifyCodeAcceptanceParams(String turnId, int acceptedFileCount, int totalFileCount) {
     this.turnId = turnId;

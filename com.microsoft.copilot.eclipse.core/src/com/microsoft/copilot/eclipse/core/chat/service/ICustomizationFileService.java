@@ -21,6 +21,8 @@ public interface ICustomizationFileService {
   /**
    * Returns the absolute paths of single-file customization files (prompts, instructions, agents).
    * The returned set is an immutable snapshot.
+   *
+   * @return the absolute paths of single-file customization files.
    */
   Set<Path> getCustomizationFiles();
 
@@ -28,6 +30,8 @@ public interface ICustomizationFileService {
    * Returns the absolute paths of skill folders (the directory containing each {@code SKILL.md}).
    * A read of any file within one of these folders is a skill read. The returned set is an immutable
    * snapshot.
+   *
+   * @return the absolute paths of skill folders.
    */
   Set<Path> getSkillFolders();
 

@@ -18,6 +18,8 @@ public class NotifyShownParams {
 
   /**
    * Creates a new NotifyShownParams.
+   *
+   * @param uuid the unique identifier of the shown completion.
    */
   public NotifyShownParams(String uuid) {
     this.uuid = uuid;

@@ -107,6 +107,7 @@ public class ChatContentViewer extends Composite {
    *
    * @param parent the parent composite
    * @param style the style
+   * @param serviceManager the chat service manager used by the viewer.
    */
   public ChatContentViewer(Composite parent, int style, ChatServiceManager serviceManager) {
     super(parent, style | SWT.V_SCROLL | SWT.DOUBLE_BUFFERED);
@@ -159,6 +160,9 @@ public class ChatContentViewer extends Composite {
 
   /**
    * Should be called when user sends a message.
+   *
+   * @param workDoneToken the work-done token identifying the turn.
+   * @param message the user message to start the turn with.
    */
   public void startNewTurn(String workDoneToken, String message) {
     BaseTurnWidget turnWidget = getLatestOrCreateNewTurnWidget(workDoneToken, false, true);
@@ -174,6 +178,11 @@ public class ChatContentViewer extends Composite {
 
   /**
    * Create a new turn.
+   *
+   * @param workDoneToken the work-done token identifying the turn.
+   * @param isCopilot whether the turn is for Copilot output.
+   * @param forceCreateNewTurn whether to create a new turn even if the latest turn could be reused.
+   * @return the latest turn widget or a newly created turn widget.
    */
   public BaseTurnWidget getLatestOrCreateNewTurnWidget(String workDoneToken, boolean isCopilot,
       boolean forceCreateNewTurn) {
@@ -210,7 +219,11 @@ public class ChatContentViewer extends Composite {
 
   }
 
-  /** Set the conversation ID used for thinking-block persistence. */
+  /**
+   * Set the conversation ID used for thinking-block persistence.
+   *
+   * @param conversationId the conversation ID to use for persistence.
+   */
   public void setConversationId(String conversationId) {
     this.conversationId = conversationId;
   }
@@ -218,6 +231,8 @@ public class ChatContentViewer extends Composite {
   /**
    * Process turn event. Events are queued and drained in batches on the UI thread so the LSP thread
    * is never blocked and multiple in-flight events coalesce into a single layout pass.
+   *
+   * @param value the chat progress event to process.
    */
   public void processTurnEvent(ChatProgressValue value) {
     pendingEvents.offer(value);
@@ -352,7 +367,12 @@ public class ChatContentViewer extends Composite {
     }
   }
 
-  /** Returns the active thinking block ID last observed while processing this turn's progress. */
+  /**
+   * Returns the active thinking block ID last observed while processing this turn's progress.
+   *
+   * @param turnId the turn ID whose active thinking block is requested.
+   * @return the active thinking block ID, or {@code null} if none is tracked for the turn.
+   */
   public String getActiveThinkingBlockId(String turnId) {
     return activeThinkingBlockIds.get(turnId);
   }
@@ -368,6 +388,8 @@ public class ChatContentViewer extends Composite {
 
   /**
    * Append message to the latest turn.
+   *
+   * @param message the message text to append.
    */
   public void appendMessageToTheLatestTurn(String message) {
     if (this.latestTurnWidget != null) {
@@ -462,6 +484,9 @@ public class ChatContentViewer extends Composite {
 
   /**
    * Get an existed turn widget by turn ID.
+   *
+   * @param turnId the turn ID to look up.
+   * @return the turn widget for the given ID, or {@code null} if it does not exist.
    */
   public BaseTurnWidget getTurnWidget(String turnId) {
     return turns.get(turnId);
@@ -483,6 +508,8 @@ public class ChatContentViewer extends Composite {
 
   /**
    * Render error message banner on the chat content viewer.
+   *
+   * @param errorMessage the error message to render.
    */
   public void renderErrorMessage(String errorMessage) {
     if (this.errorWidget != null) {
@@ -793,6 +820,8 @@ public class ChatContentViewer extends Composite {
    * the turn's {@link #topOf} value with the local y offsets down to {@code target}, then
    * adjusts {@link #scrollOffset} by the minimum amount needed to bring {@code target} fully
    * into the viewport.</p>
+   *
+   * @param target the composite to make visible.
    */
   public void showControl(Composite target) {
     if (target == null || target.isDisposed()) {
