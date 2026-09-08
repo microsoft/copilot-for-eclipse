@@ -26,6 +26,8 @@ public class ProgressParamsAdapter extends TypeAdapter<ProgressParams> {
 
   /**
    * Constructor.
+   *
+   * @param gson the Gson instance used to serialize and deserialize progress parameters.
    */
   public ProgressParamsAdapter(Gson gson) {
     this.gson = gson;

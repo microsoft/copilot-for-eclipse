@@ -24,6 +24,12 @@ public class SubagentTurnWidget extends ThinkingTurnWidget {
 
   /**
    * Create the widget.
+   *
+   * @param parent the parent composite.
+   * @param style the widget style.
+   * @param serviceManager the chat service manager used by the widget.
+   * @param turnId the parent turn ID associated with the subagent widget.
+   * @param toolCall the subagent tool call that provides role information.
    */
   public SubagentTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId,
       AgentToolCall toolCall) {

@@ -60,6 +60,8 @@ public class PlatformUtils {
 
   /**
    * Get the version of the Copilot plugin.
+   *
+   * @return the Copilot plugin version, or {@code "unknown"} if unavailable.
    */
   public static String getBundleVersion() {
     Bundle bundle = CopilotCore.getPlugin().getBundle();
@@ -68,6 +70,8 @@ public class PlatformUtils {
 
   /**
    * Check if the Copilot plugin is a nightly build.
+   *
+   * @return true if the Copilot plugin version is a nightly build.
    */
   public static boolean isNightly() {
     return getBundleVersion().toString().endsWith("_nightly");
@@ -151,6 +155,8 @@ public class PlatformUtils {
   /**
    * Returns the transcript directory for CLS session persistence, following the same convention as the IntelliJ
    * Copilot plugin ({@code ~/.copilot/eclipse}).
+   *
+   * @return the absolute path to the transcript directory.
    */
   public static String getTranscriptDirectory() {
     String userHome = System.getProperty("user.home");

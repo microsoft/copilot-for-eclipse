@@ -109,6 +109,10 @@ public class CopilotLanguageServerConnection {
   /**
    * Connect the document to the language server. The LSP4E will take care of all the document lifecycle events after
    * that.
+   *
+   * @param document the document to connect.
+   * @param file the workspace file backing the document.
+   * @return a future for the connected language server wrapper.
    */
   public CompletableFuture<LanguageServerWrapper> connectDocument(IDocument document, IFile file) {
     try {
@@ -121,6 +125,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Disconnect the document from the language server.
+   *
+   * @param uri the URI of the document to disconnect.
    */
   public void disconnectDocument(URI uri) {
     this.languageServerWrapper.disconnect(uri);
@@ -128,6 +134,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get the document version for the given URI.
+   *
+   * @param uri the URI of the document.
+   * @return the current text document version.
    */
   public int getDocumentVersion(URI uri) {
     return this.languageServerWrapper.getTextDocumentVersion(uri);
@@ -135,6 +144,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Check the login status for current machine.
+   *
+   * @param localCheckOnly whether to run only local status checks.
+   * @return the current Copilot status.
    */
   public CompletableFuture<CopilotStatusResult> checkStatus(Boolean localCheckOnly) {
     Function<LanguageServer, CompletableFuture<CopilotStatusResult>> fn = server -> {
@@ -147,6 +159,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Check the user's quota status.
+   *
+   * @return the current quota status.
    */
   public CompletableFuture<CheckQuotaResult> checkQuota() {
     Function<LanguageServer, CompletableFuture<CheckQuotaResult>> fn = server -> ((CopilotLanguageServer) server)
@@ -156,6 +170,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get the default file safety rules from CLS.
+   *
+   * @return the default file safety rules result.
    */
   public CompletableFuture<GetDefaultFileSafetyRulesResult> getDefaultFileSafetyRules() {
     Function<LanguageServer, CompletableFuture<GetDefaultFileSafetyRulesResult>> fn =
@@ -166,6 +182,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get single completion for the given parameters.
+   *
+   * @param params the completion request parameters.
+   * @return the completion result.
    */
   public CompletableFuture<CompletionResult> getCompletions(CompletionParams params) {
     Function<LanguageServer, CompletableFuture<CompletionResult>> fn = server -> ((CopilotLanguageServer) server)
@@ -175,6 +194,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Update the configuration for the language server.
+   *
+   * @param params the updated configuration parameters.
    */
   public void updateConfig(DidChangeConfigurationParams params) {
     this.languageServerWrapper.sendNotification(server -> server.getWorkspaceService().didChangeConfiguration(params));
@@ -184,6 +205,8 @@ public class CopilotLanguageServerConnection {
    * Please use the {@link CopilotStatusManager#signInInitiate()} method instead.
    * </p>
    * Initiate the sign in process.
+   *
+   * @return the sign-in initiation result.
    */
   public CompletableFuture<SignInInitiateResult> signInInitiate() {
     Function<LanguageServer, CompletableFuture<SignInInitiateResult>> fn = (server) -> ((CopilotLanguageServer) server)
@@ -195,6 +218,9 @@ public class CopilotLanguageServerConnection {
    * Please use the {@link AuthStatusManager#signInConfirm()} method instead.
    * </p>
    * Confirm the sign in process.
+   *
+   * @param userCode the user code returned by the sign-in flow.
+   * @return the updated Copilot status.
    */
   public CompletableFuture<CopilotStatusResult> signInConfirm(String userCode) {
     Function<LanguageServer, CompletableFuture<CopilotStatusResult>> fn = (server) -> {
@@ -208,6 +234,8 @@ public class CopilotLanguageServerConnection {
    * Please use the {@link AuthStatusManager#signOut()} method instead.
    * </p>
    * Sign out from the GitHub Copilot.
+   *
+   * @return the updated Copilot status.
    */
   public CompletableFuture<CopilotStatusResult> signOut() {
     Function<LanguageServer, CompletableFuture<CopilotStatusResult>> fn = (server) -> ((CopilotLanguageServer) server)
@@ -217,6 +245,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Notify the language server that the completion was shown.
+   *
+   * @param params the shown completion notification parameters.
+   * @return the notification acknowledgement.
    */
   public CompletableFuture<String> notifyShown(NotifyShownParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
@@ -229,6 +260,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Notify the language server that the completion was accepted.
+   *
+   * @param params the accepted completion notification parameters.
+   * @return the notification acknowledgement.
    */
   public CompletableFuture<String> notifyAccepted(NotifyAcceptedParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
@@ -241,6 +275,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Notify the language server that the completion was rejected.
+   *
+   * @param params the rejected completion notification parameters.
+   * @return the notification acknowledgement.
    */
   public CompletableFuture<String> notifyRejected(NotifyRejectedParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
@@ -253,6 +290,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Send the exception telemetry to the language server.
+   *
+   * @param ex the exception to report.
+   * @return the telemetry request result.
    */
   public CompletableFuture<Object> sendExceptionTelemetry(Throwable ex) {
     TelemetryExceptionParams telemParams = new TelemetryExceptionParams(ex);
@@ -267,6 +307,24 @@ public class CopilotLanguageServerConnection {
   /**
    * Create a conversation with the given parameters, including an optional reasoning effort and context-window size to
    * forward to the server via {@code modelInfo}.
+   *
+   * @param workDoneToken the progress token for the conversation request.
+   * @param message the user message that starts the conversation.
+   * @param files the files referenced by the message.
+   * @param currentFile the current editor file, or {@code null} if none.
+   * @param currentSelection the current editor selection, or {@code null} if none.
+   * @param turns the previous conversation turns to restore, or {@code null} if none.
+   * @param activeModel the selected Copilot model.
+   * @param reasoningEffort the requested reasoning effort, or {@code null} if unset.
+   * @param chatModeName the selected chat mode name.
+   * @param customChatModeId the selected custom chat mode id, or {@code null} if none.
+   * @param todos the todo items to send with the conversation.
+   * @param agentSlug the selected agent slug, or blank for normal chat.
+   * @param agentJobWorkspaceFolder the workspace folder for an agent job.
+   * @param conversationId the conversation id to restore, or {@code null} for a new conversation.
+   * @param restoreToTurnId the turn id to restore to, or {@code null} if not restoring.
+   * @param workspaceFolders the workspace folders available to the conversation.
+   * @return the created conversation result.
    */
   public CompletableFuture<ChatCreateResult> createConversation(String workDoneToken, String message,
       List<IResource> files, IFile currentFile, Range currentSelection, List<Turn> turns, CopilotModel activeModel,
@@ -325,6 +383,22 @@ public class CopilotLanguageServerConnection {
   /**
    * Create a conversation turn with the given parameters, including an optional reasoning effort and context-window
    * size to forward to the server via {@code modelInfo}.
+   *
+   * @param workDoneToken the progress token for the turn request.
+   * @param conversationId the conversation id receiving the turn.
+   * @param message the user message for the new turn.
+   * @param files the files referenced by the message.
+   * @param currentFile the current editor file, or {@code null} if none.
+   * @param currentSelection the current editor selection, or {@code null} if none.
+   * @param activeModel the selected Copilot model.
+   * @param reasoningEffort the requested reasoning effort, or {@code null} if unset.
+   * @param chatModeName the selected chat mode name.
+   * @param customChatModeId the selected custom chat mode id, or {@code null} if none.
+   * @param todoList the todo items to send with the turn.
+   * @param agentSlug the selected agent slug, or blank for normal chat.
+   * @param agentJobWorkspaceFolder the workspace folder for an agent job.
+   * @param workspaceFolders the workspace folders available to the turn.
+   * @return the conversation turn result.
    */
   public CompletableFuture<ChatTurnResult> addConversationTurn(String workDoneToken, String conversationId,
       String message, List<IResource> files, IFile currentFile, Range currentSelection, CopilotModel activeModel,
@@ -370,6 +444,8 @@ public class CopilotLanguageServerConnection {
    * List the conversation templates.
    *
    * @param workspaceFolders workspace folders for discovering workspace-specific prompt files and skills
+   *
+   * @return the available conversation templates.
    */
   public CompletableFuture<ConversationTemplate[]> listConversationTemplates(List<WorkspaceFolder> workspaceFolders) {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
@@ -382,6 +458,8 @@ public class CopilotLanguageServerConnection {
    * List custom skill files, each carrying its on-disk {@code uri}.
    *
    * @param workspaceFolders the workspace folders to scan
+   *
+   * @return the available custom skill files.
    */
   public CompletableFuture<CustomizationFileInfo[]> listCustomSkills(List<WorkspaceFolder> workspaceFolders) {
     return this.languageServerWrapper.execute(server ->
@@ -392,6 +470,8 @@ public class CopilotLanguageServerConnection {
    * List custom prompt files, each carrying its on-disk {@code uri}.
    *
    * @param workspaceFolders the workspace folders to scan
+   *
+   * @return the available custom prompt files.
    */
   public CompletableFuture<CustomizationFileInfo[]> listCustomPrompts(List<WorkspaceFolder> workspaceFolders) {
     return this.languageServerWrapper.execute(server ->
@@ -402,6 +482,8 @@ public class CopilotLanguageServerConnection {
    * List custom instruction files, each carrying its on-disk {@code uri}.
    *
    * @param workspaceFolders the workspace folders to scan
+   *
+   * @return the available custom instruction files.
    */
   public CompletableFuture<CustomizationFileInfo[]> listCustomInstructions(List<WorkspaceFolder> workspaceFolders) {
     return this.languageServerWrapper.execute(server ->
@@ -412,6 +494,8 @@ public class CopilotLanguageServerConnection {
    * List custom agent files, each carrying its on-disk {@code uri}.
    *
    * @param workspaceFolders the workspace folders to scan
+   *
+   * @return the available custom agent files.
    */
   public CompletableFuture<CustomizationFileInfo[]> listCustomAgents(List<WorkspaceFolder> workspaceFolders) {
     return this.languageServerWrapper.execute(server ->
@@ -420,6 +504,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * List the conversation modes.
+   *
+   * @param params the conversation mode request parameters.
+   * @return the available conversation modes.
    */
   public CompletableFuture<ConversationMode[]> listConversationModes(ConversationModesParams params) {
     Function<LanguageServer, CompletableFuture<ConversationMode[]>> fn = server -> {
@@ -430,6 +517,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Used to track telemetry from users copying code from chat.
+   *
+   * @param params the copied code telemetry parameters.
+   * @return the telemetry request acknowledgement.
    */
   public CompletableFuture<String> codeCopy(ConversationCodeCopyParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
@@ -442,6 +532,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Used to get the persistence token for the current user.
+   *
+   * @return the chat persistence token information.
    */
   public CompletableFuture<ChatPersistence> persistence() {
     Function<LanguageServer, CompletableFuture<ChatPersistence>> fn = server -> ((CopilotLanguageServer) server)
@@ -454,6 +546,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Destroy a conversation, stopping any in-progress processing on the server.
+   *
+   * @param conversationId the conversation id to destroy.
    */
   public void destroyConversation(String conversationId) {
     if (StringUtils.isBlank(conversationId)) {
@@ -469,6 +563,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Used to register the tools for the language server.
+   *
+   * @param params the tool registration parameters.
+   * @return the registered language model tool information.
    */
   public CompletableFuture<List<LanguageModelToolInformation>> registerTools(RegisterToolsParams params) {
     // @formatter:off
@@ -483,6 +580,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * List the copilot models.
+   *
+   * @return the available Copilot models.
    */
   public CompletableFuture<CopilotModel[]> listModels() {
     Function<LanguageServer, CompletableFuture<CopilotModel[]>> fn = server -> {
@@ -493,6 +592,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Update the status of the mcp server and tools.
+   *
+   * @param params the MCP tool status update parameters.
+   * @return the updated MCP server tool collections.
    */
   public CompletableFuture<List<McpServerToolsCollection>> updateMcpToolsStatus(UpdateMcpToolsStatusParams params) {
     // @formatter:off
@@ -507,6 +609,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Update the status of conversation tools (built-in tools for Agent mode).
+   *
+   * @param params the conversation tool status parameters.
+   * @return the update request result.
    */
   public CompletableFuture<Object> updateConversationToolsStatus(UpdateConversationToolsStatusParams params) {
     Function<LanguageServer, CompletableFuture<Object>> fn = server -> ((CopilotLanguageServer) server)
@@ -519,6 +624,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Notify the language server about code acceptance.
+   *
+   * @param params the code acceptance notification parameters.
+   * @return the notification acknowledgement.
    */
   public CompletableFuture<String> notifyCodeAcceptance(NotifyCodeAcceptanceParams params) {
     Function<LanguageServer, CompletableFuture<String>> fn = server -> ((CopilotLanguageServer) server)
@@ -531,6 +639,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Generate a commit message based on the provided parameters.
+   *
+   * @param params the commit message generation parameters.
+   * @return the generated commit message result.
    */
   public CompletableFuture<GenerateCommitMessageResult> generateCommitMessage(GenerateCommitMessageParams params) {
     // @formatter:off
@@ -545,6 +656,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Generate a short title summarizing a thinking block.
+   *
+   * @param params the thinking title generation parameters.
+   * @return the generated thinking title response.
    */
   public CompletableFuture<GenerateThinkingTitleResponse> generateThinkingTitle(
       GenerateThinkingTitleParams params) {
@@ -558,6 +672,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * List BYOK models.
+   *
+   * @param params the BYOK model list request parameters.
+   * @return the BYOK model list response.
    */
   public CompletableFuture<ByokListModelResponse> listByokModels(ByokListModelParams params) {
     Function<LanguageServer, CompletableFuture<ByokListModelResponse>> fn = server -> {
@@ -568,6 +685,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Save a BYOK model.
+   *
+   * @param model the BYOK model to save.
+   * @return the BYOK save status response.
    */
   public CompletableFuture<ByokStatusResponse> saveByokModel(ByokModel model) {
     Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
@@ -578,6 +698,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Delete a BYOK model.
+   *
+   * @param model the BYOK model to delete.
+   * @return the BYOK delete status response.
    */
   public CompletableFuture<ByokStatusResponse> deleteByokModel(ByokModel model) {
     Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
@@ -588,6 +711,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * List all BYOK Api keys.
+   *
+   * @param apiKey the BYOK API key filter parameters.
+   * @return the BYOK API key list response.
    */
   public CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey) {
     Function<LanguageServer, CompletableFuture<ByokListApiKeyResponse>> fn = server -> {
@@ -629,6 +755,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Save a BYOK API key.
+   *
+   * @param apiKey the BYOK API key to save.
+   * @return the BYOK save status response.
    */
   public CompletableFuture<ByokStatusResponse> saveByokApiKey(ByokApiKey apiKey) {
     Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
@@ -639,6 +768,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Delete a BYOK API key.
+   *
+   * @param apiKey the BYOK API key to delete.
+   * @return the BYOK delete status response.
    */
   public CompletableFuture<ByokStatusResponse> deleteByokApiKey(ByokApiKey apiKey) {
     Function<LanguageServer, CompletableFuture<ByokStatusResponse>> fn = server -> {
@@ -649,6 +781,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get the MCP server list.
+   *
+   * @param params the MCP server list request parameters.
+   * @return the MCP server list.
    */
   public CompletableFuture<ServerList> listMcpServers(ListServersParams params) {
     Function<LanguageServer, CompletableFuture<ServerList>> fn = server -> ((CopilotLanguageServer) server)
@@ -658,6 +793,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get the details of a specific MCP server.
+   *
+   * @param params the MCP server details request parameters.
+   * @return the MCP server details response.
    */
   public CompletableFuture<ServerResponse> getMcpServer(GetServerParams params) {
     Function<LanguageServer, CompletableFuture<ServerResponse>> fn = server -> ((CopilotLanguageServer) server)
@@ -670,6 +808,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get the MCP registry allowlist for the current user or organization.
+   *
+   * @param params the MCP allowlist request parameters.
+   * @return the MCP registry allowlist.
    */
   public CompletableFuture<McpRegistryAllowList> getMcpAllowlist(Object params) {
     Function<LanguageServer, CompletableFuture<McpRegistryAllowList>> fn = server -> ((CopilotLanguageServer) server)
@@ -682,6 +823,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Get next edit suggestions (inline edit) for a position.
+   *
+   * @param params the next edit suggestion request parameters.
+   * @return the next edit suggestion result.
    */
   public CompletableFuture<NextEditSuggestionsResult> getNextEditSuggestions(NextEditSuggestionsParams params) {
     // @formatter:off
@@ -693,6 +837,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Search GitHub pull requests based on the given parameters.
+   *
+   * @param params the GitHub pull request search parameters.
+   * @return the GitHub pull request search response.
    */
   public CompletableFuture<SearchPrResponse> searchPr(SearchPrParams params) {
     Function<LanguageServer, CompletableFuture<SearchPrResponse>> fn = server -> ((CopilotLanguageServer) server)
@@ -702,6 +849,8 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Notify that an inline edit was shown.
+   *
+   * @param params the inline edit shown notification parameters.
    */
   public void didShowInlineEdit(DidShowInlineEditParams params) {
     this.languageServerWrapper.sendNotification(server -> ((CopilotLanguageServer) server).didShowInlineEdit(params));
@@ -709,6 +858,9 @@ public class CopilotLanguageServerConnection {
 
   /**
    * Accept the next edit suggestion (inline edit).
+   *
+   * @param command the command associated with the accepted suggestion.
+   * @return the command execution result.
    */
   public CompletableFuture<Object> acceptNextEditSuggestion(Command command) {
     if (command == null) {

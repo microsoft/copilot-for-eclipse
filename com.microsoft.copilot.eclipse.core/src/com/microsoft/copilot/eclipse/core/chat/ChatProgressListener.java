@@ -11,6 +11,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
 public interface ChatProgressListener {
   /**
    * Notifies to the listeners when the chat is resolved.
+   *
+   * @param progress the chat progress value.
    */
   public void onChatProgress(ChatProgressValue progress);
 

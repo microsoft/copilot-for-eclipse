@@ -33,6 +33,11 @@ public class CompletionManager extends BaseCompletionManager {
   /**
    * Creates a new completion manager. The manager is responsible for trigger the completion, apply suggestions to the
    * document. And schedule the rendering of ghost text.
+   *
+   * @param lsConnection the connection to the Copilot language server.
+   * @param provider the completion provider that supplies suggestions.
+   * @param editor the text editor managed by this completion manager.
+   * @param settingsManager the language server settings manager.
    */
   public CompletionManager(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
       ITextEditor editor, LanguageServerSettingManager settingsManager) {

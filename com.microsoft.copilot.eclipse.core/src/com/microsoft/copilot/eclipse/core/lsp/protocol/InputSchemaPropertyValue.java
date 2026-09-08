@@ -17,6 +17,8 @@ public class InputSchemaPropertyValue {
 
   /**
    * Constructor for InputSchemaPropertyValue.
+   *
+   * @param type the schema property type.
    */
   public InputSchemaPropertyValue(String type) {
     this(type, "");
@@ -24,6 +26,9 @@ public class InputSchemaPropertyValue {
 
   /**
    * Constructor for InputSchemaPropertyValue.
+   *
+   * @param type the schema property type.
+   * @param description the schema property description.
    */
   public InputSchemaPropertyValue(String type, String description) {
     this.type = type;

@@ -38,6 +38,8 @@ public class TodoListService extends ChatBaseService implements ChatProgressList
 
   /**
    * Constructor.
+   *
+   * @param lsConnection the language server connection used by the user preference service base class.
    */
   public TodoListService(CopilotLanguageServerConnection lsConnection) {
     super(lsConnection, null);
@@ -55,6 +57,8 @@ public class TodoListService extends ChatBaseService implements ChatProgressList
 
   /**
    * Bind the TodoListBar to the given ChatView.
+   *
+   * @param chatView the chat view that owns the todo list bar.
    */
   public void bindTodoListBar(ChatView chatView) {
     this.boundChatView = chatView;
@@ -109,6 +113,8 @@ public class TodoListService extends ChatBaseService implements ChatProgressList
 
   /**
    * Get the current list of todo items.
+   *
+   * @return a copy of the current todo items.
    */
   public List<TodoItem> getTodoList() {
     List<TodoItem> result = new ArrayList<>();
@@ -164,6 +170,8 @@ public class TodoListService extends ChatBaseService implements ChatProgressList
 
   /**
    * Determine if the Clear button should be disabled.
+   *
+   * @return true if the Clear button should be disabled, or false otherwise.
    */
   public boolean shouldDisableClearButton() {
     if (!isRequestInProgress()) {

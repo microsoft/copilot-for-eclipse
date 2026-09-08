@@ -112,6 +112,8 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
 
   /**
    * Bind the observable with UI in McpAutoApproveSection.
+   *
+   * @param section the MCP auto-approve section to bind.
    */
   public void bindWithAutoApproveSection(McpAutoApproveSection section) {
     ensureRealm(() -> {
@@ -134,6 +136,8 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
 
   /**
    * Bind the observable with UI in McpPreferencePage.
+   *
+   * @param page the MCP preference page to bind.
    */
   public void bindWithMcpPreferencePage(McpPreferencePage page) {
     ensureRealm(() -> {
@@ -166,6 +170,11 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
 
   /**
    * Bind the observable with mcpToolButton in ActionBar.
+   *
+   * @param mcpToolButton the action bar button that opens MCP tools.
+   * @param mcpToolImage the image to show when MCP tools are enabled.
+   * @param mcpToolDisabledImage the image to show when MCP tools are disabled.
+   * @param mcpToolDetectedImage the image to show when new extension MCP registrations are detected.
    */
   public void bindWithMcpToolButton(Button mcpToolButton, Image mcpToolImage, Image mcpToolDisabledImage,
       Image mcpToolDetectedImage) {
@@ -222,6 +231,7 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
   /**
    * Handles the Dynamic OAuth request from MCP servers.
    *
+   * @param request the OAuth request describing the fields to collect.
    * @return a map of input field names to values, or null if the user cancelled
    */
   public Map<String, String> mcpOauth(McpOauthRequest request) {
@@ -246,6 +256,8 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
 
   /**
    * Check if there is any new MCP registration from extension point.
+   *
+   * @return true if a new extension MCP registration was found, or false otherwise.
    */
   public boolean isNewExtMcpRegFound() {
     Boolean[] result = new Boolean[1];
@@ -255,6 +267,8 @@ public class McpConfigService extends ChatBaseService implements IMcpConfigServi
 
   /**
    * Set the newExtMcpRegFound flag.
+   *
+   * @param value true when a new extension MCP registration was found, or false otherwise.
    */
   public void setNewExtMcpRegFound(boolean value) {
     ensureRealm(() -> newExtMcpRegFoundObservableValue.setValue(value));

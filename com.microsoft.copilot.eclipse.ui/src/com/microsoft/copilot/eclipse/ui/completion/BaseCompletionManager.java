@@ -96,6 +96,11 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
   /**
    * Creates a new completion manager. The manager is responsible for trigger the completion, apply suggestions to the
    * document. And schedule the rendering of ghost text.
+   *
+   * @param lsConnection the connection to the Copilot language server.
+   * @param provider the completion provider that supplies suggestions.
+   * @param editor the text editor managed by this completion manager.
+   * @param settingsManager the language server settings manager.
    */
   public BaseCompletionManager(CopilotLanguageServerConnection lsConnection, CompletionProvider provider,
       ITextEditor editor, LanguageServerSettingManager settingsManager) {
@@ -399,6 +404,8 @@ public abstract class BaseCompletionManager implements KeyListener, MouseListene
 
   /**
    * Accept completion suggestion.
+   *
+   * @param type the kind of suggestion acceptance to perform.
    */
   public void acceptSuggestion(AcceptSuggestionType type) {
     try {

@@ -55,6 +55,8 @@ public class FeaturePage extends Composite {
 
   /**
    * Creates a FeaturePage with colors appropriate for the current theme.
+   *
+   * @param parent the parent composite for this feature page.
    */
   public FeaturePage(Composite parent) {
     super(parent, SWT.NONE);

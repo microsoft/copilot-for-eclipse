@@ -1459,6 +1459,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   /**
    * Get the current conversation ID.
+   *
+   * @return the current conversation ID.
    */
   public String getConversationId() {
     return this.conversationId;
@@ -1466,6 +1468,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   /**
    * Get the current subagent conversation ID, or null if not in a subagent context.
+   *
+   * @return the current subagent conversation ID, or {@code null} if not in a subagent context.
    */
   public String getSubagentConversationId() {
     return this.subagentConversationId;
@@ -1473,6 +1477,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   /**
    * Get the current chat content viewer.
+   *
+   * @return the current chat content viewer.
    */
   public ChatContentViewer getChatContentViewer() {
     return this.chatContentViewer;
@@ -1480,6 +1486,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   /**
    * Get the content section of the chat view.
+   *
+   * @return the content wrapper composite.
    */
   public Composite getContentWrapper() {
     return this.contentWrapper;
@@ -1491,6 +1499,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   /**
    * Register a new conversation listener to the action bar.
+   *
+   * @param listener the new conversation listener to register.
    */
   public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
     this.topBanner.registerNewConversationListener(listener);

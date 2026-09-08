@@ -29,7 +29,12 @@ public class GlobalAutoApproveSection extends Composite {
 
   private Button yoloCheckbox;
 
-  /** Creates the global auto-approve section inside the given parent. */
+  /**
+   * Creates the global auto-approve section inside the given parent.
+   *
+   * @param parent the parent composite for this section.
+   * @param style the SWT style bits for this section.
+   */
   public GlobalAutoApproveSection(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(1, false));
@@ -90,13 +95,21 @@ public class GlobalAutoApproveSection extends Composite {
       Messages.preferences_page_global_auto_approve_confirm_message);
   }
 
-  /** Loads global auto-approve settings from the preference store. */
+  /**
+   * Loads global auto-approve settings from the preference store.
+   *
+   * @param store the preference store to load settings from.
+   */
   public void loadFromPreferences(IPreferenceStore store) {
     yoloCheckbox.setSelection(
         store.getBoolean(Constants.AUTO_APPROVE_YOLO_MODE));
   }
 
-  /** Saves global auto-approve settings to the preference store. */
+  /**
+   * Saves global auto-approve settings to the preference store.
+   *
+   * @param store the preference store to save settings to.
+   */
   public void saveToPreferences(IPreferenceStore store) {
     store.setValue(Constants.AUTO_APPROVE_YOLO_MODE,
         yoloCheckbox.getSelection());

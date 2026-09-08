@@ -74,7 +74,11 @@ public abstract class BaseTurnWidget extends Composite {
   protected Font boldFont = null;
   protected InvokeToolConfirmationDialog confirmDialog;
 
-  /** Returns the current confirmation dialog, or {@code null} if none active. */
+  /**
+   * Returns the current confirmation dialog, or {@code null} if none active.
+   *
+   * @return the current confirmation dialog, or {@code null} if none is active.
+   */
   public InvokeToolConfirmationDialog getConfirmDialog() {
     return confirmDialog;
   }
@@ -658,6 +662,7 @@ public abstract class BaseTurnWidget extends Composite {
    *
    * @param content The confirmation content with title, message, and action buttons.
    * @param input The input object to be passed to the tool.
+   * @return a future completed with the user's tool confirmation result.
    */
   public CompletableFuture<LanguageModelToolConfirmationResult> requestToolExecutionConfirmation(
       ConfirmationContent content, Object input) {

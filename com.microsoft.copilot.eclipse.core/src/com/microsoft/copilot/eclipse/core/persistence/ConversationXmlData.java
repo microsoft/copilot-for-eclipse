@@ -20,6 +20,11 @@ public class ConversationXmlData {
 
   /**
    * Default constructor initializing default values.
+   *
+   * @param conversationId the conversation ID.
+   * @param title the conversation title.
+   * @param creationDate the conversation creation date.
+   * @param lastMessageDate the date of the last message.
    */
   public ConversationXmlData(String conversationId, String title, Instant creationDate, Instant lastMessageDate) {
     this.conversationId = conversationId;

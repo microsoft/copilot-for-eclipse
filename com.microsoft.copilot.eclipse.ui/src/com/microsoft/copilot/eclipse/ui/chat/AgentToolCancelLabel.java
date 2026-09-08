@@ -24,6 +24,7 @@ public class AgentToolCancelLabel extends Composite {
    *
    * @param parent the parent composite
    * @param style the style
+   * @param cancelMessage the cancellation message to display.
    */
   public AgentToolCancelLabel(Composite parent, int style, String cancelMessage) {
     super(parent, style);

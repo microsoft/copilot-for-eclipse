@@ -70,7 +70,12 @@ public class FileOperationAutoApproveSection extends Composite {
   private Button resetButton;
   private Button unmatchedCheckbox;
 
-  /** Creates the file-operation auto-approve section inside the given parent. */
+  /**
+   * Creates the file-operation auto-approve section inside the given parent.
+   *
+   * @param parent the parent composite for this section.
+   * @param style the SWT style bits for this section.
+   */
   public FileOperationAutoApproveSection(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(1, false));
@@ -335,7 +340,11 @@ public class FileOperationAutoApproveSection extends Composite {
     return true;
   }
 
-  /** Loads file-operation rules and unmatched-file-operation preference from the store. */
+  /**
+   * Loads file-operation rules and unmatched-file-operation preference from the store.
+   *
+   * @param store the preference store to load settings from.
+   */
   public void loadFromPreferences(IPreferenceStore store) {
     List<FileOperationAutoApproveRule> savedRules = parseSavedRules(store);
 
@@ -487,7 +496,11 @@ public class FileOperationAutoApproveSection extends Composite {
     allRules.addAll(userRules);
   }
 
-  /** Saves file-operation rules and unmatched-file-operation preference to the store. */
+  /**
+   * Saves file-operation rules and unmatched-file-operation preference to the store.
+   *
+   * @param store the preference store to save settings to.
+   */
   public void saveToPreferences(IPreferenceStore store) {
     // Save all rules (defaults + user) to preferences.
     // On next load, defaults are re-identified by pattern matching.

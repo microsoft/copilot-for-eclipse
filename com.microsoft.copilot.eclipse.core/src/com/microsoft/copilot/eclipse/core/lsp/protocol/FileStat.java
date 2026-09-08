@@ -16,6 +16,8 @@ public class FileStat {
 
   /**
    * Gets the file size in bytes.
+   *
+   * @return the file size in bytes.
    */
   public long getSize() {
     return size;

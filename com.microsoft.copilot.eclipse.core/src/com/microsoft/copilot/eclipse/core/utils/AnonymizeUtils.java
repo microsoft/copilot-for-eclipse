@@ -71,6 +71,9 @@ public class AnonymizeUtils {
 
   /**
    * Remove PII data from the given properties.
+   *
+   * @param value the text value to anonymize.
+   * @return the anonymized text value.
    */
   public static String removePii(final String value) {
     if (StringUtils.isBlank(value)) {

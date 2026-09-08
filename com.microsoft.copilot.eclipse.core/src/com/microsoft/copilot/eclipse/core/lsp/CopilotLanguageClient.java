@@ -104,6 +104,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Get the conversation context for the given request.
+   *
+   * @param params the conversation context request parameters.
+   * @return the conversation context result and optional response error.
    */
   @JsonRequest("conversation/context")
   public CompletableFuture<Object[]> getConversationContext(ConversationContextParams params) {
@@ -134,6 +137,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Invokes a client tool from the server.
+   *
+   * @param params the client tool invocation parameters.
+   * @return the tool invocation result.
    */
   @JsonRequest("conversation/invokeClientTool")
   public CompletableFuture<Object> invokeClientTool(InvokeClientToolParams params) {
@@ -163,6 +169,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Prompt for user confirmation before invoking a tool.
+   *
+   * @param params the client tool confirmation parameters.
+   * @return the confirmation result and optional response error.
    */
   @JsonRequest("conversation/invokeClientToolConfirmation")
   public CompletableFuture<Object[]> confirmClientTool(InvokeClientToolConfirmationParams params) {
@@ -206,6 +215,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when mcp server/tool change.
+   *
+   * @param params the MCP server and tool change parameters.
    */
   @JsonNotification("copilot/mcpTools")
   public void mcpTools(OnChangeMcpServerToolsParams params) {
@@ -216,6 +227,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when mcp runtime logs are available.
+   *
+   * @param mcpRuntimeLog the MCP runtime log notification.
    */
   @JsonNotification("copilot/mcpRuntimeLogs")
   public void mcpRuntimeLogs(McpRuntimeLog mcpRuntimeLog) {
@@ -226,6 +239,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when rate limit usage warning is received from the language server.
+   *
+   * @param params the rate limit warning parameters.
    */
   @JsonNotification("$/copilot/rateLimitWarning")
   public void onRateLimitWarning(RateLimitWarningParams params) {
@@ -236,6 +251,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when custom skills change (global or workspace).
+   *
+   * @param params the custom skill change notification parameters.
    */
   @JsonNotification("copilot/customSkill/didChange")
   public void onDidChangeCustomSkill(Object params) {
@@ -244,6 +261,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when custom prompts change (global or workspace).
+   *
+   * @param params the custom prompt change notification parameters.
    */
   @JsonNotification("copilot/customPrompt/didChange")
   public void onDidChangeCustomPrompt(Object params) {
@@ -252,6 +271,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when custom instructions change (global or workspace).
+   *
+   * @param params the custom instruction change notification parameters.
    */
   @JsonNotification("copilot/customInstruction/didChange")
   public void onDidChangeCustomInstruction(Object params) {
@@ -260,6 +281,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when custom agents change (global or workspace).
+   *
+   * @param params the custom agent change notification parameters.
    */
   @JsonNotification("copilot/customAgent/didChange")
   public void onDidChangeCustomAgent(Object params) {
@@ -277,6 +300,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   /**
    * Handles the Dynamic OAuth request for MCP. Shows a dialog with multiple input fields and returns the user's input
    * values. Returns null if the user cancels the request.
+   *
+   * @param request the dynamic OAuth request from the MCP server.
+   * @return the user-provided OAuth values, or {@code null} if the request is cancelled.
    */
   @JsonRequest("copilot/dynamicOAuth")
   public CompletableFuture<Map<String, String>> mcpOauth(McpOauthRequest request) {
@@ -292,6 +318,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when feature flags change. This is used to update the UI based on the feature flags.
+   *
+   * @param params the updated feature flag parameters.
    */
   @JsonNotification("copilot/didChangeFeatureFlags")
   public void onDidChangeFeatureFlags(DidChangeFeatureFlagsParams params) {
@@ -311,6 +339,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when policy changes.
+   *
+   * @param params the updated policy parameters.
    */
   @JsonNotification("policy/didChange")
   public void onDidChangePolicy(DidChangePolicyParams params) {
@@ -337,6 +367,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Handles coding agent messages from the server.
+   *
+   * @param message the coding agent message request from the server.
+   * @return the coding agent message result.
    */
   @JsonRequest("copilot/codingAgentMessage")
   public CompletableFuture<CodingAgentMessageResult> onCodingAgentMessage(CodingAgentMessageRequestParams message) {
@@ -351,6 +384,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when a quota warning is received from the language server.
+   *
+   * @param params the quota warning parameters.
    */
   @JsonNotification("copilot/quotaWarning")
   public void onQuotaWarning(QuotaWarningParams params) {
@@ -361,6 +396,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when automatic conversation compression starts.
+   *
+   * @param params the compression started parameters.
    */
   @JsonNotification("$/copilot/compressionStarted")
   public void onCompressionStarted(CompressionStartedParams params) {
@@ -371,6 +408,8 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Notify when automatic conversation compression completes.
+   *
+   * @param params the compression completed parameters.
    */
   @JsonNotification("$/copilot/compressionCompleted")
   public void onCompressionCompleted(CompressionCompletedParams params) {
@@ -381,6 +420,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Reads the contents and stats of a file given its URI.
+   *
+   * @param uri the URI of the file to read.
+   * @return the file contents and stats.
    */
   @JsonRequest("workspace/readFile")
   public CompletableFuture<ReadFileResult> readFile(String uri) {
@@ -390,6 +432,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   /**
    * Reads the contents of a directory given its URI. Used by the language server to list directory entries for URIs
    * with external content provider schemes (e.g., semanticfs://) that cannot be read from the local file system.
+   *
+   * @param uri the URI of the directory to read.
+   * @return the directory entries.
    */
   @JsonRequest("workspace/readDirectory")
   public CompletableFuture<ReadDirectoryResult> readDirectory(String uri) {
@@ -398,6 +443,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Searches for files matching a glob pattern under the given base URI.
+   *
+   * @param params the file search parameters.
+   * @return the matching files.
    */
   @JsonRequest("workspace/findFiles")
   public CompletableFuture<FindFilesResult> findFiles(FindFilesParams params) {
@@ -406,6 +454,9 @@ public class CopilotLanguageClient extends LanguageClientImpl {
 
   /**
    * Searches for text (or a regex) in files under the given base URI.
+   *
+   * @param params the text search parameters.
+   * @return the matching text search results.
    */
   @JsonRequest("workspace/findTextInFiles")
   public CompletableFuture<FindTextInFilesResult> findTextInFiles(FindTextInFilesParams params) {

@@ -38,7 +38,9 @@ public class RenderingManager implements PaintListener {
   private boolean needDisposeColorResource;
 
   /**
-   * Creates a new CompletionManager.
+   * Creates a new RenderingManager.
+   *
+   * @param textViewer the text viewer whose ghost text should be rendered.
    */
   public RenderingManager(ITextViewer textViewer) {
     this.ghostTexts = new ArrayList<>();

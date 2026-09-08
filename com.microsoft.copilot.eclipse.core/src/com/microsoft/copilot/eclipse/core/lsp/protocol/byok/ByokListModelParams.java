@@ -17,6 +17,9 @@ public class ByokListModelParams {
 
   /**
    * Default constructor.
+   *
+   * @param providerName the name of the BYOK model provider.
+   * @param enableFetchUrl whether the fetch URL should be enabled.
    */
   public ByokListModelParams(String providerName, Boolean enableFetchUrl) {
     this.providerName = providerName;

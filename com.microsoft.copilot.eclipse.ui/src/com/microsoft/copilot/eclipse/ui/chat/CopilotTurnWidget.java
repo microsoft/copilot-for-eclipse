@@ -32,6 +32,11 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
 
   /**
    * Create the widget.
+   *
+   * @param parent the parent composite.
+   * @param style the widget style.
+   * @param serviceManager the chat service manager used by the widget.
+   * @param turnId the turn ID associated with the widget.
    */
   public CopilotTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
     super(parent, style, serviceManager, turnId, null);

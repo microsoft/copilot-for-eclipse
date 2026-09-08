@@ -36,6 +36,9 @@ public class ContextSizeDonut {
 
   /**
    * Creates the donut canvas as a child of {@code parent} and wires it to the given service.
+   *
+   * @param parent the parent composite that will contain the donut canvas.
+   * @param contextWindowService the context window service providing context size data.
    */
   public ContextSizeDonut(Composite parent, ContextWindowService contextWindowService) {
     this.contextWindowService = contextWindowService;

@@ -45,6 +45,8 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Constructor for FileToolService.
+   *
+   * @param lsConnection the Copilot language server connection.
    */
   public FileToolService(CopilotLanguageServerConnection lsConnection) {
     super(lsConnection, null);
@@ -62,6 +64,8 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Bind the WorkingSetBar to the changed files.
+   *
+   * @param chatView the chat view that owns the working set bar.
    */
   public void bindWorkingSetBar(ChatView chatView) {
     if (this.createFileTool == null) {
@@ -142,6 +146,8 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Enable or disable the buttons for the working set bar.
+   *
+   * @param status {@code true} to enable the buttons; {@code false} to disable them.
    */
   public void setWorkingSetBarButtonStatus(boolean status) {
     ensureRealm(() -> {
@@ -151,6 +157,8 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Set the changed files for the working set bar.
+   *
+   * @param files the changed files to show in the working set bar.
    */
   public void setChangedFiles(Map<ChangedFile, FileChangeProperty> files) {
     ensureRealm(() -> {
@@ -160,6 +168,8 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Get the changed files for the working set bar.
+   *
+   * @return the changed files currently shown in the working set bar.
    */
   public Map<ChangedFile, FileChangeProperty> getChangedFiles() {
     return filesObservable.getValue();
@@ -167,6 +177,8 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Get the WorkingSetBar instance.
+   *
+   * @return the working set bar instance.
    */
   public WorkingSetBar getWorkingSetBar() {
     return workingSetBar;
@@ -174,6 +186,9 @@ public class FileToolService extends ChatBaseService {
 
   /**
    * Add a changed file to the working set bar.
+   *
+   * @param file the changed file to add.
+   * @param fileChangeType the type of change for the file.
    */
   public void addChangedFile(ChangedFile file, FileChangeType fileChangeType) {
     ensureRealm(() -> {

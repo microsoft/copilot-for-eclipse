@@ -83,6 +83,8 @@ public class WorkspaceUtils {
 
   /**
    * List all top level projects as workspace folders in the current workspace.
+   *
+   * @return list of workspace folders for all top-level projects.
    */
   public static List<WorkspaceFolder> listWorkspaceFolders() {
     List<IProject> projects = WorkspaceUtils.listTopLevelProjects();

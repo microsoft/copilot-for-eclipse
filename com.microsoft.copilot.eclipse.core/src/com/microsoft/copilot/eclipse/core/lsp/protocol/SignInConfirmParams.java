@@ -17,6 +17,8 @@ public class SignInConfirmParams {
 
   /**
    * Create a new parameter for SignInConfirm request.
+   *
+   * @param userCode the user code to confirm during sign-in.
    */
   public SignInConfirmParams(String userCode) {
     this.userCode = userCode;

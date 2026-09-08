@@ -12,6 +12,8 @@ public interface CopilotAuthStatusListener {
 
   /**
    * Notifies to the listeners when the authentication status is changed.
+   *
+   * @param copilotStatusResult the updated Copilot status result.
    */
   void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult);
 }

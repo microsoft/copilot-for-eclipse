@@ -131,6 +131,9 @@ public class FileUtils {
 
   /**
    * Returns true if the file needs to be excluded from the referenced files.
+   *
+   * @param file the file to check.
+   * @return true if the file should be excluded from referenced files.
    */
   public static boolean isExcludedFromReferencedFiles(@Nullable IFile file) {
     if (file == null) {
@@ -145,6 +148,9 @@ public class FileUtils {
 
   /**
    * Returns true if the file needs to be excluded from 'Current file' reference in chat.
+   *
+   * @param file the file to check.
+   * @return true if the file should be excluded from the current file reference.
    */
   public static boolean isExcludedFromCurrentFile(@Nullable IFile file) {
     if (file == null) {

@@ -63,13 +63,23 @@ public class ConfirmationAction {
     return primary;
   }
 
-  /** Creates a primary accept action (scope = ONCE). */
+  /**
+   * Creates a primary accept action (scope = ONCE).
+   *
+   * @param label the button label.
+   * @return the primary accept confirmation action.
+   */
   public static ConfirmationAction allowOnce(String label) {
     return new ConfirmationAction(label, true,
         ConfirmationActionScope.ONCE, null, true);
   }
 
-  /** Creates a dismiss action. */
+  /**
+   * Creates a dismiss action.
+   *
+   * @param label the button label.
+   * @return the dismiss confirmation action.
+   */
   public static ConfirmationAction skip(String label) {
     return new ConfirmationAction(label, false, null, null, false);
   }

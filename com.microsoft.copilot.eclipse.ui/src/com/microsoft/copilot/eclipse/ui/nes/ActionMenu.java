@@ -40,6 +40,8 @@ public class ActionMenu {
 
   /**
    * Checks if the action menu is currently open.
+   *
+   * @return true if the action menu is open, false otherwise.
    */
   public boolean isOpen() {
     return activeMenu != null && !activeMenu.isDisposed() && activeMenu.isVisible();
@@ -57,6 +59,9 @@ public class ActionMenu {
 
   /**
    * Shows the action menu at the specified coordinates.
+   *
+   * @param x the x-coordinate relative to the styled text.
+   * @param y the y-coordinate relative to the styled text.
    */
   public void show(int x, int y) {
     if (text == null || text.isDisposed()) {

@@ -68,6 +68,8 @@ public class ConversationError {
   /**
    * The name of the model provider that produced the error, when the failing request was routed to a custom
    * Bring-Your-Own-Key (BYOK) model. {@code null} or blank for built-in Copilot models.
+   *
+   * @return the name of the model provider that produced the error.
    */
   public String getModelProviderName() {
     return modelProviderName;

@@ -35,6 +35,9 @@ public final class MenuUtils {
 
   /**
    * Returns the localized plan label for the given plan, or {@code null} if the plan is unknown.
+   *
+   * @param plan the Copilot plan to label.
+   * @return the localized plan label, or {@code null} if the plan is unknown.
    */
   public static String getPlanLabel(CopilotPlan plan) {
     if (plan == null) {
@@ -60,6 +63,9 @@ public final class MenuUtils {
 
   /**
    * Returns the percent-remaining used to pick the usage icon, based on the user's plan.
+   *
+   * @param quotaStatus the quota status for the current user.
+   * @return the percent of quota remaining for icon selection.
    */
   public static double calculatePercentRemaining(CheckQuotaResult quotaStatus) {
     CopilotPlan plan = quotaStatus.copilotPlan();
@@ -80,6 +86,9 @@ public final class MenuUtils {
 
   /**
    * Returns the image descriptor for the usage row based on the lowest percentRemaining.
+   *
+   * @param percentRemaining the lowest remaining quota percentage.
+   * @return the image descriptor for the matching usage icon.
    */
   public static ImageDescriptor getUsageIcon(double percentRemaining) {
     if (percentRemaining <= 10) {
@@ -93,6 +102,8 @@ public final class MenuUtils {
 
   /**
    * Returns the shared blank icon descriptor used for indented usage rows.
+   *
+   * @return the shared blank icon descriptor.
    */
   public static ImageDescriptor getBlankIcon() {
     return CopilotImages.getImageDescriptor(CopilotImages.IMG_BLANK);
@@ -100,6 +111,9 @@ public final class MenuUtils {
 
   /**
    * True when the user is on a Business / Enterprise plan with no monthly premium-interactions limit.
+   *
+   * @param quotaStatus the quota status for the current user.
+   * @return {@code true} when the user's organization plan has unlimited premium interactions.
    */
   public static boolean isOrgUnlimited(CheckQuotaResult quotaStatus) {
     CopilotPlan plan = quotaStatus.copilotPlan();
@@ -114,6 +128,9 @@ public final class MenuUtils {
    * predicate gates both the Monthly limit display row and the overage upsell row ("Enable
    * Additional Usage" / "Increase Budget"): without metered premium data the upsell has no data
    * to act on and would mislead the user.
+   *
+   * @param quotaStatus the quota status for the current user.
+   * @return {@code true} when the user has a metered non-org premium quota.
    */
   public static boolean hasNonOrgPremiumQuota(CheckQuotaResult quotaStatus) {
     if (quotaStatus.copilotPlan() == CopilotPlan.free) {
@@ -136,6 +153,7 @@ public final class MenuUtils {
    * @param plan the user's Copilot plan
    * @param canUpgradePlan whether the user can upgrade their Copilot plan, or {@code null} when the language
    *     server did not supply this field
+   * @return {@code true} when the Upgrade Plan row should be shown.
    */
   public static boolean shouldShowUpgradePlanRow(CopilotPlan plan, Boolean canUpgradePlan) {
     if (canUpgradePlan != null) {
@@ -147,6 +165,9 @@ public final class MenuUtils {
   /**
    * True when the plan is a CFI (Copilot for Individuals) plan: individual, individual_pro, or
    * individual_max.
+   *
+   * @param plan the Copilot plan to test.
+   * @return {@code true} when the plan is a Copilot for Individuals plan.
    */
   public static boolean isCfiPlan(CopilotPlan plan) {
     return plan == CopilotPlan.individual || plan == CopilotPlan.individual_pro
@@ -155,6 +176,9 @@ public final class MenuUtils {
 
   /**
    * Returns the label for the overage upsell row depending on the current overage state.
+   *
+   * @param premiumQuota the premium interactions quota to inspect.
+   * @return the overage upsell row label.
    */
   public static String getOverageRowLabel(Quota premiumQuota) {
     boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
@@ -166,6 +190,9 @@ public final class MenuUtils {
    * for paid users when token-based billing is enabled. Renders as
    * {@code "Additional usage enabled"} or {@code "Additional usage not enabled"} depending on
    * {@link Quota#overagePermitted()}.
+   *
+   * @param premiumQuota the premium interactions quota to inspect.
+   * @return the additional usage status row label.
    */
   public static String getAdditionalUsageRowLabel(Quota premiumQuota) {
     boolean overageEnabled = premiumQuota != null && premiumQuota.overagePermitted();
@@ -177,6 +204,9 @@ public final class MenuUtils {
    * Returns the tooltip for the "Additional usage" status row, or {@code null} when no tooltip
    * applies. Business / Enterprise plans receive a plan-specific tooltip; other plans currently
    * have no tooltip.
+   *
+   * @param quotaStatus the quota status for the current user.
+   * @return the additional usage row tooltip, or {@code null} when none applies.
    */
   public static String getAdditionalUsageRowTooltip(CheckQuotaResult quotaStatus) {
     CopilotPlan plan = quotaStatus.copilotPlan();
@@ -195,6 +225,9 @@ public final class MenuUtils {
    * True when the allowance-reset row should be shown. The row is hidden when there is no monthly
    * allowance to reset (premium-interactions quota is unlimited), when no reset date was supplied,
    * or when the supplied reset date cannot be parsed.
+   *
+   * @param quotaStatus the quota status for the current user.
+   * @return {@code true} when the allowance-reset row should be shown.
    */
   public static boolean shouldShowAllowanceResetRow(CheckQuotaResult quotaStatus) {
     Quota premiumQuota = quotaStatus.premiumInteractions();
@@ -208,6 +241,9 @@ public final class MenuUtils {
    * True when none of the quotas tracked for the user's plan have any usage yet. For free plans this
    * means both the chat and completions quotas are at 0% used; for paid plans this means the premium
    * interactions quota is at 0% used.
+   *
+   * @param quotaStatus the quota status for the current user.
+   * @return {@code true} when none of the tracked quotas have usage.
    */
   public static boolean noUsageYet(CheckQuotaResult quotaStatus) {
     if (quotaStatus.copilotPlan() == CopilotPlan.free) {
@@ -225,6 +261,9 @@ public final class MenuUtils {
    *
    * <p>Callers <strong>must</strong> gate with {@link #shouldShowAllowanceResetRow}; this method
    * assumes a parseable reset date is present.
+   *
+   * @param quotaStatus the quota status containing usage and reset date data.
+   * @return the formatted allowance-reset row label.
    */
   public static String formatAllowanceReset(CheckQuotaResult quotaStatus) {
     if (noUsageYet(quotaStatus)) {

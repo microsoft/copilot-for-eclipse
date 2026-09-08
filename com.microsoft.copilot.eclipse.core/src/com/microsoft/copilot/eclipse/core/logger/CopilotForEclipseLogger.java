@@ -34,6 +34,8 @@ public class CopilotForEclipseLogger {
 
   /**
    * Log level.
+   *
+   * @param message the message to log.
    */
   public void info(String message) {
     LogRecord logRecord = new LogRecord(Level.INFO, message);
@@ -43,6 +45,9 @@ public class CopilotForEclipseLogger {
 
   /**
    * Log level.
+   *
+   * @param message the message to log.
+   * @param ex the exception to log.
    */
   public void error(String message, Throwable ex) {
     LogRecord logRecord = new LogRecord(Level.SEVERE, message);
@@ -52,6 +57,8 @@ public class CopilotForEclipseLogger {
 
   /**
    * Log level.
+   *
+   * @param ex the exception to log.
    */
   public void error(Throwable ex) {
     LogRecord logRecord = new LogRecord(Level.SEVERE, ex.getMessage());

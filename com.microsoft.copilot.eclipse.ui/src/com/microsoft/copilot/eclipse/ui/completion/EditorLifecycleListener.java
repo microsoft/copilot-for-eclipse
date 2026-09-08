@@ -47,6 +47,9 @@ public class EditorLifecycleListener implements IPartListener2 {
 
   /**
    * Creates a new EditorLifecycleListener.
+   *
+   * @param languageServer the connection to the Copilot language server.
+   * @param manager the editors manager that owns completion managers.
    */
   public EditorLifecycleListener(CopilotLanguageServerConnection languageServer, EditorsManager manager) {
     this.languageServer = languageServer;
@@ -67,6 +70,8 @@ public class EditorLifecycleListener implements IPartListener2 {
 
   /**
    * Used to prepare the active editor part when the IDE is opened.
+   *
+   * @param editorPart the editor part to activate.
    */
   public void partActivated(IEditorPart editorPart) {
     ITextEditor textEditor = editorPart.getAdapter(ITextEditor.class);
@@ -196,6 +201,8 @@ public class EditorLifecycleListener implements IPartListener2 {
 
   /**
    * Creates the {@link BaseCompletionManager} for the ITextEditor of the IWorkbenchPart.
+   *
+   * @param textEditor the text editor to create a completion handler for.
    */
   public void createCompletionHandlerFor(ITextEditor textEditor) {
     if (textEditor != null) {

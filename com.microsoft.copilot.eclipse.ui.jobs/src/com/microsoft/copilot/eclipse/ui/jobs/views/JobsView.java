@@ -77,6 +77,8 @@ public class JobsView {
 
   /**
    * Create the view part control.
+   *
+   * @param parent the parent composite in which the view's controls are created.
    */
   @PostConstruct
   public void createPartControl(Composite parent) {

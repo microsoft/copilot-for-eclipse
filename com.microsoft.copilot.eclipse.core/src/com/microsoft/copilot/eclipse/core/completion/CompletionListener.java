@@ -14,6 +14,9 @@ public interface CompletionListener {
 
   /**
    * Notifies to the listeners when the completion is resolved.
+   *
+   * @param uriString the URI string for the document whose completion was resolved.
+   * @param completions the resolved completion items.
    */
   void onCompletionResolved(String uriString, List<CompletionItem> completions);
 

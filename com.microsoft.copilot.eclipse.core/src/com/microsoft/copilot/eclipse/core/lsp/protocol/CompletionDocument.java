@@ -26,6 +26,9 @@ public class CompletionDocument extends TextDocumentIdentifier {
 
   /**
    * Create a new CompletionDocument.
+   *
+   * @param uri the document URI.
+   * @param position the cursor position for completion.
    */
   public CompletionDocument(@NonNull String uri, @NonNull Position position) {
     super(uri);

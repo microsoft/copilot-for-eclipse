@@ -36,6 +36,13 @@ public class ConversationCodeCopyParams {
 
   /**
    * Constructor for the ConversationCodeCopyParams.
+   *
+   * @param turnId the identifier of the conversation turn containing the copied code.
+   * @param codeBlockIndex the index of the copied code block within the turn.
+   * @param source the source of the copy action.
+   * @param copiedCharacters the number of copied characters.
+   * @param totalCharacters the total number of characters in the code block.
+   * @param copiedText the copied code text.
    */
   public ConversationCodeCopyParams(String turnId, int codeBlockIndex, String source, int copiedCharacters,
       int totalCharacters, String copiedText) {

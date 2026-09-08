@@ -321,6 +321,9 @@ public class RulerColumn extends AbstractRulerColumn implements IContributedRule
    * Clear indentation area in ruler column by manually filling with background color. This is needed because
    * indentation area doesn't correspond to any text line, the icon in indentation area will not be cleared when redraw
    * is called.
+   *
+   * @param widgetLine the widget line before the indentation area.
+   * @param height the height of the indentation area to clear.
    */
   public void clearIndentationArea(int widgetLine, int height) {
     Control c = getControl();

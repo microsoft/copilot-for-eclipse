@@ -74,6 +74,7 @@ public class McpServerDetailDialog extends Dialog implements EventHandler {
    * @param parentShell The parent shell.
    * @param serverResponse The server response to display.
    * @param installManager Install manager from parent dialog.
+   * @param mcpRegistryBaseUrl The base URL of the MCP registry.
    */
   public McpServerDetailDialog(Shell parentShell, ServerResponse serverResponse, McpServerInstallManager installManager,
       String mcpRegistryBaseUrl) {

@@ -78,6 +78,9 @@ public class ModelService extends ChatBaseService {
 
   /**
    * Constructor for the ModelService.
+   *
+   * @param lsConnection the language server connection used to fetch model information.
+   * @param authStatusManager the authentication status manager used to react to sign-in changes.
    */
   public ModelService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
     super(lsConnection, authStatusManager);
@@ -432,6 +435,8 @@ public class ModelService extends ChatBaseService {
 
   /**
    * Check if the active model supports vision capabilities.
+   *
+   * @return true if the active model supports vision, or false otherwise.
    */
   public boolean isVisionSupported() {
     CopilotModel model = getActiveModel();
