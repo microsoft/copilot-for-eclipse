@@ -61,8 +61,10 @@ The installable P2 repository is generated in `com.microsoft.copilot.eclipse.rep
    * Do also import the agent bundle for your OS (e.g., `com.microsoft.copilot.eclipse.core.agent.win32`)
      after building the project with npm and maven or import all OS-specific agent bundles.
 2. Activate one of the target platforms, i.e. open one of the target definition files and select `Set As Active Target Platform`.
-   * `target-platforms/2025-12.target` (Eclipse 4.38 and later)
-   * `target-platforms/2024-12.target` (Eclipse 4.36 and earlier)
+   * `target-platforms/2025-12.target` - Eclipse 2025-12 (4.38), provides the modern terminal implementation
+     (`org.eclipse.terminal.*` bundles used by `ui.terminal`, available in Eclipse 2025-09 (4.37) and newer versions)
+   * `target-platforms/2024-12.target` - Eclipse 2024-12 (4.34), provides the legacy TM terminal implementation
+     (`org.eclipse.tm.terminal.*` bundles used by `ui.terminal.tm`, available in Eclipse 2025-06 (4.36) and earlier versions)
 3. For using the Checkstyle configuration (assuming you have installed the Eclipse Checkstyle plugin, see prerequisites),
    add a new named Checkstyle configuration.
    * Select *Window > Preferences > Checkstyle* and press the *New...* button.
@@ -112,8 +114,8 @@ The project is a multi-module Maven/Tycho build consisting of OSGi bundles:
 | `com.microsoft.copilot.eclipse.ui` | User interface: chat view, completion UI, agent tools |
 | `com.microsoft.copilot.eclipse.ui.jobs` | Copilot Jobs view integration |
 | `com.microsoft.copilot.eclipse.terminal.api` | Terminal tool API definitions |
-| `com.microsoft.copilot.eclipse.ui.terminal` | Terminal integration (Eclipse 4.37+) |
-| `com.microsoft.copilot.eclipse.ui.terminal.tm` | TM Terminal integration (Eclipse 4.36 and earlier) |
+| `com.microsoft.copilot.eclipse.ui.terminal` | Modern terminal integration (runs on Eclipse >= 2025-09 / 4.37) |
+| `com.microsoft.copilot.eclipse.ui.terminal.tm` | TM Terminal integration (runs on Eclipse < 2025-09 / 4.37) |
 | `com.microsoft.copilot.eclipse.branding` | Product branding and about dialog |
 | `com.microsoft.copilot.eclipse.core.agent.*` | Platform-specific Copilot language server agent bundles |
 | `com.microsoft.copilot.eclipse.feature` | Eclipse feature definition |
