@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.google.gson.annotations.JsonAdapter;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
@@ -17,6 +18,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  * more information.
  */
 public class InputSchema {
+  @JsonAdapter(JsonSchemaTypeAdapter.class)
   private String type;
   private Map<String, InputSchemaPropertyValue> properties;
   private List<String> required;
