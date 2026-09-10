@@ -26,13 +26,19 @@ import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorReference;
+import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPartListener2;
+import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -105,12 +111,10 @@ public class ReferencedFileService extends ChatBaseService implements IReference
 
       @Override
       public void partClosed(IWorkbenchPartReference partRef) {
-        IWorkbenchPage page = UiUtils.getActivePage();
-        if (page == null || page.getEditorReferences().length == 0) {
-          ensureRealm(() -> {
-            currentFileObservable.setValue(null);
-            currentSelectionObservable.setValue(null);
-          });
+        boolean closedCurrentFile = isCurrentReferencedFile(partRef);
+        boolean noOpenEditors = hasNoOpenEditors();
+        if (closedCurrentFile || noOpenEditors) {
+          clearCurrentReferencedFile();
         }
         untrackSelectionInEditor(partRef);
       }
@@ -477,6 +481,98 @@ public class ReferencedFileService extends ChatBaseService implements IReference
     if (part instanceof IEditorPart editorPart) {
       updateCurrentReferencedFile(editorPart);
     }
+  }
+
+  private boolean isCurrentReferencedFile(IWorkbenchPartReference partRef) {
+    IFile closedFile = getFileFromPartReference(partRef);
+    if (closedFile == null) {
+      return false;
+    }
+
+    AtomicReference<IFile> currentFile = new AtomicReference<>();
+    ensureRealm(() -> currentFile.set(currentFileObservable.getValue()));
+    return closedFile.equals(currentFile.get());
+  }
+
+  private IFile getFileFromPartReference(IWorkbenchPartReference partRef) {
+    if (partRef instanceof IEditorReference editorReference) {
+      IFile file = getFileFromEditorReference(editorReference);
+      if (file != null) {
+        return file;
+      }
+    }
+
+    IWorkbenchPart part = partRef.getPart(false);
+    if (part instanceof IEditorPart editorPart) {
+      return UiUtils.getFileFromEditorPart(editorPart);
+    }
+    return null;
+  }
+
+  private IFile getFileFromEditorReference(IEditorReference editorReference) {
+    try {
+      return getFileFromEditorInput(editorReference.getEditorInput());
+    } catch (PartInitException e) {
+      CopilotCore.LOGGER.error("Failed to get editor input from part reference", e);
+      return null;
+    }
+  }
+
+  private IFile getFileFromEditorInput(IEditorInput input) {
+    if (input instanceof IFileEditorInput fileEditorInput) {
+      return fileEditorInput.getFile();
+    }
+    return ResourceUtil.getFile(input);
+  }
+
+  private boolean hasNoOpenEditors() {
+    IWorkbench workbench = PlatformUI.getWorkbench();
+    if (workbench == null) {
+      return true;
+    }
+
+    IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
+    if (windows == null || windows.length == 0) {
+      return true;
+    }
+
+    for (IWorkbenchWindow window : windows) {
+      if (window == null) {
+        continue;
+      }
+
+      IWorkbenchPage[] pages = window.getPages();
+      if (pages == null || pages.length == 0) {
+        IWorkbenchPage activePage = window.getActivePage();
+        pages = activePage == null ? new IWorkbenchPage[0] : new IWorkbenchPage[] { activePage };
+      }
+
+      for (IWorkbenchPage page : pages) {
+        if (page == null) {
+          continue;
+        }
+
+        IEditorReference[] editorReferences = page.getEditorReferences();
+        if (editorReferences != null && editorReferences.length > 0) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private void clearCurrentReferencedFile() {
+    ensureRealm(() -> {
+      currentFileObservable.setValue(null);
+      currentSelectionObservable.setValue(null);
+    });
+  }
+
+  /**
+   * Sets the current file for tests.
+   */
+  protected void setCurrentFileForTest(IFile file) {
+    ensureRealm(() -> currentFileObservable.setValue(file));
   }
 
   private void updateCurrentReferencedFile(IEditorPart editorPart) {
