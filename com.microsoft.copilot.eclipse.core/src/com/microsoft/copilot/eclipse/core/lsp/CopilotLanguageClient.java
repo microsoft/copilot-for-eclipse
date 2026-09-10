@@ -57,10 +57,12 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmat
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpSamplingConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.OnChangeMcpServerToolsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadDirectoryResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadFileResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ReadMcpSamplingConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.policy.DidChangePolicyParams;
@@ -179,6 +181,16 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       return new Object[] { null, new ResponseError(ResponseErrorCode.RequestFailed,
           "Failed to get the confirmation from user due to exception", cause) };
     });
+  }
+
+  /**
+   * Read the sampling preferences for an MCP server.
+   */
+  @JsonRequest("copilot/readMcpSamplingConfig")
+  public CompletableFuture<Object[]> readMcpSamplingConfig(ReadMcpSamplingConfigParams params) {
+    McpSamplingConfig config = CopilotCore.getPlugin().getChatEventsManager()
+        .getMcpSamplingConfig(params.serverName());
+    return CompletableFuture.completedFuture(new Object[] { config, null });
   }
 
   @Override
