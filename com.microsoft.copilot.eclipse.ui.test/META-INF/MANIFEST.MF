@@ -11,4 +11,5 @@ Import-Package: org.objenesis;version="[3.4.0,4.0.0)"
 Require-Bundle: junit-jupiter-api;bundle-version="5.10.1",
  junit-jupiter-params;bundle-version="5.10.1",
  org.mockito.mockito-core;bundle-version="5.14.2",
- org.mockito.junit-jupiter;bundle-version="5.10.2"
+ org.mockito.junit-jupiter;bundle-version="5.10.2",
+ org.eclipse.jdt.ui
