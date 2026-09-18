@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -76,6 +78,7 @@ import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.contextwindow.ContextSizeDonut;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
+import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
@@ -145,6 +148,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.setData(CssConstants.CSS_ID_KEY, "chat-action-bar-wrapper");
     this.chatServiceManager = chatServiceManager;
+    new PreferenceStatus(this, chatServiceManager.getPreferenceStorage());
     this.updateSendButtonToCancelButtonHandler = event -> {
       updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     };
@@ -337,6 +341,22 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     // Update send to job button and send button together
     updateButtonsLayout();
+    PreferenceStorage storage = chatServiceManager.getPreferenceStorage();
+    Realm.runWithDefault(storage.getReadiness().getRealm(), () -> {
+      ISideEffect readinessEffect = ISideEffect.create(storage.getReadiness()::getValue, state -> {
+        if (isDisposed()) {
+          return;
+        }
+        boolean ready = state == PreferenceStorage.State.READY;
+        mcpToolButton.setEnabled(ready);
+        autoBreakpointButton.setEnabled(ready);
+        if (isSendButton) {
+          updateButtonState(StringUtils.isBlank(inputTextViewer.getContent())
+              ? SendOrCancelButtonStates.SEND_DISABLED : SendOrCancelButtonStates.SEND_ENABLED);
+        }
+      });
+      addDisposeListener(event -> readinessEffect.dispose());
+    });
   }
 
   /**
@@ -433,7 +453,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
 
       boolean hasText = !StringUtils.isBlank(this.inputTextViewer.getContent());
-      this.sendToJobButton.setEnabled(hasText);
+      this.sendToJobButton.setEnabled(hasText && isSendButton && preferencesReady());
       this.sendToJobButton.setImage(hasText ? sendToJobImage : sendToJobDisabledImage);
       this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.sendToJobButton,
@@ -457,7 +477,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_DISABLED);
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
       boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
-      this.btnMsgToggle.setEnabled(isEnabled);
+      this.btnMsgToggle.setEnabled(isEnabled && preferencesReady());
       this.btnMsgToggle.setImage(isEnabled ? this.sendImage : this.sendDisabledImage);
       this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
       GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
@@ -476,6 +496,9 @@ public class ActionBar extends Composite implements NewConversationListener {
       });
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.btnMsgToggle,
           Messages.chat_actionBar_sendButton_Tooltip);
+    }
+    if (!isSendButton) {
+      updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     }
     // Refresh the layout
     this.bottomRightButtonsComposite.requestLayout();
@@ -762,6 +785,10 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Handles the send message event.
    */
   public void handleSendMessage() {
+    if (!preferencesReady()) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot send chat before preferences are ready"));
+      return;
+    }
     updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     String message = this.inputTextViewer.getContent();
     String workDoneToken = UUID.randomUUID().toString();
@@ -773,6 +800,10 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Handles the send to job button click event. Shows a dialog to inform user about git repository requirement.
    */
   private void handleSendToJob() {
+    if (!preferencesReady()) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot send a job before preferences are ready"));
+      return;
+    }
     ChatServiceManager chatServiceManager = (ChatServiceManager) CopilotCore.getPlugin().getChatServiceManager();
     if (chatServiceManager != null) {
       UserPreferenceService userPreferenceService = chatServiceManager.getUserPreferenceService();
@@ -853,6 +884,9 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void updateButtonState(SendOrCancelButtonStates state) {
+    if (state == SendOrCancelButtonStates.SEND_ENABLED && !preferencesReady()) {
+      state = SendOrCancelButtonStates.SEND_DISABLED;
+    }
     switch (state) {
       case SEND_ENABLED:
         isSendButton = true;
@@ -873,6 +907,11 @@ public class ActionBar extends Composite implements NewConversationListener {
       default:
         break;
     }
+
+  }
+
+  private boolean preferencesReady() {
+    return chatServiceManager.getPreferenceStorage().getState() == PreferenceStorage.State.READY;
   }
 
   /**

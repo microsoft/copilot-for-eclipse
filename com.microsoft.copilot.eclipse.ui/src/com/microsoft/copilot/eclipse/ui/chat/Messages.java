@@ -21,6 +21,10 @@ public final class Messages extends NLS {
   public static String chat_warnWidget_defaultErrorMsg;
   public static String chat_warnWidget_byokQuotaUsageMessage;
   public static String configureModes;
+  public static String preferenceLoading;
+  public static String preferenceLoadFailed;
+  public static String preferenceUnavailable;
+  public static String preferenceRetry;
   public static String agentMessageWidget_openInBrowserButton;
   public static String agentMessageWidget_openInBrowserTooltip;
   public static String agentMessageWidget_openJobListButton;

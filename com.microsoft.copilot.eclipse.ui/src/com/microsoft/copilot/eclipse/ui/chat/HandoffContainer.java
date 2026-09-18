@@ -7,6 +7,8 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -22,6 +24,7 @@ import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode.HandOff;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 
 /**
@@ -60,6 +63,15 @@ public class HandoffContainer extends Composite {
     // Initially hidden
     this.setVisible(false);
     ((GridData) this.getLayoutData()).exclude = true;
+    PreferenceStorage storage = chatServiceManager.getPreferenceStorage();
+    Realm.runWithDefault(storage.getReadiness().getRealm(), () -> {
+      ISideEffect effect = ISideEffect.create(storage.getReadiness()::getValue, state -> {
+        if (!isDisposed() && state != PreferenceStorage.State.READY) {
+          hide();
+        }
+      });
+      addDisposeListener(event -> effect.dispose());
+    });
   }
 
   /**
@@ -78,6 +90,10 @@ public class HandoffContainer extends Composite {
    * Show handoff buttons based on the current mode and update their content.
    */
   public void show() {
+    if (chatServiceManager.getPreferenceStorage().getState() != PreferenceStorage.State.READY) {
+      hide();
+      return;
+    }
     // Clear existing buttons
     clearHandoffs();
 

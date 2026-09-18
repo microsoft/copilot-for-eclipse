@@ -59,13 +59,12 @@ class ModelServiceTests {
   private Path persistenceDirectory;
 
   private ModelService modelService;
+  private PreferenceStorage preferenceStorage;
   private FeatureFlags featureFlags;
   private boolean previewFeaturesEnabled;
 
   @BeforeEach
   void setUp() {
-    new PreferenceCacheResetter(lsConnection, authStatusManager).reset();
-
     ChatPersistence persistence = new ChatPersistence();
     persistence.setPath(persistenceDirectory.toString());
     ByokListModelResponse byokModels = new ByokListModelResponse();
@@ -80,6 +79,7 @@ class ModelServiceTests {
     assertNotNull(featureFlags);
     previewFeaturesEnabled = featureFlags.isClientPreviewFeatureEnabled();
     featureFlags.setClientPreviewFeatureEnabled(false);
+    preferenceStorage = new PreferenceStorage(lsConnection, authStatusManager);
   }
 
   @AfterEach
@@ -88,7 +88,7 @@ class ModelServiceTests {
       modelService.dispose();
     }
     featureFlags.setClientPreviewFeatureEnabled(previewFeaturesEnabled);
-    new PreferenceCacheResetter(lsConnection, authStatusManager).reset();
+    preferenceStorage.dispose();
   }
 
   @Test
@@ -98,7 +98,7 @@ class ModelServiceTests {
     when(lsConnection.listModels())
         .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, autoModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
 
     waitUntil(() -> isModelAvailable(defaultModel.getModelKey()));
     assertTrue(isModelAvailable(autoModel.getModelKey()));
@@ -112,7 +112,7 @@ class ModelServiceTests {
         CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, autoModel }),
         CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
     waitUntil(() -> isModelAvailable(autoModel.getModelKey()));
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
@@ -133,7 +133,7 @@ class ModelServiceTests {
         CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, autoModel, otherModel }),
         CompletableFuture.completedFuture(new CopilotModel[] { otherModel, defaultModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
     waitUntil(() -> autoModel.getId().equals(getActiveModelId()));
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
@@ -155,7 +155,7 @@ class ModelServiceTests {
         CompletableFuture.completedFuture(new CopilotModel[] { autoModel, lastModel, firstModel }),
         CompletableFuture.completedFuture(new CopilotModel[] { lastModel, firstModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
     waitUntil(() -> autoModel.getId().equals(getActiveModelId()));
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
@@ -176,7 +176,7 @@ class ModelServiceTests {
         CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }),
         CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, autoModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
     waitUntil(() -> autoModel.getId().equals(getActiveModelId()));
 
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
@@ -197,7 +197,7 @@ class ModelServiceTests {
     when(lsConnection.listModels())
         .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel, inventoryModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
     waitUntil(() -> isModelAvailable(defaultModel.getModelKey()));
 
     AtomicReference<CopilotModel> activeModel = new AtomicReference<>();
@@ -217,7 +217,7 @@ class ModelServiceTests {
     when(lsConnection.listModels())
         .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }));
 
-    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
     waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
 
     AtomicReference<CopilotModel> activeModel = new AtomicReference<>();
@@ -290,18 +290,6 @@ class ModelServiceTests {
   }
 
   private Path getPreferenceFile() {
-    return persistenceDirectory.resolve(TEST_USER).resolve(ChatBaseService.PREF_FILE_NAME);
-  }
-
-  private static final class PreferenceCacheResetter extends ChatBaseService {
-
-    private PreferenceCacheResetter(CopilotLanguageServerConnection lsConnection,
-        AuthStatusManager authStatusManager) {
-      super(lsConnection, authStatusManager);
-    }
-
-    private void reset() {
-      clearUserPreferenceCache();
-    }
+    return persistenceDirectory.resolve(TEST_USER).resolve("pref.json");
   }
 }

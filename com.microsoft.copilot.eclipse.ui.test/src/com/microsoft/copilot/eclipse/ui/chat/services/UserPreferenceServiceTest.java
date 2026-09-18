@@ -4,180 +4,260 @@
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
-import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.swt.SWT;
+import org.eclipse.jface.databinding.swt.DisplayRealm;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.osgi.service.event.Event;
-import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
-import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
-import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
+import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.swt.DropdownButton;
+import com.microsoft.copilot.eclipse.ui.chat.Messages;
+import com.microsoft.copilot.eclipse.ui.chat.PreferenceStatus;
 
 @ExtendWith(MockitoExtension.class)
 class UserPreferenceServiceTest {
-
   @Mock
-  private CopilotLanguageServerConnection mockLsConnection;
-
+  private CopilotLanguageServerConnection connection;
   @Mock
-  private AuthStatusManager mockAuthStatusManager;
+  private AuthStatusManager auth;
+  @TempDir
+  private Path directory;
 
-  private UserPreferenceService userPreferenceService;
-
-  @BeforeEach
-  void setUp() {
-    when(mockAuthStatusManager.isSignedIn()).thenReturn(false);
-  }
+  private PreferenceStorage storage;
+  private UserPreferenceService service;
+  private Shell shell;
+  private DropdownButton picker;
+  private PreferenceStatus status;
 
   @AfterEach
   void tearDown() {
-    if (userPreferenceService != null) {
-      userPreferenceService.dispose();
+    Display.getDefault().syncExec(() -> {
+      if (shell != null) {
+        shell.dispose();
+      }
+      if (service != null) {
+        service.dispose();
+      }
+      if (storage != null) {
+        storage.dispose();
+      }
+    });
+  }
+
+  @Test
+  void testInitialization_RestoresModeHistoryAndConfirmationWithoutSaving() throws Exception {
+    String saved = """
+        {"chatModeName":"Ask","userInputs":["first","second"],"skipGitHubJobConfirmDialog":true}
+        """;
+    Path file = writePreferences(saved);
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> "Ask".equals(service.getActiveModeNameOrId()));
+    Display.getDefault().syncExec(() -> {
+      assertEquals(ChatMode.Ask, service.getActiveChatMode());
+      assertEquals("second", service.getPreviousInput(""));
+      assertEquals("first", service.getPreviousInput(""));
+      assertTrue(service.isSkipGitHubJobConfirmDialog());
+      assertTrue(picker.getEnabled());
+      assertFalse(status.getVisible());
+    });
+    assertEquals(saved, Files.readString(file), "Restoration is not a user edit");
+  }
+
+  @Test
+  void testInitialization_AgentPolicyDisabled_RestoresAskView() throws Exception {
+    writePreferences("{\"chatModeName\":\"Agent\"}");
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean original = flags.isAgentModeEnabled();
+    try {
+      flags.setAgentModeEnabled(false);
+      startAuthenticated(CompletableFuture.completedFuture(persistence()));
+      awaitUi(() -> "Agent".equals(service.getActiveModeNameOrId()));
+      Display.getDefault().syncExec(() -> assertEquals(ChatMode.Ask, service.getActiveChatMode()));
+    } finally {
+      flags.setAgentModeEnabled(original);
     }
   }
 
   @Test
-  void testAuthStatusChangedEventHandler_UserSignsOut_ClearsUserPreferenceCache() {
-    // Arrange
-    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
-
-    // Set up initial state with input navigation
-    setInputNavigationForService(new InputNavigation());
-    assertNotNull(getInputNavigationFromService(), "Input navigation should be set initially");
-
-    // Get the auth status changed event handler
-    EventHandler authHandler = getAuthStatusChangedEventHandler();
-    assertNotNull(authHandler, "Auth status changed event handler should be available");
-
-    Event signOutEvent = createAuthStatusEvent(CopilotStatusResult.NOT_SIGNED_IN);
-
-    // Act
-    authHandler.handleEvent(signOutEvent);
-
-    // Assert
-    assertNull(getInputNavigationFromService(), "Input navigation should be cleared when user signs out");
+  void testRetry_FailedLoadKeepsPickerDisabledThenRestoresSavedChoice() throws Exception {
+    writePreferences("{\"chatModeName\":\"Ask\"}");
+    startAuthenticated(CompletableFuture.failedFuture(new IllegalStateException("offline")));
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.FAILED);
+    Display.getDefault().syncExec(() -> {
+      assertFalse(picker.getEnabled());
+      assertTrue(status.getVisible());
+      Label message = Arrays.stream(status.getChildren()).filter(Label.class::isInstance)
+          .map(Label.class::cast).findFirst().orElseThrow();
+      assertEquals(Messages.preferenceLoadFailed, message.getText());
+      service.setActiveChatMode("Agent");
+      assertNull(service.getActiveModeNameOrId());
+    });
+    when(connection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence()));
+    Display.getDefault().syncExec(() -> {
+      Link retry = Arrays.stream(status.getChildren()).filter(Link.class::isInstance)
+          .map(Link.class::cast).findFirst().orElseThrow();
+      assertTrue(retry.getEnabled());
+      retry.notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event());
+    });
+    awaitUi(() -> picker.getEnabled() && "Ask".equals(service.getActiveModeNameOrId()));
   }
 
   @Test
-  void testAuthStatusChangedEventHandler_SignOutThenSignIn() {
-    // Arrange
-    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
-
-    EventHandler authHandler = getAuthStatusChangedEventHandler();
-    assertNotNull(authHandler, "Auth status changed event handler should be available");
-
-    Event signOutEvent = createAuthStatusEvent(CopilotStatusResult.NOT_SIGNED_IN);
-    Event signInEvent = createAuthStatusEvent(CopilotStatusResult.OK, "test-user");
-
-    // Act - Sign out then sign in
-    authHandler.handleEvent(signOutEvent);
-    assertNull(getInputNavigationFromService(), "Input navigation should be null after sign out");
-
-    authHandler.handleEvent(signInEvent);
-    InputNavigation initialNavigation = new InputNavigation(List.of("input1", "input2"));
-    setInputNavigationForService(initialNavigation);
-    assertNotNull(getInputNavigationFromService(), "Input navigation should be set initially");
-
-    // Assert - After sign in, input navigation should be restored
-    assertNotNull(getInputNavigationFromService(), "Input navigation should be restored after sign in");
-    assertEquals("input2", getInputNavigationFromService().getLatestInput(), "Input navigation should be restored");
+  void testSignOut_InvalidatesLoadedHistoryAndDisablesPicker() throws Exception {
+    writePreferences("{\"chatModeName\":\"Ask\",\"userInputs\":[\"private history\"]}");
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> "Ask".equals(service.getActiveModeNameOrId()));
+    ArgumentCaptor<CopilotAuthStatusListener> listener = ArgumentCaptor.forClass(CopilotAuthStatusListener.class);
+    verify(auth).addCopilotAuthStatusListener(listener.capture());
+    when(auth.isSignedIn()).thenReturn(false);
+    CopilotStatusResult signedOut = new CopilotStatusResult();
+    signedOut.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
+    listener.getValue().onDidCopilotStatusChange(signedOut);
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.UNAVAILABLE);
+    Display.getDefault().syncExec(() -> {
+      assertFalse(picker.getEnabled());
+      assertNull(service.getActiveModeNameOrId());
+      assertEquals("", service.getPreviousInput(""));
+    });
   }
 
   @Test
-  void testAuthStatusChangedEventHandler_UserSignsIn_ReloadsBuiltInModes() {
-    // Arrange
-    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
-
-    EventHandler authHandler = getAuthStatusChangedEventHandler();
-    assertNotNull(authHandler, "Auth status changed event handler should be available");
-
-    Event signInEvent = createAuthStatusEvent(CopilotStatusResult.OK, "test-user");
-
-    // Act - Simulate user sign in
-    authHandler.handleEvent(signInEvent);
-
-    // Assert - No exception should be thrown and the handler should complete successfully
-    // Note: Since BuiltInChatModeManager is a singleton and we can't easily mock it in this test,
-    // we primarily verify that the event handler doesn't throw exceptions when reloading modes.
-    // The actual reloading functionality is tested through integration tests.
-    assertNotNull(authHandler, "Auth handler should still be functional after handling sign-in event");
+  void testModeChange_AfterRestoration_UpdatesSharedStateAndPersists() throws Exception {
+    writePreferences("{\"chatModeName\":\"Ask\"}");
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> "Ask".equals(service.getActiveModeNameOrId()));
+    Display.getDefault().syncExec(() -> {
+      service.setActiveChatMode("Agent");
+      assertEquals("Agent", service.getActiveModeNameOrId());
+      assertNotNull(storage.getReadyPreferences());
+      assertEquals("Agent", storage.getReadyPreferences().getChatModeName());
+    });
+    assertTrue(Files.readString(directory.resolve("user").resolve("pref.json")).contains("Agent"));
   }
 
-  /**
-   * Helper method to create an auth status changed event
-   */
-  private Event createAuthStatusEvent(String status) {
-    return createAuthStatusEvent(status, null);
+  @Test
+  void testInitialization_DeadlineExpires_ShowsFailureAndRetryWithoutEnablingPicker() throws Exception {
+    when(auth.isSignedIn()).thenReturn(true);
+    when(auth.getUserName()).thenReturn("user");
+    CompletableFuture<ChatPersistence> pending = new CompletableFuture<>();
+    when(connection.persistence()).thenReturn(pending);
+    ScheduledExecutorService timer = mock(ScheduledExecutorService.class);
+    AtomicReference<Runnable> deadline = new AtomicReference<>();
+    when(timer.schedule(any(Runnable.class), eq(15L), eq(TimeUnit.SECONDS))).thenAnswer(invocation -> {
+      deadline.set(invocation.getArgument(0));
+      return mock(ScheduledFuture.class);
+    });
+    AtomicLong clock = new AtomicLong();
+    Display.getDefault().syncExec(() -> {
+      storage = new PreferenceStorage(connection, auth, DisplayRealm.getRealm(Display.getDefault()),
+          Executors.newSingleThreadExecutor(), timer, clock::get, new PreferenceStorage.FileAccess() {
+            @Override
+            public String read(Path path) throws IOException {
+              return Files.readString(path);
+            }
+
+            @Override
+            public void write(Path path, String content) throws IOException {
+              Files.writeString(path, content);
+            }
+          });
+      createControls();
+    });
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.LOADING);
+    Display.getDefault().syncExec(() -> assertFalse(picker.getEnabled()));
+    clock.set(TimeUnit.SECONDS.toNanos(15));
+    deadline.get().run();
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.FAILED);
+    Display.getDefault().syncExec(() -> {
+      assertFalse(picker.getEnabled());
+      assertTrue(status.getVisible());
+      Link retry = Arrays.stream(status.getChildren()).filter(Link.class::isInstance)
+          .map(Link.class::cast).findFirst().orElseThrow();
+      assertTrue(retry.getEnabled());
+    });
   }
 
-  /**
-   * Helper method to create an auth status changed event with user
-   */
-  private Event createAuthStatusEvent(String status, String user) {
-    CopilotStatusResult statusResult = new CopilotStatusResult();
-    statusResult.setStatus(status);
-    if (user != null) {
-      statusResult.setUser(user);
-    }
-
-    Map<String, Object> eventProperties = new HashMap<>();
-    eventProperties.put(IEventBroker.DATA, statusResult);
-    return new Event(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, eventProperties);
+  private void startAuthenticated(CompletableFuture<ChatPersistence> rpc) {
+    when(auth.isSignedIn()).thenReturn(true);
+    when(auth.getUserName()).thenReturn("user");
+    when(connection.persistence()).thenReturn(rpc);
+    Display.getDefault().syncExec(() -> {
+      storage = new PreferenceStorage(connection, auth);
+      createControls();
+    });
   }
 
-  /**
-   * Helper method to access private authStatusChangedEventHandler field for
-   * testing
-   */
-  private EventHandler getAuthStatusChangedEventHandler() {
-    try {
-      Field field = UserPreferenceService.class.getDeclaredField("authStatusChangedEventHandler");
-      field.setAccessible(true);
-      return (EventHandler) field.get(userPreferenceService);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to access authStatusChangedEventHandler field", e);
-    }
+  private void createControls() {
+    service = new UserPreferenceService(connection, auth, storage);
+    shell = new Shell(Display.getDefault());
+    status = new PreferenceStatus(shell, storage);
+    picker = new DropdownButton(shell, SWT.NONE);
+    service.bindChatModePicker(picker);
   }
 
-  /**
-   * Helper method to access private inputNavigation field for testing
-   */
-  private InputNavigation getInputNavigationFromService() {
-    try {
-      Field field = UserPreferenceService.class.getDeclaredField("inputNavigation");
-      field.setAccessible(true);
-      return (InputNavigation) field.get(userPreferenceService);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to access inputNavigation field", e);
-    }
+  private ChatPersistence persistence() {
+    ChatPersistence result = new ChatPersistence();
+    result.setPath(directory.toString());
+    return result;
   }
 
-  /**
-   * Helper method to set private inputNavigation field for testing
-   */
-  private void setInputNavigationForService(InputNavigation inputNavigation) {
-    try {
-      Field field = UserPreferenceService.class.getDeclaredField("inputNavigation");
-      field.setAccessible(true);
-      field.set(userPreferenceService, inputNavigation);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to set inputNavigation field", e);
-    }
+  private Path writePreferences(String content) throws Exception {
+    Path file = directory.resolve("user").resolve("pref.json");
+    Files.createDirectories(file.getParent());
+    Files.writeString(file, content);
+    return file;
+  }
+
+  private static void awaitUi(BooleanSupplier condition) throws InterruptedException {
+    AtomicBoolean complete = new AtomicBoolean();
+    long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+    do {
+      Display.getDefault().syncExec(() -> complete.set(condition.getAsBoolean()));
+      if (complete.get()) {
+        return;
+      }
+      Thread.sleep(10);
+    } while (System.nanoTime() < deadline);
+    assertTrue(complete.get(), "Timed out waiting for the preference UI");
   }
 }

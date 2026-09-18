@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -50,6 +51,12 @@ import com.microsoft.copilot.eclipse.ui.utils.ModelUtils.ContextWindowOption;
  * BYOK integration, UI binding, and communicates with other services through pure events.
  */
 public class ModelService extends ChatBaseService {
+  private final PreferenceStorage preferenceStorage;
+  private ISideEffect readinessSideEffect;
+  private volatile boolean disposed;
+  private long modelGeneration;
+  private Job modelJob;
+  private String modelAccount;
 
   // models for the model picker
   private IObservableValue<Map<String, CopilotModel>> modelObservable;
@@ -79,27 +86,51 @@ public class ModelService extends ChatBaseService {
   /**
    * Constructor for the ModelService.
    */
-  public ModelService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
+  public ModelService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager,
+      PreferenceStorage preferenceStorage) {
     super(lsConnection, authStatusManager);
+    this.preferenceStorage = preferenceStorage;
 
     ensureRealm(() -> {
       modelObservable = new WritableValue<>(new HashMap<>(), HashMap.class);
       activeModelObservable = new WritableValue<>(null, CopilotModel.class);
-      Map<String, String> initialEfforts = Map.of();
-      UserPreference initialPreference = getUserPreference();
-      if (initialPreference != null) {
-        initialEfforts = initialPreference.getReasoningEffortSnapshot();
-      }
-      reasoningEffortObservable = new WritableValue<>(initialEfforts, Map.class);
-      Map<String, Integer> initialContextWindows = Map.of();
-      if (initialPreference != null) {
-        initialContextWindows = initialPreference.getContextWindowSnapshot();
-      }
-      contextWindowObservable = new WritableValue<>(initialContextWindows, Map.class);
+      reasoningEffortObservable = new WritableValue<>(Map.of(), Map.class);
+      contextWindowObservable = new WritableValue<>(Map.of(), Map.class);
+      readinessSideEffect = ISideEffect.create(preferenceStorage.getReadiness()::getValue, state -> {
+        UserPreference preference = getUserPreference();
+        if (state == PreferenceStorage.State.READY && preference != null) {
+          currentChatMode = "Ask".equalsIgnoreCase(preference.getChatModeName()) ? ChatMode.Ask : ChatMode.Agent;
+          FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+          if (flags != null && !flags.isAgentModeEnabled()) {
+            currentChatMode = ChatMode.Ask;
+          }
+          reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot());
+          contextWindowObservable.setValue(preference.getContextWindowSnapshot());
+          reconcileReasoningEfforts();
+          reconcileContextWindows();
+          updateModelsForChatMode(currentChatMode);
+        } else {
+          activeModelObservable.setValue(null);
+          reasoningEffortObservable.setValue(Map.of());
+          contextWindowObservable.setValue(Map.of());
+          if (state == PreferenceStorage.State.UNAVAILABLE) {
+            copilotModels = new HashMap<>();
+            registeredByokModels = new HashMap<>();
+            defaultModel = null;
+            fallbackModel = null;
+            modelObservable.setValue(Map.of());
+            modelGeneration++;
+            if (modelJob != null) {
+              modelJob.cancel();
+            }
+          }
+        }
+      });
     });
 
     initializeEventHandlers();
     subscribeToEvents();
+    preferenceStorage.initialize();
     initializeModels();
   }
 
@@ -124,10 +155,12 @@ public class ModelService extends ChatBaseService {
       if (property instanceof Map<?, ?> modelsMap) {
         @SuppressWarnings("unchecked")
         Map<String, List<ByokModel>> byokModels = (Map<String, List<ByokModel>>) modelsMap;
-        saveRegisteredByokModels(byokModels);
-        reconcileReasoningEfforts();
-        reconcileContextWindows();
-        ensureRealm(() -> updateModelsForChatMode(currentChatMode));
+        ensureRealm(() -> {
+          saveRegisteredByokModels(byokModels);
+          reconcileReasoningEfforts();
+          reconcileContextWindows();
+          updateModelsForChatMode(currentChatMode);
+        });
       }
     };
 
@@ -183,32 +216,49 @@ public class ModelService extends ChatBaseService {
   }
 
   private void initializeModels() {
-    if (authStatusManager.isSignedIn()) {
-      Job job = new Job("Fetching all models...") {
+    ensureRealm(() -> {
+      if (!authStatusManager.isSignedIn()) {
+        return;
+      }
+      long generation = ++modelGeneration;
+      String account = authStatusManager.getUserName();
+      modelJob = new Job("Fetching all models...") {
         @Override
         protected IStatus run(IProgressMonitor monitor) {
           try {
-            fetchCopilotModels();
-            fetchByokModels();
-            reconcileReasoningEfforts();
-            reconcileContextWindows();
+            CopilotModel[] models = lsConnection.listModels().get();
+            ByokListModelResponse byok = lsConnection.listByokModels(new ByokListModelParams(null, false)).get();
             ensureRealm(() -> {
+              if (generation != modelGeneration || !authStatusManager.isSignedIn()
+                  || !Objects.equals(account, authStatusManager.getUserName())) {
+                return;
+              }
+              saveCopilotModels(models);
+              modelAccount = account;
+              if (byok != null && byok.getModels() != null) {
+                saveRegisteredByokModels(byok.getModels().stream()
+                    .collect(java.util.stream.Collectors.groupingBy(ByokModel::getProviderName)));
+              }
+              reconcileReasoningEfforts();
+              reconcileContextWindows();
               updateModelsForChatMode(currentChatMode);
             });
 
-          } catch (InterruptedException | ExecutionException e) {
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return Status.CANCEL_STATUS;
+          } catch (ExecutionException e) {
             CopilotCore.LOGGER.error("Failed to initialize models", e);
           }
           return Status.OK_STATUS;
         }
       };
-      job.setSystem(true);
-      job.schedule();
-    }
+      modelJob.setSystem(true);
+      modelJob.schedule();
+    });
   }
 
-  private void fetchCopilotModels() throws InterruptedException, ExecutionException {
-    CopilotModel[] modelArray = lsConnection.listModels().get();
+  private void saveCopilotModels(CopilotModel[] modelArray) {
     Map<String, CopilotModel> newModels = new HashMap<>();
     CopilotModel newDefaultModel = null;
     CopilotModel newFallbackModel = null;
@@ -230,15 +280,6 @@ public class ModelService extends ChatBaseService {
     copilotModels = newModels;
     defaultModel = newDefaultModel;
     fallbackModel = newFallbackModel;
-  }
-
-  private void fetchByokModels() throws InterruptedException, ExecutionException {
-    ByokListModelResponse response = lsConnection.listByokModels(new ByokListModelParams(null, false)).get();
-    if (response != null && response.getModels() != null) {
-      Map<String, List<ByokModel>> modelsByProvider = response.getModels().stream()
-          .collect(java.util.stream.Collectors.groupingBy(ByokModel::getProviderName));
-      saveRegisteredByokModels(modelsByProvider);
-    }
   }
 
   private void saveRegisteredByokModels(Map<String, List<ByokModel>> byokModels) {
@@ -268,15 +309,21 @@ public class ModelService extends ChatBaseService {
   }
 
   private void updateModelsForChatMode(ChatMode chatMode) {
+    if (getUserPreference() == null) {
+      return;
+    }
     String scope = modeToScope(chatMode);
 
     // Filter models for the current mode from combined models
     final Map<String, CopilotModel> modelsForCurrentMode = new HashMap<>();
     Map<String, CopilotModel> allModels = new HashMap<>();
-    allModels.putAll(copilotModels);
+    boolean currentAccount = Objects.equals(modelAccount, authStatusManager.getUserName());
+    if (currentAccount) {
+      allModels.putAll(copilotModels);
+    }
     // TODO: need to remove this logic after group policy is available
     FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
-    if (flags == null || flags.isByokEnabled()) {
+    if (currentAccount && (flags == null || flags.isByokEnabled())) {
       allModels.putAll(registeredByokModels);
     }
 
@@ -299,6 +346,9 @@ public class ModelService extends ChatBaseService {
    * user preference or falling back to default.
    */
   private void validateAndSetActiveModelForMode(Map<String, CopilotModel> modelsForCurrentMode) {
+    if (getUserPreference() == null) {
+      return;
+    }
     CopilotModel currentActive = getActiveModel();
     String restoredModelKey = restoreActiveModel();
     CopilotModel restoredModel = restoredModelKey == null ? null : modelsForCurrentMode.get(restoredModelKey);
@@ -335,8 +385,11 @@ public class ModelService extends ChatBaseService {
 
   private void persistModelSelection(CopilotModel model) {
     UserPreference preference = getUserPreference();
+    if (preference == null) {
+      return;
+    }
     preference.setChatModel(model.getModelKey());
-    CompletableFuture.runAsync(this::persistUserPreference);
+    persistUserPreferenceAsync(preference);
   }
 
   private String modeToScope(ChatMode mode) {
@@ -355,13 +408,22 @@ public class ModelService extends ChatBaseService {
   }
 
   private void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
+    if (copilotStatusResult.isSignedIn() != authStatusManager.isSignedIn()
+        || (copilotStatusResult.isSignedIn()
+            && !Objects.equals(copilotStatusResult.getUser(), authStatusManager.getUserName()))) {
+      return;
+    }
     String status = copilotStatusResult.getStatus();
     switch (status) {
       case CopilotStatusResult.OK, CopilotStatusResult.NOT_AUTHORIZED:
         initializeModels();
         break;
       default:
-        disposeAllSideEffects();
+        ensureRealm(() -> {
+          modelGeneration++;
+          activeModelObservable.setValue(null);
+          modelObservable.setValue(Map.of());
+        });
         break;
     }
   }
@@ -372,6 +434,10 @@ public class ModelService extends ChatBaseService {
    * @param modelName the name of the model
    */
   public void setActiveModel(String modelName) {
+    if (getUserPreference() == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot change model before preferences are ready"));
+      return;
+    }
     Map<String, CopilotModel> currentModels = modelObservable.getValue();
 
     final CopilotModel model = currentModels.values().stream()
@@ -383,10 +449,6 @@ public class ModelService extends ChatBaseService {
       if (activeModel != null && activeModel.getModelKey().equals(model.getModelKey())) {
         return;
       }
-      // Persist asynchronously to avoid deadlock: persistUserPreference() calls
-      // persistence().get() which blocks waiting for the LSP listener thread.
-      // If called on the UI thread while the listener is in syncExec, both threads
-      // deadlock.
       persistModelSelection(model);
 
       // Update observable
@@ -400,7 +462,7 @@ public class ModelService extends ChatBaseService {
    * @return the active model
    */
   public CopilotModel getActiveModel() {
-    return activeModelObservable.getValue();
+    return getUserPreference() == null ? null : activeModelObservable.getValue();
   }
 
   /**
@@ -489,10 +551,12 @@ public class ModelService extends ChatBaseService {
     String key = model.getModelKey();
     UserPreference preference = getUserPreference();
     if (preference == null) {
+      CopilotCore.LOGGER.error(
+          new IllegalStateException("Cannot change reasoning effort before preferences are ready"));
       return;
     }
     preference.setReasoningEffort(key, reasoningEffort);
-    CompletableFuture.runAsync(this::persistUserPreference);
+    persistUserPreferenceAsync(preference);
     // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
     // resolveEffectiveReasoningEffort (which queries UserPreference), so this observable serves
     // purely as a change signal.
@@ -509,6 +573,9 @@ public class ModelService extends ChatBaseService {
    * failed) so a transient outage cannot wipe every stored selection.
    */
   private void reconcileReasoningEfforts() {
+    if (!Objects.equals(modelAccount, authStatusManager.getUserName())) {
+      return;
+    }
     if (copilotModels.isEmpty() && registeredByokModels.isEmpty()) {
       return;
     }
@@ -542,7 +609,7 @@ public class ModelService extends ChatBaseService {
       }
     }
     if (preference.setReasoningEfforts(reconciled)) {
-      CompletableFuture.runAsync(this::persistUserPreference);
+      persistUserPreferenceAsync(preference);
       ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
     }
   }
@@ -619,12 +686,13 @@ public class ModelService extends ChatBaseService {
     }
     UserPreference preference = getUserPreference();
     if (preference == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot change context window before preferences are ready"));
       return;
     }
     if (!preference.setContextWindow(model.getModelKey(), contextWindow)) {
       return;
     }
-    CompletableFuture.runAsync(this::persistUserPreference);
+    persistUserPreferenceAsync(preference);
     // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
     // resolveEffectiveContextWindowText (which queries UserPreference), so this observable serves purely as a change
     // signal.
@@ -641,6 +709,9 @@ public class ModelService extends ChatBaseService {
    * failed) so a transient outage cannot wipe every stored selection.
    */
   private void reconcileContextWindows() {
+    if (!Objects.equals(modelAccount, authStatusManager.getUserName())) {
+      return;
+    }
     if (copilotModels.isEmpty() && registeredByokModels.isEmpty()) {
       return;
     }
@@ -670,7 +741,7 @@ public class ModelService extends ChatBaseService {
       }
     }
     if (preference.setContextWindows(reconciled)) {
-      CompletableFuture.runAsync(this::persistUserPreference);
+      persistUserPreferenceAsync(preference);
       ensureRealm(() -> contextWindowObservable.setValue(preference.getContextWindowSnapshot()));
     }
   }
@@ -716,7 +787,16 @@ public class ModelService extends ChatBaseService {
           });
 
       // Store the side effects for later disposal
-      modelButtonSideEffects.put(picker, new ISideEffect[] { modelsSideEffect, activeModelSideEffect });
+      ISideEffect readinessEffect = ISideEffect.create(() -> {
+        return preferenceStorage.getReadiness().getValue() == PreferenceStorage.State.READY
+            && !modelObservable.getValue().isEmpty();
+      }, ready -> {
+        if (!picker.isDisposed()) {
+          picker.setEnabled(ready);
+        }
+      });
+      modelButtonSideEffects.put(picker,
+          new ISideEffect[] { modelsSideEffect, activeModelSideEffect, readinessEffect });
 
       // Add a dispose listener to auto-unbind when the combo is disposed
       picker.addDisposeListener(e -> unbindModelPicker(picker));
@@ -792,24 +872,31 @@ public class ModelService extends ChatBaseService {
     }
   }
 
-  private void disposeAllSideEffects() {
-    ensureRealm(() -> {
-      for (ISideEffect[] effects : modelButtonSideEffects.values()) {
-        for (ISideEffect effect : effects) {
-          if (effect != null) {
-            effect.dispose();
-          }
-        }
-      }
-    });
-
-    modelButtonSideEffects.clear();
-  }
-
   /**
    * Dispose the service.
    */
   public void dispose() {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    if (modelJob != null) {
+      modelJob.cancel();
+    }
+    super.ensureRealm(() -> {
+      readinessSideEffect.dispose();
+      for (DropdownButton picker : List.copyOf(modelButtonSideEffects.keySet())) {
+        unbindModelPicker(picker);
+      }
+      if (actionBarSideEffect != null) {
+        actionBarSideEffect.dispose();
+        actionBarSideEffect = null;
+      }
+      modelObservable.dispose();
+      activeModelObservable.dispose();
+      reasoningEffortObservable.dispose();
+      contextWindowObservable.dispose();
+    });
     if (eventBroker != null) {
       eventBroker.unsubscribe(authStatusChangedEventHandler);
       eventBroker.unsubscribe(chatModeChangedEventHandler);
@@ -819,8 +906,29 @@ public class ModelService extends ChatBaseService {
       eventBroker.unsubscribe(customModeModelChangedEventHandler);
       eventBroker = null;
     }
+  }
 
-    // Should not call disposeAllSideEffects here due to issue #1301
-    modelButtonSideEffects.clear();
+  private UserPreference getUserPreference() {
+    return disposed ? null : preferenceStorage.getReadyPreferences();
+  }
+
+  private void persistUserPreferenceAsync(UserPreference preference) {
+    CompletableFuture.runAsync(() -> {
+      if (!disposed) {
+        preferenceStorage.persist(preference);
+      }
+    });
+  }
+
+  @Override
+  protected void ensureRealm(Runnable runnable) {
+    if (disposed) {
+      return;
+    }
+    super.ensureRealm(() -> {
+      if (!disposed) {
+        runnable.run();
+      }
+    });
   }
 }

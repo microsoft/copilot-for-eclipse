@@ -90,6 +90,7 @@ import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
+import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.AfterLoginWelcomeViewer;
@@ -1029,6 +1030,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
+    if (chatServiceManager.getPreferenceStorage().getState() != PreferenceStorage.State.READY) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot send chat before preferences are ready"));
+      if (actionBar != null && !actionBar.isDisposed()) {
+        actionBar.resetSendButton();
+      }
+      return;
+    }
     // Persist the user input to history
     chatServiceManager.getUserPreferenceService().addInputToHistory(message);
 
