@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +50,7 @@ import org.mockito.Mockito;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -87,6 +90,109 @@ class PreferenceStorageTest {
   void tearDown() {
     storage.dispose();
     realm.drain();
+  }
+
+  @Test
+  void testRecovery_FailureAndDuplicateSignals_RetriesOncePerConnectionAndAllowsManualRetry() throws Exception {
+    storage.initialize();
+    drainWork();
+    response.completeExceptionally(new IOException("offline"));
+    realm.drain();
+    response = new CompletableFuture<>();
+    recovered(1);
+    recovered(1);
+    storage.retry();
+    drainWork();
+    assertEquals(State.LOADING, storage.getState());
+    verify(connection, times(2)).persistence();
+    response.completeExceptionally(new IOException("still offline"));
+    realm.drain();
+    recovered(1);
+    authListener().onDidCopilotStatusChange(new CopilotStatusResult());
+    drainWork();
+    assertEquals(State.FAILED, storage.getState());
+    verify(connection, times(2)).persistence();
+
+    response = new CompletableFuture<>();
+    when(files.read(any(Path.class))).thenReturn("{\"chatModel\":\"restored\"}");
+    storage.retry();
+    recovered(2);
+    recovered(1);
+    drainWork();
+    response.complete(persistence());
+    drainWork();
+    realm.drain();
+    assertEquals("restored", storage.getReadyPreferences().getChatModel());
+    verify(connection, times(3)).persistence();
+  }
+
+  @Test
+  void testRecovery_SameAccountDirtyChoicesAndSaveFailure_RemainUnchanged() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    Mockito.doThrow(new IOException("read-only")).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("unsaved"));
+    drainWork();
+    realm.drain();
+    recovered(1);
+    recovered(2);
+    authListener().onDidCopilotStatusChange(new CopilotStatusResult());
+    drainWork();
+    realm.drain();
+
+    assertEquals("unsaved", storage.getReadyPreferences().getChatModel());
+    assertTrue(storage.isDirty());
+    assertEquals(PreferenceStorage.SaveState.FAILED, storage.getSaveStatus().getValue());
+    verify(connection).persistence();
+    verify(files).write(any(), any());
+  }
+
+  @Test
+  void testRecovery_SignedOutAndDisposed_DoesNotLoadOrPublish() {
+    when(auth.isSignedIn()).thenReturn(false);
+    authListener().onDidCopilotStatusChange(new CopilotStatusResult());
+    recovered(1);
+    drainWork();
+    realm.drain();
+    assertEquals(State.UNAVAILABLE, storage.getState());
+    assertNull(storage.getReadyPreferences());
+    storage.dispose();
+    when(auth.isSignedIn()).thenReturn(true);
+    authListener().onDidCopilotStatusChange(new CopilotStatusResult());
+    recovered(2);
+    drainWork();
+    realm.drain();
+
+    assertEquals(State.DISPOSED, storage.getState());
+    verify(connection, never()).persistence();
+    verifyNoInteractions(files);
+  }
+
+  @Test
+  void testRecovery_TimedOutOldRpc_CannotReplaceSuccessfulRecovery() throws Exception {
+    response = new UncancellableFuture();
+    CompletableFuture<ChatPersistence> old = response;
+    storage.initialize();
+    drainWork();
+    expire();
+    realm.drain();
+    response = new CompletableFuture<>();
+    when(files.read(any(Path.class))).thenReturn("{\"chatModel\":\"new\"}");
+    recovered(1);
+    drainWork();
+    response.complete(persistence());
+    drainWork();
+    realm.drain();
+    old.complete(persistence());
+    drainWork();
+    realm.drain();
+    assertEquals("new", storage.getReadyPreferences().getChatModel());
+    verify(files).read(any());
+  }
+
+  private void recovered(long incarnation) {
+    PlatformUI.getWorkbench().getService(IEventBroker.class)
+        .send(CopilotEventConstants.TOPIC_LANGUAGE_SERVER_INITIALIZED, incarnation);
   }
 
   @Test
@@ -202,6 +308,8 @@ class PreferenceStorageTest {
         assertEquals(Path.of(persistence().getPath(), "alice", "pref.json"), invocation.getArgument(0));
         when(auth.getUserName()).thenReturn("bob");
         response = new CompletableFuture<>();
+        authListener().onDidCopilotStatusChange(new CopilotStatusResult());
+        recovered(1);
         load();
         storage.update(preference -> preference.setChatModel("bob-model"));
         throw new IOException("old account failure");
@@ -667,7 +775,7 @@ class PreferenceStorageTest {
     when(auth.getUserName()).thenReturn("bob");
     authListener().onDidCopilotStatusChange(new CopilotStatusResult());
     realm.drain();
-    assertEquals(State.UNAVAILABLE, storage.getState());
+    assertEquals(State.LOADING, storage.getState());
     verify(connection).persistence();
 
     response = new CompletableFuture<>();
@@ -687,7 +795,7 @@ class PreferenceStorageTest {
   }
 
   @Test
-  void testAuthNotification_SignOut_InvalidatesWithoutAutomaticRetry() throws Exception {
+  void testAuthNotification_SignOutThenLogin_LoadsOnceWithoutManualRetry() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
     when(auth.isSignedIn()).thenReturn(false);
@@ -696,12 +804,18 @@ class PreferenceStorageTest {
     realm.drain();
     assertEquals(State.UNAVAILABLE, storage.getReadiness().getValue());
 
+    response = new CompletableFuture<>();
     when(auth.isSignedIn()).thenReturn(true);
+    authListener().onDidCopilotStatusChange(new CopilotStatusResult());
     authListener().onDidCopilotStatusChange(new CopilotStatusResult());
     drainWork();
     realm.drain();
-    verify(connection).persistence();
-    assertEquals(State.UNAVAILABLE, storage.getState());
+    verify(connection, times(2)).persistence();
+    assertEquals(State.LOADING, storage.getState());
+    response.complete(persistence());
+    drainWork();
+    realm.drain();
+    assertEquals(State.READY, storage.getState());
   }
 
   @Test
