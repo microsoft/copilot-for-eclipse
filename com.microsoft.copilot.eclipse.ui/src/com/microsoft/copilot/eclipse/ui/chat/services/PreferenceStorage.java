@@ -349,8 +349,9 @@ public class PreferenceStorage {
   }
 
   private UserPreference parse(String json) throws IOException {
+    rejectLegacyJsonExtensions(json);
     try (JsonReader reader = new JsonReader(new StringReader(json))) {
-      configureStrictJson(reader);
+      reader.setLenient(false);
       if (reader.peek() != JsonToken.BEGIN_OBJECT) {
         throw new JsonSyntaxException("Preferences must contain an object");
       }
@@ -365,15 +366,36 @@ public class PreferenceStorage {
     }
   }
 
-  private void configureStrictJson(JsonReader reader) throws IOException {
-    try {
-      // Older supported Eclipse targets bundle Gson 2.10, before the Strictness API.
-      Class<?> strictness = Class.forName("com.google.gson.Strictness");
-      JsonReader.class.getMethod("setStrictness", strictness).invoke(reader, strictness.getField("STRICT").get(null));
-    } catch (ClassNotFoundException | NoSuchMethodException exception) {
-      reader.setLenient(false);
-    } catch (ReflectiveOperationException exception) {
-      throw new IOException("Cannot configure strict preference JSON parsing", exception);
+  private void rejectLegacyJsonExtensions(String json) {
+    // Gson 2.10's non-lenient mode still accepts control characters, non-JSON escapes and mixed-case literals.
+    // Reject those extensions before the reader validates the document's remaining syntax and types.
+    boolean quoted = false;
+    for (int index = 0; index < json.length(); index++) {
+      char character = json.charAt(index);
+      if (quoted) {
+        if (character < 0x20) {
+          throw new JsonSyntaxException("Unescaped control character in preferences");
+        }
+        if (character == '\\') {
+          index++;
+          if (index == json.length() || "\"\\/bfnrtu".indexOf(json.charAt(index)) < 0) {
+            throw new JsonSyntaxException("Invalid escape in preferences");
+          }
+        } else if (character == '"') {
+          quoted = false;
+        }
+      } else if (character == '"') {
+        quoted = true;
+      } else if ("tTfFnN".indexOf(character) >= 0) {
+        int start = index;
+        while (index + 1 < json.length() && Character.isLetter(json.charAt(index + 1))) {
+          index++;
+        }
+        String literal = json.substring(start, index + 1);
+        if (!"true".equals(literal) && !"false".equals(literal) && !"null".equals(literal)) {
+          throw new JsonSyntaxException("Invalid literal in preferences");
+        }
+      }
     }
   }
 

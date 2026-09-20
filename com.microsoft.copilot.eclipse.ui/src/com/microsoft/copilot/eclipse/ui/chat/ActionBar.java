@@ -148,7 +148,8 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.setData(CssConstants.CSS_ID_KEY, "chat-action-bar-wrapper");
     this.chatServiceManager = chatServiceManager;
-    new PreferenceStatus(this, chatServiceManager.getPreferenceStorage());
+    new PreferenceStatus(this, chatServiceManager.getPreferenceStorage(),
+        chatServiceManager.getUserPreferenceService());
     this.updateSendButtonToCancelButtonHandler = event -> {
       updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
     };
@@ -343,11 +344,13 @@ public class ActionBar extends Composite implements NewConversationListener {
     updateButtonsLayout();
     PreferenceStorage storage = chatServiceManager.getPreferenceStorage();
     Realm.runWithDefault(storage.getReadiness().getRealm(), () -> {
-      ISideEffect readinessEffect = ISideEffect.create(storage.getReadiness()::getValue, state -> {
+      ISideEffect readinessEffect = ISideEffect.create(() -> {
+        return storage.getReadiness().getValue() == PreferenceStorage.State.READY
+            && chatServiceManager.getUserPreferenceService().isActiveModeReady();
+      }, ready -> {
         if (isDisposed()) {
           return;
         }
-        boolean ready = state == PreferenceStorage.State.READY;
         mcpToolButton.setEnabled(ready);
         autoBreakpointButton.setEnabled(ready);
         if (isSendButton) {
@@ -911,7 +914,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private boolean preferencesReady() {
-    return chatServiceManager.getPreferenceStorage().getState() == PreferenceStorage.State.READY;
+    return chatServiceManager.getPreferenceStorage().getState() == PreferenceStorage.State.READY
+        && chatServiceManager.getUserPreferenceService().isActiveModeReady();
   }
 
   /**

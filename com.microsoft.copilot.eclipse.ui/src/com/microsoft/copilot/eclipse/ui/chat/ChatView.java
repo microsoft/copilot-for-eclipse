@@ -1030,7 +1030,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
-    if (chatServiceManager.getPreferenceStorage().getState() != PreferenceStorage.State.READY) {
+    if (chatServiceManager.getPreferenceStorage().getState() != PreferenceStorage.State.READY
+        || !chatServiceManager.getUserPreferenceService().isActiveModeReady()) {
       CopilotCore.LOGGER.error(new IllegalStateException("Cannot send chat before preferences are ready"));
       if (actionBar != null && !actionBar.isDisposed()) {
         actionBar.resetSendButton();

@@ -30,12 +30,21 @@ public class BuiltInChatModeService {
    * don't depend on workspace context, the LSP API enforces this parameter.
    */
   public CompletableFuture<List<BuiltInChatMode>> loadBuiltInModes() {
-    ConversationModesParams params = new ConversationModesParams(Collections.emptyList());
+    return loadBuiltInModes(CopilotCore.getPlugin().getCopilotLanguageServer());
+  }
 
-    CopilotLanguageServerConnection lspConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
+  /**
+   * Loads built-in modes using the owning chat lifecycle's language-server connection.
+   *
+   * @param lspConnection the connection used by the chat services
+   * @return the discovered built-in modes
+   */
+  public CompletableFuture<List<BuiltInChatMode>> loadBuiltInModes(
+      CopilotLanguageServerConnection lspConnection) {
     if (lspConnection == null) {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
+    ConversationModesParams params = new ConversationModesParams(Collections.emptyList());
 
     return lspConnection.listConversationModes(params).thenApply(conversationModes -> {
       List<BuiltInChatMode> builtInModes = new ArrayList<>();
@@ -58,9 +67,6 @@ public class BuiltInChatModeService {
       }
 
       return builtInModes;
-    }).exceptionally(ex -> {
-      CopilotCore.LOGGER.error("Failed to load built-in modes", ex);
-      return new ArrayList<>();
     });
   }
 

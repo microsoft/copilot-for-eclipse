@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,12 +17,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import com.google.gson.Gson;
+import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.jface.databinding.swt.DisplayRealm;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterEach;
@@ -40,6 +45,8 @@ import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
 
@@ -89,6 +96,63 @@ class ModelServiceTests {
     }
     featureFlags.setClientPreviewFeatureEnabled(previewFeaturesEnabled);
     preferenceStorage.dispose();
+  }
+
+  @Test
+  void testInitialize_PendingPreferences_UpdatesVisionBindingWhenRestored() throws InterruptedException {
+    CompletableFuture<ChatPersistence> pending = new CompletableFuture<>();
+    when(lsConnection.persistence()).thenReturn(pending);
+    CopilotModel visionModel = createModel("vision", "Vision", true);
+    visionModel.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(true, List.of(), false), null));
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] {visionModel}));
+    AtomicBoolean supportsVision = new AtomicBoolean();
+    AtomicBoolean uiActionProcessed = new AtomicBoolean();
+    AtomicReference<ISideEffect> binding = new AtomicReference<>();
+    Display.getDefault().syncExec(() -> {
+      modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
+      Realm.runWithDefault(DisplayRealm.getRealm(Display.getDefault()),
+          () -> binding.set(ISideEffect.create(modelService::isVisionSupported, supportsVision::set)));
+      Display.getDefault().asyncExec(() -> uiActionProcessed.set(true));
+    });
+    try {
+      waitUntil(uiActionProcessed::get);
+      assertFalse(pending.isDone());
+      assertFalse(supportsVision.get());
+      assertEquals(PreferenceStorage.State.LOADING, preferenceStorage.getState());
+
+      ChatPersistence persistence = new ChatPersistence();
+      persistence.setPath(persistenceDirectory.toString());
+      pending.complete(persistence);
+
+      waitUntil(supportsVision::get);
+      assertEquals(PreferenceStorage.State.READY, preferenceStorage.getState());
+      assertEquals("vision", getActiveModelId());
+    } finally {
+      Display.getDefault().syncExec(() -> binding.get().dispose());
+    }
+  }
+
+  @Test
+  void testDispose_ActiveModelIsUnavailableWithoutAccessingDisposedObservable() throws Exception {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] {defaultModel}));
+    modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
+    waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
+
+    CompletableFuture<CopilotModel> result = new CompletableFuture<>();
+    Display.getDefault().syncExec(() -> {
+      try {
+        modelService.dispose();
+        result.complete(modelService.getActiveModel());
+      } catch (Throwable failure) {
+        result.completeExceptionally(failure);
+      }
+    });
+
+    assertNull(result.get(5, TimeUnit.SECONDS));
   }
 
   @Test

@@ -462,7 +462,11 @@ public class ModelService extends ChatBaseService {
    * @return the active model
    */
   public CopilotModel getActiveModel() {
-    return getUserPreference() == null ? null : activeModelObservable.getValue();
+    if (disposed) {
+      return null;
+    }
+    CopilotModel model = activeModelObservable.getValue();
+    return getUserPreference() == null ? null : model;
   }
 
   /**

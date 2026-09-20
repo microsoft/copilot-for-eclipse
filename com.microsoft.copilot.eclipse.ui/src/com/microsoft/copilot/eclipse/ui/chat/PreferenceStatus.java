@@ -14,6 +14,8 @@ import org.eclipse.swt.widgets.Link;
 
 import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage;
 import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage.State;
+import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
+import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService.ModeDiscoveryState;
 
 /**
  * Inline preference-loading status, independent of model and conversation loading.
@@ -26,6 +28,17 @@ public class PreferenceStatus extends Composite {
    * @param storage shared chat preference storage
    */
   public PreferenceStatus(Composite parent, PreferenceStorage storage) {
+    this(parent, storage, null);
+  }
+
+  /**
+   * Creates status and retry controls for preference loading and independent mode discovery.
+   *
+   * @param parent parent control
+   * @param storage shared chat preference storage
+   * @param preferences mode-discovery owner, or {@code null} for preference-only status
+   */
+  public PreferenceStatus(Composite parent, PreferenceStorage storage, UserPreferenceService preferences) {
     super(parent, SWT.NONE);
     setLayout(new GridLayout(2, false));
     GridData data = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -38,21 +51,38 @@ public class PreferenceStatus extends Composite {
     retry.setData("org.eclipse.swtbot.widget.key", "preference-retry");
     GridData retryData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
     retry.setLayoutData(retryData);
-    retry.addListener(SWT.Selection, event -> storage.retry());
+    retry.addListener(SWT.Selection, event -> {
+      if (storage.getState() == State.READY && preferences != null) {
+        preferences.retryModeDiscovery();
+      } else {
+        storage.retry();
+      }
+    });
     Realm.runWithDefault(storage.getReadiness().getRealm(), () -> {
-      ISideEffect effect = ISideEffect.create(storage.getReadiness()::getValue, state -> {
+      ISideEffect effect = ISideEffect.create(() -> {
+        return new Readiness(storage.getReadiness().getValue(),
+            preferences == null ? ModeDiscoveryState.READY : preferences.getModeDiscoveryState());
+      }, readiness -> {
         if (isDisposed()) {
           return;
         }
-        boolean visible = state != State.READY && state != State.DISPOSED;
+        State state = readiness.preferences();
+        boolean modePending = state == State.READY && readiness.modes() != ModeDiscoveryState.READY;
+        boolean visible = state != State.DISPOSED && (state != State.READY || modePending);
         data.exclude = !visible;
         setVisible(visible);
-        message.setText(switch (state) {
+        String text = switch (state) {
           case LOADING -> Messages.preferenceLoading;
           case FAILED -> Messages.preferenceLoadFailed;
           default -> Messages.preferenceUnavailable;
-        });
-        boolean canRetry = state == State.FAILED || state == State.UNAVAILABLE;
+        };
+        if (modePending) {
+          text = readiness.modes() == ModeDiscoveryState.LOADING
+              ? Messages.modeDiscoveryLoading : Messages.modeDiscoveryFailed;
+        }
+        message.setText(text);
+        boolean canRetry = state == State.FAILED || state == State.UNAVAILABLE
+            || (modePending && readiness.modes() != ModeDiscoveryState.LOADING);
         retryData.exclude = !canRetry;
         retry.setVisible(canRetry);
         retry.setEnabled(canRetry);
@@ -60,5 +90,8 @@ public class PreferenceStatus extends Composite {
       });
       addDisposeListener(event -> effect.dispose());
     });
+  }
+
+  private record Readiness(State preferences, ModeDiscoveryState modes) {
   }
 }

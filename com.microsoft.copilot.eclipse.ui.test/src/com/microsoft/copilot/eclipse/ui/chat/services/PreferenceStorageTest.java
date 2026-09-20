@@ -24,6 +24,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -37,7 +38,6 @@ import org.eclipse.core.databinding.observable.Realm;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -165,22 +165,28 @@ class PreferenceStorageTest {
     assertTrue(restored.setContextWindow("model-a", 128000));
   }
 
-  @Test
-  @EnabledIf("supportsStrictJson")
-  void testInitialize_GsonSupportsStrictJson_RejectsUnescapedControlCharacters() throws Exception {
-    when(files.read(any(Path.class))).thenReturn("{\"chatModel\":\"line\nbreak\"}");
+  @ParameterizedTest
+  @ValueSource(strings = {"{\"chatModel\":\"line\nbreak\"}", "{\"chatModel\":\"tab\tcharacter\"}",
+      "{\"chatModel\":\"escaped\\\nnewline\"}", "{\"chatModel\":\"single\\'quote\"}",
+      "{\"skipGitHubJobConfirmDialog\":TRUE}", "{\"chatModel\":NULL}"})
+  void testInitialize_LegacyGsonExtensions_FailWithoutOverwriting(String content) throws Exception {
+    when(files.read(any(Path.class))).thenReturn(content);
     load();
 
     assertFailedWithoutWrites();
   }
 
-  private static boolean supportsStrictJson() {
-    try {
-      Class.forName("com.google.gson.Strictness");
-      return true;
-    } catch (ClassNotFoundException exception) {
-      return false;
-    }
+  @Test
+  void testInitialize_ValidJsonEscapes_RestoresOriginalText() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("""
+        {"userInputs":["line\\nbreak","tab\\tcharacter","quote\\" and slash\\\\","\\u0041",
+        "single'quote"],"skipGitHubJobConfirmDialog":false}
+        """);
+    load();
+
+    assertEquals(State.READY, storage.getState());
+    assertEquals(List.of("line\nbreak", "tab\tcharacter", "quote\" and slash\\", "A", "single'quote"),
+        storage.getReadyPreferences().getUserInputs());
   }
 
   @Test

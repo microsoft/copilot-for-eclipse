@@ -25,6 +25,8 @@ public final class Messages extends NLS {
   public static String preferenceLoadFailed;
   public static String preferenceUnavailable;
   public static String preferenceRetry;
+  public static String modeDiscoveryLoading;
+  public static String modeDiscoveryFailed;
   public static String agentMessageWidget_openInBrowserButton;
   public static String agentMessageWidget_openInBrowserTooltip;
   public static String agentMessageWidget_openJobListButton;
