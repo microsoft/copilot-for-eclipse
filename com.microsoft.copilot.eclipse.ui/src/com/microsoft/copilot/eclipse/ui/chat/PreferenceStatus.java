@@ -13,12 +13,13 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 
 import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage;
+import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage.SaveState;
 import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage.State;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService.ModeDiscoveryState;
 
 /**
- * Inline preference-loading status, independent of model and conversation loading.
+ * Inline preference loading and unsaved status, independent of model and conversation loading.
  */
 public class PreferenceStatus extends Composite {
   /**
@@ -52,8 +53,12 @@ public class PreferenceStatus extends Composite {
     GridData retryData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
     retry.setLayoutData(retryData);
     retry.addListener(SWT.Selection, event -> {
-      if (storage.getState() == State.READY && preferences != null) {
-        preferences.retryModeDiscovery();
+      if (storage.getState() == State.READY) {
+        if (storage.getSaveStatus().getValue() == SaveState.FAILED) {
+          storage.persist();
+        } else if (preferences != null) {
+          preferences.retryModeDiscovery();
+        }
       } else {
         storage.retry();
       }
@@ -61,14 +66,16 @@ public class PreferenceStatus extends Composite {
     Realm.runWithDefault(storage.getReadiness().getRealm(), () -> {
       ISideEffect effect = ISideEffect.create(() -> {
         return new Readiness(storage.getReadiness().getValue(),
-            preferences == null ? ModeDiscoveryState.READY : preferences.getModeDiscoveryState());
+            preferences == null ? ModeDiscoveryState.READY : preferences.getModeDiscoveryState(),
+            storage.getSaveStatus().getValue());
       }, readiness -> {
         if (isDisposed()) {
           return;
         }
         State state = readiness.preferences();
         boolean modePending = state == State.READY && readiness.modes() != ModeDiscoveryState.READY;
-        boolean visible = state != State.DISPOSED && (state != State.READY || modePending);
+        boolean unsaved = state == State.READY && readiness.save() == SaveState.FAILED;
+        boolean visible = state != State.DISPOSED && (state != State.READY || modePending || unsaved);
         data.exclude = !visible;
         setVisible(visible);
         String text = switch (state) {
@@ -80,8 +87,11 @@ public class PreferenceStatus extends Composite {
           text = readiness.modes() == ModeDiscoveryState.LOADING
               ? Messages.modeDiscoveryLoading : Messages.modeDiscoveryFailed;
         }
+        if (unsaved) {
+          text = Messages.preferenceSaveFailed;
+        }
         message.setText(text);
-        boolean canRetry = state == State.FAILED || state == State.UNAVAILABLE
+        boolean canRetry = unsaved || state == State.FAILED || state == State.UNAVAILABLE
             || (modePending && readiness.modes() != ModeDiscoveryState.LOADING);
         retryData.exclude = !canRetry;
         retry.setVisible(canRetry);
@@ -92,6 +102,6 @@ public class PreferenceStatus extends Composite {
     });
   }
 
-  private record Readiness(State preferences, ModeDiscoveryState modes) {
+  private record Readiness(State preferences, ModeDiscoveryState modes, SaveState save) {
   }
 }

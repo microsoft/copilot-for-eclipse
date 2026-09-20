@@ -17,6 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,7 +37,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
@@ -47,6 +53,9 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelCapabilitiesSupports;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelBilling;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelBillingTokenPrices;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel.CopilotModelTokenPriceTier;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
 
@@ -96,6 +105,131 @@ class ModelServiceTests {
     }
     featureFlags.setClientPreviewFeatureEnabled(previewFeaturesEnabled);
     preferenceStorage.dispose();
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testOptionSelection_AccountInvalidatedDuringScheduling_DoesNotPublishOrThrow(boolean context) throws Exception {
+    CopilotModel model = createModel("reasoning", "Reasoning", true);
+    model.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(true, List.of("low", "high"), true), null));
+    when(lsConnection.listModels()).thenReturn(CompletableFuture.completedFuture(new CopilotModel[] {model}));
+    ExecutorService delegate = Executors.newSingleThreadExecutor();
+    ExecutorService worker = Mockito.mock(ExecutorService.class);
+    AtomicBoolean invalidate = new AtomicBoolean();
+    Mockito.doAnswer(invocation -> {
+      if (invalidate.getAndSet(false)) {
+        when(authStatusManager.isSignedIn()).thenReturn(false);
+      }
+      delegate.execute(invocation.getArgument(0));
+      return null;
+    }).when(worker).execute(any(Runnable.class));
+    preferenceStorage.dispose();
+    preferenceStorage = new PreferenceStorage(lsConnection, authStatusManager,
+        DisplayRealm.getRealm(Display.getDefault()), worker, Executors.newSingleThreadScheduledExecutor(),
+        System::nanoTime, new PreferenceFileAccess());
+    try {
+      modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
+      waitUntil(() -> "reasoning".equals(getActiveModelId()));
+      invalidate.set(true);
+      CompletableFuture<Void> result = new CompletableFuture<>();
+      Display.getDefault().asyncExec(() -> {
+        try {
+          if (context) {
+            modelService.setSelectedContextWindow(model, 1000000);
+          } else {
+            modelService.setSelectedReasoningEffort(model, "high");
+          }
+          assertNull(modelService.getActiveModel());
+          result.complete(null);
+        } catch (Throwable failure) {
+          result.completeExceptionally(failure);
+        }
+      });
+      result.get(5, TimeUnit.SECONDS);
+      assertEquals(PreferenceStorage.State.UNAVAILABLE, preferenceStorage.getState());
+    } finally {
+      delegate.shutdown();
+    }
+  }
+
+  @Test
+  void testSelection_DelayedSave_UpdatesModelAndOptionsBeforeFurtherSwtAction() throws Exception {
+    CopilotModel initial = createModel("initial", "Initial", true);
+    CopilotModel chosen = createModel("chosen", "Chosen", false);
+    chosen.setCapabilities(new CopilotModelCapabilities(
+        new CopilotModelCapabilitiesSupports(true, List.of("low", "high"), true), null));
+    chosen.setBilling(new CopilotModelBilling(true, 1, true, new CopilotModelBillingTokenPrices(1000.0,
+        new CopilotModelTokenPriceTier(1.0, 1.0, 1.0, 128000),
+        new CopilotModelTokenPriceTier(2.0, 2.0, 2.0, 1000000))));
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] {initial, chosen}));
+    CountDownLatch writing = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    AtomicBoolean observed = new AtomicBoolean();
+    AtomicReference<ISideEffect> binding = new AtomicReference<>();
+    preferenceStorage.dispose();
+    preferenceStorage = new PreferenceStorage(lsConnection, authStatusManager,
+        DisplayRealm.getRealm(Display.getDefault()), Executors.newSingleThreadExecutor(),
+        Executors.newSingleThreadScheduledExecutor(), System::nanoTime, new PreferenceStorage.FileAccess() {
+          @Override
+          public String read(Path path) throws IOException {
+            return Files.readString(path);
+          }
+
+          @Override
+          public void write(Path path, String content) throws IOException {
+            writing.countDown();
+            try {
+              if (!release.await(5, TimeUnit.SECONDS)) {
+                throw new IOException("Delayed save was not released");
+              }
+            } catch (InterruptedException exception) {
+              Thread.currentThread().interrupt();
+              throw new IOException(exception);
+            }
+            new PreferenceFileAccess().write(path, content);
+          }
+        });
+    try {
+      modelService = new ModelService(lsConnection, authStatusManager, preferenceStorage);
+      waitUntil(() -> "initial".equals(getActiveModelId()));
+      CompletableFuture<Void> uiAction = new CompletableFuture<>();
+      Display.getDefault().asyncExec(() -> {
+        try {
+          Realm.runWithDefault(DisplayRealm.getRealm(Display.getDefault()), () -> binding.set(
+              ISideEffect.create(modelService::getActiveModel, model -> observed.set(model == chosen))));
+          modelService.setActiveModel("Chosen");
+          modelService.setSelectedReasoningEffort(chosen, "high");
+          modelService.setSelectedContextWindow(chosen, 1000000);
+          assertSame(chosen, modelService.getActiveModel());
+          assertEquals("high", modelService.resolveEffectiveReasoningEffort(chosen));
+          assertEquals(1000000, modelService.resolveEffectiveContextWindow(chosen));
+          assertEquals(chosen.getModelKey(), preferenceStorage.getReadyPreferences().getChatModel());
+          assertEquals("high", preferenceStorage.getReadyPreferences().getReasoningEffort(chosen.getModelKey()));
+          assertTrue(preferenceStorage.isDirty());
+          Display.getDefault().asyncExec(() -> uiAction.complete(null));
+        } catch (Throwable error) {
+          uiAction.completeExceptionally(error);
+        }
+      });
+      uiAction.get(5, TimeUnit.SECONDS);
+      assertTrue(writing.await(5, TimeUnit.SECONDS));
+      waitUntil(observed::get);
+      release.countDown();
+      waitUntil(() -> !preferenceStorage.isDirty());
+      UserPreference restored = GSON.fromJson(Files.readString(getPreferenceFile()), UserPreference.class);
+      assertEquals(chosen.getModelKey(), restored.getChatModel());
+      assertEquals("high", restored.getReasoningEffort(chosen.getModelKey()));
+      assertEquals(1000000, restored.getContextWindow(chosen.getModelKey()));
+    } finally {
+      release.countDown();
+      Display.getDefault().syncExec(() -> {
+        if (binding.get() != null) {
+          binding.get().dispose();
+        }
+      });
+    }
   }
 
   @Test
