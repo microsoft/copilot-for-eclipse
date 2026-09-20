@@ -3,6 +3,10 @@
 
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.PlatformUI;
+
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.CustomizationFileService;
@@ -25,6 +29,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private ByokService byokService;
   private UserPreferenceService userPreferenceService;
   private PreferenceStorage preferenceStorage;
+  private PreferenceShutdown preferenceShutdown;
   private AvatarService avatarService;
   private AgentToolService agentToolService;
   private FileToolService fileToolService;
@@ -61,6 +66,8 @@ public class ChatServiceManager implements IChatServiceManager {
     persistenceManager = new ConversationPersistenceManager(this.authStatusManager);
     chatFontService = new ChatFontService();
     contextWindowService = new ContextWindowService(modelService);
+    preferenceShutdown = new PreferenceShutdown(PlatformUI.getWorkbench().getService(IEventBroker.class),
+        Display.getDefault(), preferenceStorage, userPreferenceService::quiesce, System::nanoTime);
   }
 
   /**
@@ -215,6 +222,7 @@ public class ChatServiceManager implements IChatServiceManager {
    * Dispose of the chat services.
    */
   public void dispose() {
+    this.preferenceShutdown.dispose();
     this.avatarService.dispose();
     this.chatCompletionService.dispose();
     this.modelService.dispose();

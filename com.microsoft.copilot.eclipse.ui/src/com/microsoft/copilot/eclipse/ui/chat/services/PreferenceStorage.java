@@ -10,8 +10,11 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -94,6 +97,12 @@ public class PreferenceStorage {
   private final Deque<Save> pendingSaves = new ArrayDeque<>();
   private Save activeSave;
   private boolean writing;
+  private volatile boolean shuttingDown;
+  private boolean listenersDetached;
+  private CompletableFuture<Boolean> shutdownSave;
+  private long shutdownGeneration;
+  private long shutdownRevision;
+  private final Set<Path> shutdownFailedPaths = new HashSet<>();
 
   /**
    * Creates storage without starting RPC or file work.
@@ -126,7 +135,7 @@ public class PreferenceStorage {
     this.connectionListener = event -> {
       if (event.getProperty(IEventBroker.DATA) instanceof Long incarnation) {
         synchronized (lock) {
-          if (state == State.DISPOSED || incarnation <= connectionIncarnation) {
+          if (shuttingDown || state == State.DISPOSED || incarnation <= connectionIncarnation) {
             return;
           }
           connectionIncarnation = incarnation;
@@ -220,7 +229,7 @@ public class PreferenceStorage {
     Objects.requireNonNull(edit);
     refreshAccount();
     synchronized (lock) {
-      if (state != State.READY || !Objects.equals(account, currentAccount())) {
+      if (shuttingDown || state != State.READY || !Objects.equals(account, currentAccount())) {
         CopilotCore.LOGGER.error(new IllegalStateException("Cannot update chat preferences before they are ready"));
         return false;
       }
@@ -243,12 +252,52 @@ public class PreferenceStorage {
   public void persist() {
     refreshAccount();
     synchronized (lock) {
-      if (state != State.READY || revision == savedRevision || !Objects.equals(account, currentAccount())) {
+      if (shuttingDown || state != State.READY || revision == savedRevision
+          || !Objects.equals(account, currentAccount())) {
         return;
       }
       enqueueSave();
     }
     dispatchWriter();
+  }
+
+  /**
+   * Stops ordinary work and recovery, and submits the latest dirty snapshot to the existing writer.
+   * Previously accepted account-bound writes participate even if the current account has no edits.
+   * Never resolves a path or waits for loading or file I/O. Repeated calls share the same outcome.
+   * The workbench owns the bounded wait; an accepted OS write may finish after that wait or disposal.
+   *
+   * @return a read-only completion indicating whether all pending saves succeeded (or nothing needed saving)
+   */
+  public CompletionStage<Boolean> beginShutdown() {
+    Attempt previous;
+    boolean nothingToSave;
+    synchronized (lock) {
+      if (shutdownSave != null) {
+        return shutdownSave.minimalCompletionStage();
+      }
+      shuttingDown = true;
+      shutdownSave = new CompletableFuture<>();
+      previous = attempt;
+      attempt = null;
+      if (state == State.READY && preferencePath != null && revision != savedRevision) {
+        enqueueSave();
+      }
+      Save last = pendingSaves.isEmpty() ? activeSave : pendingSaves.peekLast();
+      nothingToSave = last == null;
+      if (last != null) {
+        shutdownGeneration = last.generation;
+        shutdownRevision = last.revision;
+      }
+    }
+    detachListeners();
+    cancel(previous);
+    if (nothingToSave) {
+      shutdownSave.complete(true);
+    } else {
+      dispatchWriter();
+    }
+    return shutdownSave.minimalCompletionStage();
   }
 
   private void enqueueSave() {
@@ -271,6 +320,7 @@ public class PreferenceStorage {
     try {
       worker.execute(this::writePending);
     } catch (RuntimeException exception) {
+      CompletableFuture<Boolean> completion;
       synchronized (lock) {
         writing = false;
         pendingSaves.clear();
@@ -278,14 +328,19 @@ public class PreferenceStorage {
           saveState = SaveState.FAILED;
           publishSaveStatus(generation);
         }
+        completion = shutdownSave;
       }
       CopilotCore.LOGGER.error("Failed to schedule chat preference saving", exception);
+      if (completion != null) {
+        completion.complete(false);
+      }
     }
   }
 
   private void writePending() {
     while (true) {
       Save save;
+      CompletableFuture<Boolean> completion;
       synchronized (lock) {
         save = pendingSaves.pollFirst();
         activeSave = save;
@@ -295,6 +350,7 @@ public class PreferenceStorage {
         }
       }
       boolean successful = false;
+      boolean shutdownSuccessful;
       try {
         files.write(save.path, GSON.toJson(save.preferences));
         successful = true;
@@ -313,15 +369,30 @@ public class PreferenceStorage {
                   ? SaveState.SAVING : SaveState.FAILED;
           publishSaveStatus(generation);
         }
+        completion = save.generation == shutdownGeneration && save.revision == shutdownRevision ? shutdownSave : null;
+        if (shuttingDown) {
+          if (successful) {
+            shutdownFailedPaths.remove(save.path);
+          } else {
+            shutdownFailedPaths.add(save.path);
+          }
+        }
+        shutdownSuccessful = shutdownFailedPaths.isEmpty();
+      }
+      if (completion != null) {
+        completion.complete(shutdownSuccessful);
       }
     }
   }
 
   private void publishSaveStatus(long version) {
+    if (shuttingDown) {
+      return;
+    }
     saveStatus.getRealm().asyncExec(() -> {
       refreshAccount();
       synchronized (lock) {
-        if (state != State.DISPOSED && generation == version && !saveStatus.isDisposed()) {
+        if (!shuttingDown && state != State.DISPOSED && generation == version && !saveStatus.isDisposed()) {
           saveStatus.setValue(saveState);
         }
       }
@@ -344,21 +415,23 @@ public class PreferenceStorage {
    */
   public void dispose() {
     Attempt previous;
+    CompletableFuture<Boolean> completion;
     synchronized (lock) {
       if (state == State.DISPOSED) {
         return;
       }
       previous = clear(State.DISPOSED);
+      completion = shutdownSave;
     }
-    auth.removeCopilotAuthStatusListener(authListener);
-    if (eventBroker != null) {
-      eventBroker.unsubscribe(connectionListener);
-    }
+    detachListeners();
     cancel(previous);
     // Accepted snapshots may finish on the shared writer; disposal never waits for OS I/O.
     dispatchWriter();
     worker.shutdown();
     timer.shutdownNow();
+    if (completion != null) {
+      completion.complete(false);
+    }
     readiness.getRealm().asyncExec(() -> {
       if (!readiness.isDisposed()) {
         readiness.setValue(State.DISPOSED);
@@ -368,6 +441,19 @@ public class PreferenceStorage {
         saveStatus.dispose();
       }
     });
+  }
+
+  private void detachListeners() {
+    synchronized (lock) {
+      if (listenersDetached) {
+        return;
+      }
+      listenersDetached = true;
+    }
+    auth.removeCopilotAuthStatusListener(authListener);
+    if (eventBroker != null) {
+      eventBroker.unsubscribe(connectionListener);
+    }
   }
 
   private static Thread daemonThread(Runnable runnable, String name) {
@@ -386,7 +472,7 @@ public class PreferenceStorage {
     long version;
     synchronized (lock) {
       String current = currentAccount();
-      if (state == State.DISPOSED || Objects.equals(account, current)) {
+      if (shuttingDown || state == State.DISPOSED || Objects.equals(account, current)) {
         return;
       }
       account = current;
@@ -428,7 +514,7 @@ public class PreferenceStorage {
     refreshAccount();
     Attempt next;
     synchronized (lock) {
-      if (account == null || state == State.DISPOSED || state == State.LOADING || state == State.READY
+      if (shuttingDown || account == null || state == State.DISPOSED || state == State.LOADING || state == State.READY
           || (!retry && state == State.FAILED)) {
         return;
       }
@@ -597,7 +683,7 @@ public class PreferenceStorage {
   }
 
   private boolean matches(Attempt pending) {
-    return state == State.LOADING && attempt == pending && generation == pending.generation
+    return !shuttingDown && state == State.LOADING && attempt == pending && generation == pending.generation
         && Objects.equals(account, pending.account) && Objects.equals(account, currentAccount());
   }
 
@@ -636,7 +722,7 @@ public class PreferenceStorage {
     readiness.getRealm().asyncExec(() -> {
       refreshAccount();
       synchronized (lock) {
-        if (generation != version || state != next || readiness.isDisposed()) {
+        if (shuttingDown || generation != version || state != next || readiness.isDisposed()) {
           return;
         }
         readiness.setValue(next);
