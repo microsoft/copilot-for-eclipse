@@ -82,19 +82,42 @@ public class WorkspaceUtils {
   }
 
   /**
-   * List all top level projects as workspace folders in the current workspace.
+   * List all top level projects as workspace folders in the current workspace, including the workspace root.
    */
   public static List<WorkspaceFolder> listWorkspaceFolders() {
     List<IProject> projects = WorkspaceUtils.listTopLevelProjects();
 
     List<WorkspaceFolder> folders = new ArrayList<>();
+    java.util.Set<String> seenUris = new java.util.HashSet<>();
+
+    // Add workspace root first so it can be searched for root-level prompt files and skills
+    try {
+      URI workspaceRootUri = ResourcesPlugin.getWorkspace().getRoot().getLocationURI();
+      if (workspaceRootUri != null) {
+        String rootUriString = workspaceRootUri.toASCIIString();
+        WorkspaceFolder rootFolder = new WorkspaceFolder();
+        rootFolder.setUri(rootUriString);
+        rootFolder.setName("workspace-root");
+        folders.add(rootFolder);
+        seenUris.add(rootUriString);
+      }
+    } catch (Exception e) {
+      // If we can't get workspace root URI, continue with projects only
+    }
+
+    // Add top-level projects (avoiding duplicates)
     for (IProject project : projects) {
       URI uri = project.getLocationURI();
       if (uri != null) {
-        WorkspaceFolder folder = new WorkspaceFolder();
-        folder.setUri(uri.toASCIIString());
-        folder.setName(project.getName());
-        folders.add(folder);
+        String uriString = uri.toASCIIString();
+        // Avoid adding the same URI twice (project might be at workspace root in some configurations)
+        if (!seenUris.contains(uriString)) {
+          WorkspaceFolder folder = new WorkspaceFolder();
+          folder.setUri(uriString);
+          folder.setName(project.getName());
+          folders.add(folder);
+          seenUris.add(uriString);
+        }
       }
     }
     return folders;
