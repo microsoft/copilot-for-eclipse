@@ -34,6 +34,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -41,6 +42,7 @@ import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -90,6 +92,199 @@ class PreferenceStorageTest {
   void tearDown() {
     storage.dispose();
     realm.drain();
+  }
+
+  @Test
+  void testShutdown_LatestDirtySnapshot_SavesOnceAndRejectsOrdinaryWork() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    storage.update(preference -> preference.setChatModel("first"));
+    storage.update(preference -> preference.setChatModel("final"));
+
+    var completion = storage.beginShutdown().toCompletableFuture();
+    assertFalse(completion.isDone());
+    storage.beginShutdown();
+    assertFalse(storage.update(preference -> preference.setChatModel("too-late")));
+    storage.retry();
+    storage.persist();
+    recovered(1);
+    drainWork();
+    realm.drain();
+
+    assertTrue(completion.getNow(false));
+    ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
+    verify(files).write(eq(Path.of(persistence().getPath(), "alice", "pref.json")), saved.capture());
+    assertTrue(saved.getValue().contains("\"chatModel\":\"final\""));
+    verify(connection).persistence();
+  }
+
+  @Test
+  void testShutdown_PendingRpc_DoesNotWaitOrAllowLateRecovery() throws Exception {
+    response = new UncancellableFuture();
+    storage.initialize();
+    drainWork();
+    CopilotAuthStatusListener listener = authListener();
+    assertTrue(storage.beginShutdown().toCompletableFuture().getNow(false));
+    response.complete(persistence());
+    when(auth.getUserName()).thenReturn("bob");
+    listener.onDidCopilotStatusChange(new CopilotStatusResult());
+    recovered(1);
+    storage.initialize();
+    storage.retry();
+    drainWork();
+    realm.drain();
+
+    assertNull(storage.getReadyPreferences());
+    verify(connection).persistence();
+    verifyNoInteractions(files);
+  }
+
+  @Test
+  void testShutdown_UnavailableOrClean_DoesNotStartWork() throws Exception {
+    assertTrue(storage.beginShutdown().toCompletableFuture().getNow(false));
+    storage.initialize();
+    storage.retry();
+    drainWork();
+    verifyNoInteractions(connection, files);
+  }
+
+  @Test
+  void testShutdown_FailedFinalSave_CompletesWithoutRetryingOrChangingChoices() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    Mockito.doThrow(new IOException("write denied")).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("unsaved"));
+    var completion = storage.beginShutdown().toCompletableFuture();
+    drainWork();
+
+    assertTrue(completion.isDone());
+    assertFalse(completion.getNow(true));
+    storage.beginShutdown();
+    storage.persist();
+    recovered(1);
+    drainWork();
+    assertEquals("unsaved", storage.getReadyPreferences().getChatModel());
+    assertTrue(storage.isDirty());
+    verify(files).write(any(), any());
+    verify(connection).persistence();
+  }
+
+  @Test
+  void testShutdown_PreviousSaveFailed_RetriesLatestSnapshotOnce() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    Mockito.doThrow(new IOException("temporary failure")).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("final"));
+    drainWork();
+    Mockito.doNothing().when(files).write(any(), any());
+    var completion = storage.beginShutdown().toCompletableFuture();
+    drainWork();
+
+    assertTrue(completion.getNow(false));
+    assertFalse(storage.isDirty());
+    verify(files, times(2)).write(any(), any());
+    verify(connection).persistence();
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testShutdown_OlderWriteInFlight_FinalCompleteFileWins(boolean oldFails, @TempDir Path directory) throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load(directory);
+    AtomicInteger writes = new AtomicInteger();
+    AtomicReference<CompletableFuture<Boolean>> completion = new AtomicReference<>();
+    PreferenceFileAccess disk = new PreferenceFileAccess();
+    Mockito.doAnswer(invocation -> {
+      if (writes.incrementAndGet() == 1) {
+        storage.update(preference -> preference.setChatModel("final"));
+        completion.set(storage.beginShutdown().toCompletableFuture());
+        assertFalse(completion.get().isDone());
+        if (oldFails) {
+          throw new IOException("superseded revision failed");
+        }
+      } else {
+        assertFalse(completion.get().isDone(), "The old revision must not release shutdown");
+      }
+      disk.write(invocation.getArgument(0), invocation.getArgument(1));
+      return null;
+    }).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("old"));
+    drainWork();
+
+    assertTrue(completion.get().getNow(false));
+    assertTrue(Files.readString(directory.resolve("alice").resolve("pref.json")).contains("\"chatModel\":\"final\""));
+    assertEquals(2, writes.get());
+    verify(connection).persistence();
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testShutdown_OldAccountWriteInFlight_KeepsBothDestinationsFixed(boolean oldFails,
+      @TempDir Path directory) throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load(directory);
+    AtomicInteger writes = new AtomicInteger();
+    AtomicReference<CompletableFuture<Boolean>> completion = new AtomicReference<>();
+    PreferenceFileAccess disk = new PreferenceFileAccess();
+    Mockito.doAnswer(invocation -> {
+      if (writes.incrementAndGet() == 1) {
+        when(auth.getUserName()).thenReturn("bob");
+        response = new CompletableFuture<>();
+        load(directory);
+        storage.update(preference -> preference.setChatModel("bob-final"));
+        completion.set(storage.beginShutdown().toCompletableFuture());
+        if (oldFails) {
+          throw new IOException("old account save failed");
+        }
+      } else {
+        assertFalse(completion.get().isDone());
+      }
+      disk.write(invocation.getArgument(0), invocation.getArgument(1));
+      return null;
+    }).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("alice-final"));
+    drainWork();
+
+    assertTrue(completion.get().isDone());
+    assertEquals(!oldFails, completion.get().getNow(false));
+    if (!oldFails) {
+      assertTrue(Files.readString(directory.resolve("alice").resolve("pref.json")).contains("alice-final"));
+    }
+    assertTrue(Files.readString(directory.resolve("bob").resolve("pref.json")).contains("bob-final"));
+    assertEquals(2, writes.get());
+    verify(connection, times(2)).persistence();
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testShutdown_OldAccountSaveAndUnmodifiedCurrentAccount_WaitsOnlyForAcceptedSave(boolean currentLoaded,
+      @TempDir Path directory) throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load(directory);
+    AtomicReference<CompletableFuture<Boolean>> completion = new AtomicReference<>();
+    PreferenceFileAccess disk = new PreferenceFileAccess();
+    Mockito.doAnswer(invocation -> {
+      when(auth.getUserName()).thenReturn("bob");
+      response = new CompletableFuture<>();
+      if (currentLoaded) {
+        load(directory);
+      } else {
+        storage.initialize();
+        drainWork();
+      }
+      assertFalse(storage.isDirty());
+      completion.set(storage.beginShutdown().toCompletableFuture());
+      assertFalse(completion.get().isDone(), "An accepted old-account save is still pending");
+      disk.write(invocation.getArgument(0), invocation.getArgument(1));
+      return null;
+    }).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("alice-final"));
+    drainWork();
+
+    assertTrue(completion.get().getNow(false));
+    assertTrue(Files.readString(directory.resolve("alice").resolve("pref.json")).contains("alice-final"));
+    assertFalse(Files.exists(directory.resolve("bob").resolve("pref.json")));
+    verify(connection, times(2)).persistence();
   }
 
   @Test
@@ -1001,9 +1196,15 @@ class PreferenceStorageTest {
   }
 
   private void load() {
+    load(Path.of(persistence().getPath()));
+  }
+
+  private void load(Path directory) {
     storage.initialize();
     drainWork();
-    response.complete(persistence());
+    ChatPersistence persistence = new ChatPersistence();
+    persistence.setPath(directory.toString());
+    response.complete(persistence);
     drainWork();
     realm.drain();
   }

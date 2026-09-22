@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove the semantic workspace search integration. [PR#373](https://github.com/microsoft/copilot-for-eclipse/pull/373)
 
 ### Fixed
+- Keep Eclipse responsive while saving pending chat preferences on exit, with at most two seconds of additional waiting.
+  Exit continues without a prompt if saving fails or exceeds the budget; unsaved choices may be lost. [#408](https://github.com/microsoft/copilot-for-eclipse/issues/408)
 - Provide a default MCP auto-approve configuration. [#358](https://github.com/microsoft/copilot-for-eclipse/issues/358)
 - Prevent Agent mode from hanging when a PowerShell prompt fails. [#375](https://github.com/microsoft/copilot-for-eclipse/issues/375)
 
