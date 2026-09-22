@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.service.CustomizationFileService;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
@@ -46,7 +47,8 @@ public class ChatServiceManager implements IChatServiceManager {
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
     chatCompletionService = new ChatCompletionService(this.lsConnection, this.authStatusManager);
     modelService = new ModelService(this.lsConnection, this.authStatusManager);
-    userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager);
+    userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager,
+        BuiltInChatModeManager.INSTANCE);
     avatarService = new AvatarService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
     fileToolService = new FileToolService(this.lsConnection);
