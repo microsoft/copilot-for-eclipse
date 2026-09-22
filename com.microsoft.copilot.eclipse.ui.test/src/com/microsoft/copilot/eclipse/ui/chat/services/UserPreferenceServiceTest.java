@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
@@ -22,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -244,7 +244,7 @@ class UserPreferenceServiceTest {
     retry.complete(new ConversationMode[] {builtInMode("recovered-plan", "Plan")});
     awaitUi(() -> service.isActiveModeReady() && !status.getVisible());
     runOnUi(() -> {
-      assertSame(restored, storage.getReadyPreferences());
+      assertEquals(restored, storage.getReadyPreferences());
       assertEquals("Plan", service.getActiveModeNameOrId());
       assertEquals("recovered-plan",
           BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName("Plan").getId());
@@ -279,7 +279,7 @@ class UserPreferenceServiceTest {
     runOnUi(() -> {
       assertEquals("current-plan", BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName("Plan").getId());
       assertEquals(UserPreferenceService.ModeDiscoveryState.READY, service.getModeDiscoveryState());
-      assertSame(restored, storage.getReadyPreferences());
+      assertEquals(restored, storage.getReadyPreferences());
     });
     verify(connection).persistence();
   }
@@ -437,6 +437,126 @@ class UserPreferenceServiceTest {
   }
 
   @Test
+  void testModeChange_DisallowedOrUnknownMode_DoesNotAlterReadyChoices() throws Exception {
+    writePreferences("{\"chatModeName\":\"Ask\"}");
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> "Ask".equals(service.getActiveModeNameOrId()) && !status.getVisible());
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    boolean original = flags.isAgentModeEnabled();
+    try {
+      flags.setAgentModeEnabled(false);
+      runOnUi(() -> {
+        service.setActiveChatMode("Agent");
+        assertEquals("Ask", service.getActiveModeNameOrId());
+        assertFalse(storage.isDirty());
+      });
+      flags.setAgentModeEnabled(true);
+      runOnUi(() -> {
+        service.setActiveChatMode("missing-mode");
+        assertEquals("Ask", service.getActiveModeNameOrId());
+        assertFalse(storage.isDirty());
+      });
+    } finally {
+      flags.setAgentModeEnabled(original);
+    }
+  }
+
+  @Test
+  void testModeAndConfirmationChanges_DelayedFailedSave_StayImmediateAndRetryLatest() throws Exception {
+    when(auth.isSignedIn()).thenReturn(true);
+    when(auth.getUserName()).thenReturn("user");
+    when(connection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence()));
+    writePreferences("{\"chatModeName\":\"Ask\"}");
+    CountDownLatch writeStarted = new CountDownLatch(1);
+    CountDownLatch releaseWrite = new CountDownLatch(1);
+    AtomicBoolean failWrites = new AtomicBoolean(true);
+    AtomicBoolean eventReceived = new AtomicBoolean();
+    IEventBroker broker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    EventHandler listener = event -> {
+      if (event.getProperty(IEventBroker.DATA) == ChatMode.Agent) {
+        eventReceived.set(true);
+      }
+    };
+    broker.subscribe(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, listener);
+    try {
+      runOnUi(() -> {
+        storage = new PreferenceStorage(connection, auth, DisplayRealm.getRealm(Display.getDefault()),
+            Executors.newSingleThreadExecutor(), Executors.newSingleThreadScheduledExecutor(), System::nanoTime,
+            new PreferenceStorage.FileAccess() {
+              @Override
+              public String read(Path path) throws IOException {
+                return Files.readString(path);
+              }
+
+              @Override
+              public void write(Path path, String content) throws IOException {
+                writeStarted.countDown();
+                try {
+                  if (!releaseWrite.await(5, TimeUnit.SECONDS)) {
+                    throw new IOException("Test did not release delayed write");
+                  }
+                } catch (InterruptedException exception) {
+                  Thread.currentThread().interrupt();
+                  throw new IOException(exception);
+                }
+                if (failWrites.get()) {
+                  throw new IOException("read-only");
+                }
+                new PreferenceFileAccess().write(path, content);
+              }
+            });
+        createControls();
+      });
+      awaitUi(() -> "Ask".equals(service.getActiveModeNameOrId()) && !status.getVisible());
+      CompletableFuture<Void> uiAction = new CompletableFuture<>();
+      Display.getDefault().asyncExec(() -> {
+        try {
+          service.setActiveChatMode("Agent");
+          service.setSkipGitHubJobConfirmDialog(true);
+          service.addInputToHistory("latest input");
+          service.getPreviousInput("draft input");
+          assertEquals("Agent", service.getActiveModeNameOrId());
+          assertEquals("Agent", storage.getReadyPreferences().getChatModeName());
+          assertTrue(service.isSkipGitHubJobConfirmDialog());
+          assertEquals(Arrays.asList("latest input", "draft input"), storage.getReadyPreferences().getUserInputs());
+          assertTrue(storage.isDirty());
+          Display.getDefault().asyncExec(() -> uiAction.complete(null));
+        } catch (Throwable error) {
+          uiAction.completeExceptionally(error);
+        }
+      });
+      uiAction.get(5, TimeUnit.SECONDS);
+      assertTrue(writeStarted.await(5, TimeUnit.SECONDS));
+      awaitUi(eventReceived::get);
+      releaseWrite.countDown();
+      awaitUi(() -> storage.getSaveStatus().getValue() == PreferenceStorage.SaveState.FAILED);
+      runOnUi(() -> {
+        assertTrue(status.getVisible(), "Save failures must be visible without disabling current choices");
+        assertEquals(Messages.preferenceSaveFailed, statusMessage().getText());
+        assertTrue(picker.getEnabled());
+        assertEquals("Agent", service.getActiveModeNameOrId());
+      });
+      failWrites.set(false);
+      runOnUi(() -> {
+        Link retry = Arrays.stream(status.getChildren()).filter(Link.class::isInstance)
+            .map(Link.class::cast).findFirst().orElseThrow();
+        assertTrue(retry.getVisible());
+        retry.notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event());
+      });
+      awaitUi(() -> !storage.isDirty() && !status.getVisible());
+      String persisted = Files.readString(directory.resolve("user").resolve("pref.json"));
+      assertTrue(persisted.contains("\"chatModeName\":\"Agent\""));
+      assertTrue(persisted.contains("\"skipGitHubJobConfirmDialog\":true"));
+      assertTrue(persisted.contains("latest input"));
+      assertTrue(persisted.contains("draft input"));
+      verify(connection).persistence();
+    } finally {
+      releaseWrite.countDown();
+      broker.unsubscribe(listener);
+    }
+  }
+
+  @Test
   void testModeChange_AfterRestoration_UpdatesSharedStateAndPersists() throws Exception {
     writePreferences("{\"chatModeName\":\"Ask\"}");
     startAuthenticated(CompletableFuture.completedFuture(persistence()));
@@ -447,6 +567,7 @@ class UserPreferenceServiceTest {
       assertNotNull(storage.getReadyPreferences());
       assertEquals("Agent", storage.getReadyPreferences().getChatModeName());
     });
+    awaitUi(() -> !storage.isDirty());
     assertTrue(Files.readString(directory.resolve("user").resolve("pref.json")).contains("Agent"));
   }
 
