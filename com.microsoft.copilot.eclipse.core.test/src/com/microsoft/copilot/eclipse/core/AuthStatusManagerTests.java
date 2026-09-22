@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -33,6 +35,31 @@ class AuthStatusManagerTests {
   @BeforeEach
   void setUp() {
     authStatusManager = new AuthStatusManager(mockConnection);
+  }
+
+  @Test
+  void testCheckStatus_AccountSwitchWithSameStatus_NotifiesOncePerAccount() {
+    when(mockConnection.checkQuota()).thenReturn(CompletableFuture.completedFuture(CheckQuotaResult.empty()));
+    List<String> accounts = new ArrayList<>();
+    List<CopilotStatusResult> notifications = new ArrayList<>();
+    authStatusManager.addCopilotAuthStatusListener(status -> accounts.add(status.getUser()));
+    authStatusManager.addCopilotAuthStatusListener(notifications::add);
+    CopilotStatusResult alice = new CopilotStatusResult();
+    alice.setUser("alice");
+    alice.setStatus(CopilotStatusResult.OK);
+    CopilotStatusResult bob = new CopilotStatusResult();
+    bob.setUser("bob");
+    bob.setStatus(CopilotStatusResult.OK);
+    when(mockConnection.checkStatus(false))
+        .thenReturn(CompletableFuture.completedFuture(alice), CompletableFuture.completedFuture(bob));
+
+    authStatusManager.checkStatus();
+    authStatusManager.checkStatus();
+    authStatusManager.checkStatus();
+
+    assertEquals(List.of("alice", "bob"), accounts);
+    assertEquals("alice", notifications.get(0).getUser(), "Queued notifications retain their original identity");
+    assertEquals("bob", authStatusManager.getUserName());
   }
 
   @Test

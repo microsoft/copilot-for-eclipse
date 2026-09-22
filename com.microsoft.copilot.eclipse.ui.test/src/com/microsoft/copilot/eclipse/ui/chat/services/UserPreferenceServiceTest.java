@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -38,6 +39,8 @@ import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.databinding.swt.DisplayRealm;
+import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage;
+import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
@@ -63,10 +66,12 @@ import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.LsStreamConnectionProvider;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.ui.swt.DropdownButton;
 import com.microsoft.copilot.eclipse.ui.chat.Messages;
 import com.microsoft.copilot.eclipse.ui.chat.PreferenceStatus;
@@ -106,6 +111,89 @@ class UserPreferenceServiceTest {
         storage.dispose();
       }
     });
+  }
+
+  @Test
+  void testAuthentication_QuickSignOutAndBackIn_RejectsOldModeDiscovery() throws Exception {
+    CompletableFuture<ConversationMode[]> old = new CompletableFuture<>();
+    CompletableFuture<ConversationMode[]> current = new CompletableFuture<>();
+    when(connection.listConversationModes(any())).thenReturn(old, current);
+    when(connection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence()));
+    when(connection.checkQuota()).thenReturn(CompletableFuture.completedFuture(CheckQuotaResult.empty()));
+    auth = new AuthStatusManager(connection);
+    auth.setCopilotUser("user");
+    auth.setCopilotStatus(CopilotStatusResult.OK);
+    writePreferences("{\"chatModeName\":\"Plan\"}");
+    runOnUi(() -> {
+      storage = new PreferenceStorage(connection, auth);
+      createControls();
+    });
+    verify(connection, timeout(5000)).listConversationModes(any());
+    runOnUi(() -> {
+      auth.setCopilotStatus(CopilotStatusResult.NOT_SIGNED_IN);
+      auth.setCopilotStatus(CopilotStatusResult.OK);
+      old.complete(new ConversationMode[] {builtInMode("before-relogin", "Plan")});
+      assertNull(BuiltInChatModeManager.INSTANCE.getBuiltInModeById("before-relogin"));
+    });
+    verify(connection, timeout(5000).times(2)).listConversationModes(any());
+    current.complete(new ConversationMode[] {builtInMode("after-relogin", "Plan")});
+    awaitUi(service::isActiveModeReady);
+    runOnUi(() -> assertEquals("after-relogin",
+        BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName("Plan").getId()));
+  }
+
+  @Test
+  void testRecovery_InitializedMessage_RestoresFailedPreferencesAndEnablesControls() throws Exception {
+    writePreferences("{\"chatModeName\":\"Plan\",\"chatModel\":\"restored\"}");
+    startAuthenticated(CompletableFuture.failedFuture(new IOException("offline")));
+    awaitUi(() -> storage.getState() == PreferenceStorage.State.FAILED);
+    CompletableFuture<ChatPersistence> recovered = new CompletableFuture<>();
+    when(connection.persistence()).thenReturn(recovered);
+    LsStreamConnectionProvider provider = new LsStreamConnectionProvider();
+    NotificationMessage initialized = new NotificationMessage();
+    initialized.setMethod("initialized");
+    LanguageServer server = mock(LanguageServer.class);
+    provider.handleMessage(initialized, server, null);
+    verify(connection, timeout(5000).times(2)).persistence();
+    CompletableFuture<Boolean> responsive = new CompletableFuture<>();
+    Display.getDefault().asyncExec(() -> {
+      try {
+        responsive.complete(!picker.getEnabled() && storage.getState() == PreferenceStorage.State.LOADING);
+      } catch (Throwable failure) {
+        responsive.completeExceptionally(failure);
+      }
+    });
+    assertTrue(responsive.get(5, TimeUnit.SECONDS));
+    provider.handleMessage(initialized, server, null);
+    runOnUi(storage::retry);
+    recovered.complete(persistence());
+    awaitUi(() -> picker.getEnabled() && service.isActiveModeReady());
+    runOnUi(() -> {
+      assertEquals("Plan", service.getActiveModeNameOrId());
+      assertEquals("restored", storage.getReadyPreferences().getChatModel());
+      assertFalse(status.getVisible());
+    });
+    verify(connection, times(2)).persistence();
+  }
+
+  @Test
+  void testRecovery_FailedModeDiscovery_RestoresPlanWithoutReloadingPreferences() throws Exception {
+    writePreferences("{\"chatModeName\":\"Plan\"}");
+    when(connection.listConversationModes(any()))
+        .thenReturn(CompletableFuture.failedFuture(new IOException("offline")));
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> storage.getState() == PreferenceStorage.State.READY
+        && service.getModeDiscoveryState() == UserPreferenceService.ModeDiscoveryState.FAILED);
+    CompletableFuture<ConversationMode[]> modes = new CompletableFuture<>();
+    when(connection.listConversationModes(any())).thenReturn(modes);
+    NotificationMessage initialized = new NotificationMessage();
+    initialized.setMethod("initialized");
+    new LsStreamConnectionProvider().handleMessage(initialized, mock(LanguageServer.class), null);
+    verify(connection, timeout(5000).times(2)).listConversationModes(any());
+    modes.complete(new ConversationMode[] {builtInMode("reconnected-plan", "Plan")});
+    awaitUi(service::isActiveModeReady);
+    runOnUi(() -> assertEquals("Plan", service.getActiveModeNameOrId()));
+    verify(connection).persistence();
   }
 
   @Test
@@ -254,7 +342,7 @@ class UserPreferenceServiceTest {
   }
 
   @Test
-  void testModeDiscovery_SupersededAttempt_CannotReplaceRecoveredInventory() throws Exception {
+  void testModeDiscovery_DuplicateAuth_JoinsPendingDiscovery() throws Exception {
     CompletableFuture<ConversationMode[]> obsolete = new CompletableFuture<>();
     CompletableFuture<ConversationMode[]> current = new CompletableFuture<>();
     when(connection.listConversationModes(any())).thenReturn(obsolete, current);
@@ -267,21 +355,35 @@ class UserPreferenceServiceTest {
     CopilotStatusResult statusResult = new CopilotStatusResult();
     statusResult.setStatus(CopilotStatusResult.OK);
     statusResult.setUser("user");
-    IEventBroker broker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     runOnUi(() -> {
-      broker.send(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, statusResult);
+      notifyAuthentication(statusResult);
       service.retryModeDiscovery();
     });
-    verify(connection, timeout(5000).times(2)).listConversationModes(any());
-    current.complete(new ConversationMode[] {builtInMode("current-plan", "Plan")});
+    obsolete.complete(new ConversationMode[] {builtInMode("current-plan", "Plan")});
     awaitUi(() -> service.isActiveModeReady() && !status.getVisible());
-    obsolete.complete(new ConversationMode[] {builtInMode("obsolete-plan", "Plan")});
     runOnUi(() -> {
       assertEquals("current-plan", BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName("Plan").getId());
       assertEquals(UserPreferenceService.ModeDiscoveryState.READY, service.getModeDiscoveryState());
       assertEquals(restored, storage.getReadyPreferences());
     });
+    verify(connection).listConversationModes(any());
     verify(connection).persistence();
+  }
+
+  @Test
+  void testModeDiscovery_RepeatedAuthAfterFailure_DoesNotAutomaticallyRetry() throws Exception {
+    when(connection.listConversationModes(any()))
+        .thenReturn(CompletableFuture.failedFuture(new IOException("offline")));
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> service.getModeDiscoveryState() == UserPreferenceService.ModeDiscoveryState.FAILED);
+    CopilotStatusResult signedIn = new CopilotStatusResult();
+    signedIn.setStatus(CopilotStatusResult.OK);
+    signedIn.setUser("user");
+    runOnUi(() -> {
+      notifyAuthentication(signedIn);
+      assertEquals(UserPreferenceService.ModeDiscoveryState.FAILED, service.getModeDiscoveryState());
+    });
+    verify(connection).listConversationModes(any());
   }
 
   @Test
@@ -422,12 +524,10 @@ class UserPreferenceServiceTest {
     writePreferences("{\"chatModeName\":\"Ask\",\"userInputs\":[\"private history\"]}");
     startAuthenticated(CompletableFuture.completedFuture(persistence()));
     awaitUi(() -> "Ask".equals(service.getActiveModeNameOrId()));
-    ArgumentCaptor<CopilotAuthStatusListener> listener = ArgumentCaptor.forClass(CopilotAuthStatusListener.class);
-    verify(auth).addCopilotAuthStatusListener(listener.capture());
     when(auth.isSignedIn()).thenReturn(false);
     CopilotStatusResult signedOut = new CopilotStatusResult();
     signedOut.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
-    listener.getValue().onDidCopilotStatusChange(signedOut);
+    notifyAuthentication(signedOut);
     awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.UNAVAILABLE);
     runOnUi(() -> {
       assertFalse(picker.getEnabled());
@@ -621,6 +721,12 @@ class UserPreferenceServiceTest {
       storage = new PreferenceStorage(connection, auth);
       createControls();
     });
+  }
+
+  private void notifyAuthentication(CopilotStatusResult statusResult) {
+    ArgumentCaptor<CopilotAuthStatusListener> listeners = ArgumentCaptor.forClass(CopilotAuthStatusListener.class);
+    verify(auth, times(2)).addCopilotAuthStatusListener(listeners.capture());
+    listeners.getAllValues().forEach(listener -> listener.onDidCopilotStatusChange(statusResult));
   }
 
   private void createControls() {

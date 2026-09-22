@@ -6,14 +6,32 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.e4.core.contexts.EclipseContextFactory;
+import org.eclipse.e4.core.contexts.IEclipseContext;
+import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage;
+import org.eclipse.lsp4j.services.LanguageServer;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+import org.osgi.framework.BundleContext;
 
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 
 class LsStreamConnectionProviderTests {
@@ -21,6 +39,36 @@ class LsStreamConnectionProviderTests {
   private static final String LEGACY_WORKSPACE_CONTEXT_PREFERENCE = "workspaceContextEnabled";
   private static final String UI_PREFERENCE_NODE = "com.microsoft.copilot.eclipse.ui";
   private static final long TERMINATION_GRACE_MS = 2000L;
+
+  @Test
+  void testHandleMessage_Initialized_EmitsOncePerProviderAndIgnoresStoppedProviders() {
+    IEventBroker broker = mock(IEventBroker.class);
+    IEclipseContext context = mock(IEclipseContext.class);
+    when(context.get(IEventBroker.class)).thenReturn(broker);
+    when(broker.post(eq(CopilotEventConstants.TOPIC_LANGUAGE_SERVER_INITIALIZED), anyLong())).thenReturn(true);
+    try (MockedStatic<EclipseContextFactory> contexts = mockStatic(EclipseContextFactory.class)) {
+      contexts.when(() -> EclipseContextFactory.getServiceContext(any(BundleContext.class))).thenReturn(context);
+      LanguageServer server = mock(LanguageServer.class);
+      NotificationMessage message = new NotificationMessage();
+      LsStreamConnectionProvider first = new LsStreamConnectionProvider();
+      message.setMethod("didChangeStatus");
+      first.handleMessage(message, server, null);
+      message.setMethod("initialized");
+      first.handleMessage(message, server, null);
+      first.handleMessage(message, server, null);
+      first.stop();
+      first.handleMessage(message, server, null);
+      LsStreamConnectionProvider stopped = new LsStreamConnectionProvider();
+      stopped.stop();
+      stopped.handleMessage(message, server, null);
+      new LsStreamConnectionProvider().handleMessage(message, server, null);
+
+      ArgumentCaptor<Long> incarnations = ArgumentCaptor.forClass(Long.class);
+      verify(broker, times(2)).post(eq(CopilotEventConstants.TOPIC_LANGUAGE_SERVER_INITIALIZED),
+          incarnations.capture());
+      assertTrue(incarnations.getAllValues().get(1) > incarnations.getAllValues().get(0));
+    }
+  }
 
   @Test
   void testInitializationOptions() {

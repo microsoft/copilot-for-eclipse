@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
@@ -22,6 +23,7 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
+import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
@@ -34,7 +36,6 @@ import com.microsoft.copilot.eclipse.core.chat.service.BuiltInChatModeService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 import com.microsoft.copilot.eclipse.ui.chat.Messages;
@@ -59,7 +60,12 @@ public class UserPreferenceService extends ChatBaseService {
   private final PreferenceStorage preferenceStorage;
   private ISideEffect readinessSideEffect;
   private volatile boolean disposed;
+  private final Object authenticationLock = new Object();
+  private final AtomicLong authenticationGeneration = new AtomicLong();
+  private String notifiedAccount;
+  private final CopilotAuthStatusListener authListener;
   private long modeDiscoveryGeneration;
+  private String modeDiscoveryAccount;
   private CompletableFuture<List<BuiltInChatMode>> modeDiscovery;
   private IObservableValue<ModeDiscoveryState> modeDiscoveryState;
   private IObservableValue<String[]> chatModeObservable;
@@ -73,8 +79,9 @@ public class UserPreferenceService extends ChatBaseService {
 
   // Event handling
   private IEventBroker eventBroker;
-  private EventHandler authStatusChangedEventHandler;
   private EventHandler featureFlagNotifiedEventHandler;
+  private EventHandler connectionInitializedEventHandler;
+  private long connectionIncarnation;
 
   /**
    * Constructor for the UserPreferenceService.
@@ -83,6 +90,8 @@ public class UserPreferenceService extends ChatBaseService {
       PreferenceStorage preferenceStorage) {
     super(lsConnection, authStatusManager);
     this.preferenceStorage = preferenceStorage;
+    notifiedAccount = authStatusManager.isSignedIn() ? authStatusManager.getUserName() : null;
+    authListener = status -> authenticationChanged();
 
     ensureRealm(() -> {
       chatModeObservable = new WritableValue<>(getAvailableChatModes(), String[].class);
@@ -102,23 +111,22 @@ public class UserPreferenceService extends ChatBaseService {
 
     initializeEventHandlers();
     subscribeToEvents();
+    authStatusManager.addCopilotAuthStatusListener(authListener);
     preferenceStorage.initialize();
-    reloadBuiltInModes();
+    reloadBuiltInModes(false);
   }
 
   private void initializeEventHandlers() {
-    authStatusChangedEventHandler = event -> {
-      Object property = event.getProperty(IEventBroker.DATA);
-      if (property instanceof CopilotStatusResult statusResult) {
-        if (statusResult.isSignedIn() && authStatusManager.isSignedIn()
-            && Objects.equals(statusResult.getUser(), authStatusManager.getUserName())) {
-          reloadBuiltInModes();
-        } else if (!statusResult.isSignedIn()) {
-          ensureRealm(this::cancelModeDiscovery);
-        }
+    connectionInitializedEventHandler = event -> {
+      if (event.getProperty(IEventBroker.DATA) instanceof Long incarnation) {
+        ensureRealm(() -> {
+          if (incarnation > connectionIncarnation) {
+            connectionIncarnation = incarnation;
+            retryModeDiscovery();
+          }
+        });
       }
     };
-
     featureFlagNotifiedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof DidChangeFeatureFlagsParams params) {
@@ -135,21 +143,49 @@ public class UserPreferenceService extends ChatBaseService {
     };
   }
 
-  private void reloadBuiltInModes() {
-    ensureRealm(() -> {
-      cancelModeDiscovery();
-      if (!authStatusManager.isSignedIn()) {
+  private void authenticationChanged() {
+    long generation;
+    synchronized (authenticationLock) {
+      String current = authStatusManager.isSignedIn() ? authStatusManager.getUserName() : null;
+      if (disposed || Objects.equals(notifiedAccount, current)) {
         return;
       }
-      long generation = modeDiscoveryGeneration;
+      notifiedAccount = current;
+      // Invalidate callbacks immediately, before a rapid sign-out/sign-in can overtake the UI queue.
+      generation = authenticationGeneration.incrementAndGet();
+    }
+    ensureRealm(() -> {
+      if (generation == authenticationGeneration.get()) {
+        cancelModeDiscovery();
+        reloadBuiltInModes(false);
+      }
+    });
+  }
+
+  private void reloadBuiltInModes(boolean retry) {
+    ensureRealm(() -> {
+      if (!authStatusManager.isSignedIn()) {
+        cancelModeDiscovery();
+        return;
+      }
       String account = authStatusManager.getUserName();
+      ModeDiscoveryState state = modeDiscoveryState.getValue();
+      if (Objects.equals(account, modeDiscoveryAccount) && state != ModeDiscoveryState.UNAVAILABLE
+          && (state != ModeDiscoveryState.FAILED || !retry)) {
+        return;
+      }
+      cancelModeDiscovery();
+      modeDiscoveryAccount = account;
+      long generation = modeDiscoveryGeneration;
+      long authentication = authenticationGeneration.get();
       modeDiscoveryState.setValue(ModeDiscoveryState.LOADING);
       CompletableFuture<List<BuiltInChatMode>> discovery = CompletableFuture
           .supplyAsync(() -> new BuiltInChatModeService().loadBuiltInModes(lsConnection))
           .thenCompose(result -> result);
       modeDiscovery = discovery;
       discovery.thenAccept(modes -> ensureRealm(() -> {
-        if (generation != modeDiscoveryGeneration || !authStatusManager.isSignedIn()
+        if (generation != modeDiscoveryGeneration || authentication != authenticationGeneration.get()
+            || !authStatusManager.isSignedIn()
             || !Objects.equals(account, authStatusManager.getUserName())) {
           return;
         }
@@ -165,7 +201,8 @@ public class UserPreferenceService extends ChatBaseService {
         }
       })).exceptionally(exception -> {
         ensureRealm(() -> {
-          if (generation == modeDiscoveryGeneration && authStatusManager.isSignedIn()
+          if (generation == modeDiscoveryGeneration && authentication == authenticationGeneration.get()
+              && authStatusManager.isSignedIn()
               && Objects.equals(account, authStatusManager.getUserName())) {
             modeDiscoveryState.setValue(ModeDiscoveryState.FAILED);
             CopilotCore.LOGGER.error("Failed to reload built-in modes", exception);
@@ -178,6 +215,7 @@ public class UserPreferenceService extends ChatBaseService {
 
   private void cancelModeDiscovery() {
     modeDiscoveryGeneration++;
+    modeDiscoveryAccount = null;
     modeDiscoveryState.setValue(ModeDiscoveryState.UNAVAILABLE);
     if (modeDiscovery != null) {
       modeDiscovery.cancel(true);
@@ -187,7 +225,7 @@ public class UserPreferenceService extends ChatBaseService {
   private void subscribeToEvents() {
     eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (eventBroker != null) {
-      eventBroker.subscribe(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, authStatusChangedEventHandler);
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_LANGUAGE_SERVER_INITIALIZED, connectionInitializedEventHandler);
       eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_FEATURE_FLAGS, featureFlagNotifiedEventHandler);
     } else {
       CopilotCore.LOGGER.error(new IllegalStateException("Event broker is null"));
@@ -425,7 +463,7 @@ public class UserPreferenceService extends ChatBaseService {
     ensureRealm(() -> {
       ModeDiscoveryState state = modeDiscoveryState.getValue();
       if (state == ModeDiscoveryState.FAILED || state == ModeDiscoveryState.UNAVAILABLE) {
-        reloadBuiltInModes();
+        reloadBuiltInModes(true);
       }
     });
   }
@@ -721,6 +759,7 @@ public class UserPreferenceService extends ChatBaseService {
     }
     persistUserPreference();
     disposed = true;
+    authStatusManager.removeCopilotAuthStatusListener(authListener);
     super.ensureRealm(() -> {
       cancelModeDiscovery();
       readinessSideEffect.dispose();
@@ -735,9 +774,8 @@ public class UserPreferenceService extends ChatBaseService {
     });
 
     if (eventBroker != null) {
-      eventBroker.unsubscribe(authStatusChangedEventHandler);
+      eventBroker.unsubscribe(connectionInitializedEventHandler);
       eventBroker.unsubscribe(featureFlagNotifiedEventHandler);
-      authStatusChangedEventHandler = null;
       featureFlagNotifiedEventHandler = null;
       eventBroker = null;
     }
@@ -776,8 +814,10 @@ public class UserPreferenceService extends ChatBaseService {
       return;
     }
     String account = authStatusManager.getUserName();
+    long generation = authenticationGeneration.get();
     super.ensureRealm(() -> {
-      if (!disposed && Objects.equals(account, authStatusManager.getUserName())) {
+      if (!disposed && generation == authenticationGeneration.get()
+          && Objects.equals(account, authStatusManager.getUserName())) {
         runnable.run();
       }
     });

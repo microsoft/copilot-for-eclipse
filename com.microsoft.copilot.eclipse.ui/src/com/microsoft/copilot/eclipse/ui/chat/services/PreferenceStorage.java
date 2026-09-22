@@ -29,13 +29,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.databinding.swt.DisplayRealm;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.PlatformUI;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 
@@ -43,6 +47,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
  * Owns account-scoped chat preferences, asynchronous restoration and one serialized background writer.
  * Reads return detached snapshots; edits capture revisions without holding a UI-needed lock during file I/O.
  * Accepted saves retain their account path even after account changes or disposal.
+ * Login transitions and successful LSP initialization retry unsuccessful loads once per lifecycle event.
+ * They join pending loads, preserve ready choices, and never automatically retry failed saves.
  */
 public class PreferenceStorage {
   private static final Gson GSON = new Gson();
@@ -72,8 +78,12 @@ public class PreferenceStorage {
   private final WritableValue<State> readiness;
   private final WritableValue<SaveState> saveStatus;
   private final CopilotAuthStatusListener authListener;
+  private final IEventBroker eventBroker;
+  private final EventHandler connectionListener;
+  private long connectionIncarnation;
   private State state = State.UNAVAILABLE;
   private String account;
+  private String notifiedAccount;
   private long generation;
   private Attempt attempt;
   private UserPreference preferences;
@@ -109,8 +119,26 @@ public class PreferenceStorage {
     this.readiness = new WritableValue<>(realm, State.UNAVAILABLE, State.class);
     this.saveStatus = new WritableValue<>(realm, SaveState.SAVED, SaveState.class);
     this.account = currentAccount();
-    this.authListener = status -> refreshAccount();
+    this.notifiedAccount = account;
+    this.authListener = status -> authenticationChanged();
     auth.addCopilotAuthStatusListener(authListener);
+    this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    this.connectionListener = event -> {
+      if (event.getProperty(IEventBroker.DATA) instanceof Long incarnation) {
+        synchronized (lock) {
+          if (state == State.DISPOSED || incarnation <= connectionIncarnation) {
+            return;
+          }
+          connectionIncarnation = incarnation;
+        }
+        retry();
+      }
+    };
+    if (eventBroker != null) {
+      eventBroker.subscribe(CopilotEventConstants.TOPIC_LANGUAGE_SERVER_INITIALIZED, null, connectionListener, false);
+    } else {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot subscribe to language server initialization"));
+    }
   }
 
   /**
@@ -323,6 +351,9 @@ public class PreferenceStorage {
       previous = clear(State.DISPOSED);
     }
     auth.removeCopilotAuthStatusListener(authListener);
+    if (eventBroker != null) {
+      eventBroker.unsubscribe(connectionListener);
+    }
     cancel(previous);
     // Accepted snapshots may finish on the shared writer; disposal never waits for OS I/O.
     dispatchWriter();
@@ -365,6 +396,19 @@ public class PreferenceStorage {
     cancel(previous);
     publishState(version, State.UNAVAILABLE);
     publishSaveStatus(version);
+  }
+
+  private void authenticationChanged() {
+    boolean changed;
+    synchronized (lock) {
+      String current = currentAccount();
+      changed = !Objects.equals(notifiedAccount, current);
+      notifiedAccount = current;
+    }
+    refreshAccount();
+    if (changed) {
+      retry();
+    }
   }
 
   private Attempt clear(State next) {
