@@ -40,7 +40,11 @@ public class CopilotAgentSettings {
     private EditSettings edit;
     private McpSettings mcp = new McpSettings();
 
-    /** Gets terminal settings, creating if needed. */
+    /**
+     * Gets terminal settings, creating if needed.
+     *
+     * @return the terminal settings.
+     */
     public TerminalSettings getTerminal() {
       if (terminal == null) {
         terminal = new TerminalSettings();
@@ -48,7 +52,11 @@ public class CopilotAgentSettings {
       return terminal;
     }
 
-    /** Gets edit settings, creating if needed. */
+    /**
+     * Gets edit settings, creating if needed.
+     *
+     * @return the edit settings.
+     */
     public EditSettings getEdit() {
       if (edit == null) {
         edit = new EditSettings();
@@ -56,7 +64,11 @@ public class CopilotAgentSettings {
       return edit;
     }
 
-    /** Gets MCP settings, creating if needed. */
+    /**
+     * Gets MCP settings, creating if needed.
+     *
+     * @return the MCP settings.
+     */
     public McpSettings getMcp() {
       if (mcp == null) {
         mcp = new McpSettings();
@@ -263,7 +275,11 @@ public class CopilotAgentSettings {
     this.autoApproveUnmatchedFileOp = autoApproveUnmatchedFileOp;
   }
 
-  /** Gets tools settings, creating if needed. */
+  /**
+   * Gets tools settings, creating if needed.
+   *
+   * @return the tools settings.
+   */
   public ToolsSettings getTools() {
     if (tools == null) {
       tools = new ToolsSettings();

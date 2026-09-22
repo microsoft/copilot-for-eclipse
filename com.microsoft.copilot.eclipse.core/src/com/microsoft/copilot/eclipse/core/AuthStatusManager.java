@@ -52,6 +52,7 @@ public class AuthStatusManager {
   /**
    * Initiate the sign in process.
    *
+   * @return the sign-in initiation result from the language server.
    * @throws ExecutionException if the sign in initiate process fails due to an execution error
    * @throws InterruptedException if the sign in initiate process is interrupted
    */
@@ -67,6 +68,8 @@ public class AuthStatusManager {
   /**
    * Confirm the sign in process.
    *
+   * @param userCode the user code returned by the sign-in initiation.
+   * @return the updated Copilot status result after sign-in confirmation.
    * @throws ExecutionException if the sign in process fails due to an execution error
    * @throws InterruptedException if the sign in process is interrupted
    */
@@ -85,6 +88,7 @@ public class AuthStatusManager {
   /**
    * Sign out from the GitHub Copilot.
    *
+   * @return the updated Copilot status result after signing out.
    * @throws ExecutionException if the sign out process fails due to an execution error
    * @throws InterruptedException if the sign out process is interrupted
    */
@@ -97,6 +101,9 @@ public class AuthStatusManager {
 
   /**
    * Set the CopilotStatusResult string to the given status and notify the listeners.
+   *
+   * @param newCopilotStatusResult the new Copilot status value.
+   * @return the updated Copilot status result.
    */
   public CopilotStatusResult setCopilotStatus(String newCopilotStatusResult) {
     if (!Objects.equals(this.copilotStatusResult.getStatus(), newCopilotStatusResult)) {
@@ -142,6 +149,8 @@ public class AuthStatusManager {
 
   /**
    * Set the user for Copilot.
+   *
+   * @param user the Copilot user name to set.
    */
   public void setCopilotUser(String user) {
     this.copilotStatusResult.setUser(user);
@@ -149,6 +158,8 @@ public class AuthStatusManager {
 
   /**
    * Get the current status of the copilot.
+   *
+   * @return the current Copilot status.
    */
   public String getCopilotStatus() {
     if (this.copilotStatusResult == null) {
@@ -159,6 +170,8 @@ public class AuthStatusManager {
 
   /**
    * Get the name of the login user.
+   *
+   * @return the name of the signed-in user, or an empty string if no user is available.
    */
   public String getUserName() {
     if (this.copilotStatusResult == null) {
@@ -172,6 +185,8 @@ public class AuthStatusManager {
 
   /**
    * Set the CheckQuotaResult.
+   *
+   * @param checkQuotaResult the quota status result to set.
    */
   public void setQuotaStatus(CheckQuotaResult checkQuotaResult) {
     this.checkQuotaResult = checkQuotaResult;
@@ -179,6 +194,8 @@ public class AuthStatusManager {
 
   /**
    * Get the current CopilotStatusResult.
+   *
+   * @return the current quota status result.
    */
   public CheckQuotaResult getQuotaStatus() {
     if (this.checkQuotaResult == null) {
@@ -189,6 +206,8 @@ public class AuthStatusManager {
 
   /**
    * Add a listener for the authentication status.
+   *
+   * @param listener the listener to add.
    */
   public void addCopilotAuthStatusListener(CopilotAuthStatusListener listener) {
     this.copilotAuthStatusListeners.add(listener);
@@ -196,6 +215,8 @@ public class AuthStatusManager {
 
   /**
    * Remove the listener for the authentication status.
+   *
+   * @param listener the listener to remove.
    */
   public void removeCopilotAuthStatusListener(CopilotAuthStatusListener listener) {
     this.copilotAuthStatusListeners.remove(listener);

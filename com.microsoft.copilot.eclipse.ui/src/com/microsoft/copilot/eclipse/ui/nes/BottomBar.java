@@ -36,6 +36,9 @@ public class BottomBar {
 
   /**
    * Constructor.
+   *
+   * @param text the styled text that owns the bottom bar.
+   * @param jumpAction the action to run when the bar is clicked.
    */
   public BottomBar(StyledText text, Runnable jumpAction) {
     this.text = text;

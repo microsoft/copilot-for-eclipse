@@ -45,6 +45,10 @@ public class ConversationTurnParams {
 
   /**
    * Creates a new ConversationTurnParams.
+   *
+   * @param workDoneToken the work-done progress token for the conversation turn request.
+   * @param conversationId the identifier of the conversation receiving the turn.
+   * @param message the message content for the conversation turn.
    */
   public ConversationTurnParams(String workDoneToken, String conversationId,
       Either<String, List<ChatCompletionContentPart>> message) {

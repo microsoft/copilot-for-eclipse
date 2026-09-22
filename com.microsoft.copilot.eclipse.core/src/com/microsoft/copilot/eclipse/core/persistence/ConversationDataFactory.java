@@ -51,6 +51,9 @@ public class ConversationDataFactory {
 
   /**
    * Creates a new ConversationData from initial parameters.
+   *
+   * @param conversationId the ID for the new conversation.
+   * @return the newly created conversation data.
    */
   public ConversationData createConversationData(String conversationId) {
     ConversationData conversationData = new ConversationData();
@@ -64,6 +67,14 @@ public class ConversationDataFactory {
 
   /**
    * Creates a user turn from a message.
+   *
+   * @param conversationId the ID of the conversation containing the turn.
+   * @param turnId the ID of the user turn.
+   * @param message the message text for the user turn.
+   * @param model the model used for the user turn.
+   * @param chatMode the chat mode used for the user turn.
+   * @param customChatModeId the custom chat mode ID, if applicable.
+   * @return the newly created user turn data.
    */
   public UserTurnData createUserTurnData(String conversationId, String turnId, String message, String model,
       String chatMode, String customChatModeId) {
@@ -85,6 +96,9 @@ public class ConversationDataFactory {
 
   /**
    * Creates a copilot turn data for assistant responses.
+   *
+   * @param turnId the ID of the Copilot turn.
+   * @return the newly created Copilot turn data.
    */
   public CopilotTurnData createCopilotTurnData(String turnId) {
     CopilotTurnData copilotTurn = new CopilotTurnData();
@@ -203,6 +217,9 @@ public class ConversationDataFactory {
 
   /**
    * Updates basic conversation metadata from progress (pure transformation).
+   *
+   * @param conversationData the conversation data to update.
+   * @param progress the progress value containing metadata updates.
    */
   public void updateConversationMetadata(ConversationData conversationData, ChatProgressValue progress) {
     if (StringUtils.isNotBlank(progress.getSuggestedTitle())) {

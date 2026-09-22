@@ -191,6 +191,8 @@ public class CopilotUi extends AbstractUIPlugin {
   /**
    * Reads the boolean preference from all scopes.
    *
+   * @param key the preference key to read.
+   * @param defaultValue the value to return when the preference is not set.
    * @return preference value considering all scopes (config, instance and product)
    */
   public static boolean getBooleanPreference(String key, boolean defaultValue) {
@@ -201,6 +203,8 @@ public class CopilotUi extends AbstractUIPlugin {
   /**
    * Reads the int preference from all scopes.
    *
+   * @param key the preference key to read.
+   * @param defaultValue the value to return when the preference is not set.
    * @return preference value considering all scopes (config, instance and product)
    */
   public static int getIntPreference(String key, int defaultValue) {
@@ -211,6 +215,8 @@ public class CopilotUi extends AbstractUIPlugin {
   /**
    * Read the String preference from all scopes.
    *
+   * @param key the preference key to read.
+   * @param defaultValue the value to return when the preference is not set.
    * @return preference value considering all scopes (config, instance and product)
    */
   public static String getStringPreference(String key, String defaultValue) {

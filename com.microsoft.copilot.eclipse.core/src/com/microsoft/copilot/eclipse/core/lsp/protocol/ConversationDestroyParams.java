@@ -15,6 +15,8 @@ public class ConversationDestroyParams {
 
   /**
    * Creates a new ConversationDestroyParams.
+   *
+   * @param conversationId the identifier of the conversation to destroy.
    */
   public ConversationDestroyParams(String conversationId) {
     this.conversationId = conversationId;

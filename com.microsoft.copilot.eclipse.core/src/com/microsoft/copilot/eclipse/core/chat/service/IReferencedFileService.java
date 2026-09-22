@@ -16,11 +16,15 @@ import org.eclipse.lsp4j.Range;
 public interface IReferencedFileService {
   /**
    * Get the current file being referenced in the Copilot chat.
+   *
+   * @return the current referenced file.
    */
   IFile getCurrentFile();
 
   /**
    * Get the referenced files that is attached by user.
+   *
+   * @return the referenced files attached by the user.
    */
   List<IResource> getReferencedFiles();
 

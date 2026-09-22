@@ -54,7 +54,12 @@ public class TodoListBar extends Composite {
   private Image inProgressImage;
   private Image notStartedImage;
 
-  /** Constructor. */
+  /**
+   * Constructor.
+   *
+   * @param parent the parent composite.
+   * @param style the widget style.
+   */
   public TodoListBar(Composite parent, int style) {
     super(parent, style | SWT.BORDER);
     this.todoListService = CopilotUi.getPlugin().getChatServiceManager().getTodoListService();
@@ -83,6 +88,8 @@ public class TodoListBar extends Composite {
 
   /**
    * Builds the todo list bar with the given todos.
+   *
+   * @param todos the todo items to display in the bar.
    */
   public void buildTodoListBar(List<TodoItem> todos) {
     if (todos == null || isDisposed()) {

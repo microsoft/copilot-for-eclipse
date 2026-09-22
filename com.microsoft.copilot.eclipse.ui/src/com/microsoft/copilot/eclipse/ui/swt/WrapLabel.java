@@ -25,6 +25,9 @@ public class WrapLabel {
 
   /**
    * Create a new wrap label.
+   *
+   * @param parent the parent composite for the label.
+   * @param style the SWT style bits for the label.
    */
   public WrapLabel(Composite parent, int style) {
     label = new Label(parent, style | SWT.WRAP);
@@ -41,6 +44,8 @@ public class WrapLabel {
 
   /**
    * Set the text of the label.
+   *
+   * @param text the text to show in the label.
    */
   public void setText(String text) {
     label.setText(text);
@@ -48,6 +53,8 @@ public class WrapLabel {
 
   /**
    * Set the text color of the label.
+   *
+   * @param color the foreground color for the label.
    */
   public void setForeground(Color color) {
     label.setForeground(color);
@@ -55,6 +62,8 @@ public class WrapLabel {
 
   /**
    * Set the font of the label.
+   *
+   * @param font the font to apply to the label.
    */
   public void setFont(Font font) {
     label.setFont(font);
@@ -62,6 +71,8 @@ public class WrapLabel {
 
   /**
    * Get the location of the label.
+   *
+   * @return the label location relative to its parent.
    */
   public Point getLocation() {
     return label.getLocation();
@@ -73,6 +84,8 @@ public class WrapLabel {
 
   /**
    * Set the grid layout data of the label.
+   *
+   * @param layoutData the grid layout data to apply.
    */
   public void setLayoutData(GridData layoutData) {
     label.setLayoutData(layoutData);
@@ -80,6 +93,8 @@ public class WrapLabel {
 
   /**
    * Set the row layout data of the label using RowData.
+   *
+   * @param layoutData the row layout data to apply.
    */
   public void setLayoutData(RowData layoutData) {
     label.setLayoutData(layoutData);
@@ -91,6 +106,8 @@ public class WrapLabel {
 
   /**
    * Set the dispose listener of the label.
+   *
+   * @param listener the dispose listener to add.
    */
   public void addDisposeListener(DisposeListener listener) {
     label.addDisposeListener(listener);
@@ -102,6 +119,8 @@ public class WrapLabel {
 
   /**
    * Get the visibility of the label.
+   *
+   * @return true if the label is visible, false otherwise.
    */
   public boolean getVisible() {
     return label.getVisible();
@@ -109,6 +128,8 @@ public class WrapLabel {
 
   /**
    * Set the visibility of the label.
+   *
+   * @param visible true to show the label, false to hide it.
    */
   public void setVisible(boolean visible) {
     label.setVisible(visible);

@@ -29,6 +29,9 @@ public enum ByokModelProvider {
   /**
    * Utility to check if a provider display name corresponds to AZURE.
    * This avoids scattering direct enum displayName comparisons across UI code.
+   *
+   * @param providerDisplayName the provider display name to check.
+   * @return whether the provider display name corresponds to Azure.
    */
   public static boolean isAzure(String providerDisplayName) {
     return AZURE.getDisplayName().equals(providerDisplayName);

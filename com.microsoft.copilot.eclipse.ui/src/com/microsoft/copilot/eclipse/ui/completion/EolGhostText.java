@@ -18,6 +18,9 @@ public class EolGhostText extends GhostText {
 
   /**
    * Creates a new EolGhostText.
+   *
+   * @param text the ghost text to display.
+   * @param modelOffset the model offset where the ghost text starts.
    */
   public EolGhostText(String text, int modelOffset) {
     super(text, modelOffset, GhostTextType.END_OF_LINE);

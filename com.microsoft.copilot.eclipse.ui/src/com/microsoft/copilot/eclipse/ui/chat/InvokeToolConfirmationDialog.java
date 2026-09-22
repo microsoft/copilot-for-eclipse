@@ -90,6 +90,8 @@ public class InvokeToolConfirmationDialog extends Composite {
 
   /**
    * Returns the action the user selected, or {@code null} if dismissed.
+   *
+   * @return the selected confirmation action, or {@code null} if the dialog was dismissed.
    */
   public ConfirmationAction getSelectedAction() {
     return selectedAction;

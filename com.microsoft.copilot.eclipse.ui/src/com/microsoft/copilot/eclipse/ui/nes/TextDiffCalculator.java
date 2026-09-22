@@ -28,6 +28,14 @@ public class TextDiffCalculator {
 
     /**
      * Constructor.
+     *
+     * @param type the type of diff represented by this span.
+     * @param origStart the start offset in the original text.
+     * @param origLength the length in the original text.
+     * @param newStart the start offset in the replacement text.
+     * @param newLength the length in the replacement text.
+     * @param origText the original differing text.
+     * @param newText the replacement differing text.
      */
     public DualDiffSpan(DiffSegment.Type type, int origStart, int origLength, int newStart, int newLength,
         String origText, String newText) {
@@ -51,7 +59,12 @@ public class TextDiffCalculator {
     /** Replacement text (before normalization). */
     public final String replacementText;
 
-    /** Constructor. */
+    /**
+     * Constructor.
+     *
+     * @param originalText the original text before normalization.
+     * @param replacementText the replacement text before normalization.
+     */
     public DualDiffResult(String originalText, String replacementText) {
       this.originalText = originalText;
       this.replacementText = replacementText;
@@ -204,6 +217,10 @@ public class TextDiffCalculator {
 
   /**
    * Calculate character-level differences (legacy method, delegates to calculateDiff).
+   *
+   * @param original the original text to compare.
+   * @param replacement the replacement text to compare.
+   * @return the calculated dual diff result.
    */
   public static DualDiffResult calculateDualCharacterDiff(String original, String replacement) {
     return calculateDiff(original, replacement);
@@ -211,6 +228,11 @@ public class TextDiffCalculator {
 
   /**
    * Calculate character-level differences (legacy method with ignore flag).
+   *
+   * @param original the original text to compare.
+   * @param replacement the replacement text to compare.
+   * @param ignoreLineEndingDiff whether line ending differences should be ignored.
+   * @return the calculated dual diff result.
    */
   public static DualDiffResult calculateDualCharacterDiff(String original, String replacement,
       boolean ignoreLineEndingDiff) {

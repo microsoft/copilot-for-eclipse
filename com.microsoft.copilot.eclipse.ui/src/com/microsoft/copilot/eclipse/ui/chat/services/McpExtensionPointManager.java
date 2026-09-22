@@ -61,6 +61,8 @@ public class McpExtensionPointManager {
 
   /**
    * Constructor for McpExtensionPointManager.
+   *
+   * @param mcpConfigService the MCP configuration service to update with extension registration state.
    */
   public McpExtensionPointManager(McpConfigService mcpConfigService) {
     gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -339,6 +341,8 @@ public class McpExtensionPointManager {
 
   /**
    * Process MCP registration from extension point.
+   *
+   * @return the approved MCP server configuration JSON, or null if no registrations were found.
    */
   public String approveExtMcpRegistration() {
     Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
@@ -444,6 +448,8 @@ public class McpExtensionPointManager {
 
   /**
    * Check if there is any MCP registration from extension point.
+   *
+   * @return true if extension MCP registrations are available, or false otherwise.
    */
   public synchronized boolean hasExtMcpRegistration() {
     return !extMcpInfoMap.isEmpty();

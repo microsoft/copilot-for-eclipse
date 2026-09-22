@@ -36,6 +36,8 @@ public class ChatEventsManager {
 
   /**
    * Add a listener to the chat progress provider.
+   *
+   * @param listener the listener to add.
    */
   public void addChatProgressListener(ChatProgressListener listener) {
     this.chatProgressListeners.add(listener);
@@ -43,6 +45,8 @@ public class ChatEventsManager {
 
   /**
    * Remove a listener from the chat progress provider.
+   *
+   * @param listener the listener to remove.
    */
   public void removeChatProgressListener(ChatProgressListener listener) {
     this.chatProgressListeners.remove(listener);
@@ -50,6 +54,8 @@ public class ChatEventsManager {
 
   /**
    * Notify the progress to the listeners.
+   *
+   * @param message the progress message to notify.
    */
   public void notifyProgress(ChatProgressValue message) {
     for (ChatProgressListener listener : this.chatProgressListeners) {
@@ -79,6 +85,7 @@ public class ChatEventsManager {
    * Notify the listeners when the agent tool should be confirmed.
    *
    * @param params the parameters for the tool confirmation
+   * @return a future containing the tool confirmation result.
    */
   public CompletableFuture<LanguageModelToolConfirmationResult> confirmAgentToolInvocation(
       InvokeClientToolConfirmationParams params) {
@@ -93,6 +100,7 @@ public class ChatEventsManager {
    * Notify the listeners when the agent tool should be invoked.
    *
    * @param params the parameters for the tool invocation
+   * @return a future containing the tool invocation results.
    */
   public CompletableFuture<LanguageModelToolResult[]> invokeAgentTool(InvokeClientToolParams params) {
     if (this.agentToolListener == null) {

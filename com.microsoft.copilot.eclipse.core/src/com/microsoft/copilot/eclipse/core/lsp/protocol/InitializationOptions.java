@@ -24,6 +24,9 @@ public class InitializationOptions {
 
   /**
    * Creates a new InitializationOptions.
+   *
+   * @param editorInfo the editor name and version.
+   * @param editorPluginInfo the editor plugin name and version.
    */
   public InitializationOptions(NameAndVersion editorInfo, NameAndVersion editorPluginInfo) {
     this.editorInfo = editorInfo;
@@ -32,6 +35,10 @@ public class InitializationOptions {
 
   /**
    * Creates a new InitializationOptions.
+   *
+   * @param editorInfo the editor name and version.
+   * @param editorPluginInfo the editor plugin name and version.
+   * @param copilotCapabilities the Copilot capabilities supported by the client.
    */
   public InitializationOptions(NameAndVersion editorInfo, NameAndVersion editorPluginInfo,
       CopilotCapabilities copilotCapabilities) {

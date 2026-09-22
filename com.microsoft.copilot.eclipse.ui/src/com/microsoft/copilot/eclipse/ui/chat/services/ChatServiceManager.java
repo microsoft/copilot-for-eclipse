@@ -63,6 +63,8 @@ public class ChatServiceManager implements IChatServiceManager {
 
   /**
    * Get the authentication status manager.
+   *
+   * @return the authentication status manager.
    */
   public AuthStatusManager getAuthStatusManager() {
     return authStatusManager;
@@ -177,6 +179,8 @@ public class ChatServiceManager implements IChatServiceManager {
 
   /**
    * Get the MCP extension point manager.
+   *
+   * @return the MCP extension point manager.
    */
   public McpExtensionPointManager getMcpExtensionPointManager() {
     return mcpExtensionPointManager;

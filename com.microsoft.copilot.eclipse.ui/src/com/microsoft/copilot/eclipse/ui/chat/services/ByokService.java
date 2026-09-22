@@ -61,6 +61,8 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Constructor.
+   *
+   * @param lsConnection the language server connection used for BYOK operations.
    */
   public ByokService(CopilotLanguageServerConnection lsConnection) {
     super(lsConnection, null);
@@ -89,6 +91,8 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Bind a ByokPreferencePage to this service for automatic updates.
+   *
+   * @param page the BYOK preference page to update from observable state.
    */
   public void bindByokPreferencePage(ByokPreferencePage page) {
     ensureRealm(() -> {
@@ -140,6 +144,8 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Load API keys from persistent storage.
+   *
+   * @return a future that completes when API keys have been loaded.
    */
   public CompletableFuture<Void> loadApiKeys() {
     return lsConnection.listByokApiKeys(new ByokApiKey(null, null)).thenAccept(response -> {
@@ -170,6 +176,8 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Load BYOK models from persistent storage.
+   *
+   * @return a future that completes when local BYOK models have been loaded.
    */
   public CompletableFuture<Void> loadLocalModels() {
     return lsConnection.listByokModels(new ByokListModelParams(null, false)).thenAccept(response -> {
@@ -186,6 +194,8 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Refresh BYOK data (including API keys and models).
+   *
+   * @return a future that completes when BYOK data has been refreshed.
    */
   public CompletableFuture<Void> refreshData() {
     return loadApiKeys().thenCompose(unused -> loadProviderUrls()).thenCompose(unused -> loadLocalModels());
@@ -244,6 +254,9 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Save a BYOK model. Sequence: saveModel() -> loadLocalModels(PROVIDER).
+   *
+   * @param model the BYOK model to save.
+   * @return a future that completes when the model has been saved and local models have been reloaded.
    */
   public CompletableFuture<Void> saveModel(ByokModel model) {
     return lsConnection.saveByokModel(model).thenCompose(response -> {
@@ -257,6 +270,9 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Delete a BYOK model. Sequence: deleteModel() -> loadLocalModels(PROVIDER).
+   *
+   * @param model the BYOK model to delete.
+   * @return a future that completes when the model has been deleted and local models have been reloaded.
    */
   public CompletableFuture<Void> deleteModel(ByokModel model) {
     return lsConnection.deleteByokModel(model).thenCompose(response -> {
@@ -272,6 +288,10 @@ public class ByokService extends ChatBaseService {
    * Add API key and register models. Flow: saveApiKey -> listRemoteModels(provider, true) -> batchSave(models
    * registered) -> refreshData(PROVIDER). rollbackOnListFailure=true means if list fails (e.g. invalid key) we delete
    * the just-saved key.
+   *
+   * @param providerName the display name of the provider for the API key.
+   * @param apiKey the API key to save.
+   * @return a future that completes when the key has been added and BYOK data has been refreshed.
    */
   public CompletableFuture<Void> addApiKey(String providerName, String apiKey) {
     ByokApiKey key = new ByokApiKey(providerName, null);
@@ -301,6 +321,10 @@ public class ByokService extends ChatBaseService {
   /**
    * Change an existing API key. Flow: saveApiKey -> listRemoteModels(provider, true) -> mergeRemoteWithLocal()
    * ->refreshData(PROVIDER)
+   *
+   * @param providerName the display name of the provider whose API key is changing.
+   * @param newApiKey the replacement API key to save.
+   * @return a future that completes when the key has been changed and BYOK data has been refreshed.
    */
   public CompletableFuture<Void> changeApiKey(String providerName, String newApiKey) {
     ByokApiKey key = new ByokApiKey(providerName, null);
@@ -322,6 +346,9 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Delete API key for a provider. Sequence: deleteApiKey() -> refreshData(PROVIDER)
+   *
+   * @param providerName the display name of the provider whose API key should be deleted.
+   * @return a future that completes when the key has been deleted and BYOK data has been refreshed.
    */
   public CompletableFuture<Void> deleteApiKey(String providerName) {
     ByokApiKey byokApiKey = new ByokApiKey(providerName, null);
@@ -337,6 +364,9 @@ public class ByokService extends ChatBaseService {
 
   /**
    * Reload a single provider's complete data (API keys, local models, and remote models if applicable).
+   *
+   * @param providerName the display name of the provider to reload.
+   * @return a future that completes when the provider data has been reloaded.
    */
   public CompletableFuture<Void> reloadProvider(String providerName) {
     if (ByokModelProvider.isAzure(providerName)) {
@@ -373,6 +403,8 @@ public class ByokService extends ChatBaseService {
   /**
    * Reload all providers sequentially to avoid file write conflicts. Providers with API keys and Ollama with a
    * configured URL will fetch remote models; Azure only uses its locally stored model configurations.
+   *
+   * @return a future that completes when all eligible providers have been reloaded.
    */
   public CompletableFuture<Void> reloadAllProviders() {
     return fetchAllProvidersSequentially().thenCompose(unused -> refreshData());
@@ -440,6 +472,9 @@ public class ByokService extends ChatBaseService {
   /**
    * Fetch remote models (remote=true) for a specific provider and merge new ones into local storage. Returns true if
    * new models were added (and saved), false otherwise.
+   *
+   * @param providerName the display name of the provider whose remote models should be fetched.
+   * @return a future that completes with true if new models were added, or false otherwise.
    */
   public CompletableFuture<Boolean> fetchProviderModels(String providerName) {
     return lsConnection.listByokModels(new ByokListModelParams(providerName, true)).thenCompose(response -> {

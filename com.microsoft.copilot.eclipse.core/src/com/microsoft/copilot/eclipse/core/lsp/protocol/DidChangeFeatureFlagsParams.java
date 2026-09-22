@@ -52,6 +52,8 @@ public class DidChangeFeatureFlagsParams {
 
   /**
    * Checks if the MCP is enabled.
+   *
+   * @return whether MCP is enabled.
    */
   public boolean isMcpEnabled() {
     boolean disabled = featureFlags != null && "0".equals(featureFlags.get("mcp"));
@@ -60,6 +62,8 @@ public class DidChangeFeatureFlagsParams {
 
   /**
    * Checks if the agent mode is enabled.
+   *
+   * @return whether agent mode is enabled.
    */
   public boolean isAgentModeEnabled() {
     // Agent mode is by default enabled.
@@ -70,6 +74,8 @@ public class DidChangeFeatureFlagsParams {
 
   /**
    * Checks if client preview features are enabled.
+   *
+   * @return whether client preview features are enabled.
    */
   public boolean isClientPreviewFeaturesEnabled() {
     boolean disabled = featureFlags != null && "0".equals(featureFlags.get("editor_preview_features"));
@@ -79,6 +85,8 @@ public class DidChangeFeatureFlagsParams {
   /**
    * Checks if the auto-approval feature is enabled.
    * Disabled only when the feature flag "agent_mode_auto_approval" is set to "0".
+   *
+   * @return whether the auto-approval feature is enabled.
    */
   public boolean isAutoApprovalEnabled() {
     boolean disabled = featureFlags != null && "0".equals(featureFlags.get("agent_mode_auto_approval"));

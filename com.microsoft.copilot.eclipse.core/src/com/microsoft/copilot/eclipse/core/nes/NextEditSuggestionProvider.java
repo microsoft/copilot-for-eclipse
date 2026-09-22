@@ -32,6 +32,8 @@ public class NextEditSuggestionProvider {
 
   /**
    * Construct a NextEditSuggestionProvider.
+   *
+   * @param ls the language server connection used to fetch next edit suggestions.
    */
   public NextEditSuggestionProvider(CopilotLanguageServerConnection ls) {
     this.lsConnection = ls;

@@ -63,6 +63,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
   /**
    * Constructor for the UserPreferenceService.
+   *
+   * @param lsConnection the language server connection used to read and persist user preferences.
+   * @param authStatusManager the authentication status manager used to react to sign-in changes.
    */
   public UserPreferenceService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
     super(lsConnection, authStatusManager);
@@ -479,6 +482,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   /**
    * Bind the chat view to automatically switch between Ask and Agent layouts when the active mode changes.
    * This creates a side effect that rebuilds the view whenever activeChatModeObservable changes.
+   *
+   * @param chatView the chat view to rebuild when the active mode changes.
    */
   public void bindChatView(ChatView chatView) {
     if (chatView == null) {
@@ -511,6 +516,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
 
   /**
    * Add input to the input history.
+   *
+   * @param input the input text to add to history.
    */
   public void addInputToHistory(String input) {
     inputNavigation.add(input);

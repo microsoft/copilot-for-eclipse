@@ -50,6 +50,10 @@ public class ReferencedFile extends Composite {
 
   /**
    * Creates a new TwinButton.
+   *
+   * @param parent the parent composite.
+   * @param file the referenced workspace resource.
+   * @param isUnSupportedFile whether the file is unsupported by the current model.
    */
   public ReferencedFile(Composite parent, IResource file, boolean isUnSupportedFile) {
     super(parent, SWT.BORDER);
@@ -127,6 +131,8 @@ public class ReferencedFile extends Composite {
 
   /**
    * Returns whether this file is unsupported by the current model.
+   *
+   * @return {@code true} if this file is unsupported by the current model; {@code false} otherwise.
    */
   public boolean isFileUnSupported() {
     return isUnSupportedFile;

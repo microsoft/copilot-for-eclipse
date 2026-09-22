@@ -29,6 +29,8 @@ public class CdtFormatReader extends LanguageFormatReader {
 
   /**
    * Creates a new CdtFormatReader for the given project.
+   *
+   * @param project the project whose C/C++ formatting preferences are read.
    */
   public CdtFormatReader(IProject project) {
     this.project = project;

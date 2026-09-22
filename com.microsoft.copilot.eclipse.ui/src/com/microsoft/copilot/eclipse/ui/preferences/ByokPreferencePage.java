@@ -538,6 +538,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   // ========================= Data Binding Update Entry Points =========================
   /**
    * Called by service to update models display.
+   *
+   * @param modelsByProvider the BYOK models grouped by provider name.
    */
   public void updateModelsDisplay(Map<String, List<ByokModel>> modelsByProvider) {
     if (viewer != null && !viewer.getControl().isDisposed()) {
@@ -566,6 +568,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
   /**
    * Called by service to update API keys display.
+   *
+   * @param apiKeys the API keys keyed by provider name.
    */
   public void updateApiKeysDisplay(Map<String, String> apiKeys) {
     if (viewer != null && !viewer.getControl().isDisposed()) {
@@ -602,6 +606,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   // ========================= State Management =========================
   /**
    * Update page loading state.
+   *
+   * @param isLoading true to show the loading overlay, or false to show the model tree.
    */
   public void setPageLoading(boolean isLoading) {
     if (viewerStack == null || viewerStack.isDisposed()) {
@@ -620,6 +626,9 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
   /**
    * Set loading state for a specific provider.
+   *
+   * @param providerName the provider name whose loading state should change.
+   * @param isLoading true if the provider is loading, or false otherwise.
    */
   public void setProviderLoading(String providerName, boolean isLoading) {
     if (isLoading) {
@@ -637,6 +646,8 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
   /**
    * Handle all types of errors with unified logic based on message prefix.
+   *
+   * @param errorMessage the error message to display or handle.
    */
   public void handleError(String errorMessage) {
     if (errorMessage == null) {

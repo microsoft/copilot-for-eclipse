@@ -27,6 +27,8 @@ public class JavaFormatReader extends LanguageFormatReader {
 
   /**
    * Creates a new JavaFormatReader for the given project.
+   *
+   * @param project the project whose Java formatting preferences are read.
    */
   public JavaFormatReader(IProject project) {
     this.project = project;

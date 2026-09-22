@@ -123,6 +123,9 @@ public class McpServerInstallManager {
 
   /**
    * Installs a server configuration using event-driven approach.
+   *
+   * @param serverName the name of the server to install.
+   * @param serverConfig the server configuration to install.
    */
   public void installServer(String serverName, JsonObject serverConfig) {
     // Check for server name conflict before proceeding
@@ -211,6 +214,8 @@ public class McpServerInstallManager {
 
   /**
    * Uninstalls a server configuration using event-driven approach.
+   *
+   * @param serverName the name of the server to uninstall.
    */
   public void uninstallServer(String serverName) {
     // Publish uninstall start event
@@ -312,6 +317,10 @@ public class McpServerInstallManager {
 
   /**
    * Determines the initial state based on whether the server is installed.
+   *
+   * @param serverId the server identifier to check.
+   * @param url the registry URL associated with the server.
+   * @return the initial button state for the server.
    */
   public ButtonState getInitialState(String serverId, String url) {
     return isServerInstalled(serverId, url) ? ButtonState.UNINSTALL : ButtonState.INSTALL;

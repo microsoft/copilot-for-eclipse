@@ -64,6 +64,9 @@ public class CompletionProvider {
 
   /**
    * Creates a new completion provider.
+   *
+   * @param lsConnection the language server connection used to request completions.
+   * @param statusManager the authentication status manager.
    */
   public CompletionProvider(CopilotLanguageServerConnection lsConnection, AuthStatusManager statusManager) {
     this.statusManager = statusManager;
@@ -76,6 +79,7 @@ public class CompletionProvider {
   /**
    * Trigger an inline completion.
    *
+   * @param file the file to request completion for.
    * @param position the position of the cursor.
    * @param documentVersion the version of the document.
    * @param enableNes whether NES is enabled
@@ -113,6 +117,8 @@ public class CompletionProvider {
 
   /**
    * Add a completion listener.
+   *
+   * @param listener the listener to add.
    */
   public void addCompletionListener(CompletionListener listener) {
     this.completionListeners.add(listener);
@@ -120,6 +126,8 @@ public class CompletionProvider {
 
   /**
    * Remove a completion listener.
+   *
+   * @param listener the listener to remove.
    */
   public void removeCompletionListener(CompletionListener listener) {
     this.completionListeners.remove(listener);
@@ -141,6 +149,8 @@ public class CompletionProvider {
 
     /**
      * Creates a new completion job.
+     *
+     * @param lsConnection the language server connection used to request completions.
      */
     public CompletionJob(CopilotLanguageServerConnection lsConnection) {
       super("Generating completion...");

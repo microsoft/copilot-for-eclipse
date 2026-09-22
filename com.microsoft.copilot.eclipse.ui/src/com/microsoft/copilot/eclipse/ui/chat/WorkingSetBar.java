@@ -388,6 +388,11 @@ public class WorkingSetBar extends Composite {
 
     /**
      * Constructs a new FileRow.
+     *
+     * @param parent the parent composite.
+     * @param style the widget style.
+     * @param fileImage the image representing the changed file.
+     * @param file the changed file represented by this row.
      */
     public FileRow(Composite parent, int style, Image fileImage, ChangedFile file) {
       super(parent, style);

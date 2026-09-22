@@ -32,6 +32,8 @@ public class CurrentReferencedFile extends ReferencedFile {
 
   /**
    * Creates a new CurrentReferencedFile.
+   *
+   * @param parent the parent composite.
    */
   public CurrentReferencedFile(Composite parent) {
     // No need to get supportVision here, as currentFile will not be an image file.
@@ -74,6 +76,8 @@ public class CurrentReferencedFile extends ReferencedFile {
 
   /**
    * update the visible icon.
+   *
+   * @param isCurrentFileVisible whether the current file is visible in the chat context.
    */
   public void updateCloseClickBtnIcon(boolean isCurrentFileVisible) {
     if (isCurrentFileVisible) {
@@ -96,6 +100,8 @@ public class CurrentReferencedFile extends ReferencedFile {
 
   /**
    * Set the current selection to display.
+   *
+   * @param selection the current editor selection to display, or {@code null} to clear it.
    */
   public void setSelection(@Nullable Range selection) {
     this.currentSelection = selection;
