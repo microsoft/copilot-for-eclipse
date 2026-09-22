@@ -3,9 +3,13 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
@@ -15,8 +19,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.jface.preference.PreferenceStore;
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -30,18 +37,21 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.microsoft.copilot.eclipse.core.AuthStatusManager;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.chat.contextwindow.ContextWindowService;
 import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ModelService;
+import com.microsoft.copilot.eclipse.ui.chat.services.PreferenceStorage;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
-import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ReferencedFileTest {
@@ -68,14 +78,21 @@ class ReferencedFileTest {
   private AgentToolService mockAgentToolService;
   @Mock
   private ChatFontService mockChatFontService;
+  @Mock
+  private ContextWindowService mockContextWindowService;
+  @Mock
+  private AuthStatusManager mockAuthStatusManager;
+  @Mock
+  private CopilotLanguageServerConnection mockConnection;
 
   private Shell shell;
   private ActionBar actionBar;
+  private PreferenceStorage preferenceStorage;
   private MockedStatic<CopilotUi> mockedCopilotUi;
 
   @BeforeEach
   void setUp() {
-    SwtUtils.invokeOnDisplayThread(() -> {
+    runOnUi(() -> {
       setupSwtComponents();
       setupMockFiles();
       setupMockServices();
@@ -84,16 +101,22 @@ class ReferencedFileTest {
 
   @AfterEach
   void tearDown() {
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (actionBar != null && !actionBar.isDisposed()) {
-        actionBar.dispose();
+    try {
+      runOnUi(() -> {
+        if (actionBar != null && !actionBar.isDisposed()) {
+          actionBar.dispose();
+        }
+        if (shell != null && !shell.isDisposed()) {
+          shell.dispose();
+        }
+        if (preferenceStorage != null) {
+          preferenceStorage.dispose();
+        }
+      });
+    } finally {
+      if (mockedCopilotUi != null) {
+        mockedCopilotUi.close();
       }
-      if (shell != null && !shell.isDisposed()) {
-        shell.dispose();
-      }
-    });
-    if (mockedCopilotUi != null) {
-      mockedCopilotUi.close();
     }
   }
 
@@ -110,8 +133,13 @@ class ReferencedFileTest {
   }
 
   private void setupMockServices() {
+    ImageRegistry imageRegistry = CopilotUi.getPlugin().getImageRegistry();
     mockedCopilotUi = mockStatic(CopilotUi.class);
     mockedCopilotUi.when(CopilotUi::getPlugin).thenReturn(mockCopilotUi);
+    when(mockCopilotUi.getImageRegistry()).thenReturn(imageRegistry);
+    when(mockCopilotUi.getPreferenceStore()).thenReturn(new PreferenceStore());
+    preferenceStorage = new PreferenceStorage(mockConnection, mockAuthStatusManager);
+    preferenceStorage.initialize();
 
     lenient().when(mockModel.getModelName()).thenReturn("test-model");
     lenient().when(mockModelService.getActiveModel()).thenReturn(mockModel);
@@ -121,10 +149,30 @@ class ReferencedFileTest {
     lenient().when(mockChatServiceManager.getMcpConfigService()).thenReturn(mockMcpConfigService);
     lenient().when(mockChatServiceManager.getAgentToolService()).thenReturn(mockAgentToolService);
     lenient().when(mockChatServiceManager.getChatFontService()).thenReturn(mockChatFontService);
+    when(mockChatServiceManager.getContextWindowService()).thenReturn(mockContextWindowService);
+    when(mockChatServiceManager.getPreferenceStorage()).thenReturn(preferenceStorage);
     lenient().when(mockAgentToolService.getTool(JavaDebuggerToolAdapter.TOOL_NAME)).thenReturn(null);
     lenient().when(mockUserPreferenceService.getActiveChatMode()).thenReturn(ChatMode.Ask);
     lenient().when(mockCopilotUi.getChatServiceManager()).thenReturn(mockChatServiceManager);
     actionBar = spy(new ActionBar(shell, SWT.NONE, mockChatServiceManager));
+  }
+
+  @Test
+  void testImageReference_ModelUnavailable_ShowsUnsupportedChipAndLocalizedTooltip() {
+    runOnUi(() -> {
+      when(mockModelService.getActiveModel()).thenReturn(null);
+      assertEquals(PreferenceStorage.State.UNAVAILABLE, preferenceStorage.getState());
+
+      ReferencedFile image = assertDoesNotThrow(() -> new ReferencedFile(shell, mockImageFile, true));
+
+      assertSame(mockImageFile, image.getFile());
+      assertTrue(image.isFileUnSupported());
+      assertTrue(image.getVisible());
+      assertEquals(3, image.getChildren().length);
+      for (Control child : image.getChildren()) {
+        assertEquals("Images are unavailable until a model is ready.", child.getToolTipText());
+      }
+    });
   }
 
   /**
@@ -132,7 +180,7 @@ class ReferencedFileTest {
    */
   @Test
   void testStrikeThroughBehavior() {
-    SwtUtils.invokeOnDisplayThread(() -> {
+    runOnUi(() -> {
       List<IFile> testFiles = Arrays.asList(mockImageFile, mockTextFile);
 
       callUpdateReferencedFilesInternal(actionBar, testFiles, true);
@@ -159,6 +207,20 @@ class ReferencedFileTest {
       assertFalse(textWithoutVisionWidget.isFileUnSupported(),
           "Text file should not have strikethrough regardless of vision support");
     });
+  }
+
+  private static void runOnUi(Runnable runnable) {
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    Display.getDefault().syncExec(() -> {
+      try {
+        runnable.run();
+      } catch (Throwable error) {
+        failure.set(error);
+      }
+    });
+    if (failure.get() != null) {
+      fail("UI operation failed", failure.get());
+    }
   }
 
   /**

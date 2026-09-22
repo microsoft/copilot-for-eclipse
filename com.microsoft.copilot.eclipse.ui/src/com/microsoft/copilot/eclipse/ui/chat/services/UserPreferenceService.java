@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.databinding.observable.sideeffect.ISideEffect;
@@ -20,7 +22,6 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
-import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
@@ -29,6 +30,7 @@ import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
+import com.microsoft.copilot.eclipse.core.chat.service.BuiltInChatModeService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -46,7 +48,20 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 /**
  * Service for managing chat modes and input navigation.
  */
-public class UserPreferenceService extends ChatBaseService implements CopilotAuthStatusListener {
+public class UserPreferenceService extends ChatBaseService {
+  /**
+   * Availability of the independently discovered built-in mode inventory.
+   */
+  public enum ModeDiscoveryState {
+    UNAVAILABLE, LOADING, READY, FAILED
+  }
+
+  private final PreferenceStorage preferenceStorage;
+  private ISideEffect readinessSideEffect;
+  private volatile boolean disposed;
+  private long modeDiscoveryGeneration;
+  private CompletableFuture<List<BuiltInChatMode>> modeDiscovery;
+  private IObservableValue<ModeDiscoveryState> modeDiscoveryState;
   private IObservableValue<String[]> chatModeObservable;
   private IObservableValue<ChatMode> activeChatModeObservable; // Controls which view to show: Ask or Agent
   private IObservableValue<String> activeModeNameOrIdObservable; // Tracks current mode name/ID for UI elements
@@ -64,47 +79,42 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   /**
    * Constructor for the UserPreferenceService.
    */
-  public UserPreferenceService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager) {
+  public UserPreferenceService(CopilotLanguageServerConnection lsConnection, AuthStatusManager authStatusManager,
+      PreferenceStorage preferenceStorage) {
     super(lsConnection, authStatusManager);
+    this.preferenceStorage = preferenceStorage;
 
-    this.authStatusManager.addCopilotAuthStatusListener(this);
     ensureRealm(() -> {
       chatModeObservable = new WritableValue<>(getAvailableChatModes(), String[].class);
       activeChatModeObservable = new WritableValue<>(null, ChatMode.class);
       activeModeNameOrIdObservable = new WritableValue<>(null, String.class);
+      modeDiscoveryState = new WritableValue<>(ModeDiscoveryState.UNAVAILABLE, ModeDiscoveryState.class);
+      readinessSideEffect = ISideEffect.create(preferenceStorage.getReadiness()::getValue, state -> {
+        if (state == PreferenceStorage.State.READY) {
+          init();
+        } else {
+          activeChatModeObservable.setValue(null);
+          activeModeNameOrIdObservable.setValue(null);
+          inputNavigation = new InputNavigation();
+        }
+      });
     });
 
     initializeEventHandlers();
     subscribeToEvents();
-    init();
+    preferenceStorage.initialize();
+    reloadBuiltInModes();
   }
 
   private void initializeEventHandlers() {
     authStatusChangedEventHandler = event -> {
       Object property = event.getProperty(IEventBroker.DATA);
       if (property instanceof CopilotStatusResult statusResult) {
-        // If the user signs out, we need to clear the preference cache to avoid the current preference being used in
-        // the next sign in account.
-        if (statusResult.isNotSignedIn()) {
-          clearUserPreferenceCache();
-          this.inputNavigation = null;
-        } else {
-          // User has signed in - reload built-in modes to ensure we have the latest modes for this user
-          try {
-            BuiltInChatModeManager.INSTANCE.reloadModes();
-
-            // Update available chat modes in the observable to reflect any changes
-            ensureRealm(() -> {
-              if (!Arrays.deepEquals(getAvailableChatModes(), chatModeObservable.getValue())) {
-                chatModeObservable.setValue(getAvailableChatModes());
-              }
-            });
-
-            // Reinitialize user preferences for the new user
-            init();
-          } catch (Exception e) {
-            CopilotCore.LOGGER.error("Failed to reload built-in modes on user switch", e);
-          }
+        if (statusResult.isSignedIn() && authStatusManager.isSignedIn()
+            && Objects.equals(statusResult.getUser(), authStatusManager.getUserName())) {
+          reloadBuiltInModes();
+        } else if (!statusResult.isSignedIn()) {
+          ensureRealm(this::cancelModeDiscovery);
         }
       }
     };
@@ -125,6 +135,55 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     };
   }
 
+  private void reloadBuiltInModes() {
+    ensureRealm(() -> {
+      cancelModeDiscovery();
+      if (!authStatusManager.isSignedIn()) {
+        return;
+      }
+      long generation = modeDiscoveryGeneration;
+      String account = authStatusManager.getUserName();
+      modeDiscoveryState.setValue(ModeDiscoveryState.LOADING);
+      CompletableFuture<List<BuiltInChatMode>> discovery = CompletableFuture
+          .supplyAsync(() -> new BuiltInChatModeService().loadBuiltInModes(lsConnection))
+          .thenCompose(result -> result);
+      modeDiscovery = discovery;
+      discovery.thenAccept(modes -> ensureRealm(() -> {
+        if (generation != modeDiscoveryGeneration || !authStatusManager.isSignedIn()
+            || !Objects.equals(account, authStatusManager.getUserName())) {
+          return;
+        }
+        if (modes.isEmpty()) {
+          modeDiscoveryState.setValue(ModeDiscoveryState.FAILED);
+          return;
+        }
+        BuiltInChatModeManager.INSTANCE.updateModes(modes);
+        chatModeObservable.setValue(getAvailableChatModes());
+        modeDiscoveryState.setValue(ModeDiscoveryState.READY);
+        if (eventBroker != null && getUserPreference() != null) {
+          eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, getActiveChatMode());
+        }
+      })).exceptionally(exception -> {
+        ensureRealm(() -> {
+          if (generation == modeDiscoveryGeneration && authStatusManager.isSignedIn()
+              && Objects.equals(account, authStatusManager.getUserName())) {
+            modeDiscoveryState.setValue(ModeDiscoveryState.FAILED);
+            CopilotCore.LOGGER.error("Failed to reload built-in modes", exception);
+          }
+        });
+        return null;
+      });
+    });
+  }
+
+  private void cancelModeDiscovery() {
+    modeDiscoveryGeneration++;
+    modeDiscoveryState.setValue(ModeDiscoveryState.UNAVAILABLE);
+    if (modeDiscovery != null) {
+      modeDiscovery.cancel(true);
+    }
+  }
+
   private void subscribeToEvents() {
     eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (eventBroker != null) {
@@ -136,7 +195,7 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
   }
 
   private void init() {
-    if (authStatusManager.isSignedIn()) {
+    if (preferenceStorage.getState() == PreferenceStorage.State.READY) {
       // Initialize chat mode preferences
       String chatModeName = restoreChatModeName();
 
@@ -150,11 +209,14 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
       }
 
       final ChatMode viewMode = rawViewMode;
-      ensureRealm(() -> {
-        activeChatModeObservable.setValue(viewMode);
-        activeModeNameOrIdObservable.setValue(chatModeName);
-      });
       inputNavigation = new InputNavigation(restoreUserInputs());
+      ensureRealm(() -> {
+        activeModeNameOrIdObservable.setValue(chatModeName);
+        activeChatModeObservable.setValue(viewMode);
+      });
+      if (eventBroker != null) {
+        eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MODE_CHANGED, viewMode);
+      }
     }
   }
 
@@ -201,19 +263,6 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     return new ArrayList<>();
   }
 
-  @Override
-  public void onDidCopilotStatusChange(CopilotStatusResult copilotStatusResult) {
-    String status = copilotStatusResult.getStatus();
-    switch (status) {
-      case CopilotStatusResult.OK, CopilotStatusResult.NOT_AUTHORIZED:
-        init();
-        break;
-      default:
-        disposeAllSideEffects();
-        break;
-    }
-  }
-
   /**
    * Get available chat modes based on feature flags. Includes built-in modes, custom modes, and "Add New Mode" option
    * with separators.
@@ -249,6 +298,11 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * @param chatModeNameOrId the name/ID of the chat mode to set
    */
   public void setActiveChatMode(String chatModeNameOrId) {
+    UserPreference preference = getUserPreference();
+    if (preference == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot change chat mode before preferences are ready"));
+      return;
+    }
     if (StringUtils.isBlank(chatModeNameOrId)) {
       return;
     }
@@ -274,7 +328,6 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     ChatMode uiViewMode = getViewModeForModeName(chatModeNameOrId);
 
     // Step 4: Persist user preference
-    UserPreference preference = getUserPreference();
     preference.setChatModeName(chatModeNameOrId);
     persistUserPreference();
 
@@ -302,6 +355,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * @return the active chat mode for UI rendering
    */
   public ChatMode getActiveChatMode() {
+    if (getUserPreference() == null) {
+      return ChatMode.Agent;
+    }
     ChatMode activeChatMode = activeChatModeObservable.getValue();
     if (activeChatMode != null) {
       return activeChatMode;
@@ -319,7 +375,48 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * @return the active mode name (for built-in modes) or custom mode ID (for custom modes)
    */
   public String getActiveModeNameOrId() {
-    return activeModeNameOrIdObservable.getValue();
+    return getUserPreference() == null ? null : activeModeNameOrIdObservable.getValue();
+  }
+
+  /**
+   * Returns whether the active preference can be resolved without falling back to another chat mode.
+   *
+   * @return whether actions depending on the selected mode can run
+   */
+  public boolean isActiveModeReady() {
+    if (disposed) {
+      return false;
+    }
+    boolean inventoryReady = modeDiscoveryState.getValue() == ModeDiscoveryState.READY;
+    String modeName = activeModeNameOrIdObservable.getValue();
+    if (getUserPreference() == null) {
+      return false;
+    }
+    if (CustomChatModeManager.INSTANCE.isCustomMode(modeName)) {
+      return CustomChatModeManager.INSTANCE.getCustomModeById(modeName) != null;
+    }
+    return inventoryReady && BuiltInChatModeManager.INSTANCE.getBuiltInModeByDisplayName(modeName) != null;
+  }
+
+  /**
+   * Returns mode discovery readiness in the UI Realm, independently of preference-file loading.
+   *
+   * @return the current discovery state
+   */
+  public ModeDiscoveryState getModeDiscoveryState() {
+    return disposed ? ModeDiscoveryState.UNAVAILABLE : modeDiscoveryState.getValue();
+  }
+
+  /**
+   * Retries failed or unavailable mode discovery without reloading ready preferences.
+   */
+  public void retryModeDiscovery() {
+    ensureRealm(() -> {
+      ModeDiscoveryState state = modeDiscoveryState.getValue();
+      if (state == ModeDiscoveryState.FAILED || state == ModeDiscoveryState.UNAVAILABLE) {
+        reloadBuiltInModes();
+      }
+    });
   }
 
   /**
@@ -407,7 +504,13 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
         }
       });
 
-      chatModeButtonSideEffects.put(picker, new ISideEffect[] { groupsSideEffect, selectionSideEffect });
+      ISideEffect readinessEffect = ISideEffect.create(preferenceStorage.getReadiness()::getValue, state -> {
+        if (!picker.isDisposed()) {
+          picker.setEnabled(state == PreferenceStorage.State.READY);
+        }
+      });
+      chatModeButtonSideEffects.put(picker,
+          new ISideEffect[] { groupsSideEffect, selectionSideEffect, readinessEffect });
       // Add a dispose listener to auto-unbind when the dropdown button is disposed
       picker.addDisposeListener(e -> unbindChatModePicker(picker));
     });
@@ -513,8 +616,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * Add input to the input history.
    */
   public void addInputToHistory(String input) {
-    inputNavigation.add(input);
     UserPreference preference = getUserPreference();
+    if (preference == null) {
+      CopilotCore.LOGGER.error(new IllegalStateException("Cannot record chat input before preferences are ready"));
+      return;
+    }
+    inputNavigation.add(input);
     preference.setUserInputs(inputNavigation.getInputHistoryList());
   }
 
@@ -525,6 +632,9 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * @return the previous input or an empty string if at the top of the history.
    */
   public String getPreviousInput(String currentInput) {
+    if (getUserPreference() == null) {
+      return StringUtils.EMPTY;
+    }
     if (inputNavigation.atBottom() && StringUtils.isNotEmpty(currentInput)) {
       inputNavigation.add(currentInput);
       inputNavigation.updateCursorPosition(inputNavigation.size() - 1);
@@ -532,7 +642,15 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     return inputNavigation.navigateUp();
   }
 
+  /**
+   * Returns the next input, or an empty string when preference history is unavailable.
+   *
+   * @return next input in the history
+   */
   public String getNextInput() {
+    if (getUserPreference() == null) {
+      return StringUtils.EMPTY;
+    }
     return inputNavigation.navigateDown();
   }
 
@@ -564,7 +682,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    */
   public void setSkipGitHubJobConfirmDialog(boolean skip) {
     UserPreference preference = getUserPreference();
-    if (preference != null && preference.isSkipGitHubJobConfirmDialog() != skip) {
+    if (preference == null) {
+      CopilotCore.LOGGER.error(
+          new IllegalStateException("Cannot change confirmation preferences before preferences are ready"));
+      return;
+    }
+    if (preference.isSkipGitHubJobConfirmDialog() != skip) {
       preference.setSkipGitHubJobConfirmDialog(skip);
       persistUserPreference();
     }
@@ -574,11 +697,23 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * Dispose of the service.
    */
   public void dispose() {
+    if (disposed) {
+      return;
+    }
     persistUserPreference();
-    // Ideally we should dispose all side effects and observable here. But since the service is
-    // singleton and will only be disposed when the bundle is stopped. So right now they are not
-    // explicitly disposed here.
-    this.authStatusManager.removeCopilotAuthStatusListener(this);
+    disposed = true;
+    super.ensureRealm(() -> {
+      cancelModeDiscovery();
+      readinessSideEffect.dispose();
+      unbindChatView();
+      for (DropdownButton picker : List.copyOf(chatModeButtonSideEffects.keySet())) {
+        unbindChatModePicker(picker);
+      }
+      chatModeObservable.dispose();
+      activeChatModeObservable.dispose();
+      activeModeNameOrIdObservable.dispose();
+      modeDiscoveryState.dispose();
+    });
 
     if (eventBroker != null) {
       eventBroker.unsubscribe(authStatusChangedEventHandler);
@@ -603,18 +738,28 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     return false;
   }
 
-  private void disposeAllSideEffects() {
-    ensureRealm(() -> {
-      // Dispose chat mode combo side effects
-      for (ISideEffect[] effects : chatModeButtonSideEffects.values()) {
-        for (ISideEffect effect : effects) {
-          if (effect != null) {
-            effect.dispose();
-          }
-        }
+  private UserPreference getUserPreference() {
+    return disposed ? null : preferenceStorage.getReadyPreferences();
+  }
+
+  /**
+   * Saves the currently loaded preferences without resolving another persistence path.
+   */
+  public void persistUserPreference() {
+    if (!disposed) {
+      preferenceStorage.persist();
+    }
+  }
+
+  @Override
+  protected void ensureRealm(Runnable runnable) {
+    if (disposed) {
+      return;
+    }
+    super.ensureRealm(() -> {
+      if (!disposed) {
+        runnable.run();
       }
     });
-
-    chatModeButtonSideEffects.clear();
   }
 }

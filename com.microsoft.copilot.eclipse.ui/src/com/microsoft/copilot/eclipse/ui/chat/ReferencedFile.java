@@ -27,6 +27,7 @@ import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
@@ -197,10 +198,9 @@ public class ReferencedFile extends Composite {
   private void setupUnsupportedFileDisplay() {
     // Set warning icon
     lblfileIcon.setImage(CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK));
-    // Set tooltip with model name
-    String modelName = CopilotUi.getPlugin().getChatServiceManager().getModelService().getActiveModel()
-        .getModelName();
-    String tooltipText = String.format(Messages.chat_referencedFile_noVision_tooltip, modelName);
+    CopilotModel model = CopilotUi.getPlugin().getChatServiceManager().getModelService().getActiveModel();
+    String tooltipText = model == null ? Messages.chat_referencedFile_modelUnavailable_tooltip
+        : String.format(Messages.chat_referencedFile_noVision_tooltip, model.getModelName());
     lblfileIcon.setToolTipText(tooltipText);
     lblFileName.setToolTipText(tooltipText);
     lblClose.setToolTipText(tooltipText);
