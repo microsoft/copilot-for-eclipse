@@ -105,7 +105,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private ContentAssistant ca;
   private Image sendImage;
   private Image sendDisabledImage;
-  private boolean isSendButton = true;
+  private volatile ActionButtonState actionButtonState = ActionButtonState.SEND_DISABLED;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
   private Image mcpToolImage;
@@ -128,10 +128,6 @@ public class ActionBar extends Composite implements NewConversationListener {
   EventHandler featureFlagsChangedEventHandler;
   EventHandler updateMcpToolButtonAndPlaceHolderHandler;
 
-  private static enum SendOrCancelButtonStates {
-    SEND_ENABLED, SEND_DISABLED, CANCEL_ENABLED;
-  }
-
   /**
    * Creates a new InputArea.
    */
@@ -146,7 +142,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.setData(CssConstants.CSS_ID_KEY, "chat-action-bar-wrapper");
     this.chatServiceManager = chatServiceManager;
     this.updateSendButtonToCancelButtonHandler = event -> {
-      updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
+      markTurnStarted();
     };
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND, updateSendButtonToCancelButtonHandler);
@@ -234,18 +230,11 @@ public class ActionBar extends Composite implements NewConversationListener {
     tv.addTextListener(new ITextListener() {
       @Override
       public void textChanged(TextEvent event) {
-        if (!isSendButton) {
-          return;
-        }
-        if (tv.getDocument().get().equals(StringUtils.EMPTY)) {
-          updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-        } else {
-          updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-        }
+        transitionActionButtonState(ActionButtonEvent.INPUT_CHANGED);
       }
     });
     tv.setSendMessageHandler((message) -> {
-      if (isSendButton) {
+      if (!isTurnRunning()) {
         handleSendMessage();
       }
     });
@@ -432,9 +421,6 @@ public class ActionBar extends Composite implements NewConversationListener {
 
       this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
 
-      boolean hasText = !StringUtils.isBlank(this.inputTextViewer.getContent());
-      this.sendToJobButton.setEnabled(hasText);
-      this.sendToJobButton.setImage(hasText ? sendToJobImage : sendToJobDisabledImage);
       this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.sendToJobButton,
           Messages.chat_actionBar_sendToJobButton_Tooltip);
@@ -456,10 +442,6 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND);
       this.sendDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_DISABLED);
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-      boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
-      this.btnMsgToggle.setEnabled(isEnabled);
-      this.btnMsgToggle.setImage(isEnabled ? this.sendImage : this.sendDisabledImage);
-      this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
       GridData sendGd = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
       sendGd.widthHint = this.sendImage.getImageData().width + 2 * UiConstants.BTN_PADDING;
       sendGd.heightHint = this.sendImage.getImageData().height + 2 * UiConstants.BTN_PADDING;
@@ -467,16 +449,17 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.btnMsgToggle.addSelectionListener(new SelectionAdapter() {
         @Override
         public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
-          if (isSendButton) {
-            handleSendMessage();
-          } else {
+          if (isTurnRunning()) {
             handleCancelMessage();
+          } else {
+            handleSendMessage();
           }
         }
       });
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.btnMsgToggle,
           Messages.chat_actionBar_sendButton_Tooltip);
     }
+    renderCurrentState();
     // Refresh the layout
     this.bottomRightButtonsComposite.requestLayout();
   }
@@ -713,20 +696,34 @@ public class ActionBar extends Composite implements NewConversationListener {
 
   @Override
   public void onNewConversation() {
-    resetSendButton();
+    markTurnFinished();
     disposeStaticBanner();
   }
 
   /**
-   * Handles the cancel message event.
+   * Marks a top-level chat turn as started.
    */
-  public void resetSendButton() {
-    if (this.inputTextViewer.getContent().isEmpty()) {
-      updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-    } else {
-      updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
+  public void markTurnStarted() {
+    transitionActionButtonState(ActionButtonEvent.TURN_STARTED);
+  }
+
+  /**
+   * Marks a top-level chat turn as finished.
+   */
+  public void markTurnFinished() {
+    transitionActionButtonState(ActionButtonEvent.TURN_FINISHED);
+    if (!isDisposed()) {
+      this.chatServiceManager.getFileToolService().setWorkingSetBarButtonStatus(true);
     }
-    this.chatServiceManager.getFileToolService().setWorkingSetBarButtonStatus(true);
+  }
+
+  /**
+   * Returns whether a top-level chat turn is running.
+   *
+   * @return {@code true} while a top-level turn is running
+   */
+  public boolean isTurnRunning() {
+    return actionButtonState.isTurnRunning();
   }
 
   /**
@@ -762,7 +759,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Handles the send message event.
    */
   public void handleSendMessage() {
-    updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
+    markTurnStarted();
     String message = this.inputTextViewer.getContent();
     String workDoneToken = UUID.randomUUID().toString();
     this.inputTextViewer.setContent(StringUtils.EMPTY);
@@ -795,18 +792,13 @@ public class ActionBar extends Composite implements NewConversationListener {
 
         // Only proceed if a project path was selected (dialog was not cancelled)
         if (selectedProjectPath != null) {
-          updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
+          markTurnStarted();
           String message = this.inputTextViewer.getContent();
           String workDoneToken = UUID.randomUUID().toString();
           this.inputTextViewer.setContent(StringUtils.EMPTY);
           notifySendWithSlug(workDoneToken, message, UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG, selectedProjectPath);
         } else {
-          // Dialog was cancelled, reset button state based on current input content
-          if (this.inputTextViewer.getContent().isEmpty()) {
-            updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-          } else {
-            updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-          }
+          transitionActionButtonState(ActionButtonEvent.INPUT_CHANGED);
         }
       }
     }
@@ -814,7 +806,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   }
 
   private void handleCancelMessage() {
-    resetSendButton();
+    markTurnFinished();
     notifyCancel();
     IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     eventBroker.post(CopilotEventConstants.TOPIC_CHAT_MESSAGE_CANCELLED, null);
@@ -844,28 +836,42 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.messageListeners.remove(listener);
   }
 
-  /**
-   * Returns the current action bar conversation state. Return true if the conversation is stand by or cancelled, false
-   * otherwise
-   */
-  public boolean isSendButton() {
-    return isSendButton;
+  private void transitionActionButtonState(ActionButtonEvent event) {
+    if (isDisposed()) {
+      return;
+    }
+    SwtUtils.invokeOnDisplayThread(() -> {
+      if (isDisposed()) {
+        return;
+      }
+      boolean hasInput = inputTextViewer != null && StringUtils.isNotBlank(inputTextViewer.getContent());
+      actionButtonState = nextActionButtonState(actionButtonState, event, hasInput);
+      renderCurrentState();
+    }, this);
   }
 
-  private void updateButtonState(SendOrCancelButtonStates state) {
-    switch (state) {
+  private static ActionButtonState nextActionButtonState(ActionButtonState currentState, ActionButtonEvent event,
+      boolean hasInput) {
+    return switch (event) {
+      case TURN_STARTED -> ActionButtonState.CANCEL_ENABLED;
+      case TURN_FINISHED -> hasInput ? ActionButtonState.SEND_ENABLED : ActionButtonState.SEND_DISABLED;
+      case INPUT_CHANGED -> currentState.isTurnRunning()
+          ? currentState
+          : hasInput ? ActionButtonState.SEND_ENABLED : ActionButtonState.SEND_DISABLED;
+    };
+  }
+
+  private void renderCurrentState() {
+    switch (actionButtonState) {
       case SEND_ENABLED:
-        isSendButton = true;
         updateSendOrCancelMsgBtn(true, sendImage, Messages.chat_actionBar_sendButton_Tooltip);
         updateSendToJobBtn(true);
         break;
       case SEND_DISABLED:
-        isSendButton = true;
         updateSendOrCancelMsgBtn(false, sendDisabledImage, Messages.chat_actionBar_sendButton_Tooltip);
         updateSendToJobBtn(false);
         break;
       case CANCEL_ENABLED:
-        isSendButton = false;
         Image cancelImage = CopilotImages.getSharedImage(ISharedImages.IMG_ELCL_STOP);
         updateSendOrCancelMsgBtn(true, cancelImage, Messages.chat_actionBar_cancelButton_Tooltip);
         updateSendToJobBtn(false);
@@ -1112,5 +1118,21 @@ public class ActionBar extends Composite implements NewConversationListener {
     );
 
     dialog.open();
+  }
+
+  private enum ActionButtonState {
+    SEND_ENABLED,
+    SEND_DISABLED,
+    CANCEL_ENABLED;
+
+    boolean isTurnRunning() {
+      return this == CANCEL_ENABLED;
+    }
+  }
+
+  private enum ActionButtonEvent {
+    TURN_STARTED,
+    TURN_FINISHED,
+    INPUT_CHANGED
   }
 }
