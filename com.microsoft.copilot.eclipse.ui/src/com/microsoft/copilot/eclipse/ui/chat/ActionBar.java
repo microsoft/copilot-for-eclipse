@@ -948,7 +948,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       Set<String> selectedFileUris = new HashSet<>();
       for (Object selectedFile : selectedFiles) {
         if (selectedFile instanceof IFile file) {
-          URI fileUri = file.getLocationURI();
+          URI fileUri = FileUtils.getResourceAsUri(file);
           if (fileUri != null && selectedFileUris.add(fileUri.toASCIIString())) {
             result.add(file);
           }

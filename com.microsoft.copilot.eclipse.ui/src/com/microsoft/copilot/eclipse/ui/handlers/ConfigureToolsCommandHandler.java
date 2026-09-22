@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.handlers;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.preferences.McpPreferencePage;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
@@ -101,7 +103,14 @@ public class ConfigureToolsCommandHandler extends CopilotHandler {
 
     if (UiUtils.isAgentFile(file)) {
       // Get the file's absolute path
-      Path filePath = Paths.get(file.getLocationURI());
+      URI resourceUri = FileUtils.getResourceAsUri(file);
+      if (resourceUri == null) {
+        return null;
+      }
+      Path filePath = FileUtils.getLocalFilePath(resourceUri.toString());
+      if (filePath == null) {
+        return null;
+      }
 
       // Look up the custom mode by matching the file path
       try {

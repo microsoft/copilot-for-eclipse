@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
@@ -90,12 +91,12 @@ public class AddContextButton extends Composite {
       Set<String> selectedFileUris = new HashSet<>();
       for (Object selectedFile : selectedFiles) {
         if (selectedFile instanceof IFile file) {
-          URI fileUri = file.getLocationURI();
+          URI fileUri = FileUtils.getResourceAsUri(file);
           if (fileUri != null && selectedFileUris.add(fileUri.toASCIIString())) {
             result.add(file);
           }
         } else if (selectedFile instanceof IFolder folder) {
-          URI folderUri = folder.getLocationURI();
+          URI folderUri = FileUtils.getResourceAsUri(folder);
           if (folderUri != null && selectedFileUris.add(folderUri.toASCIIString())) {
             result.add(folder);
           }
