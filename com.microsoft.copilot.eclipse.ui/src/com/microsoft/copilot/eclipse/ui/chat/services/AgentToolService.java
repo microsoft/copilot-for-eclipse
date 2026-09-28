@@ -21,6 +21,7 @@ import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
+import com.microsoft.copilot.eclipse.core.chat.McpSamplingConfigProvider;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
@@ -30,6 +31,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirma
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.ToolInvocationStatus;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpSamplingConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RegisterToolsParams;
 import com.microsoft.copilot.eclipse.core.utils.JdtUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
@@ -55,7 +57,8 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 /**
  * Service to manage and access tools.
  */
-public class AgentToolService implements ToolInvocationListener, TerminalServiceManager.TerminalServiceListener {
+public class AgentToolService implements ToolInvocationListener, McpSamplingConfigProvider,
+    TerminalServiceManager.TerminalServiceListener {
   private ConcurrentHashMap<String, BaseTool> tools;
   private ChatView boundChatView;
 
@@ -122,6 +125,7 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     ChatEventsManager chatEventsManager = CopilotCore.getPlugin().getChatEventsManager();
     if (chatEventsManager != null) {
       chatEventsManager.registerAgentToolListener(this);
+      chatEventsManager.registerMcpSamplingConfigProvider(this);
     }
   }
 
@@ -345,6 +349,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     return confirmationService;
   }
 
+  @Override
+  public McpSamplingConfig getMcpSamplingConfig(String serverName) {
+    return confirmationService.getMcpSamplingConfig(serverName);
+  }
+
   /** Returns the registry of user-attached context files. */
   public AttachedFileRegistry getAttachedFileRegistry() {
     return attachedFileRegistry;
@@ -358,6 +367,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
     if (terminalManager != null) {
       terminalManager.removeListener(this);
+    }
+
+    ChatEventsManager chatEventsManager = CopilotCore.getPlugin().getChatEventsManager();
+    if (chatEventsManager != null) {
+      chatEventsManager.unregisterMcpSamplingConfigProvider(this);
     }
 
     this.tools.clear();

@@ -15,6 +15,7 @@ import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationActionScope;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpSamplingConfig;
 
 /**
  * Central entry point for auto-approve evaluation. Classifies each tool confirmation request
@@ -64,6 +65,7 @@ public class ConfirmationService {
   private final ConfirmationHandler fallbackHandler =
       new FallbackConfirmationHandler();
   private final IPreferenceStore preferenceStore;
+  private final McpConfirmationHandler mcpConfirmationHandler;
 
   /**
    * Creates a new ConfirmationService.
@@ -82,8 +84,8 @@ public class ConfirmationService {
     handlers.put(ToolCategory.FILE_READ, fileHandler);
     handlers.put(ToolCategory.FILE_WRITE, fileHandler);
     handlers.put(ToolCategory.FILE_OPERATION, fileHandler);
-    handlers.put(ToolCategory.MCP_TOOL,
-        new McpConfirmationHandler(preferenceStore));
+    this.mcpConfirmationHandler = new McpConfirmationHandler(preferenceStore);
+    handlers.put(ToolCategory.MCP_TOOL, mcpConfirmationHandler);
   }
 
   /**
@@ -141,6 +143,16 @@ public class ConfirmationService {
     for (ConfirmationHandler handler : handlers.values()) {
       handler.clearSession(conversationId);
     }
+  }
+
+  /**
+   * Reads the persisted MCP sampling approval preferences for a server.
+   *
+   * @param serverName the MCP server name
+   * @return the sampling config for the server
+   */
+  public McpSamplingConfig getMcpSamplingConfig(String serverName) {
+    return mcpConfirmationHandler.getMcpSamplingConfig(serverName);
   }
 
   ToolCategory classify(InvokeClientToolConfirmationParams params) {

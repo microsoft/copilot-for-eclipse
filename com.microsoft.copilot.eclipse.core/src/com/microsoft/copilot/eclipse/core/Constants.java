@@ -59,6 +59,10 @@ public class Constants {
   public static final String AUTO_APPROVE_UNMATCHED_FILE_OP = "autoApproveUnmatchedFileOp";
   public static final String AUTO_APPROVE_MCP_SERVERS = "autoApproveMcpServers";
   public static final String AUTO_APPROVE_MCP_TOOLS = "autoApproveMcpTools";
+  // Servers approved to skip the MCP sampling (inference) confirmation dialog. Kept separate from
+  // AUTO_APPROVE_MCP_SERVERS so that approving regular tool calls for a server never silently
+  // approves its (billable) sampling requests, and vice versa.
+  public static final String AUTO_APPROVE_MCP_SAMPLING_SERVERS = "autoApproveMcpSamplingServers";
   public static final String AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS = "autoApproveTrustToolAnnotations";
   public static final String AUTO_APPROVE_YOLO_MODE = "autoApproveYoloMode";
 

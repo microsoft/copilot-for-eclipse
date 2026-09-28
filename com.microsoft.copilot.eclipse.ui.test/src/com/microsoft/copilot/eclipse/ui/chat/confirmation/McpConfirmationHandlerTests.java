@@ -31,6 +31,7 @@ import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolAnnotations;
+import com.microsoft.copilot.eclipse.ui.chat.Messages;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -398,10 +399,120 @@ class McpConfirmationHandlerTests {
         McpConfirmationHandler.Action.ACCEPT_SERVER_SESSION));
   }
 
+  @Test
+  void buildContent_samplingHasInferenceApprovalActions() {
+    ConfirmationResult result = evaluate(
+        buildSamplingParams(SERVER), CONV_ID);
+
+    ConfirmationContent content = result.getContent();
+    List<ConfirmationAction> actions = content.getActions();
+    assertEquals(Messages.confirmation_sampling_title,
+        content.getTitle());
+    assertEquals(4, actions.size());
+    assertEquals(Messages.confirmation_sampling_action_yes,
+        actions.get(0).getLabel());
+    assertEquals(ConfirmationActionScope.ONCE,
+        actions.get(0).getScope());
+    assertTrue(hasAction(actions,
+        McpConfirmationHandler.Action.ACCEPT_SAMPLING_SERVER_GLOBAL));
+    assertTrue(actions.stream().anyMatch(action ->
+        ConfirmationAction.UI_ACTION_REVIEW_PROMPT.equals(
+            action.getMetadata().get(
+                ConfirmationAction.META_UI_ACTION))));
+    assertEquals(Messages.confirmation_sampling_action_no,
+        actions.get(actions.size() - 1).getLabel());
+  }
+
+  @Test
+  void buildContent_samplingWithoutAutoApprovalOmitsPersistentAction() {
+    ConfirmationResult result = handler.evaluate(
+        buildSamplingParams(SERVER), CONV_ID, false);
+
+    List<ConfirmationAction> actions =
+        result.getContent().getActions();
+    assertEquals(3, actions.size());
+    assertFalse(hasAction(actions,
+        McpConfirmationHandler.Action.ACCEPT_SAMPLING_SERVER_GLOBAL));
+  }
+
+  // --- sampling / regular-tool approval isolation ---
+
+  @Test
+  void evaluate_samplingNotAutoApprovedWhenOnlyRegularToolServerApproved() {
+    // Approving regular tool calls for a server must NOT silently auto-approve
+    // its (billable) sampling requests.
+    stubGlobalServers(List.of(SERVER));
+    stubSamplingServers(List.of());
+
+    ConfirmationResult result = evaluate(
+        buildSamplingParams(SERVER), CONV_ID);
+
+    assertFalse(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_regularToolNotAutoApprovedWhenOnlySamplingServerApproved() {
+    // Approving sampling for a server must NOT silently auto-approve its
+    // regular tool calls.
+    stubSamplingServers(List.of(SERVER));
+
+    ConfirmationResult result = evaluate(
+        buildParams(SERVER, TOOL), CONV_ID);
+
+    assertFalse(result.isAutoApproved());
+  }
+
+  @Test
+  void evaluate_samplingAutoApprovedWhenSamplingServerGloballyApproved() {
+    stubSamplingServers(List.of(SERVER));
+
+    ConfirmationResult result = evaluate(
+        buildSamplingParams(SERVER), CONV_ID);
+
+    assertTrue(result.isAutoApproved());
+  }
+
+  @Test
+  void cacheDecision_acceptSamplingServerGlobal_writesToDedicatedPreferenceKey() {
+    stubSamplingServers(List.of());
+
+    ConfirmationAction action = buildAction(
+        McpConfirmationHandler.Action.ACCEPT_SAMPLING_SERVER_GLOBAL,
+        Map.of(McpConfirmationHandler.META_SERVER_NAME, SERVER));
+    handler.cacheDecision(action, buildSamplingParams(SERVER), CONV_ID);
+
+    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    verify(preferenceStore).setValue(
+        org.mockito.ArgumentMatchers.eq(
+            Constants.AUTO_APPROVE_MCP_SAMPLING_SERVERS),
+        captor.capture());
+    assertTrue(captor.getValue().contains(SERVER));
+  }
+
+  @Test
+  void getMcpSamplingConfig_alwaysAllowFalseByDefault() {
+    stubSamplingServers(List.of());
+
+    assertFalse(handler.getMcpSamplingConfig(SERVER).alwaysAllow());
+  }
+
+  @Test
+  void getMcpSamplingConfig_alwaysAllowTrueAfterServerApproved() {
+    stubSamplingServers(List.of(SERVER));
+
+    assertTrue(handler.getMcpSamplingConfig(SERVER).alwaysAllow());
+  }
+
   // --- Helpers ---
 
   private void stubGlobalServers(List<String> servers) {
     when(preferenceStore.getString(Constants.AUTO_APPROVE_MCP_SERVERS))
+        .thenReturn(GSON.toJson(servers));
+  }
+
+  private void stubSamplingServers(List<String> servers) {
+    when(preferenceStore.getString(
+        Constants.AUTO_APPROVE_MCP_SAMPLING_SERVERS))
         .thenReturn(GSON.toJson(servers));
   }
 
@@ -435,6 +546,19 @@ class McpConfirmationHandlerTests {
       input.put("mcpToolName", toolName);
     }
     params.setInput(input);
+    return params;
+  }
+
+  private static InvokeClientToolConfirmationParams buildSamplingParams(
+      String serverName) {
+    InvokeClientToolConfirmationParams params =
+        buildParams(serverName, null);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> input =
+        (Map<String, Object>) params.getInput();
+    input.put("mcpType", "sampling");
+    input.put("content", Map.of("type", "text",
+        "text", "Prompt to review"));
     return params;
   }
 
