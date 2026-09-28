@@ -24,6 +24,7 @@ public class ChatServiceManager implements IChatServiceManager {
   private ModelService modelService;
   private ByokService byokService;
   private UserPreferenceService userPreferenceService;
+  private PreferenceStorage preferenceStorage;
   private AvatarService avatarService;
   private AgentToolService agentToolService;
   private FileToolService fileToolService;
@@ -45,8 +46,9 @@ public class ChatServiceManager implements IChatServiceManager {
     this.lsConnection = CopilotCore.getPlugin().getCopilotLanguageServer();
     this.authStatusManager = CopilotCore.getPlugin().getAuthStatusManager();
     chatCompletionService = new ChatCompletionService(this.lsConnection, this.authStatusManager);
-    modelService = new ModelService(this.lsConnection, this.authStatusManager);
-    userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager);
+    preferenceStorage = new PreferenceStorage(this.lsConnection, this.authStatusManager);
+    userPreferenceService = new UserPreferenceService(this.lsConnection, this.authStatusManager, preferenceStorage);
+    modelService = new ModelService(this.lsConnection, this.authStatusManager, preferenceStorage);
     avatarService = new AvatarService(this.authStatusManager);
     agentToolService = new AgentToolService(this.lsConnection);
     fileToolService = new FileToolService(this.lsConnection);
@@ -110,6 +112,15 @@ public class ChatServiceManager implements IChatServiceManager {
    */
   public UserPreferenceService getUserPreferenceService() {
     return userPreferenceService;
+  }
+
+  /**
+   * Returns the lifecycle-owned chat preference storage.
+   *
+   * @return shared preference storage
+   */
+  public PreferenceStorage getPreferenceStorage() {
+    return preferenceStorage;
   }
 
   /**
@@ -208,6 +219,7 @@ public class ChatServiceManager implements IChatServiceManager {
     this.chatCompletionService.dispose();
     this.modelService.dispose();
     this.userPreferenceService.dispose();
+    this.preferenceStorage.dispose();
     this.agentToolService.dispose();
     this.referencedFileService.dispose();
     this.mcpConfigService.dispose();
