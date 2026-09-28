@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -24,6 +23,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.core.databinding.observable.Realm;
@@ -89,6 +90,193 @@ class PreferenceStorageTest {
   }
 
   @Test
+  void testUpdate_RapidChanges_AreImmediateAndCoalesceBeforeWriting() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+
+    storage.update(preference -> preference.setChatModel("first"));
+    storage.update(preference -> preference.setChatModel("latest"));
+
+    assertEquals("latest", storage.getReadyPreferences().getChatModel());
+    assertTrue(storage.isDirty());
+    verify(files, never()).write(any(), any());
+    drainWork();
+    realm.drain();
+
+    ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
+    verify(files).write(eq(Path.of(persistence().getPath(), "alice", "pref.json")), saved.capture());
+    assertTrue(saved.getValue().contains("\"chatModel\":\"latest\""));
+    assertFalse(storage.isDirty());
+    assertEquals(PreferenceStorage.SaveState.SAVED, storage.getSaveStatus().getValue());
+    verify(connection).persistence();
+  }
+
+  @Test
+  void testPersist_WhileSameRevisionIsWriting_DoesNotDuplicateSave() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    storage.update(preference -> preference.setChatModel("chosen"));
+    // Only the first write requests retries, so a duplicate cannot create an endless test loop.
+    Mockito.doAnswer(invocation -> {
+      storage.persist();
+      storage.persist();
+      Mockito.doNothing().when(files).write(any(), any());
+      return null;
+    }).when(files).write(any(), any());
+    drainWork();
+
+    verify(files).write(any(), any());
+    assertFalse(storage.isDirty());
+  }
+
+  @Test
+  void testUpdate_DuringWrite_PreservesSnapshotAndKeepsNewerRevisionDirty() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    AtomicInteger writes = new AtomicInteger();
+    Mockito.doAnswer(invocation -> {
+      String json = invocation.getArgument(1);
+      assertTrue(storage.isDirty());
+      if (writes.incrementAndGet() == 1) {
+        assertTrue(json.contains("\"chatModel\":\"first\""));
+        CompletableFuture.runAsync(() -> {
+          storage.update(preference -> preference.setChatModel("middle"));
+          storage.update(preference -> preference.setChatModel("latest"));
+        }).get(5, TimeUnit.SECONDS);
+        assertEquals("latest", storage.getReadyPreferences().getChatModel());
+        assertTrue(json.contains("\"chatModel\":\"first\""), "Issued snapshots must be stable");
+      } else {
+        assertTrue(json.contains("\"chatModel\":\"latest\""));
+        realm.drain();
+        assertEquals(PreferenceStorage.SaveState.SAVING, storage.getSaveStatus().getValue());
+      }
+      return null;
+    }).when(files).write(any(), any());
+
+    storage.update(preference -> preference.setChatModel("first"));
+    drainWork();
+    realm.drain();
+
+    assertEquals(2, writes.get());
+    assertFalse(storage.isDirty());
+    assertEquals(PreferenceStorage.SaveState.SAVED, storage.getSaveStatus().getValue());
+  }
+
+  @Test
+  void testPersist_AfterFailure_RetriesNewestChoicesAndRetainedHistory() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{\"userInputs\":[\"restored\"]}");
+    load();
+    Mockito.doThrow(new IOException("read-only")).when(files).write(any(), any());
+    storage.update(preference -> preference.setChatModel("first"));
+    drainWork();
+    realm.drain();
+    assertTrue(storage.isDirty());
+    assertEquals(PreferenceStorage.SaveState.FAILED, storage.getSaveStatus().getValue());
+    storage.update(preference -> preference.setChatModel("latest"));
+    drainWork();
+    realm.drain();
+    assertEquals(PreferenceStorage.SaveState.FAILED, storage.getSaveStatus().getValue());
+    Mockito.doNothing().when(files).write(any(), any());
+
+    storage.persist();
+    storage.persist();
+    drainWork();
+    realm.drain();
+
+    ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
+    verify(files, times(3)).write(any(), saved.capture());
+    assertTrue(saved.getValue().contains("\"chatModel\":\"latest\""));
+    assertTrue(saved.getValue().contains("\"userInputs\":[\"restored\"]"));
+    assertFalse(storage.isDirty());
+    assertEquals(PreferenceStorage.SaveState.SAVED, storage.getSaveStatus().getValue());
+    verify(connection).persistence();
+  }
+
+  @Test
+  void testUpdate_AccountChangesDuringOldWrite_OldFailureCannotAffectNewSave() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    AtomicInteger writes = new AtomicInteger();
+    Mockito.doAnswer(invocation -> {
+      if (writes.incrementAndGet() == 1) {
+        assertEquals(Path.of(persistence().getPath(), "alice", "pref.json"), invocation.getArgument(0));
+        when(auth.getUserName()).thenReturn("bob");
+        response = new CompletableFuture<>();
+        load();
+        storage.update(preference -> preference.setChatModel("bob-model"));
+        throw new IOException("old account failure");
+      }
+      assertEquals(Path.of(persistence().getPath(), "bob", "pref.json"), invocation.getArgument(0));
+      assertTrue(storage.isDirty());
+      realm.drain();
+      assertEquals(PreferenceStorage.SaveState.SAVING, storage.getSaveStatus().getValue());
+      assertEquals("bob-model", storage.getReadyPreferences().getChatModel());
+      return null;
+    }).when(files).write(any(), any());
+
+    storage.update(preference -> preference.setChatModel("alice-model"));
+    drainWork();
+    realm.drain();
+
+    assertEquals(2, writes.get());
+    assertFalse(storage.isDirty());
+    assertEquals(PreferenceStorage.SaveState.SAVED, storage.getSaveStatus().getValue());
+  }
+
+  @Test
+  void testDispose_WithAcceptedSnapshots_FinishesLatestWithoutLatePublication() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    AtomicInteger writes = new AtomicInteger();
+    Mockito.doAnswer(invocation -> {
+      if (writes.incrementAndGet() == 1) {
+        storage.update(preference -> preference.setChatModel("latest"));
+        storage.dispose();
+        realm.drain();
+        assertTrue(storage.getSaveStatus().isDisposed());
+        assertFalse(storage.update(preference -> preference.setChatModel("rejected")));
+      } else {
+        assertTrue(((String) invocation.getArgument(1)).contains("\"chatModel\":\"latest\""));
+      }
+      return null;
+    }).when(files).write(any(), any());
+
+    storage.update(preference -> preference.setChatModel("first"));
+    drainWork();
+    realm.drain();
+
+    assertEquals(2, writes.get());
+    assertEquals(State.DISPOSED, storage.getState());
+    assertNull(storage.getReadyPreferences());
+    verify(connection).persistence();
+  }
+
+  @Test
+  void testUpdate_RetainedEditAndReadSnapshots_CannotChangeSavedDocument() throws Exception {
+    when(files.read(any(Path.class))).thenReturn("{}");
+    load();
+    UserPreference[] retained = new UserPreference[1];
+    storage.update(preference -> {
+      retained[0] = preference;
+      preference.setChatModel("chosen");
+      preference.setUserInputs(new ArrayList<>(List.of("history")));
+    });
+    retained[0].setChatModel("escaped edit");
+    retained[0].getUserInputs().clear();
+    UserPreference read = storage.getReadyPreferences();
+    read.setChatModel("escaped read");
+    read.getUserInputs().clear();
+    drainWork();
+
+    ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
+    verify(files).write(any(), saved.capture());
+    assertTrue(saved.getValue().contains("\"chatModel\":\"chosen\""));
+    assertTrue(saved.getValue().contains("\"userInputs\":[\"history\"]"));
+    assertEquals("chosen", storage.getReadyPreferences().getChatModel());
+    assertEquals(List.of("history"), storage.getReadyPreferences().getUserInputs());
+  }
+
+  @Test
   void testInitialize_SavedPreferences_RestoresOnlyInRealm() throws Exception {
     when(files.read(any(Path.class))).thenReturn("""
         {"chatModel":"model-a","chatModeName":"Ask","userInputs":["hello"],
@@ -113,7 +301,7 @@ class PreferenceStorageTest {
     assertEquals(true, restored.isSkipGitHubJobConfirmDialog());
     assertEquals("high", restored.getReasoningEffort("model-a"));
     assertEquals(128000, restored.getContextWindow("model-a"));
-    assertSame(restored, storage.getReadyPreferences());
+    assertEquals(restored, storage.getReadyPreferences());
   }
 
   @Test
@@ -213,14 +401,12 @@ class PreferenceStorageTest {
     response.complete(persistence());
     drainWork();
     realm.drain();
-    UserPreference restored = storage.getReadyPreferences();
-    restored.setChatModel("session-choice");
+    storage.update(preference -> preference.setChatModel("session-choice"));
     storage.initialize();
     storage.retry();
     drainWork();
 
     verify(connection).persistence();
-    assertSame(restored, storage.getReadyPreferences());
     assertEquals("session-choice", storage.getReadyPreferences().getChatModel());
   }
 
@@ -522,13 +708,11 @@ class PreferenceStorageTest {
   void testAuthNotification_SameAccount_DoesNotResetReadySessionChoices() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
-    UserPreference restored = storage.getReadyPreferences();
-    restored.setChatModel("session-choice");
+    storage.update(preference -> preference.setChatModel("session-choice"));
     authListener().onDidCopilotStatusChange(new CopilotStatusResult());
     drainWork();
     realm.drain();
 
-    assertSame(restored, storage.getReadyPreferences());
     assertEquals("session-choice", storage.getReadyPreferences().getChatModel());
     verify(connection).persistence();
   }
@@ -551,7 +735,7 @@ class PreferenceStorageTest {
     assertNull(storage.getReadyPreferences());
     assertTrue(storage.getReadiness().isDisposed());
     verify(auth).removeCopilotAuthStatusListener(listener);
-    verify(worker).shutdownNow();
+    verify(worker).shutdown();
     verify(timer).shutdownNow();
     verify(connection).persistence();
     verifyNoInteractions(files);
@@ -576,8 +760,9 @@ class PreferenceStorageTest {
   void testPersist_ReadyPreferences_UsesResolvedAccountPathWithoutRpc() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
-    storage.getReadyPreferences().setChatModel("saved-model");
+    storage.update(preference -> preference.setChatModel("saved-model"));
     storage.persist();
+    drainWork();
 
     ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
     verify(files).write(eq(Path.of(persistence().getPath(), "alice", "pref.json")), saved.capture());
@@ -586,7 +771,7 @@ class PreferenceStorageTest {
   }
 
   @Test
-  void testPersist_ObsoleteAccountPreference_CannotSaveNewAccount() throws Exception {
+  void testUpdate_DetachedOldAccountSnapshot_CannotChangeNewAccount() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
     UserPreference original = storage.getReadyPreferences();
@@ -594,10 +779,11 @@ class PreferenceStorageTest {
     response = new CompletableFuture<>();
     load();
 
-    storage.persist(original);
+    original.setChatModel("old-account");
+    storage.persist();
     verify(files, never()).write(any(), any());
-    storage.getReadyPreferences().setChatModel("bob-model");
-    storage.persist(storage.getReadyPreferences());
+    storage.update(preference -> preference.setChatModel("bob-model"));
+    drainWork();
 
     ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
     verify(files).write(eq(Path.of(persistence().getPath(), "bob", "pref.json")), saved.capture());
@@ -606,26 +792,26 @@ class PreferenceStorageTest {
   }
 
   @Test
-  void testPersist_EqualButNotAuthoritativePreference_DoesNotWrite() throws Exception {
+  void testUpdate_DetachedSnapshot_CannotMutateAuthoritativePreferences() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
     UserPreference unrelated = new UserPreference();
     assertEquals(storage.getReadyPreferences(), unrelated);
 
-    storage.persist(unrelated);
-    storage.persist(null);
+    storage.getReadyPreferences().setChatModel("detached");
+    storage.persist();
+    drainWork();
 
     verify(files, never()).write(any(), any());
+    assertNull(storage.getReadyPreferences().getChatModel());
   }
 
   @Test
   void testPersist_DisposedPreference_DoesNotWrite() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
-    UserPreference original = storage.getReadyPreferences();
     storage.dispose();
 
-    storage.persist(original);
     storage.persist();
 
     verify(files, never()).write(any(), any());
@@ -635,14 +821,15 @@ class PreferenceStorageTest {
   void testPersist_DuringFileWrite_GettersRemainAvailableToOtherThreads() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
-    UserPreference original = storage.getReadyPreferences();
     Mockito.doAnswer(invocation -> {
       assertEquals(State.READY, CompletableFuture.supplyAsync(storage::getState).get(5, TimeUnit.SECONDS));
-      assertSame(original, CompletableFuture.supplyAsync(storage::getReadyPreferences).get(5, TimeUnit.SECONDS));
+      assertEquals("saved", CompletableFuture.supplyAsync(storage::getReadyPreferences)
+          .get(5, TimeUnit.SECONDS).getChatModel());
       return null;
     }).when(files).write(any(), any());
 
-    storage.persist(original);
+    storage.update(preference -> preference.setChatModel("saved"));
+    drainWork();
 
     verify(files).write(any(), any());
   }
@@ -656,7 +843,8 @@ class PreferenceStorageTest {
       assertNull(storage.getReadyPreferences());
       return null;
     }).when(files).write(any(), any());
-    storage.persist();
+    storage.update(preference -> preference.setChatModel("alice-model"));
+    drainWork();
 
     verify(files).write(eq(Path.of(persistence().getPath(), "alice", "pref.json")), any());
     assertEquals(State.UNAVAILABLE, storage.getState());
@@ -667,9 +855,10 @@ class PreferenceStorageTest {
   void testPersist_WriteFailure_PreservesReadySessionChoices() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     load();
-    storage.getReadyPreferences().setChatModel("session-choice");
+    storage.update(preference -> preference.setChatModel("session-choice"));
     Mockito.doThrow(new IOException("read-only")).when(files).write(any(), any());
     storage.persist();
+    drainWork();
 
     assertEquals(State.READY, storage.getState());
     assertEquals("session-choice", storage.getReadyPreferences().getChatModel());

@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -388,8 +387,7 @@ public class ModelService extends ChatBaseService {
     if (preference == null) {
       return;
     }
-    preference.setChatModel(model.getModelKey());
-    persistUserPreferenceAsync(preference);
+    preferenceStorage.update(updated -> updated.setChatModel(model.getModelKey()));
   }
 
   private String modeToScope(ChatMode mode) {
@@ -434,6 +432,10 @@ public class ModelService extends ChatBaseService {
    * @param modelName the name of the model
    */
   public void setActiveModel(String modelName) {
+    ensureRealm(() -> selectActiveModel(modelName));
+  }
+
+  private void selectActiveModel(String modelName) {
     if (getUserPreference() == null) {
       CopilotCore.LOGGER.error(new IllegalStateException("Cannot change model before preferences are ready"));
       return;
@@ -451,8 +453,11 @@ public class ModelService extends ChatBaseService {
       }
       persistModelSelection(model);
 
-      // Update observable
-      ensureRealm(() -> activeModelObservable.setValue(model));
+      UserPreference current = getUserPreference();
+      if (current != null && Objects.equals(modelAccount, authStatusManager.getUserName())
+          && Objects.equals(current.getChatModel(), model.getModelKey())) {
+        activeModelObservable.setValue(model);
+      }
     }
   }
 
@@ -549,6 +554,10 @@ public class ModelService extends ChatBaseService {
    * @param reasoningEffort the reasoning effort to store (may be {@code null} to clear)
    */
   public void setSelectedReasoningEffort(CopilotModel model, String reasoningEffort) {
+    ensureRealm(() -> selectReasoningEffort(model, reasoningEffort));
+  }
+
+  private void selectReasoningEffort(CopilotModel model, String reasoningEffort) {
     if (model == null) {
       return;
     }
@@ -559,12 +568,8 @@ public class ModelService extends ChatBaseService {
           new IllegalStateException("Cannot change reasoning effort before preferences are ready"));
       return;
     }
-    preference.setReasoningEffort(key, reasoningEffort);
-    persistUserPreferenceAsync(preference);
-    // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
-    // resolveEffectiveReasoningEffort (which queries UserPreference), so this observable serves
-    // purely as a change signal.
-    ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
+    preferenceStorage.update(updated -> updated.setReasoningEffort(key, reasoningEffort));
+    publishModelOptions();
   }
 
   /**
@@ -612,9 +617,8 @@ public class ModelService extends ChatBaseService {
         }
       }
     }
-    if (preference.setReasoningEfforts(reconciled)) {
-      persistUserPreferenceAsync(preference);
-      ensureRealm(() -> reasoningEffortObservable.setValue(preference.getReasoningEffortSnapshot()));
+    if (preferenceStorage.update(updated -> updated.setReasoningEfforts(reconciled))) {
+      publishModelOptions();
     }
   }
 
@@ -685,6 +689,10 @@ public class ModelService extends ChatBaseService {
    * @param contextWindow the context-window size to store, or {@code null} to clear
    */
   public void setSelectedContextWindow(CopilotModel model, Integer contextWindow) {
+    ensureRealm(() -> selectContextWindow(model, contextWindow));
+  }
+
+  private void selectContextWindow(CopilotModel model, Integer contextWindow) {
     if (model == null) {
       return;
     }
@@ -693,14 +701,10 @@ public class ModelService extends ChatBaseService {
       CopilotCore.LOGGER.error(new IllegalStateException("Cannot change context window before preferences are ready"));
       return;
     }
-    if (!preference.setContextWindow(model.getModelKey(), contextWindow)) {
+    if (!preferenceStorage.update(updated -> updated.setContextWindow(model.getModelKey(), contextWindow))) {
       return;
     }
-    persistUserPreferenceAsync(preference);
-    // Publish a fresh snapshot to drive bound picker re-renders. The actual rendering reads
-    // resolveEffectiveContextWindowText (which queries UserPreference), so this observable serves purely as a change
-    // signal.
-    ensureRealm(() -> contextWindowObservable.setValue(preference.getContextWindowSnapshot()));
+    publishModelOptions();
   }
 
   /**
@@ -744,9 +748,16 @@ public class ModelService extends ChatBaseService {
         reconciled.put(entry.getKey(), entry.getValue());
       }
     }
-    if (preference.setContextWindows(reconciled)) {
-      persistUserPreferenceAsync(preference);
-      ensureRealm(() -> contextWindowObservable.setValue(preference.getContextWindowSnapshot()));
+    if (preferenceStorage.update(updated -> updated.setContextWindows(reconciled))) {
+      publishModelOptions();
+    }
+  }
+
+  private void publishModelOptions() {
+    UserPreference current = getUserPreference();
+    if (current != null && Objects.equals(modelAccount, authStatusManager.getUserName())) {
+      reasoningEffortObservable.setValue(current.getReasoningEffortSnapshot());
+      contextWindowObservable.setValue(current.getContextWindowSnapshot());
     }
   }
 
@@ -916,21 +927,14 @@ public class ModelService extends ChatBaseService {
     return disposed ? null : preferenceStorage.getReadyPreferences();
   }
 
-  private void persistUserPreferenceAsync(UserPreference preference) {
-    CompletableFuture.runAsync(() -> {
-      if (!disposed) {
-        preferenceStorage.persist(preference);
-      }
-    });
-  }
-
   @Override
   protected void ensureRealm(Runnable runnable) {
     if (disposed) {
       return;
     }
+    String account = authStatusManager.getUserName();
     super.ensureRealm(() -> {
-      if (!disposed) {
+      if (!disposed && Objects.equals(account, authStatusManager.getUserName())) {
         runnable.run();
       }
     });

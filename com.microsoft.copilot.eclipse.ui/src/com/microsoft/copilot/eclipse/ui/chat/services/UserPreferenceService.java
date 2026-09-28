@@ -298,12 +298,22 @@ public class UserPreferenceService extends ChatBaseService {
    * @param chatModeNameOrId the name/ID of the chat mode to set
    */
   public void setActiveChatMode(String chatModeNameOrId) {
+    ensureRealm(() -> selectActiveChatMode(chatModeNameOrId));
+  }
+
+  private void selectActiveChatMode(String chatModeNameOrId) {
     UserPreference preference = getUserPreference();
     if (preference == null) {
       CopilotCore.LOGGER.error(new IllegalStateException("Cannot change chat mode before preferences are ready"));
       return;
     }
     if (StringUtils.isBlank(chatModeNameOrId)) {
+      return;
+    }
+    FeatureFlags flags = CopilotCore.getPlugin().getFeatureFlags();
+    if ((flags != null && !flags.isAgentModeEnabled()
+        && getViewModeForModeName(chatModeNameOrId) != ChatMode.Ask) || !isModeAvailable(chatModeNameOrId)) {
+      CopilotCore.LOGGER.error(new IllegalArgumentException("Chat mode is unavailable: " + chatModeNameOrId));
       return;
     }
 
@@ -327,9 +337,10 @@ public class UserPreferenceService extends ChatBaseService {
     // Step 3: Determine which UI view to use (Ask or Agent)
     ChatMode uiViewMode = getViewModeForModeName(chatModeNameOrId);
 
-    // Step 4: Persist user preference
-    preference.setChatModeName(chatModeNameOrId);
-    persistUserPreference();
+    // Queue persistence independently of the observable and event changes.
+    if (!preferenceStorage.update(updated -> updated.setChatModeName(chatModeNameOrId))) {
+      return;
+    }
 
     // Step 5: Update observables atomically
     final ChatMode finalUiViewMode = uiViewMode;
@@ -616,13 +627,17 @@ public class UserPreferenceService extends ChatBaseService {
    * Add input to the input history.
    */
   public void addInputToHistory(String input) {
+    ensureRealm(() -> recordInput(input));
+  }
+
+  private void recordInput(String input) {
     UserPreference preference = getUserPreference();
     if (preference == null) {
       CopilotCore.LOGGER.error(new IllegalStateException("Cannot record chat input before preferences are ready"));
       return;
     }
     inputNavigation.add(input);
-    preference.setUserInputs(inputNavigation.getInputHistoryList());
+    preferenceStorage.update(updated -> updated.setUserInputs(inputNavigation.getInputHistoryList()));
   }
 
   /**
@@ -637,6 +652,7 @@ public class UserPreferenceService extends ChatBaseService {
     }
     if (inputNavigation.atBottom() && StringUtils.isNotEmpty(currentInput)) {
       inputNavigation.add(currentInput);
+      preferenceStorage.update(updated -> updated.setUserInputs(inputNavigation.getInputHistoryList()));
       inputNavigation.updateCursorPosition(inputNavigation.size() - 1);
     }
     return inputNavigation.navigateUp();
@@ -681,6 +697,10 @@ public class UserPreferenceService extends ChatBaseService {
    * @param skip true to skip the dialog, false otherwise
    */
   public void setSkipGitHubJobConfirmDialog(boolean skip) {
+    ensureRealm(() -> updateSkipGitHubJobConfirmDialog(skip));
+  }
+
+  private void updateSkipGitHubJobConfirmDialog(boolean skip) {
     UserPreference preference = getUserPreference();
     if (preference == null) {
       CopilotCore.LOGGER.error(
@@ -688,8 +708,7 @@ public class UserPreferenceService extends ChatBaseService {
       return;
     }
     if (preference.isSkipGitHubJobConfirmDialog() != skip) {
-      preference.setSkipGitHubJobConfirmDialog(skip);
-      persistUserPreference();
+      preferenceStorage.update(updated -> updated.setSkipGitHubJobConfirmDialog(skip));
     }
   }
 
@@ -743,7 +762,7 @@ public class UserPreferenceService extends ChatBaseService {
   }
 
   /**
-   * Saves the currently loaded preferences without resolving another persistence path.
+   * Queues the latest unsaved preferences without waiting for disk or resolving another persistence path.
    */
   public void persistUserPreference() {
     if (!disposed) {
@@ -756,8 +775,9 @@ public class UserPreferenceService extends ChatBaseService {
     if (disposed) {
       return;
     }
+    String account = authStatusManager.getUserName();
     super.ensureRealm(() -> {
-      if (!disposed) {
+      if (!disposed && Objects.equals(account, authStatusManager.getUserName())) {
         runnable.run();
       }
     });

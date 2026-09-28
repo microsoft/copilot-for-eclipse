@@ -5,9 +5,11 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +18,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 import com.google.gson.Gson;
@@ -37,7 +40,9 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 
 /**
- * Owns account-scoped chat preferences and their asynchronous initial restoration.
+ * Owns account-scoped chat preferences, asynchronous restoration and one serialized background writer.
+ * Reads return detached snapshots; edits capture revisions without holding a UI-needed lock during file I/O.
+ * Accepted saves retain their account path even after account changes or disposal.
  */
 public class PreferenceStorage {
   private static final Gson GSON = new Gson();
@@ -50,8 +55,14 @@ public class PreferenceStorage {
     UNAVAILABLE, LOADING, READY, FAILED, DISPOSED
   }
 
+  /**
+   * Persistence status of the current account's ready choices, independent of loading.
+   */
+  public enum SaveState {
+    SAVED, SAVING, FAILED
+  }
+
   private final Object lock = new Object();
-  private final Object saveLock = new Object();
   private final CopilotLanguageServerConnection connection;
   private final AuthStatusManager auth;
   private final ExecutorService worker;
@@ -59,6 +70,7 @@ public class PreferenceStorage {
   private final LongSupplier clock;
   private final FileAccess files;
   private final WritableValue<State> readiness;
+  private final WritableValue<SaveState> saveStatus;
   private final CopilotAuthStatusListener authListener;
   private State state = State.UNAVAILABLE;
   private String account;
@@ -66,6 +78,12 @@ public class PreferenceStorage {
   private Attempt attempt;
   private UserPreference preferences;
   private Path preferencePath;
+  private long revision;
+  private long savedRevision;
+  private SaveState saveState = SaveState.SAVED;
+  private final Deque<Save> pendingSaves = new ArrayDeque<>();
+  private Save activeSave;
+  private boolean writing;
 
   /**
    * Creates storage without starting RPC or file work.
@@ -77,20 +95,7 @@ public class PreferenceStorage {
     this(connection, auth, DisplayRealm.getRealm(Display.getDefault()),
         Executors.newCachedThreadPool(runnable -> daemonThread(runnable, "Copilot preference loading")),
         Executors.newSingleThreadScheduledExecutor(runnable -> daemonThread(runnable, "Copilot preference deadline")),
-        System::nanoTime, new FileAccess() {
-          @Override
-          public String read(Path path) throws IOException {
-            return Files.readString(path);
-          }
-
-          @Override
-          public void write(Path path, String content) throws IOException {
-            if (Files.notExists(path)) {
-              Files.createDirectories(path.getParent());
-            }
-            Files.writeString(path, content);
-          }
-        });
+        System::nanoTime, new PreferenceFileAccess());
   }
 
   PreferenceStorage(CopilotLanguageServerConnection connection, AuthStatusManager auth, Realm realm,
@@ -102,6 +107,7 @@ public class PreferenceStorage {
     this.clock = clock;
     this.files = files;
     this.readiness = new WritableValue<>(realm, State.UNAVAILABLE, State.class);
+    this.saveStatus = new WritableValue<>(realm, SaveState.SAVED, SaveState.class);
     this.account = currentAccount();
     this.authListener = status -> refreshAccount();
     auth.addCopilotAuthStatusListener(authListener);
@@ -143,51 +149,166 @@ public class PreferenceStorage {
   }
 
   /**
-   * Returns the authoritative preference object only when ready for the current account.
+   * Returns a detached snapshot only when preferences are ready for the current account.
    *
    * @return loaded preferences, or {@code null} when unavailable
    */
   public UserPreference getReadyPreferences() {
     refreshAccount();
     synchronized (lock) {
-      return state == State.READY && Objects.equals(account, currentAccount()) ? preferences : null;
+      return state == State.READY && Objects.equals(account, currentAccount()) ? copy(preferences) : null;
     }
   }
 
   /**
-   * Synchronously saves ready preferences to their already resolved account path, without RPC.
+   * Returns the UI-Realm save status. A failed save never changes preference readiness.
+   *
+   * @return the observable persistence status
+   */
+  public IObservableValue<SaveState> getSaveStatus() {
+    return saveStatus;
+  }
+
+  /**
+   * Returns whether current ready choices have not yet been persisted.
+   *
+   * @return whether the current account has unsaved changes
+   */
+  public boolean isDirty() {
+    refreshAccount();
+    synchronized (lock) {
+      return state == State.READY && revision != savedRevision;
+    }
+  }
+
+  /**
+   * Applies a short in-memory edit immediately and queues its account-bound snapshot for saving.
+   * The edit must not perform I/O. Neither the edit argument nor returned snapshots own shared state.
+   *
+   * @param edit the preference change
+   * @return whether the ready preferences changed
+   */
+  public boolean update(Consumer<UserPreference> edit) {
+    Objects.requireNonNull(edit);
+    refreshAccount();
+    synchronized (lock) {
+      if (state != State.READY || !Objects.equals(account, currentAccount())) {
+        CopilotCore.LOGGER.error(new IllegalStateException("Cannot update chat preferences before they are ready"));
+        return false;
+      }
+      UserPreference updated = copy(preferences);
+      edit.accept(updated);
+      if (updated.equals(preferences)) {
+        return false;
+      }
+      preferences = copy(updated);
+      revision++;
+      enqueueSave();
+    }
+    dispatchWriter();
+    return true;
+  }
+
+  /**
+   * Retries the latest dirty snapshot using its ready path, without starting another path RPC.
    */
   public void persist() {
-    persist(getReadyPreferences());
+    refreshAccount();
+    synchronized (lock) {
+      if (state != State.READY || revision == savedRevision || !Objects.equals(account, currentAccount())) {
+        return;
+      }
+      enqueueSave();
+    }
+    dispatchWriter();
   }
 
-  /**
-   * Saves a captured preference only while it remains authoritative for the current account.
-   */
-  void persist(UserPreference expected) {
-    if (expected == null || getReadyPreferences() != expected) {
+  private void enqueueSave() {
+    if (activeSave != null && activeSave.generation == generation && activeSave.revision == revision) {
       return;
     }
-    synchronized (saveLock) {
-      refreshAccount();
-      try {
-        Path path;
-        String json;
-        synchronized (lock) {
-          if (state != State.READY || preferences != expected
-              || !Objects.equals(account, currentAccount())) {
-            return;
-          }
-          path = preferencePath;
-          synchronized (expected) {
-            json = GSON.toJson(expected);
-          }
+    pendingSaves.removeIf(save -> save.generation == generation);
+    pendingSaves.addLast(new Save(generation, account, revision, preferencePath, copy(preferences)));
+    saveState = SaveState.SAVING;
+    publishSaveStatus(generation);
+  }
+
+  private void dispatchWriter() {
+    synchronized (lock) {
+      if (writing || pendingSaves.isEmpty()) {
+        return;
+      }
+      writing = true;
+    }
+    try {
+      worker.execute(this::writePending);
+    } catch (RuntimeException exception) {
+      synchronized (lock) {
+        writing = false;
+        pendingSaves.clear();
+        if (state == State.READY && revision != savedRevision) {
+          saveState = SaveState.FAILED;
+          publishSaveStatus(generation);
         }
-        files.write(path, json);
+      }
+      CopilotCore.LOGGER.error("Failed to schedule chat preference saving", exception);
+    }
+  }
+
+  private void writePending() {
+    while (true) {
+      Save save;
+      synchronized (lock) {
+        save = pendingSaves.pollFirst();
+        activeSave = save;
+        if (save == null) {
+          writing = false;
+          return;
+        }
+      }
+      boolean successful = false;
+      try {
+        files.write(save.path, GSON.toJson(save.preferences));
+        successful = true;
       } catch (IOException | RuntimeException exception) {
         CopilotCore.LOGGER.error("Failed to save chat preferences", exception);
       }
+      synchronized (lock) {
+        activeSave = null;
+        if (state == State.READY && generation == save.generation
+            && Objects.equals(account, save.account) && Objects.equals(account, currentAccount())) {
+          if (successful) {
+            savedRevision = save.revision;
+          }
+          saveState = revision == savedRevision ? SaveState.SAVED
+              : pendingSaves.stream().anyMatch(pending -> pending.generation == generation)
+                  ? SaveState.SAVING : SaveState.FAILED;
+          publishSaveStatus(generation);
+        }
+      }
     }
+  }
+
+  private void publishSaveStatus(long version) {
+    saveStatus.getRealm().asyncExec(() -> {
+      refreshAccount();
+      synchronized (lock) {
+        if (state != State.DISPOSED && generation == version && !saveStatus.isDisposed()) {
+          saveStatus.setValue(saveState);
+        }
+      }
+    });
+  }
+
+  private static UserPreference copy(UserPreference source) {
+    UserPreference snapshot = new UserPreference();
+    snapshot.setChatModel(source.getChatModel());
+    snapshot.setChatModeName(source.getChatModeName());
+    snapshot.setSkipGitHubJobConfirmDialog(source.isSkipGitHubJobConfirmDialog());
+    snapshot.setUserInputs(source.getUserInputs() == null ? null : new ArrayList<>(source.getUserInputs()));
+    snapshot.setReasoningEfforts(source.getReasoningEffortSnapshot());
+    snapshot.setContextWindows(source.getContextWindowSnapshot());
+    return snapshot;
   }
 
   /**
@@ -203,12 +324,17 @@ public class PreferenceStorage {
     }
     auth.removeCopilotAuthStatusListener(authListener);
     cancel(previous);
-    worker.shutdownNow();
+    // Accepted snapshots may finish on the shared writer; disposal never waits for OS I/O.
+    dispatchWriter();
+    worker.shutdown();
     timer.shutdownNow();
     readiness.getRealm().asyncExec(() -> {
       if (!readiness.isDisposed()) {
         readiness.setValue(State.DISPOSED);
         readiness.dispose();
+      }
+      if (!saveStatus.isDisposed()) {
+        saveStatus.dispose();
       }
     });
   }
@@ -238,6 +364,7 @@ public class PreferenceStorage {
     }
     cancel(previous);
     publishState(version, State.UNAVAILABLE);
+    publishSaveStatus(version);
   }
 
   private Attempt clear(State next) {
@@ -245,6 +372,9 @@ public class PreferenceStorage {
     attempt = null;
     preferences = null;
     preferencePath = null;
+    revision = 0;
+    savedRevision = 0;
+    saveState = SaveState.SAVED;
     state = next;
     generation++;
     return previous;
@@ -489,6 +619,9 @@ public class PreferenceStorage {
     String read(Path path) throws IOException;
 
     void write(Path path, String content) throws IOException;
+  }
+
+  private record Save(long generation, String account, long revision, Path path, UserPreference preferences) {
   }
 
   /**
