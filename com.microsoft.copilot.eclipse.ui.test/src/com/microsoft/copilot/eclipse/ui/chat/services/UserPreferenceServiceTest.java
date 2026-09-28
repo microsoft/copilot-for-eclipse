@@ -114,6 +114,31 @@ class UserPreferenceServiceTest {
   }
 
   @Test
+  void testShutdown_PendingModeDiscoveryAndRecovery_CannotPublishOrRestart() throws Exception {
+    writePreferences("{\"chatModeName\":\"Plan\"}");
+    CompletableFuture<ConversationMode[]> modes = new CompletableFuture<>();
+    when(connection.listConversationModes(any())).thenReturn(modes);
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    verify(connection, timeout(5000)).listConversationModes(any());
+    awaitUi(() -> storage.getState() == PreferenceStorage.State.READY);
+    runOnUi(() -> {
+      storage.beginShutdown();
+      service.quiesce();
+      service.quiesce();
+      modes.complete(new ConversationMode[] {builtInMode("after-shutdown", "Plan")});
+      service.retryModeDiscovery();
+      NotificationMessage initialized = new NotificationMessage();
+      initialized.setMethod("initialized");
+      new LsStreamConnectionProvider().handleMessage(initialized, mock(LanguageServer.class), null);
+      assertNull(BuiltInChatModeManager.INSTANCE.getBuiltInModeById("after-shutdown"));
+      assertEquals(UserPreferenceService.ModeDiscoveryState.UNAVAILABLE, service.getModeDiscoveryState());
+    });
+    runOnUi(() -> assertNull(BuiltInChatModeManager.INSTANCE.getBuiltInModeById("after-shutdown")));
+    verify(connection).listConversationModes(any());
+    verify(connection).persistence();
+  }
+
+  @Test
   void testAuthentication_QuickSignOutAndBackIn_RejectsOldModeDiscovery() throws Exception {
     CompletableFuture<ConversationMode[]> old = new CompletableFuture<>();
     CompletableFuture<ConversationMode[]> current = new CompletableFuture<>();

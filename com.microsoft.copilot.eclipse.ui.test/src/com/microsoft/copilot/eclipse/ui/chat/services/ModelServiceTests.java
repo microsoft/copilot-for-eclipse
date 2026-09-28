@@ -99,11 +99,13 @@ class ModelServiceTests {
   }
 
   @AfterEach
-  void tearDown() {
+  void tearDown() throws Exception {
     if (modelService != null) {
       modelService.dispose();
     }
     featureFlags.setClientPreviewFeatureEnabled(previewFeaturesEnabled);
+    // JUnit removes @TempDir next; accepted account-bound writes must finish before that cleanup.
+    preferenceStorage.beginShutdown().toCompletableFuture().get(5, TimeUnit.SECONDS);
     preferenceStorage.dispose();
   }
 

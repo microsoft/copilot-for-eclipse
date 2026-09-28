@@ -60,6 +60,7 @@ public class UserPreferenceService extends ChatBaseService {
   private final PreferenceStorage preferenceStorage;
   private ISideEffect readinessSideEffect;
   private volatile boolean disposed;
+  private volatile boolean quiesced;
   private final Object authenticationLock = new Object();
   private final AtomicLong authenticationGeneration = new AtomicLong();
   private String notifiedAccount;
@@ -147,7 +148,7 @@ public class UserPreferenceService extends ChatBaseService {
     long generation;
     synchronized (authenticationLock) {
       String current = authStatusManager.isSignedIn() ? authStatusManager.getUserName() : null;
-      if (disposed || Objects.equals(notifiedAccount, current)) {
+      if (disposed || quiesced || Objects.equals(notifiedAccount, current)) {
         return;
       }
       notifiedAccount = current;
@@ -180,7 +181,12 @@ public class UserPreferenceService extends ChatBaseService {
       long authentication = authenticationGeneration.get();
       modeDiscoveryState.setValue(ModeDiscoveryState.LOADING);
       CompletableFuture<List<BuiltInChatMode>> discovery = CompletableFuture
-          .supplyAsync(() -> new BuiltInChatModeService().loadBuiltInModes(lsConnection))
+          .supplyAsync(() -> {
+            if (disposed || quiesced || authentication != authenticationGeneration.get()) {
+              return CompletableFuture.<List<BuiltInChatMode>>completedFuture(List.of());
+            }
+            return new BuiltInChatModeService().loadBuiltInModes(lsConnection);
+          })
           .thenCompose(result -> result);
       modeDiscovery = discovery;
       discovery.thenAccept(modes -> ensureRealm(() -> {
@@ -781,6 +787,28 @@ public class UserPreferenceService extends ChatBaseService {
     }
   }
 
+  /**
+   * Stops mode discovery and its recovery callbacks before the committed workbench exit.
+   * Observable disposal remains with the normal service lifecycle.
+   */
+  void quiesce() {
+    if (disposed || quiesced) {
+      return;
+    }
+    quiesced = true;
+    authenticationGeneration.incrementAndGet();
+    authStatusManager.removeCopilotAuthStatusListener(authListener);
+    if (eventBroker != null) {
+      eventBroker.unsubscribe(connectionInitializedEventHandler);
+      eventBroker.unsubscribe(featureFlagNotifiedEventHandler);
+    }
+    super.ensureRealm(() -> {
+      if (!disposed) {
+        cancelModeDiscovery();
+      }
+    });
+  }
+
   private boolean isModeAvailable(String modeNameOrId) {
     String[] available = getAvailableChatModes();
     // Check built-in modes (matched by display name)
@@ -796,27 +824,27 @@ public class UserPreferenceService extends ChatBaseService {
   }
 
   private UserPreference getUserPreference() {
-    return disposed ? null : preferenceStorage.getReadyPreferences();
+    return disposed || quiesced ? null : preferenceStorage.getReadyPreferences();
   }
 
   /**
    * Queues the latest unsaved preferences without waiting for disk or resolving another persistence path.
    */
   public void persistUserPreference() {
-    if (!disposed) {
+    if (!disposed && !quiesced) {
       preferenceStorage.persist();
     }
   }
 
   @Override
   protected void ensureRealm(Runnable runnable) {
-    if (disposed) {
+    if (disposed || quiesced) {
       return;
     }
     String account = authStatusManager.getUserName();
     long generation = authenticationGeneration.get();
     super.ensureRealm(() -> {
-      if (!disposed && generation == authenticationGeneration.get()
+      if (!disposed && !quiesced && generation == authenticationGeneration.get()
           && Objects.equals(account, authStatusManager.getUserName())) {
         runnable.run();
       }
