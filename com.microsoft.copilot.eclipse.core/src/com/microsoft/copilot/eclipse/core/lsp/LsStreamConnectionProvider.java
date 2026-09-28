@@ -24,16 +24,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.URIUtil;
+import org.eclipse.e4.core.contexts.EclipseContextFactory;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
+import org.eclipse.lsp4j.jsonrpc.messages.Message;
+import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage;
+import org.eclipse.lsp4j.services.LanguageServer;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotCapabilities;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InitializationOptions;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.NameAndVersion;
@@ -46,6 +55,34 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   public static final String EDITOR_NAME = "Eclipse";
   public static final String EDITOR_PLUGIN_NAME = "copilot-eclipse";
+  private static final AtomicLong CONNECTION_INCARNATION = new AtomicLong();
+  private final AtomicBoolean initialized = new AtomicBoolean();
+
+  @Override
+  public void handleMessage(Message message, LanguageServer languageServer, @Nullable URI rootUri) {
+    super.handleMessage(message, languageServer, rootUri);
+    // LSP4E invokes this hook after sending initialized, only after initialize has succeeded.
+    // It creates a fresh provider on restart; status notifications are not connection recovery.
+    if (message instanceof NotificationMessage notification && "initialized".equals(notification.getMethod())
+        && initialized.compareAndSet(false, true)) {
+      try {
+        IEventBroker broker = EclipseContextFactory
+            .getServiceContext(FrameworkUtil.getBundle(getClass()).getBundleContext()).get(IEventBroker.class);
+        if (broker == null || !broker.post(CopilotEventConstants.TOPIC_LANGUAGE_SERVER_INITIALIZED,
+            CONNECTION_INCARNATION.incrementAndGet())) {
+          CopilotCore.LOGGER.error(new IllegalStateException("Cannot publish language server initialization"));
+        }
+      } catch (RuntimeException exception) {
+        CopilotCore.LOGGER.error("Cannot publish language server initialization", exception);
+      }
+    }
+  }
+
+  @Override
+  public void stop() {
+    initialized.set(true);
+    super.stop();
+  }
 
   @Override
   public Object getInitializationOptions(@Nullable URI rootUri) {
