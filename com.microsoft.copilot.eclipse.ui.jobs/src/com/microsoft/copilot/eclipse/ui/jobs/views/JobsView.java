@@ -48,6 +48,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.GitHubPullRequestItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrResponse;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.jobs.CopilotJobsImages;
 import com.microsoft.copilot.eclipse.ui.jobs.events.JobsViewEvents;
@@ -324,7 +325,7 @@ public class JobsView {
    */
   private void loadPullRequestsForProject(IProject project) {
     String projectName = project.getName();
-    URI projectUri = project.getLocationURI();
+    URI projectUri = FileUtils.getResourceAsUri(project);
     if (projectUri == null) {
       return;
     }

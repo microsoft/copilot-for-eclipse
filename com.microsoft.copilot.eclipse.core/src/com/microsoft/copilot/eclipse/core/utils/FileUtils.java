@@ -103,6 +103,38 @@ public class FileUtils {
   }
 
   /**
+   * Gets a URI for a resource using multiple approaches.
+   *
+   * @param resource The resource
+   * @return A URI or null if no URI could be determined
+   */
+  public static URI getResourceAsUri(IResource resource) {
+    if (resource == null) {
+      return null;
+    }
+
+    // Try standard file location first
+    if (resource.getLocation() != null) {
+      URI uri = LSPEclipseUtils.toUri(resource);
+      if (uri != null) {
+        return uri;
+      }
+    }
+
+    // Try getting direct URI (works for remote resources)
+    if (resource.getLocationURI() != null) {
+      return resource.getLocationURI();
+    }
+    String fileUri = "platform:/resource" + resource.getFullPath().toPortableString();
+    try {
+      return new URI("platform", null, "/resource" + resource.getFullPath().toPortableString(), null);
+    } catch (URISyntaxException e) {
+      CopilotCore.LOGGER.error("Invalid file URI: " + fileUri, e);
+    }
+    return null;
+  }
+
+  /**
    * Get all the IFile instance in a List of resources.
    *
    * @param resources The list of resources to filter.
