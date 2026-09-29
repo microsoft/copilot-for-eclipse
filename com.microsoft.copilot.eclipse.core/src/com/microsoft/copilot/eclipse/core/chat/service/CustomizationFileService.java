@@ -5,10 +5,13 @@ package com.microsoft.copilot.eclipse.core.chat.service;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.e4.core.contexts.EclipseContextFactory;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -40,6 +43,8 @@ public class CustomizationFileService implements ICustomizationFileService {
 
   private volatile Set<Path> customizationFiles = Set.of();
 
+  private final Map<CustomizationType, AtomicLong> refreshGenerations = new EnumMap<>(CustomizationType.class);
+
   /**
    * Creates the service and subscribes to customization-file change events.
    *
@@ -47,11 +52,14 @@ public class CustomizationFileService implements ICustomizationFileService {
    */
   public CustomizationFileService(CopilotLanguageServerConnection lsConnection) {
     this.lsConnection = lsConnection;
+    for (CustomizationType type : CustomizationType.values()) {
+      refreshGenerations.put(type, new AtomicLong());
+    }
     this.eventBroker = EclipseContextFactory
         .getServiceContext(FrameworkUtil.getBundle(getClass()).getBundleContext()).get(IEventBroker.class);
     this.customizationFilesChangedHandler = event -> {
       if (event.getProperty(IEventBroker.DATA) instanceof CustomizationType type) {
-        CompletableFuture.runAsync(() -> refreshType(type, WorkspaceUtils.listWorkspaceFolders()));
+        CompletableFuture.runAsync(() -> refreshType(type, WorkspaceUtils.listCustomizationFolders()));
       }
     };
     if (eventBroker != null) {
@@ -80,7 +88,7 @@ public class CustomizationFileService implements ICustomizationFileService {
   @Override
   public void refreshAllAsync() {
     CompletableFuture.runAsync(() -> {
-      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
+      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listCustomizationFolders();
       for (CustomizationType type : CustomizationType.values()) {
         refreshType(type, workspaceFolders);
       }
@@ -88,8 +96,12 @@ public class CustomizationFileService implements ICustomizationFileService {
   }
 
   private void refreshType(CustomizationType type, List<WorkspaceFolder> workspaceFolders) {
+    long generation = refreshGenerations.get(type).incrementAndGet();
     switch (type) {
       case SKILL -> toPaths(lsConnection.listCustomSkills(workspaceFolders)).thenAccept(paths -> {
+        if (isSuperseded(type, generation)) {
+          return;
+        }
         Set<Path> folders = new HashSet<>();
         for (Path skillFile : paths) {
           Path parent = skillFile.getParent();
@@ -100,14 +112,23 @@ public class CustomizationFileService implements ICustomizationFileService {
         this.skillFolders = Set.copyOf(folders);
       });
       case PROMPT -> toPaths(lsConnection.listCustomPrompts(workspaceFolders)).thenAccept(paths -> {
+        if (isSuperseded(type, generation)) {
+          return;
+        }
         this.promptFiles = Set.copyOf(paths);
         rebuildCustomizationFiles();
       });
       case INSTRUCTION -> toPaths(lsConnection.listCustomInstructions(workspaceFolders)).thenAccept(paths -> {
+        if (isSuperseded(type, generation)) {
+          return;
+        }
         this.instructionFiles = Set.copyOf(paths);
         rebuildCustomizationFiles();
       });
       case AGENT -> toPaths(lsConnection.listCustomAgents(workspaceFolders)).thenAccept(paths -> {
+        if (isSuperseded(type, generation)) {
+          return;
+        }
         this.agentFiles = Set.copyOf(paths);
         rebuildCustomizationFiles();
       });
@@ -115,6 +136,13 @@ public class CustomizationFileService implements ICustomizationFileService {
         // No other customization types.
       }
     }
+  }
+
+  /**
+   * Refreshes of the same type may complete out of order; only the most recently started one may update the state.
+   */
+  private boolean isSuperseded(CustomizationType type, long generation) {
+    return refreshGenerations.get(type).get() != generation;
   }
 
   private synchronized void rebuildCustomizationFiles() {

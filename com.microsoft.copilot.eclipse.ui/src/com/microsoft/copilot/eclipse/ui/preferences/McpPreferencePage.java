@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +33,6 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.preference.StringFieldEditor;
-import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -69,7 +66,6 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerStatus;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsCollection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.RegistryAccess;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolInformation;
-import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpExtensionPointManager;
@@ -93,6 +89,8 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
   private Tree toolsTree;
   private boolean hasFailedMcpServer;
   private Combo modeSelector;
+  // mode IDs in the order of the mode selector entries
+  private final List<String> modeSelectorIds = new ArrayList<>();
   private Composite modeSelectorComposite;
   private String currentModeId = "agent-mode";
 
@@ -948,19 +946,22 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
    */
   private void loadModeOptions() {
     List<String> options = new ArrayList<>();
+    modeSelectorIds.clear();
     options.add(Messages.preferences_page_mcp_tools_agent_mode);
+    modeSelectorIds.add("agent-mode");
 
     // Add custom agents
     try {
       List<CustomChatMode> customModes = CustomChatModeManager.INSTANCE.getCustomModes();
       for (CustomChatMode mode : customModes) {
-        String workspaceName = getWorkspaceNameForMode(mode);
+        String workspaceName = PreferencePageUtils.getCustomAgentFolderName(mode);
         if (workspaceName.isEmpty()) {
           CopilotCore.LOGGER.info("Workspace name is empty for custom agent: "
               + mode.getDisplayName() + " (ID: " + mode.getId() + ")");
           continue;
         }
         options.add(workspaceName + ": " + mode.getDisplayName());
+        modeSelectorIds.add(mode.getId());
       }
     } catch (Exception e) {
       CopilotCore.LOGGER.error("Failed to load custom agents", e);
@@ -983,22 +984,15 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     if ("agent-mode".equals(modeId)) {
       modeSelector.select(0);
     } else {
-      // Find the custom agent
-      try {
-        List<CustomChatMode> customModes = CustomChatModeManager.INSTANCE.getCustomModes();
-        for (int i = 0; i < customModes.size(); i++) {
-          if (customModes.get(i).getId().equals(modeId)) {
-            modeSelector.select(i + 1); // +1 because agent mode is at index 0
-            currentModeId = modeId;
-            // Load the tool status for this mode
-            if (toolsTree != null && !toolsTree.isDisposed()) {
-              loadModeToolStatus(modeId);
-            }
-            return;
-          }
+      int index = modeSelectorIds.indexOf(modeId);
+      if (index > 0) {
+        modeSelector.select(index);
+        currentModeId = modeId;
+        // Load the tool status for this mode
+        if (toolsTree != null && !toolsTree.isDisposed()) {
+          loadModeToolStatus(modeId);
         }
-      } catch (Exception e) {
-        CopilotCore.LOGGER.error("Failed to select mode by ID: " + modeId, e);
+        return;
       }
 
       // If mode not found, default to agent mode
@@ -1015,77 +1009,13 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     saveModeToolStatus(currentModeId);
 
     // Update current mode ID
-    String selectedText = modeSelector.getText();
-    currentModeId = extractModeIdFromSelection(selectedText);
+    int selectionIndex = modeSelector.getSelectionIndex();
+    currentModeId = selectionIndex >= 0 && selectionIndex < modeSelectorIds.size()
+        ? modeSelectorIds.get(selectionIndex)
+        : "agent-mode";
 
     // Load the tool status for the new mode (updates checkboxes on existing tree)
     loadModeToolStatus(currentModeId);
-  }
-
-  /**
-   * Extract mode ID from selection text.
-   */
-  private String extractModeIdFromSelection(String selectionText) {
-    if (selectionText.equals(Messages.preferences_page_mcp_tools_agent_mode)) {
-      return "agent-mode";
-    } else {
-      // Extract workspace name and display name from the selection text
-      // Format: "workspace: displayName"
-      String workspaceName;
-      String displayName;
-
-      if (selectionText.contains(": ")) {
-        int colonIndex = selectionText.indexOf(": ");
-        workspaceName = selectionText.substring(0, colonIndex);
-        displayName = selectionText.substring(colonIndex + 2);
-      } else {
-        CopilotCore.LOGGER.info("Invalid mode selection format (missing ': '): " + selectionText);
-        return "agent-mode";
-      }
-
-      try {
-        List<CustomChatMode> customModes = CustomChatModeManager.INSTANCE.getCustomModes();
-        for (CustomChatMode mode : customModes) {
-          // Match both display name and workspace name to ensure uniqueness
-          if (mode.getDisplayName().equals(displayName)) {
-            String modeWorkspaceName = getWorkspaceNameForMode(mode);
-            if (workspaceName.equals(modeWorkspaceName)) {
-              return mode.getId();
-            }
-          }
-        }
-      } catch (Exception e) {
-        CopilotCore.LOGGER.error("Failed to extract mode ID", e);
-      }
-    }
-    return "agent-mode";
-  }
-
-  /**
-   * Get the workspace name for a custom agent based on its file path.
-   */
-  private String getWorkspaceNameForMode(CustomChatMode mode) {
-    try {
-      String modeId = mode.getId();
-      Path modePath = Paths.get(java.net.URI.create(modeId));
-
-      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
-      if (workspaceFolders != null) {
-        for (WorkspaceFolder folder : workspaceFolders) {
-          try {
-            Path folderPath = Paths.get(java.net.URI.create(folder.getUri()));
-            if (modePath.startsWith(folderPath)) {
-              return folder.getName();
-            }
-          } catch (Exception folderEx) {
-            CopilotCore.LOGGER.error("Failed to process folder uri=" + folder.getUri(), folderEx);
-          }
-        }
-      }
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to get workspace name for mode id=" + mode.getId(), e);
-    }
-    return "";
   }
 
   /**

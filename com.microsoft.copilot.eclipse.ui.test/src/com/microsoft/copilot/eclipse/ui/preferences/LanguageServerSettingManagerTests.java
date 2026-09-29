@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -20,8 +21,10 @@ import java.util.LinkedHashMap;
 import com.google.gson.JsonObject;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
+import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,8 +32,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.Constants;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
+import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotLanguageServerSettings.CopilotSettings;
@@ -331,5 +337,28 @@ class LanguageServerSettingManagerTests {
     CopilotLanguageServerSettings settings = manager.getSettings();
     assertEquals("HTTPS://proxy.example.com:3128", settings.getHttp().getProxy());
     assertEquals("testuser:testpass", settings.getHttp().getProxyAuthorization());
+  }
+
+  @Test
+  void testParentRepositorySettingChange_refreshesAllCustomizationTypes() {
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+    IEventBroker eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
+    EventHandler handler = mock(EventHandler.class);
+    eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, handler);
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        preferenceStore);
+    try {
+      preferenceStore.setValue(Constants.CUSTOM_INSTRUCTIONS_PARENT_REPO_ENABLED, false);
+
+      for (CustomizationType type : CustomizationType.values()) {
+        verify(handler, timeout(5000).atLeastOnce())
+            .handleEvent(argThat(event -> event.getProperty(IEventBroker.DATA) == type));
+      }
+    } finally {
+      manager.unregisterPropertyChangeListener(manager);
+      manager.dispose();
+      eventBroker.unsubscribe(handler);
+      preferenceStore.setToDefault(Constants.CUSTOM_INSTRUCTIONS_PARENT_REPO_ENABLED);
+    }
   }
 }
