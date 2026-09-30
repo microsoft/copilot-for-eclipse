@@ -42,6 +42,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -124,7 +125,8 @@ class UserPreferenceServiceTest {
         createControls();
         Display.getDefault().asyncExec(() -> {
           try {
-            uiAction.complete(!picker.getEnabled() && storage.getState() == PreferenceStorage.State.LOADING);
+            uiAction.complete(!picker.getEnabled() && storage.getState() == PreferenceStorage.State.LOADING
+                && !status.getVisible());
           } catch (Throwable error) {
             uiAction.completeExceptionally(error);
           }
@@ -394,27 +396,28 @@ class UserPreferenceServiceTest {
   }
 
   @Test
-  void testRetry_FailedLoadKeepsPickerDisabledThenRestoresSavedChoice() throws Exception {
-    writePreferences("{\"chatModeName\":\"Ask\"}");
-    startAuthenticated(CompletableFuture.failedFuture(new IllegalStateException("offline")));
-    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.FAILED);
+  void testInitialization_FailedRestoreUsesDefaultsAndDismissesWarning() throws Exception {
+    Path file = writePreferences("{");
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.READY
+        && Messages.preferenceRecovered.equals(statusMessage().getText()));
     runOnUi(() -> {
-      assertFalse(picker.getEnabled());
+      assertTrue(picker.getEnabled());
       assertTrue(status.getVisible());
-      Label message = Arrays.stream(status.getChildren()).filter(Label.class::isInstance)
-          .map(Label.class::cast).findFirst().orElseThrow();
-      assertEquals(Messages.preferenceLoadFailed, message.getText());
-      service.setActiveChatMode("Agent");
-      assertNull(service.getActiveModeNameOrId());
+      assertEquals("Agent", service.getActiveModeNameOrId());
+      Button dismiss = Arrays.stream(status.getChildren()).filter(Button.class::isInstance)
+          .map(Button.class::cast).findFirst().orElseThrow();
+      dismiss.notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event());
     });
-    when(connection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> !status.getVisible());
+    assertEquals(PreferenceStorage.State.READY, storage.getState());
     runOnUi(() -> {
-      Link retry = Arrays.stream(status.getChildren()).filter(Link.class::isInstance)
-          .map(Link.class::cast).findFirst().orElseThrow();
-      assertTrue(retry.getEnabled());
-      retry.notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event());
+      service.setActiveChatMode("Ask");
+      assertEquals("Ask", service.getActiveModeNameOrId());
+      assertTrue(picker.getEnabled());
+      assertFalse(status.getVisible());
     });
-    awaitUi(() -> picker.getEnabled() && "Ask".equals(service.getActiveModeNameOrId()));
+    assertEquals("{", Files.readString(file), "Recovered defaults and later changes must not overwrite bad data");
   }
 
   @Test
@@ -451,7 +454,7 @@ class UserPreferenceServiceTest {
   }
 
   @Test
-  void testInitialization_DeadlineExpires_ShowsFailureAndRetryWithoutEnablingPicker() throws Exception {
+  void testInitialization_DeadlineExpires_RecoversToDefaultsAndEnablesPicker() throws Exception {
     when(auth.isSignedIn()).thenReturn(true);
     when(auth.getUserName()).thenReturn("user");
     CompletableFuture<ChatPersistence> pending = new CompletableFuture<>();
@@ -482,13 +485,12 @@ class UserPreferenceServiceTest {
     runOnUi(() -> assertFalse(picker.getEnabled()));
     clock.set(TimeUnit.SECONDS.toNanos(15));
     deadline.get().run();
-    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.FAILED);
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.READY);
     runOnUi(() -> {
-      assertFalse(picker.getEnabled());
+      assertTrue(picker.getEnabled());
       assertTrue(status.getVisible());
-      Link retry = Arrays.stream(status.getChildren()).filter(Link.class::isInstance)
-          .map(Link.class::cast).findFirst().orElseThrow();
-      assertTrue(retry.getEnabled());
+      assertEquals(Messages.preferenceRecovered, statusMessage().getText());
+      assertEquals("Agent", service.getActiveModeNameOrId());
     });
   }
 
