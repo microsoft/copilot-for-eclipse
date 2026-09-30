@@ -30,7 +30,6 @@ import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.chat.UserPreference;
-import com.microsoft.copilot.eclipse.core.chat.service.BuiltInChatModeService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -145,7 +144,7 @@ public class UserPreferenceService extends ChatBaseService {
       String account = authStatusManager.getUserName();
       modeDiscoveryState.setValue(ModeDiscoveryState.LOADING);
       CompletableFuture<List<BuiltInChatMode>> discovery = CompletableFuture
-          .supplyAsync(() -> new BuiltInChatModeService().loadBuiltInModes(lsConnection))
+          .supplyAsync(() -> BuiltInChatModeManager.INSTANCE.loadBuiltInModes(lsConnection))
           .thenCompose(result -> result);
       modeDiscovery = discovery;
       discovery.thenAccept(modes -> ensureRealm(() -> {
