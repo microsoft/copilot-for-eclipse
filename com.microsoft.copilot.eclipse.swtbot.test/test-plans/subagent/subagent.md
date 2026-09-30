@@ -267,3 +267,44 @@ Not exercised:
   `setMinHeight()` was never recomputed after the dialog disposal.
 - Verify the Allow path is unaffected: clicking **Allow** on a
   separate invocation should still lay out correctly (no regression).
+
+---
+
+## 7. Top-level turn lifecycle
+
+### TC-008: Cancel remains available after a subagent turn completes
+
+**Type:** `Regression`
+**Priority:** `P0`
+
+#### Preconditions
+- The Chat view is open in Agent mode.
+- A new conversation (fresh session).
+- Subagents are available for the signed-in account.
+
+#### Steps
+1. Send a prompt that requires both subagent work and a main-agent follow-up,
+   for example: `Use a subagent to inspect this project for TODO comments.
+   After the subagent completes, continue in the main agent and summarize the
+   findings.`
+2. Wait for the `SubagentMessageBlock` to appear and verify that the action
+   button shows **Cancel**.
+3. Wait until the subagent card reports completion.
+4. While the main agent continues working or streams its summary, verify that
+   the action button still shows **Cancel**.
+5. Wait for the main agent's top-level turn to complete.
+
+#### Expected Result
+- Completing the subagent turn does not change the action button to **Send**.
+- **Cancel** remains available while the main agent continues the top-level
+  turn.
+- The button changes to **Send** only after the main agent's top-level turn
+  completes.
+
+#### Key Screenshots
+- [ ] **Subagent completed** - completed subagent card with Cancel still shown.
+- [ ] **Top-level turn completed** - main-agent summary complete and Send shown.
+
+#### Notes on failure modes
+- Send appears while the main agent is still working - a subagent progress
+  `end` was incorrectly treated as completion of the top-level turn.

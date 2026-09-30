@@ -854,7 +854,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   @Override
   public void onChatProgress(ChatProgressValue value) {
-    if (this.actionBar.isSendButton()) {
+    if (!this.actionBar.isTurnRunning()) {
       return;
     }
     switch (value.getKind()) {
@@ -982,9 +982,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           return;
         }
 
+        boolean isTopLevelTurn = StringUtils.isBlank(value.getParentTurnId());
         if (this.chatContentViewer != null) {
           this.chatContentViewer.processTurnEvent(value);
-          this.actionBar.resetSendButton();
+        }
+        if (isTopLevelTurn) {
+          this.actionBar.markTurnFinished();
           this.topBanner.updateTitle(value.getSuggestedTitle());
         }
         String endThinkingBlockId = this.chatContentViewer != null
@@ -995,7 +998,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           persistenceManager.persistConversationProgress(this.conversationId, value, endThinkingBlockId);
 
           // Persist todo list at end phase
-          TodoListService todoListService = chatServiceManager.getTodoListService();
+          TodoListService todoListService = isTopLevelTurn ? chatServiceManager.getTodoListService() : null;
           if (todoListService != null) {
             List<TodoItem> todos = todoListService.getTodoList();
             if (todos != null && !todos.isEmpty()) {
@@ -1005,11 +1008,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
 
         // Show handoff container when turn finishes
-        Display.getDefault().asyncExec(() -> {
-          if (handoffContainer != null && !handoffContainer.isDisposed()) {
-            handoffContainer.show();
-          }
-        });
+        if (isTopLevelTurn) {
+          Display.getDefault().asyncExec(() -> {
+            if (handoffContainer != null && !handoffContainer.isDisposed()) {
+              handoffContainer.show();
+            }
+          });
+        }
         break;
       default:
         break;
@@ -1277,7 +1282,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     String content = String.format(Messages.chat_chatContentView_errorTemplate, message, workDoneToken);
     SwtUtils.invokeOnDisplayThread(() -> {
       chatContentViewer.renderErrorMessage(content);
-      actionBar.resetSendButton();
+      actionBar.markTurnFinished();
     }, parent);
   }
 
@@ -1418,7 +1423,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     // Reset send button in case the conversation was cancelled while in-progress
     if (this.actionBar != null && !this.actionBar.isDisposed()) {
-      this.actionBar.resetSendButton();
+      this.actionBar.markTurnFinished();
     }
     if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
       this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
