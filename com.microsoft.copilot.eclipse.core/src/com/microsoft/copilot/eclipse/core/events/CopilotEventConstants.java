@@ -56,6 +56,11 @@ public class CopilotEventConstants {
   public static final String TOPIC_AUTH_STATUS_CHANGED = TOPIC_AUTH + "STATUS_CHANGED";
 
   /**
+   * Successful LSP initialization; data is a monotonically increasing connection incarnation.
+   */
+  public static final String TOPIC_LANGUAGE_SERVER_INITIALIZED = TOPIC_BASE + "LANGUAGE_SERVER_INITIALIZED";
+
+  /**
    * Event when MCP tools changed.
    */
   public static final String ON_DID_CHANGE_MCP_TOOLS = TOPIC_CHAT + "ON_DID_CHANGE_MCP_TOOLS";

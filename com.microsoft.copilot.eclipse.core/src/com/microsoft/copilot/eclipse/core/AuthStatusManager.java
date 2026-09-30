@@ -31,6 +31,7 @@ public class AuthStatusManager {
   private CopilotLanguageServerConnection connection;
   private ConcurrentLinkedQueue<CopilotAuthStatusListener> copilotAuthStatusListeners;
   private CopilotStatusResult copilotStatusResult;
+  private String notifiedUser;
   private CheckQuotaResult checkQuotaResult;
   private IEventBroker eventBroker;
 
@@ -99,9 +100,14 @@ public class AuthStatusManager {
    * Set the CopilotStatusResult string to the given status and notify the listeners.
    */
   public CopilotStatusResult setCopilotStatus(String newCopilotStatusResult) {
-    if (!Objects.equals(this.copilotStatusResult.getStatus(), newCopilotStatusResult)) {
+    if (!Objects.equals(this.copilotStatusResult.getStatus(), newCopilotStatusResult)
+        || !Objects.equals(notifiedUser, this.copilotStatusResult.getUser())) {
       this.copilotStatusResult.setStatus(newCopilotStatusResult);
-      onDidCopilotStatusChange(this.copilotStatusResult);
+      notifiedUser = this.copilotStatusResult.getUser();
+      CopilotStatusResult notification = new CopilotStatusResult();
+      notification.setStatus(newCopilotStatusResult);
+      notification.setUser(notifiedUser);
+      onDidCopilotStatusChange(notification);
     }
     return this.copilotStatusResult;
   }
