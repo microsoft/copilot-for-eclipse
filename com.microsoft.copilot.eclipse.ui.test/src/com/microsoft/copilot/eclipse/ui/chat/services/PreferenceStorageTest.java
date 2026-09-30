@@ -114,6 +114,7 @@ class PreferenceStorageTest {
     assertEquals("high", restored.getReasoningEffort("model-a"));
     assertEquals(128000, restored.getContextWindow("model-a"));
     assertSame(restored, storage.getReadyPreferences());
+    assertEquals(PreferenceStorage.InitializationResult.NONE, storage.getInitializationResult().getValue());
   }
 
   @Test
@@ -125,29 +126,60 @@ class PreferenceStorageTest {
     assertNotNull(storage.getReadyPreferences());
     assertNull(storage.getReadyPreferences().getChatModel());
     assertTrue(storage.getReadyPreferences().getReasoningEffortSnapshot().isEmpty());
+    assertEquals(PreferenceStorage.InitializationResult.NONE, storage.getInitializationResult().getValue());
     verify(files, never()).write(any(), any());
   }
 
   @Test
-  void testInitialize_UnreadableFile_FailsAndDoesNotOverwrite() throws Exception {
+  void testDismissal_PersistsUntilAccountLifecycleChanges() throws Exception {
+    when(files.read(any(Path.class))).thenThrow(new AccessDeniedException("pref.json"));
+    load();
+    storage.dismissInitializationResult();
+    realm.drain();
+
+    assertEquals(State.READY, storage.getState());
+    assertEquals(PreferenceStorage.InitializationResult.RECOVERED_DISMISSED,
+        storage.getInitializationResult().getValue());
+    authListener().onDidCopilotStatusChange(new CopilotStatusResult());
+    realm.drain();
+    assertEquals(PreferenceStorage.InitializationResult.RECOVERED_DISMISSED,
+        storage.getInitializationResult().getValue());
+
+    when(auth.getUserName()).thenReturn("bob");
+    assertEquals(State.UNAVAILABLE, storage.getState());
+    realm.drain();
+    assertEquals(PreferenceStorage.InitializationResult.NONE, storage.getInitializationResult().getValue());
+
+    storage.initialize();
+    drainWork();
+    realm.drain();
+    assertEquals(State.READY, storage.getState());
+    assertEquals(PreferenceStorage.InitializationResult.RECOVERED, storage.getInitializationResult().getValue());
+  }
+
+  @Test
+  void testInitialize_UnreadableFile_RecoversWithoutOverwriting() throws Exception {
     when(files.read(any(Path.class))).thenThrow(new AccessDeniedException("pref.json"));
     load();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
+    storage.getReadyPreferences().setChatModel("session-choice");
+    storage.persist(storage.getReadyPreferences());
     storage.initialize();
     drainWork();
     verify(connection).persistence();
+    verify(files, never()).write(any(), any());
   }
 
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {" ", "null", "[]", "{", "{\"chatModel\":\"x\"} garbage", "{chatModel:'x'}",
       "{\"chatModel\":\"x\",}", "/*comment*/{}", "{\"chatModel\":{}}", "{\"contextWindowByModel\":false}"})
-  void testInitialize_InvalidJson_FailsAndDoesNotOverwrite(String content) throws Exception {
+  void testInitialize_InvalidJson_RecoversWithoutOverwriting(String content) throws Exception {
     when(files.read(any(Path.class))).thenReturn(content);
     load();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
   }
 
   @Test
@@ -169,11 +201,11 @@ class PreferenceStorageTest {
   @ValueSource(strings = {"{\"chatModel\":\"line\nbreak\"}", "{\"chatModel\":\"tab\tcharacter\"}",
       "{\"chatModel\":\"escaped\\\nnewline\"}", "{\"chatModel\":\"single\\'quote\"}",
       "{\"skipGitHubJobConfirmDialog\":TRUE}", "{\"chatModel\":NULL}"})
-  void testInitialize_LegacyGsonExtensions_FailWithoutOverwriting(String content) throws Exception {
+  void testInitialize_LegacyGsonExtensions_RecoversWithoutOverwriting(String content) throws Exception {
     when(files.read(any(Path.class))).thenReturn(content);
     load();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
   }
 
   @Test
@@ -203,12 +235,10 @@ class PreferenceStorageTest {
   }
 
   @Test
-  void testInitialize_ConcurrentCallersAndRetry_CoalescesPendingAndReadyLoads() throws Exception {
+  void testInitialize_ConcurrentCallers_CoalescesPendingAndReadyLoads() throws Exception {
     when(files.read(any(Path.class))).thenReturn("{}");
     storage.initialize();
     storage.initialize();
-    storage.retry();
-    storage.retry();
     drainWork();
     response.complete(persistence());
     drainWork();
@@ -216,7 +246,6 @@ class PreferenceStorageTest {
     UserPreference restored = storage.getReadyPreferences();
     restored.setChatModel("session-choice");
     storage.initialize();
-    storage.retry();
     drainWork();
 
     verify(connection).persistence();
@@ -240,45 +269,35 @@ class PreferenceStorageTest {
   }
 
   @Test
-  void testInitialize_RpcFailure_RequiresExplicitRetry() throws Exception {
+  void testInitialize_RpcFailure_RecoversToDefaultsWithoutRetry() throws Exception {
     storage.initialize();
     drainWork();
     response.completeExceptionally(new IOException("offline"));
+    drainWork();
     realm.drain();
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     storage.initialize();
     drainWork();
     verify(connection).persistence();
-
-    response = new CompletableFuture<>();
-    when(files.read(any(Path.class))).thenReturn("{\"chatModel\":\"recovered\"}");
-    storage.retry();
-    storage.retry();
-    drainWork();
-    response.complete(persistence());
-    drainWork();
-    realm.drain();
-
-    assertEquals("recovered", storage.getReadyPreferences().getChatModel());
-    verify(connection, times(2)).persistence();
+    verify(connection, times(1)).persistence();
   }
 
   @Test
-  void testInitialize_NullRpcResponse_Fails() throws Exception {
+  void testInitialize_NullRpcResponse_Recovers() throws Exception {
     storage.initialize();
     drainWork();
     response.complete(null);
     drainWork();
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     verify(files, never()).read(any());
   }
 
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {" ", "relative-path", "invalid\u0000path"})
-  void testInitialize_InvalidPersistencePath_Fails(String path) throws Exception {
+  void testInitialize_InvalidPersistencePath_Recovers(String path) throws Exception {
     storage.initialize();
     drainWork();
     ChatPersistence invalid = new ChatPersistence();
@@ -287,40 +306,40 @@ class PreferenceStorageTest {
     drainWork();
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     verify(files, never()).read(any());
   }
 
   @Test
-  void testInitialize_RpcInvocationThrows_FailsWithoutReading() throws Exception {
+  void testInitialize_RpcInvocationThrows_RecoversWithoutReading() throws Exception {
     when(connection.persistence()).thenThrow(new IllegalStateException("unavailable"));
     storage.initialize();
     drainWork();
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     verify(files, never()).read(any());
   }
 
   @Test
-  void testInitialize_NullRpcFuture_FailsWithoutReading() throws Exception {
+  void testInitialize_NullRpcFuture_RecoversWithoutReading() throws Exception {
     when(connection.persistence()).thenReturn(null);
     storage.initialize();
     drainWork();
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     verify(files, never()).read(any());
   }
 
   @Test
-  void testDeadline_PendingRpc_FailsAndCancelsRequest() throws Exception {
+  void testDeadline_PendingRpc_RecoversAndCancelsRequest() throws Exception {
     storage.initialize();
     drainWork();
     expire();
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     assertTrue(response.isCancelled());
   }
 
@@ -331,7 +350,7 @@ class PreferenceStorageTest {
     drainWork();
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
     verify(connection, never()).persistence();
   }
 
@@ -345,7 +364,7 @@ class PreferenceStorageTest {
     clock.set(TimeUnit.SECONDS.toNanos(15));
     realm.drain();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
   }
 
   @Test
@@ -356,27 +375,22 @@ class PreferenceStorageTest {
     });
     load();
 
-    assertFailedWithoutWrites();
+    assertRecoveredWithoutWrites();
   }
 
   @Test
-  void testRetry_LateReadFromTimedOutAttempt_DoesNotReplaceSuccessfulRetry() throws Exception {
+  void testDeadline_LateRead_DoesNotReplaceRecoveredDefaults() throws Exception {
     when(files.read(any(Path.class))).thenAnswer(invocation -> {
-      Mockito.doReturn("{\"chatModel\":\"new\"}").when(files).read(any(Path.class));
       expire();
-      response = new CompletableFuture<>();
-      storage.retry();
-      drainWork();
-      response.complete(persistence());
-      drainWork();
-      realm.drain();
       return "{\"chatModel\":\"old\"}";
     });
     load();
 
     assertEquals(State.READY, storage.getState());
-    assertEquals("new", storage.getReadyPreferences().getChatModel());
-    verify(connection, times(2)).persistence();
+    assertNull(storage.getReadyPreferences().getChatModel());
+    assertEquals(PreferenceStorage.InitializationResult.RECOVERED,
+        storage.getInitializationResult().getValue());
+    verify(connection, times(1)).persistence();
   }
 
   @Test
@@ -392,7 +406,7 @@ class PreferenceStorageTest {
   }
 
   @Test
-  void testRetry_LateRpcFromTimedOutAttempt_CannotReplaceNewPreferences() throws Exception {
+  void testDeadline_LateRpc_CannotReplaceRecoveredDefaults() throws Exception {
     response = new UncancellableFuture();
     CompletableFuture<ChatPersistence> old = response;
     storage.initialize();
@@ -400,20 +414,13 @@ class PreferenceStorageTest {
     expire();
     realm.drain();
 
-    response = new CompletableFuture<>();
-    when(files.read(any(Path.class))).thenReturn("{\"chatModel\":\"new\"}");
-    storage.retry();
-    drainWork();
-    response.complete(persistence());
-    drainWork();
-    realm.drain();
     old.complete(persistence());
     drainWork();
     realm.drain();
 
     assertEquals(State.READY, storage.getState());
-    assertEquals("new", storage.getReadyPreferences().getChatModel());
-    verify(files).read(any());
+    assertNull(storage.getReadyPreferences().getChatModel());
+    verify(files, never()).read(any());
     verify(files, never()).write(any(), any());
   }
 
@@ -421,7 +428,6 @@ class PreferenceStorageTest {
   void testInitialize_SignedOut_DoesNotReadOrResolvePath() {
     when(auth.isSignedIn()).thenReturn(false);
     storage.initialize();
-    storage.retry();
     drainWork();
     realm.drain();
 
@@ -486,7 +492,7 @@ class PreferenceStorageTest {
 
     response = new CompletableFuture<>();
     when(files.read(any(Path.class))).thenReturn("{\"chatModel\":\"bob-model\"}");
-    storage.retry();
+    storage.initialize();
     drainWork();
     response.complete(persistence());
     drainWork();
@@ -542,7 +548,6 @@ class PreferenceStorageTest {
     storage.dispose();
     storage.dispose();
     storage.initialize();
-    storage.retry();
     response.complete(persistence());
     drainWork();
     realm.drain();
@@ -705,10 +710,12 @@ class PreferenceStorageTest {
     realm.drain();
   }
 
-  private void assertFailedWithoutWrites() throws IOException {
-    assertEquals(State.FAILED, storage.getState());
-    assertEquals(State.FAILED, storage.getReadiness().getValue());
-    assertNull(storage.getReadyPreferences());
+  private void assertRecoveredWithoutWrites() throws IOException {
+    assertEquals(State.READY, storage.getState());
+    assertEquals(State.READY, storage.getReadiness().getValue());
+    assertNotNull(storage.getReadyPreferences());
+    assertEquals(PreferenceStorage.InitializationResult.RECOVERED,
+        storage.getInitializationResult().getValue());
     storage.persist();
     verify(files, never()).write(any(), any());
   }

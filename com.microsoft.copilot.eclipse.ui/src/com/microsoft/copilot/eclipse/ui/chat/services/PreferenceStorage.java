@@ -16,6 +16,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 
 import com.google.gson.Gson;
@@ -50,6 +51,13 @@ public class PreferenceStorage {
     UNAVAILABLE, LOADING, READY, FAILED, DISPOSED
   }
 
+  /**
+   * Final result of restoring preferences, including whether its notification was dismissed.
+   */
+  public enum InitializationResult {
+    NONE, RECOVERED, RECOVERED_DISMISSED, FAILED, FAILED_DISMISSED
+  }
+
   private final Object lock = new Object();
   private final Object saveLock = new Object();
   private final CopilotLanguageServerConnection connection;
@@ -59,6 +67,7 @@ public class PreferenceStorage {
   private final LongSupplier clock;
   private final FileAccess files;
   private final WritableValue<State> readiness;
+  private final WritableValue<InitializationResult> initializationResult;
   private final CopilotAuthStatusListener authListener;
   private State state = State.UNAVAILABLE;
   private String account;
@@ -66,6 +75,8 @@ public class PreferenceStorage {
   private Attempt attempt;
   private UserPreference preferences;
   private Path preferencePath;
+  private boolean persistenceAllowed;
+  private InitializationResult result = InitializationResult.NONE;
 
   /**
    * Creates storage without starting RPC or file work.
@@ -102,6 +113,8 @@ public class PreferenceStorage {
     this.clock = clock;
     this.files = files;
     this.readiness = new WritableValue<>(realm, State.UNAVAILABLE, State.class);
+    this.initializationResult =
+        new WritableValue<>(realm, InitializationResult.NONE, InitializationResult.class);
     this.account = currentAccount();
     this.authListener = status -> refreshAccount();
     auth.addCopilotAuthStatusListener(authListener);
@@ -129,17 +142,38 @@ public class PreferenceStorage {
   }
 
   /**
-   * Starts the first load, coalescing callers without implicitly retrying failures.
+   * Returns the final initialization result and notification dismissal state.
+   *
+   * @return the initialization result observable
    */
-  public void initialize() {
-    start(false);
+  public IObservableValue<InitializationResult> getInitializationResult() {
+    return initializationResult;
   }
 
   /**
-   * Explicitly retries unavailable or failed preferences without replacing ready choices.
+   * Dismisses a recovery result notification without changing preference readiness.
    */
-  public void retry() {
-    start(true);
+  public void dismissInitializationResult() {
+    initializationResult.getRealm().asyncExec(() -> {
+      synchronized (lock) {
+        if (state == State.DISPOSED || initializationResult.isDisposed()) {
+          return;
+        }
+        result = switch (result) {
+          case RECOVERED -> InitializationResult.RECOVERED_DISMISSED;
+          case FAILED -> InitializationResult.FAILED_DISMISSED;
+          default -> result;
+        };
+        initializationResult.setValue(result);
+      }
+    });
+  }
+
+  /**
+   * Starts initialization, coalescing callers without implicitly retrying failures.
+   */
+  public void initialize() {
+    start();
   }
 
   /**
@@ -175,7 +209,7 @@ public class PreferenceStorage {
         String json;
         synchronized (lock) {
           if (state != State.READY || preferences != expected
-              || !Objects.equals(account, currentAccount())) {
+              || !persistenceAllowed || !Objects.equals(account, currentAccount())) {
             return;
           }
           path = preferencePath;
@@ -208,7 +242,9 @@ public class PreferenceStorage {
     readiness.getRealm().asyncExec(() -> {
       if (!readiness.isDisposed()) {
         readiness.setValue(State.DISPOSED);
+        initializationResult.setValue(InitializationResult.NONE);
         readiness.dispose();
+        initializationResult.dispose();
       }
     });
   }
@@ -238,6 +274,7 @@ public class PreferenceStorage {
     }
     cancel(previous);
     publishState(version, State.UNAVAILABLE);
+    publishResult(version, InitializationResult.NONE);
   }
 
   private Attempt clear(State next) {
@@ -245,24 +282,28 @@ public class PreferenceStorage {
     attempt = null;
     preferences = null;
     preferencePath = null;
+    persistenceAllowed = false;
+    result = InitializationResult.NONE;
     state = next;
     generation++;
     return previous;
   }
 
-  private void start(boolean retry) {
+  private void start() {
     refreshAccount();
     Attempt next;
     synchronized (lock) {
       if (account == null || state == State.DISPOSED || state == State.LOADING || state == State.READY
-          || (!retry && state == State.FAILED)) {
+          || state == State.FAILED) {
         return;
       }
       state = State.LOADING;
+      result = InitializationResult.NONE;
       next = new Attempt(++generation, account, clock.getAsLong());
       attempt = next;
     }
     publishState(next.generation, State.LOADING);
+    publishResult(next.generation, InitializationResult.NONE);
     try {
       ScheduledFuture<?> timeout =
           timer.schedule(() -> fail(next, null), LOAD_TIMEOUT_NANOS, TimeUnit.NANOSECONDS);
@@ -411,10 +452,13 @@ public class PreferenceStorage {
         }
         preferences = restored;
         preferencePath = path;
+        persistenceAllowed = true;
+        result = InitializationResult.NONE;
         state = State.READY;
         attempt = null;
         if (!readiness.isDisposed()) {
           readiness.setValue(State.READY);
+          initializationResult.setValue(result);
         }
       }
       if (pending.timeout != null) {
@@ -445,18 +489,59 @@ public class PreferenceStorage {
   private void fail(Attempt pending, Throwable failure) {
     refreshAccount();
     long version;
+    String failedAccount;
     synchronized (lock) {
       if (!matches(pending)) {
         return;
       }
-      clear(State.FAILED);
-      version = generation;
+      attempt = null;
+      preferences = null;
+      persistenceAllowed = false;
+      result = InitializationResult.NONE;
+      state = State.LOADING;
+      version = ++generation;
+      failedAccount = account;
+      preferencePath = null;
     }
     cancel(pending);
-    if (failure != null) {
-      CopilotCore.LOGGER.error("Failed to load chat preferences", failure);
+    Throwable restorationFailure = failure == null ? new TimeoutException("Timed out loading chat preferences")
+        : originalCause(failure);
+    CopilotCore.LOGGER.error("Failed to load chat preferences", restorationFailure);
+    try {
+      publishRecovery(version, failedAccount, new UserPreference(), null);
+    } catch (RuntimeException recoveryFailure) {
+      CopilotCore.LOGGER.error("Failed to initialize default chat preferences", recoveryFailure);
+      publishRecovery(version, failedAccount, null, recoveryFailure);
     }
-    publishState(version, State.FAILED);
+  }
+
+  private Throwable originalCause(Throwable failure) {
+    Throwable cause = failure;
+    while ((cause instanceof java.util.concurrent.CompletionException
+        || cause instanceof java.util.concurrent.ExecutionException) && cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+    return cause;
+  }
+
+  private void publishRecovery(long version, String failedAccount, UserPreference defaults,
+      RuntimeException recoveryFailure) {
+    readiness.getRealm().asyncExec(() -> {
+      refreshAccount();
+      synchronized (lock) {
+        if (generation != version || state != State.LOADING || !Objects.equals(account, failedAccount)
+            || !Objects.equals(account, currentAccount()) || readiness.isDisposed()) {
+          return;
+        }
+        preferences = defaults;
+        preferencePath = null;
+        persistenceAllowed = false;
+        state = recoveryFailure == null ? State.READY : State.FAILED;
+        result = recoveryFailure == null ? InitializationResult.RECOVERED : InitializationResult.FAILED;
+        readiness.setValue(state);
+        initializationResult.setValue(result);
+      }
+    });
   }
 
   private void publishState(long version, State next) {
@@ -467,6 +552,18 @@ public class PreferenceStorage {
           return;
         }
         readiness.setValue(next);
+      }
+    });
+  }
+
+  private void publishResult(long version, InitializationResult next) {
+    initializationResult.getRealm().asyncExec(() -> {
+      refreshAccount();
+      synchronized (lock) {
+        if (generation != version || result != next || initializationResult.isDisposed()) {
+          return;
+        }
+        initializationResult.setValue(next);
       }
     });
   }
