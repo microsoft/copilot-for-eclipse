@@ -19,10 +19,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -492,6 +494,130 @@ class UserPreferenceServiceTest {
     });
   }
 
+  @Test
+  void testCorruptPreferences_RestoreDefaultsBacksUpAndRefreshesConsumers() throws Exception {
+    byte[] original = "{\"chatModel\":".getBytes(StandardCharsets.UTF_8);
+    Path preferenceFile = directory.resolve("user").resolve("pref.json");
+    Files.createDirectories(preferenceFile.getParent());
+    Files.write(preferenceFile, original);
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.CORRUPT);
+
+    runOnUi(() -> {
+      assertEquals(Messages.preferenceCorrupt, statusMessage().getText());
+      Link restore = Arrays.stream(status.getChildren()).filter(Link.class::isInstance).map(Link.class::cast)
+          .filter(link -> "preference-restore-defaults".equals(
+              link.getData("org.eclipse.swtbot.widget.key")))
+          .findFirst().orElseThrow();
+      assertTrue(restore.getEnabled());
+      assertTrue(Files.exists(preferenceFile));
+      restore.notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event());
+    });
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.READY
+        && "Agent".equals(service.getActiveModeNameOrId()));
+
+    assertTrue(Arrays.equals(original, Files.readAllBytes(findBackup(preferenceFile))));
+    assertNull(storage.getReadyPreferences().getChatModel());
+    assertNull(storage.getReadyPreferences().getUserInputs());
+    runOnUi(() -> assertEquals("", service.getPreviousInput("")));
+
+    PreferenceStorage fresh = new PreferenceStorage(connection, auth);
+    try {
+      fresh.initialize();
+      awaitUi(() -> fresh.getReadiness().getValue() == PreferenceStorage.State.READY);
+      assertNull(fresh.getReadyPreferences().getChatModel());
+    } finally {
+      fresh.dispose();
+    }
+  }
+
+  @Test
+  void testCorruptPreferences_ModeRetryRemainsIndependent() throws Exception {
+    CompletableFuture<ConversationMode[]> modes = new CompletableFuture<>();
+    when(connection.listConversationModes(any())).thenReturn(modes);
+    writePreferences("{invalid");
+    startAuthenticated(CompletableFuture.completedFuture(persistence()));
+    verify(connection, timeout(5000)).listConversationModes(any());
+    modes.completeExceptionally(new IOException("mode discovery failed"));
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.CORRUPT
+        && service.getModeDiscoveryState() == UserPreferenceService.ModeDiscoveryState.FAILED);
+
+    when(connection.listConversationModes(any())).thenReturn(CompletableFuture.completedFuture(
+        new ConversationMode[] {builtInMode("Ask", "Ask")}));
+    runOnUi(() -> {
+      Link retry = Arrays.stream(status.getChildren()).filter(Link.class::isInstance).map(Link.class::cast)
+          .filter(link -> "preference-retry".equals(link.getData("org.eclipse.swtbot.widget.key")))
+          .findFirst().orElseThrow();
+      assertTrue(retry.getEnabled());
+      retry.notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event());
+    });
+    awaitUi(() -> service.getModeDiscoveryState() == UserPreferenceService.ModeDiscoveryState.READY);
+
+    assertEquals(PreferenceStorage.State.CORRUPT, storage.getState());
+    verify(connection).persistence();
+  }
+
+  @Test
+  void testRestoreDefaults_FileWorkRunsInBackgroundWhileSwtProcessesEvents() throws Exception {
+    when(auth.isSignedIn()).thenReturn(true);
+    when(auth.getUserName()).thenReturn("user");
+    when(connection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence()));
+    Path preferenceFile = writePreferences("{invalid");
+    CountDownLatch restoreStarted = new CountDownLatch(1);
+    CountDownLatch continueRestore = new CountDownLatch(1);
+    AtomicBoolean ranOnUiThread = new AtomicBoolean();
+    runOnUi(() -> {
+      storage = new PreferenceStorage(connection, auth, DisplayRealm.getRealm(Display.getDefault()),
+          Executors.newSingleThreadExecutor(), Executors.newSingleThreadScheduledExecutor(), System::nanoTime,
+          new PreferenceStorage.FileAccess() {
+            @Override
+            public String read(Path path) throws IOException {
+              return Files.readString(path);
+            }
+
+            @Override
+            public void write(Path path, String content) throws IOException {
+              Files.writeString(path, content);
+            }
+
+            @Override
+            public boolean restore(Path path, PreferenceStorage.FileContents original, String content,
+                java.util.function.BooleanSupplier isCurrent) throws IOException {
+              ranOnUiThread.set(Display.getCurrent() != null);
+              restoreStarted.countDown();
+              try {
+                if (!continueRestore.await(5, TimeUnit.SECONDS)) {
+                  throw new IOException("Timed out waiting to continue recovery");
+                }
+              } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IOException(exception);
+              }
+              return PreferenceStorage.restoreFile(path, original, content, isCurrent);
+            }
+          });
+      createControls();
+    });
+    try {
+      awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.CORRUPT);
+      runOnUi(() -> Arrays.stream(status.getChildren()).filter(Link.class::isInstance).map(Link.class::cast)
+          .filter(link -> "preference-restore-defaults".equals(link.getData("org.eclipse.swtbot.widget.key")))
+          .findFirst().orElseThrow().notifyListeners(SWT.Selection, new org.eclipse.swt.widgets.Event()));
+      assertTrue(restoreStarted.await(5, TimeUnit.SECONDS));
+
+      CompletableFuture<Boolean> uiProcessed = new CompletableFuture<>();
+      Display.getDefault().asyncExec(() -> uiProcessed.complete(!shell.isDisposed()));
+      assertTrue(uiProcessed.get(5, TimeUnit.SECONDS));
+      assertFalse(ranOnUiThread.get());
+      when(auth.getUserName()).thenReturn("other-user");
+      assertEquals(PreferenceStorage.State.UNAVAILABLE, storage.getState());
+    } finally {
+      continueRestore.countDown();
+    }
+    awaitUi(() -> storage.getReadiness().getValue() == PreferenceStorage.State.UNAVAILABLE);
+    assertEquals("{invalid", Files.readString(preferenceFile));
+  }
+
   private void startAuthenticated(CompletableFuture<ChatPersistence> rpc) {
     when(auth.isSignedIn()).thenReturn(true);
     when(auth.getUserName()).thenReturn("user");
@@ -535,6 +661,12 @@ class UserPreferenceServiceTest {
     Files.createDirectories(file.getParent());
     Files.writeString(file, content);
     return file;
+  }
+
+  private Path findBackup(Path preferenceFile) throws IOException {
+    try (var files = Files.list(preferenceFile.getParent())) {
+      return files.filter(path -> path.getFileName().toString().endsWith(".bak")).findFirst().orElseThrow();
+    }
   }
 
   private static void runOnUi(Runnable action) {

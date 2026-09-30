@@ -22,7 +22,7 @@ import com.microsoft.copilot.eclipse.ui.chat.services.UserPreferenceService.Mode
  */
 public class PreferenceStatus extends Composite {
   /**
-   * Creates a status message and an explicit retry action.
+   * Creates a status message and an explicit recovery action.
    *
    * @param parent parent control
    * @param storage shared chat preference storage
@@ -32,7 +32,7 @@ public class PreferenceStatus extends Composite {
   }
 
   /**
-   * Creates status and retry controls for preference loading and independent mode discovery.
+   * Creates status and recovery/retry controls for preferences and independent mode discovery.
    *
    * @param parent parent control
    * @param storage shared chat preference storage
@@ -40,7 +40,7 @@ public class PreferenceStatus extends Composite {
    */
   public PreferenceStatus(Composite parent, PreferenceStorage storage, UserPreferenceService preferences) {
     super(parent, SWT.NONE);
-    setLayout(new GridLayout(2, false));
+    setLayout(new GridLayout(3, false));
     GridData data = new GridData(SWT.FILL, SWT.CENTER, true, false);
     setLayoutData(data);
     Label message = new Label(this, SWT.WRAP);
@@ -52,12 +52,21 @@ public class PreferenceStatus extends Composite {
     GridData retryData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
     retry.setLayoutData(retryData);
     retry.addListener(SWT.Selection, event -> {
-      if (storage.getState() == State.READY && preferences != null) {
+      State state = storage.getState();
+      if (preferences != null && preferences.getModeDiscoveryState() != ModeDiscoveryState.READY
+          && preferences.getModeDiscoveryState() != ModeDiscoveryState.LOADING) {
         preferences.retryModeDiscovery();
-      } else {
+      }
+      if (state == State.FAILED || state == State.UNAVAILABLE) {
         storage.retry();
       }
     });
+    Link restore = new Link(this, SWT.NONE);
+    restore.setText("<a>" + Messages.preferenceRestoreDefaults + "</a>");
+    restore.setData("org.eclipse.swtbot.widget.key", "preference-restore-defaults");
+    GridData restoreData = new GridData(SWT.RIGHT, SWT.CENTER, false, false);
+    restore.setLayoutData(restoreData);
+    restore.addListener(SWT.Selection, event -> storage.restoreDefaults());
     Realm.runWithDefault(storage.getReadiness().getRealm(), () -> {
       ISideEffect effect = ISideEffect.create(() -> {
         return new Readiness(storage.getReadiness().getValue(),
@@ -74,6 +83,9 @@ public class PreferenceStatus extends Composite {
         String text = switch (state) {
           case LOADING -> Messages.preferenceLoading;
           case FAILED -> Messages.preferenceLoadFailed;
+          case CORRUPT -> Messages.preferenceCorrupt;
+          case RESTORING -> Messages.preferenceRestoringDefaults;
+          case RESTORE_FAILED -> Messages.preferenceRestoreFailed;
           default -> Messages.preferenceUnavailable;
         };
         if (modePending) {
@@ -81,11 +93,18 @@ public class PreferenceStatus extends Composite {
               ? Messages.modeDiscoveryLoading : Messages.modeDiscoveryFailed;
         }
         message.setText(text);
-        boolean canRetry = state == State.FAILED || state == State.UNAVAILABLE
-            || (modePending && readiness.modes() != ModeDiscoveryState.LOADING);
+        boolean canRetry = (state == State.FAILED || state == State.UNAVAILABLE)
+            || (modePending && readiness.modes() != ModeDiscoveryState.LOADING)
+            || (state != State.READY && preferences != null
+                && (readiness.modes() == ModeDiscoveryState.FAILED
+                    || readiness.modes() == ModeDiscoveryState.UNAVAILABLE));
+        final boolean canRestore = state == State.CORRUPT || state == State.RESTORING || state == State.RESTORE_FAILED;
         retryData.exclude = !canRetry;
         retry.setVisible(canRetry);
         retry.setEnabled(canRetry);
+        restoreData.exclude = !canRestore;
+        restore.setVisible(canRestore);
+        restore.setEnabled(state != State.RESTORING);
         requestLayout();
       });
       addDisposeListener(event -> effect.dispose());

@@ -5,9 +5,16 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +23,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
 import com.google.gson.Gson;
@@ -47,7 +55,7 @@ public class PreferenceStorage {
    * Availability of preferences for the current account.
    */
   public enum State {
-    UNAVAILABLE, LOADING, READY, FAILED, DISPOSED
+    UNAVAILABLE, LOADING, READY, FAILED, CORRUPT, RESTORING, RESTORE_FAILED, DISPOSED
   }
 
   private final Object lock = new Object();
@@ -66,6 +74,8 @@ public class PreferenceStorage {
   private Attempt attempt;
   private UserPreference preferences;
   private Path preferencePath;
+  private Path failedPath;
+  private FileContents corruptContents;
 
   /**
    * Creates storage without starting RPC or file work.
@@ -84,11 +94,30 @@ public class PreferenceStorage {
           }
 
           @Override
+          public FileContents readContents(Path path) throws IOException {
+            byte[] bytes = Files.readAllBytes(path);
+            String text;
+            try {
+              text = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                  .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();
+            } catch (CharacterCodingException exception) {
+              text = null;
+            }
+            return new FileContents(bytes, text);
+          }
+
+          @Override
           public void write(Path path, String content) throws IOException {
             if (Files.notExists(path)) {
               Files.createDirectories(path.getParent());
             }
             Files.writeString(path, content);
+          }
+
+          @Override
+          public boolean restore(Path path, FileContents expected, String content, BooleanSupplier isCurrent)
+              throws IOException {
+            return restoreFile(path, expected, content, isCurrent);
           }
         });
   }
@@ -140,6 +169,28 @@ public class PreferenceStorage {
    */
   public void retry() {
     start(true);
+  }
+
+  /**
+   * Explicitly backs up confirmed corrupt preferences and replaces them with durable defaults.
+   */
+  public void restoreDefaults() {
+    refreshAccount();
+    Recovery recovery;
+    synchronized (lock) {
+      if ((state != State.CORRUPT && state != State.RESTORE_FAILED) || account == null || failedPath == null
+          || corruptContents == null) {
+        return;
+      }
+      state = State.RESTORING;
+      recovery = new Recovery(++generation, account, failedPath, corruptContents);
+    }
+    publishState(recovery.generation, State.RESTORING);
+    try {
+      worker.execute(() -> restore(recovery));
+    } catch (RuntimeException exception) {
+      failRestore(recovery, exception);
+    }
   }
 
   /**
@@ -245,6 +296,8 @@ public class PreferenceStorage {
     attempt = null;
     preferences = null;
     preferencePath = null;
+    failedPath = null;
+    corruptContents = null;
     state = next;
     generation++;
     return previous;
@@ -255,6 +308,7 @@ public class PreferenceStorage {
     Attempt next;
     synchronized (lock) {
       if (account == null || state == State.DISPOSED || state == State.LOADING || state == State.READY
+          || state == State.CORRUPT || state == State.RESTORING || state == State.RESTORE_FAILED
           || (!retry && state == State.FAILED)) {
         return;
       }
@@ -338,10 +392,22 @@ public class PreferenceStorage {
       }
       Path path = directory.resolve(pending.account).resolve("pref.json");
       UserPreference restored;
+      FileContents contents;
       try {
-        restored = parse(files.read(path));
+        contents = files.readContents(path);
       } catch (NoSuchFileException exception) {
         restored = new UserPreference();
+        publishPreferences(pending, path, restored);
+        return;
+      }
+      try {
+        if (contents.text == null) {
+          throw new JsonSyntaxException("Preferences are not valid UTF-8");
+        }
+        restored = parse(contents.text);
+      } catch (IOException | RuntimeException exception) {
+        failCorrupt(pending, path, contents, exception);
+        return;
       }
       publishPreferences(pending, path, restored);
     } catch (IOException | RuntimeException exception) {
@@ -459,6 +525,101 @@ public class PreferenceStorage {
     publishState(version, State.FAILED);
   }
 
+  private void failCorrupt(Attempt pending, Path path, FileContents contents, Throwable failure) {
+    refreshAccount();
+    long version;
+    synchronized (lock) {
+      if (!matches(pending)) {
+        return;
+      }
+      clear(State.CORRUPT);
+      failedPath = path;
+      corruptContents = contents;
+      version = generation;
+    }
+    cancel(pending);
+    CopilotCore.LOGGER.error("Failed to load chat preferences", failure);
+    publishState(version, State.CORRUPT);
+  }
+
+  private void restore(Recovery recovery) {
+    if (!isCurrentRecovery(recovery)) {
+      return;
+    }
+    try {
+      boolean restored = files.restore(recovery.path, recovery.contents, GSON.toJson(new UserPreference()),
+          () -> isCurrentRecovery(recovery));
+      if (!isCurrentRecovery(recovery)) {
+        return;
+      }
+      if (!restored) {
+        reloadAfterRecovery(recovery);
+        return;
+      }
+      publishRestoredDefaults(recovery);
+    } catch (IOException | RuntimeException exception) {
+      failRestore(recovery, exception);
+    }
+  }
+
+  private void publishRestoredDefaults(Recovery recovery) {
+    readiness.getRealm().asyncExec(() -> {
+      refreshAccount();
+      synchronized (lock) {
+        if (!matchesRecovery(recovery) || readiness.isDisposed()) {
+          return;
+        }
+        preferences = new UserPreference();
+        preferencePath = recovery.path;
+        failedPath = null;
+        corruptContents = null;
+        state = State.READY;
+        if (!readiness.isDisposed()) {
+          readiness.setValue(State.READY);
+        }
+      }
+    });
+  }
+
+  private void failRestore(Recovery recovery, Throwable failure) {
+    refreshAccount();
+    long version;
+    synchronized (lock) {
+      if (!matchesRecovery(recovery)) {
+        return;
+      }
+      state = State.RESTORE_FAILED;
+      version = generation;
+    }
+    CopilotCore.LOGGER.error("Failed to restore default chat preferences", failure);
+    publishState(version, State.RESTORE_FAILED);
+  }
+
+  private void reloadAfterRecovery(Recovery recovery) {
+    synchronized (lock) {
+      if (!matchesRecovery(recovery)) {
+        return;
+      }
+      state = State.UNAVAILABLE;
+      failedPath = null;
+      corruptContents = null;
+      generation++;
+    }
+    start(true);
+  }
+
+  private boolean isCurrentRecovery(Recovery recovery) {
+    refreshAccount();
+    synchronized (lock) {
+      return matchesRecovery(recovery);
+    }
+  }
+
+  private boolean matchesRecovery(Recovery recovery) {
+    return state == State.RESTORING && generation == recovery.generation
+        && Objects.equals(account, recovery.account) && Objects.equals(account, currentAccount());
+  }
+
   private void publishState(long version, State next) {
     readiness.getRealm().asyncExec(() -> {
       refreshAccount();
@@ -486,10 +647,74 @@ public class PreferenceStorage {
     }
   }
 
+  static boolean restoreFile(Path path, FileContents expected, String content, BooleanSupplier isCurrent)
+      throws IOException {
+    Path parent = path.getParent();
+    if (!isCurrent.getAsBoolean() || !matchesFile(path, expected.bytes)) {
+      return false;
+    }
+    Path backup = null;
+    Path temporary = null;
+    try {
+      backup = Files.createTempFile(parent, path.getFileName() + ".corrupt-", ".bak");
+      try {
+        Files.write(backup, expected.bytes, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+      } catch (IOException exception) {
+        Files.deleteIfExists(backup);
+        backup = null;
+        throw exception;
+      }
+      if (!isCurrent.getAsBoolean() || !matchesFile(path, expected.bytes)) {
+        return false;
+      }
+      temporary = Files.createTempFile(parent, path.getFileName() + ".restore-", ".tmp");
+      Files.writeString(temporary, content, StandardCharsets.UTF_8, StandardOpenOption.WRITE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+      if (!isCurrent.getAsBoolean() || !matchesFile(path, expected.bytes)) {
+        return false;
+      }
+      Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+      temporary = null;
+      return true;
+    } finally {
+      if (temporary != null) {
+        Files.deleteIfExists(temporary);
+      }
+    }
+  }
+
+  private static boolean matchesFile(Path path, byte[] expected) throws IOException {
+    try {
+      return Arrays.equals(Files.readAllBytes(path), expected);
+    } catch (NoSuchFileException exception) {
+      return false;
+    }
+  }
+
   interface FileAccess {
     String read(Path path) throws IOException;
 
+    default FileContents readContents(Path path) throws IOException {
+      String text = read(path);
+      return new FileContents(text.getBytes(StandardCharsets.UTF_8), text);
+    }
+
     void write(Path path, String content) throws IOException;
+
+    default boolean restore(Path path, FileContents expected, String content, BooleanSupplier isCurrent)
+        throws IOException {
+      return restoreFile(path, expected, content, isCurrent);
+    }
+  }
+
+  static final class FileContents {
+    private final byte[] bytes;
+    private final String text;
+
+    FileContents(byte[] bytes, String text) {
+      this.bytes = bytes.clone();
+      this.text = text;
+    }
   }
 
   /**
@@ -507,6 +732,20 @@ public class PreferenceStorage {
       this.generation = generation;
       this.account = account;
       this.started = started;
+    }
+
+    private static class Recovery {
+      private final long generation;
+      private final String account;
+      private final Path path;
+      private final FileContents contents;
+
+      Recovery(long generation, String account, Path path, FileContents contents) {
+        this.generation = generation;
+        this.account = account;
+        this.path = path;
+        this.contents = contents;
+      }
     }
   }
 }

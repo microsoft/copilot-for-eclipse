@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -20,10 +21,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +41,7 @@ import org.eclipse.core.databinding.observable.Realm;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -62,6 +66,8 @@ class PreferenceStorageTest {
   private final Queue<Runnable> deadlines = new ConcurrentLinkedQueue<>();
   private final TestRealm realm = new TestRealm();
   private final AtomicLong clock = new AtomicLong();
+  @TempDir
+  private Path directory;
   private CompletableFuture<ChatPersistence> response;
   private PreferenceStorage storage;
 
@@ -71,6 +77,10 @@ class PreferenceStorageTest {
     when(auth.getUserName()).thenReturn("alice");
     response = new CompletableFuture<>();
     when(connection.persistence()).thenAnswer(invocation -> response);
+    when(files.readContents(any(Path.class))).thenAnswer(invocation -> {
+      String text = files.read(invocation.getArgument(0));
+      return new PreferenceStorage.FileContents(text.getBytes(StandardCharsets.UTF_8), text);
+    });
     Mockito.doAnswer(invocation -> {
       work.add(invocation.getArgument(0));
       return null;
@@ -134,6 +144,7 @@ class PreferenceStorageTest {
     load();
 
     assertFailedWithoutWrites();
+    assertEquals(State.FAILED, storage.getState());
     storage.initialize();
     drainWork();
     verify(connection).persistence();
@@ -148,6 +159,137 @@ class PreferenceStorageTest {
     load();
 
     assertFailedWithoutWrites();
+    assertEquals(State.CORRUPT, storage.getState());
+  }
+
+  @Test
+  void testRestoreDefaults_ExplicitRequestBacksUpExactBytesAndPublishesDefaults() throws Exception {
+    Path path = directory.resolve("alice").resolve("pref.json");
+    Files.createDirectories(path.getParent());
+    byte[] original = "{\"chatModel\":\"unfinished".getBytes(StandardCharsets.UTF_8);
+    Files.write(path, original);
+    when(files.read(path)).thenReturn(new String(original, StandardCharsets.UTF_8));
+    Mockito.doCallRealMethod().when(files).restore(eq(path), any(), anyString(), any());
+    load();
+
+    assertEquals(State.CORRUPT, storage.getState());
+    verify(files, never()).restore(any(), any(), anyString(), any());
+    storage.restoreDefaults();
+    storage.restoreDefaults();
+    storage.retry();
+    storage.initialize();
+    assertEquals(State.RESTORING, storage.getState());
+    drainWork();
+    realm.drain();
+
+    assertEquals(State.READY, storage.getState());
+    assertNull(storage.getReadyPreferences().getChatModel());
+    assertNull(storage.getReadyPreferences().getUserInputs());
+    verify(files).restore(eq(path), any(), anyString(), any());
+    try (var filesOnDisk = Files.list(path.getParent())) {
+      Path backup = filesOnDisk.filter(candidate -> candidate.getFileName().toString().endsWith(".bak"))
+          .findFirst().orElseThrow();
+      assertTrue(Arrays.equals(original, Files.readAllBytes(backup)));
+    }
+    assertTrue(Files.readString(path).contains("\"chatModel\":null"));
+  }
+
+  @Test
+  void testRestoreDefaults_FailurePreservesOriginalAndCanBeRetried() throws Exception {
+    Path path = directory.resolve("alice").resolve("pref.json");
+    Files.createDirectories(path.getParent());
+    byte[] original = "{invalid".getBytes(StandardCharsets.UTF_8);
+    Files.write(path, original);
+    when(files.read(path)).thenReturn(new String(original, StandardCharsets.UTF_8));
+    Mockito.doThrow(new IOException("backup failed")).when(files).restore(eq(path), any(), anyString(), any());
+    load();
+
+    storage.restoreDefaults();
+    drainWork();
+    realm.drain();
+
+    assertEquals(State.RESTORE_FAILED, storage.getState());
+    assertTrue(Arrays.equals(original, Files.readAllBytes(path)));
+    verify(files, never()).write(any(), any());
+
+    Mockito.doAnswer(invocation -> PreferenceStorage.restoreFile(invocation.getArgument(0),
+        invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3)))
+        .when(files).restore(eq(path), any(), anyString(), any());
+    storage.restoreDefaults();
+    drainWork();
+    realm.drain();
+
+    assertEquals(State.READY, storage.getState());
+    try (var filesOnDisk = Files.list(path.getParent())) {
+      Path backup = filesOnDisk.filter(candidate -> candidate.getFileName().toString().endsWith(".bak"))
+          .findFirst().orElseThrow();
+      assertTrue(Arrays.equals(original, Files.readAllBytes(backup)));
+    }
+  }
+
+  @Test
+  void testRestoreDefaults_ChangedFileIsReloadedInsteadOfReplaced() throws Exception {
+    Path path = directory.resolve("alice").resolve("pref.json");
+    Files.createDirectories(path.getParent());
+    Files.writeString(path, "{invalid");
+    when(files.read(path)).thenReturn("{invalid");
+    Mockito.doCallRealMethod().when(files).restore(eq(path), any(), anyString(), any());
+    Mockito.doCallRealMethod().when(files).restore(eq(path), any(), anyString(), any());
+    load();
+
+    Files.writeString(path, "{\"chatModel\":\"new-choice\"}");
+    when(files.read(path)).thenReturn("{\"chatModel\":\"new-choice\"}");
+    response = new CompletableFuture<>();
+    storage.restoreDefaults();
+    drainWork();
+    response.complete(persistence());
+    drainWork();
+    realm.drain();
+
+    assertEquals(State.READY, storage.getState());
+    assertEquals("new-choice", storage.getReadyPreferences().getChatModel());
+    assertEquals("{\"chatModel\":\"new-choice\"}", Files.readString(path));
+    try (var filesOnDisk = Files.list(path.getParent())) {
+      assertTrue(filesOnDisk.noneMatch(candidate -> candidate.getFileName().toString().endsWith(".bak")));
+    }
+  }
+
+  @Test
+  void testRestoreDefaults_AccountChangeBeforeWorkerStarts_DoesNotWriteOldAccount() throws Exception {
+    Path path = directory.resolve("alice").resolve("pref.json");
+    Files.createDirectories(path.getParent());
+    byte[] original = "{invalid".getBytes(StandardCharsets.UTF_8);
+    Files.write(path, original);
+    when(files.read(path)).thenReturn(new String(original, StandardCharsets.UTF_8));
+    load();
+
+    storage.restoreDefaults();
+    when(auth.getUserName()).thenReturn("bob");
+    assertEquals(State.UNAVAILABLE, storage.getState());
+    drainWork();
+    realm.drain();
+
+    assertTrue(Arrays.equals(original, Files.readAllBytes(path)));
+    verify(files, never()).restore(any(), any(), anyString(), any());
+    assertEquals(State.UNAVAILABLE, storage.getReadiness().getValue());
+  }
+
+  @Test
+  void testRestoreDefaults_DisposalBeforeWorkerStartsDoesNotWrite() throws Exception {
+    Path path = directory.resolve("alice").resolve("pref.json");
+    Files.createDirectories(path.getParent());
+    byte[] original = "{invalid".getBytes(StandardCharsets.UTF_8);
+    Files.write(path, original);
+    when(files.read(path)).thenReturn(new String(original, StandardCharsets.UTF_8));
+    load();
+
+    storage.restoreDefaults();
+    storage.dispose();
+    drainWork();
+
+    assertTrue(Arrays.equals(original, Files.readAllBytes(path)));
+    verify(files, never()).restore(any(), any(), anyString(), any());
+    assertEquals(State.DISPOSED, storage.getState());
   }
 
   @Test
@@ -174,6 +316,7 @@ class PreferenceStorageTest {
     load();
 
     assertFailedWithoutWrites();
+    assertEquals(State.CORRUPT, storage.getState());
   }
 
   @Test
@@ -706,8 +849,8 @@ class PreferenceStorageTest {
   }
 
   private void assertFailedWithoutWrites() throws IOException {
-    assertEquals(State.FAILED, storage.getState());
-    assertEquals(State.FAILED, storage.getReadiness().getValue());
+    assertTrue(storage.getState() == State.FAILED || storage.getState() == State.CORRUPT);
+    assertEquals(storage.getState(), storage.getReadiness().getValue());
     assertNull(storage.getReadyPreferences());
     storage.persist();
     verify(files, never()).write(any(), any());
@@ -715,7 +858,7 @@ class PreferenceStorageTest {
 
   private ChatPersistence persistence() {
     ChatPersistence result = new ChatPersistence();
-    result.setPath(Path.of("preferences").toAbsolutePath().toString());
+    result.setPath(directory.toString());
     return result;
   }
 
