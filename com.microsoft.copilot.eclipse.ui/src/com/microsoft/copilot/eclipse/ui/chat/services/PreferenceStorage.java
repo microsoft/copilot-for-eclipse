@@ -264,7 +264,8 @@ public class PreferenceStorage {
     }
     publishState(next.generation, State.LOADING);
     try {
-      ScheduledFuture<?> timeout = timer.schedule(() -> fail(next, null), 15, TimeUnit.SECONDS);
+      ScheduledFuture<?> timeout =
+          timer.schedule(() -> fail(next, null), LOAD_TIMEOUT_NANOS, TimeUnit.NANOSECONDS);
       synchronized (lock) {
         if (attempt == next) {
           next.timeout = timeout;
@@ -423,7 +424,7 @@ public class PreferenceStorage {
   }
 
   private boolean matches(Attempt pending) {
-    return state == State.LOADING && attempt == pending && generation == pending.generation
+    return state == State.LOADING && attempt == pending
         && Objects.equals(account, pending.account) && Objects.equals(account, currentAccount());
   }
 
