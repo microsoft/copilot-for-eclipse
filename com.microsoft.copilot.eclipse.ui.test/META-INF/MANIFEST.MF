@@ -7,7 +7,8 @@ Bundle-Vendor: GitHub Copilot
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Fragment-Host: com.microsoft.copilot.eclipse.ui
 Automatic-Module-Name: com.microsoft.copilot.eclipse.ui.test
-Import-Package: org.objenesis;version="[3.4.0,4.0.0)"
+Import-Package: org.objenesis;version="[3.4.0,4.0.0)",
+ org.opentest4j
 Require-Bundle: junit-jupiter-api;bundle-version="5.10.1",
  junit-jupiter-params;bundle-version="5.10.1",
  org.mockito.mockito-core;bundle-version="5.14.2",

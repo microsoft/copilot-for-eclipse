@@ -23,6 +23,7 @@ public final class Messages extends NLS {
   public static String configureModes;
   public static String preferenceLoading;
   public static String preferenceLoadFailed;
+  public static String preferenceSaveFailed;
   public static String preferenceUnavailable;
   public static String preferenceRetry;
   public static String modeDiscoveryLoading;
