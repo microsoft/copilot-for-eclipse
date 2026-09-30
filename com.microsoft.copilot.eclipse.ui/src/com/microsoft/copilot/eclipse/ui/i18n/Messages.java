@@ -169,6 +169,7 @@ public final class Messages extends NLS {
   public static String chat_customModels;
   public static String chat_addPremiumModels;
   public static String chat_referencedFile_noVision_tooltip;
+  public static String chat_referencedFile_modelUnavailable_tooltip;
   public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;
   public static String agentFileEditor_contentAssist_statusMessage;

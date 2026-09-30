@@ -12,9 +12,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 
 /**
- * Preferences per GitHub user. All the getters and setters are synchronized due to that the ChatBaseService holds a
- * shared (single) reference to the user preference. synchronized modifies makes sure the update to the instance are
- * thread safe.
+ * Preferences per GitHub user, shared by the chat preference storage. Scalar access is synchronized and model option
+ * maps use immutable snapshots so readers never observe partially updated maps.
  */
 public class UserPreference {
 

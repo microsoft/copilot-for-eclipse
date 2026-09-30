@@ -4,33 +4,70 @@
 package com.microsoft.copilot.eclipse.core.chat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CompletableFuture;
 
-import com.microsoft.copilot.eclipse.core.chat.service.BuiltInChatModeService;
+import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 
 /**
- * Singleton manager for built-in chat modes. Built-in modes are loaded once from the LSP API at startup.
+ * Shared snapshot of built-in chat modes discovered asynchronously by the chat lifecycle.
  */
 public enum BuiltInChatModeManager {
   INSTANCE;
 
-  private final BuiltInChatModeService service;
-  private List<BuiltInChatMode> builtInModes;
+  private static final List<String> ALLOWED_BUILTIN_NAMES = Arrays.asList(BuiltInChatMode.ASK_MODE_NAME,
+      BuiltInChatMode.AGENT_MODE_NAME, BuiltInChatMode.PLAN_MODE_NAME, BuiltInChatMode.DEBUGGER_MODE_NAME);
 
-  BuiltInChatModeManager() {
-    this.service = new BuiltInChatModeService();
-    this.builtInModes = new CopyOnWriteArrayList<>();
-    loadModesSync();
+  private volatile List<BuiltInChatMode> builtInModes = List.of();
+
+  /**
+   * Loads built-in modes using the owning chat lifecycle's language-server connection. The LSP requires workspace
+   * folders even though built-in modes do not depend on workspace context.
+   *
+   * @param lsConnection the connection used by the chat services
+   * @return the discovered built-in modes
+   */
+  public CompletableFuture<List<BuiltInChatMode>> loadBuiltInModes(CopilotLanguageServerConnection lsConnection) {
+    if (lsConnection == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
+    ConversationModesParams params = new ConversationModesParams(Collections.emptyList());
+
+    return lsConnection.listConversationModes(params).thenApply(conversationModes -> {
+      List<BuiltInChatMode> modes = new ArrayList<>();
+
+      for (ConversationMode mode : conversationModes) {
+        if (mode == null || !mode.isBuiltIn()) {
+          continue;
+        }
+        // Exclude InlineAgent kind — it is not a user-facing chat mode
+        if (BuiltInChatMode.INLINE_AGENT_KIND.equalsIgnoreCase(mode.getKind())) {
+          continue;
+        }
+        // Filter to only allowed built-in modes by name (case-insensitive)
+        if (ALLOWED_BUILTIN_NAMES.stream().anyMatch(name -> name.equalsIgnoreCase(mode.getName()))) {
+          BuiltInChatMode builtIn = convertToBuiltInChatMode(mode);
+          if (builtIn != null) {
+            modes.add(builtIn);
+          }
+        }
+      }
+
+      return modes;
+    });
   }
 
-  private void loadModesSync() {
+  private BuiltInChatMode convertToBuiltInChatMode(ConversationMode mode) {
     try {
-      List<BuiltInChatMode> modes = service.loadBuiltInModes().get();
-      this.builtInModes = new CopyOnWriteArrayList<>(modes);
+      return new BuiltInChatMode(mode);
     } catch (Exception e) {
-      // Initialize with empty list on failure
-      this.builtInModes = new CopyOnWriteArrayList<>();
+      CopilotCore.LOGGER.error("Failed to convert built-in mode: " + mode.getId(), e);
+      return null;
     }
   }
 
@@ -60,10 +97,11 @@ public enum BuiltInChatModeManager {
   }
 
   /**
-   * Reloads built-in chat modes from the LSP API. This should be called when the user switches
-   * to ensure the latest modes are available for the current user context.
+   * Publishes a completed discovery after its owner has validated the account and lifecycle.
+   *
+   * @param modes the modes applicable to the current account
    */
-  public void reloadModes() {
-    loadModesSync();
+  public void updateModes(List<BuiltInChatMode> modes) {
+    builtInModes = List.copyOf(modes);
   }
 }
