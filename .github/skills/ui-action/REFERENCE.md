@@ -8,7 +8,7 @@ with `useUIHarness=true` and `useUIThread=false`. It loads the JSON array from
 artifacts, and fails the Maven build if any failed step has `failFast` enabled.
 
 Before the bot starts, the runner pre-populates configuration-scope preferences
-so Quick Start, What's New, Welcome, and "Terminal Support Unavailable" dialogs
+so Quick Start, What's New, and Welcome dialogs
 do not block normal probes.
 
 `screenshot` and failure screenshots capture the active workbench shell with
