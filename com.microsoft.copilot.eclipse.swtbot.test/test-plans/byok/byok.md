@@ -55,7 +55,7 @@ Not exercised in this plan (separate scenarios):
 - For Ollama-specific TCs: Ollama 0.6.4 or newer is running and has at least
    one installed model.
 - No previously opened Preferences dialog. The probe runner pre-suppresses
-  Quick Start, What's New, Welcome, and "Terminal Support Unavailable"
+  Quick Start, What's New, and Welcome
   pop-ups — keep that contract when authoring follow-up plans.
 - Each TC starts from a freshly launched workbench (the probe sandbox
   satisfies this automatically). When running manually, close the

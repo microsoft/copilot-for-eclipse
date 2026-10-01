@@ -49,7 +49,6 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter.GetTerminalOutputTool;
-import com.microsoft.copilot.eclipse.ui.dialogs.MissingTerminalDependenciesDialog;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -93,11 +92,6 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
         }
       }
     }
-  }
-
-  @Override
-  public void onMissingDependencies(String terminalType, List<String> missingDependencies) {
-    MissingTerminalDependenciesDialog.showIfNotSuppressed(terminalType, missingDependencies);
   }
 
   /**

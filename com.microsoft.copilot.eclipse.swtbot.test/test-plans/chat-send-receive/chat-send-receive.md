@@ -40,8 +40,8 @@ Not exercised in TC-001 (separate scenarios):
 - Network access to `api.githubcopilot.com` (and the GitHub auth host if a
   token refresh is needed).
 - No modal dialogs queued on workbench startup. The probe runner
-  pre-populates preferences to suppress Quick Start, What's New, Welcome, and
-  "Terminal Support Unavailable" pop-ups; authoring additional tests on top
+  pre-populates preferences to suppress Quick Start, What's New, and
+  Welcome pop-ups; authoring additional tests on top
   of this scenario should keep that contract.
 
 ---
