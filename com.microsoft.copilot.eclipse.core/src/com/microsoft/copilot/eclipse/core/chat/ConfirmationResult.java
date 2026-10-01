@@ -29,7 +29,12 @@ public class ConfirmationResult {
     this.content = content;
   }
 
-  /** Creates a result that requires user confirmation with the given content. */
+  /**
+   * Creates a result that requires user confirmation with the given content.
+   *
+   * @param content the confirmation content to show.
+   * @return the confirmation result requiring user confirmation.
+   */
   public static ConfirmationResult needsConfirmation(
       ConfirmationContent content) {
     return new ConfirmationResult(false, false, content);
@@ -39,12 +44,20 @@ public class ConfirmationResult {
     return autoApproved;
   }
 
-  /** Returns true if the request should be dismissed without showing UI. */
+  /**
+   * Returns true if the request should be dismissed without showing UI.
+   *
+   * @return true if the request should be dismissed without showing UI.
+   */
   public boolean isDismissed() {
     return dismissed;
   }
 
-  /** Returns the confirmation content, or null if auto-approved or using defaults. */
+  /**
+   * Returns the confirmation content, or null if auto-approved or using defaults.
+   *
+   * @return the confirmation content, or null if auto-approved or using defaults.
+   */
   public ConfirmationContent getContent() {
     return content;
   }

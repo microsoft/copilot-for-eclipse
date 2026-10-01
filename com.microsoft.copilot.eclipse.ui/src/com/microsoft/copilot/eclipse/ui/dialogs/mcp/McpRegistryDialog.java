@@ -79,6 +79,8 @@ public class McpRegistryDialog extends Dialog {
 
   /**
    * Create the MCP registry dialog.
+   *
+   * @param parentShell the parent shell for the dialog.
    */
   public McpRegistryDialog(Shell parentShell) {
     super(parentShell);

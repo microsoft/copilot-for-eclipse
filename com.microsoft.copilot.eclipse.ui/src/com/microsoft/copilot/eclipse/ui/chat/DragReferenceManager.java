@@ -34,13 +34,18 @@ public class DragReferenceManager {
    * Create a new DragReferenceManager.
    *
    * @param chatView the chat view
+   * @param referencedFileService the service used to manage referenced files.
    */
   public DragReferenceManager(ChatView chatView, ReferencedFileService referencedFileService) {
     this.chatView = chatView;
     this.referencedFileService = referencedFileService;
   }
 
-  /** Attach DnD to a composite. Re-attach will dispose the previous target. */
+  /**
+   * Attach DnD to a composite. Re-attach will dispose the previous target.
+   *
+   * @param parent the composite to attach drag-and-drop support to.
+   */
   public void attach(Composite parent) {
     if (parent == null || parent.isDisposed()) {
       return;

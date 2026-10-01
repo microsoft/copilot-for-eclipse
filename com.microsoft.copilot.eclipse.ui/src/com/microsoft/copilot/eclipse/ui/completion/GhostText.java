@@ -31,6 +31,10 @@ public abstract class GhostText {
 
   /**
    * Draws the ghost text.
+   *
+   * @param styledText the styled text control where the ghost text is drawn.
+   * @param widgetOffset the widget offset where drawing starts.
+   * @param gc the graphics context used for drawing.
    */
   public abstract void draw(StyledText styledText, int widgetOffset, GC gc);
 

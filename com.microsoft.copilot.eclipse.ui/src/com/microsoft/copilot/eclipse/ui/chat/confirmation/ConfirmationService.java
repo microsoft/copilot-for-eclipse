@@ -46,6 +46,9 @@ public class ConfirmationService {
 
     /**
      * Resolves a CLS toolType string to a ToolCategory.
+     *
+     * @param value the CLS tool type string to resolve.
+     * @return the matching tool category, or {@link #UNKNOWN} when no category matches.
      */
     public static ToolCategory fromValue(String value) {
       if (value != null) {
@@ -95,6 +98,7 @@ public class ConfirmationService {
    *
    * @param params the confirmation request parameters
    * @param sessionConversationId the conversation ID for session-scoped lookups
+   * @return the confirmation result indicating whether prompting is required.
    */
   public ConfirmationResult evaluate(
       InvokeClientToolConfirmationParams params,
@@ -136,7 +140,11 @@ public class ConfirmationService {
     }
   }
 
-  /** Clears session-scoped approvals for a conversation across all handlers. */
+  /**
+   * Clears session-scoped approvals for a conversation across all handlers.
+   *
+   * @param conversationId the conversation ID whose session-scoped approvals should be cleared.
+   */
   public void clearSession(String conversationId) {
     for (ConfirmationHandler handler : handlers.values()) {
       handler.clearSession(conversationId);

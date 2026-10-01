@@ -125,6 +125,8 @@ public class AgentStatusLabel extends Composite {
 
   /**
    * Set the text to display next to the icon.
+   *
+   * @param text the text to display next to the status icon.
    */
   public void setText(String text) {
     if (this.textLabel == null) {

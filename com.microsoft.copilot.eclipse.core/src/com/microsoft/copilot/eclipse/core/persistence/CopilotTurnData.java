@@ -475,6 +475,8 @@ public class CopilotTurnData extends AbstractTurnData {
     /**
      * The BYOK model provider responsible for the error, or {@code null} when the failing model was a
      * built-in Copilot model.
+     *
+     * @return the BYOK model provider name, or {@code null} for built-in Copilot models.
      */
     public String getModelProviderName() {
       return modelProviderName;
@@ -804,7 +806,12 @@ public class CopilotTurnData extends AbstractTurnData {
     public ThinkingBlockData() {
     }
 
-    /** Construct with id and content. */
+    /**
+     * Construct with id and content.
+     *
+     * @param id the thinking block ID.
+     * @param content the thinking block content.
+     */
     public ThinkingBlockData(String id, String content) {
       this.id = id;
       this.content = content;

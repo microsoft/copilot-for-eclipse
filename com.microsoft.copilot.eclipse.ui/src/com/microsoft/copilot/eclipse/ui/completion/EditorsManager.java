@@ -35,6 +35,11 @@ public class EditorsManager {
 
   /**
    * Creates a new EditorManager.
+   *
+   * @param languageServer the connection to the Copilot language server.
+   * @param completionProvider the provider that supplies completion suggestions.
+   * @param nesProvider the provider that supplies next edit suggestions.
+   * @param settingsManager the language server settings manager.
    */
   public EditorsManager(CopilotLanguageServerConnection languageServer, CompletionProvider completionProvider,
       NextEditSuggestionProvider nesProvider, LanguageServerSettingManager settingsManager) {
@@ -51,6 +56,9 @@ public class EditorsManager {
    * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager BaseCompletionManager} for the
    * given ITextEditor. If it does not exist, a new one will be created. Returns <code>null</code> if the editor is
    * <code>null</code>.
+   *
+   * @param textEditor the text editor whose completion manager should be returned or created.
+   * @return the completion manager for the editor, or <code>null</code> if none can be created.
    */
   @Nullable
   public BaseCompletionManager getOrCreateCompletionManagerFor(ITextEditor textEditor) {
@@ -78,6 +86,9 @@ public class EditorsManager {
   /**
    * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager BaseCompletionManager} for the
    * given ITextEditor. Returns <code>null</code> if there is no manager for the editor.
+   *
+   * @param editor the editor whose completion manager should be returned.
+   * @return the completion manager for the editor, or <code>null</code> if none exists.
    */
   @Nullable
   public BaseCompletionManager getCompletionManagerFor(IEditorPart editor) {
@@ -91,6 +102,8 @@ public class EditorsManager {
   /**
    * Gets the {@link com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager BaseCompletionManager} for the
    * active ITextEditor.
+   *
+   * @return the completion manager for the active editor, or <code>null</code> if none exists.
    */
   @Nullable
   public BaseCompletionManager getActiveCompletionManager() {
@@ -103,6 +116,8 @@ public class EditorsManager {
   /**
    * Disposes the {@link com.microsoft.copilot.eclipse.ui.completion.BaseCompletionManager BaseCompletionManager} for
    * the given ITextEditor.
+   *
+   * @param textEditor the text editor whose completion manager should be disposed.
    */
   public void disposeCompletionManagerFor(ITextEditor textEditor) {
     if (textEditor == null) {
@@ -116,6 +131,8 @@ public class EditorsManager {
 
   /**
    * Sets the active editor.
+   *
+   * @param textEditor the text editor to mark as active.
    */
   public void setActiveEditor(ITextEditor textEditor) {
     this.activeEditor.set(textEditor);

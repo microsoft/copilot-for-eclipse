@@ -28,6 +28,8 @@ public class BuiltInChatModeService {
    *
    * <p>Note: The LSP requires workspace folders to be passed even for loading built-in modes. While built-in modes
    * don't depend on workspace context, the LSP API enforces this parameter.
+   *
+   * @return a future containing the loaded built-in chat modes.
    */
   public CompletableFuture<List<BuiltInChatMode>> loadBuiltInModes() {
     ConversationModesParams params = new ConversationModesParams(Collections.emptyList());

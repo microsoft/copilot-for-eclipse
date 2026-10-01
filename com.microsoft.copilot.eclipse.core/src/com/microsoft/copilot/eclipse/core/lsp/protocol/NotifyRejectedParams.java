@@ -19,6 +19,8 @@ public class NotifyRejectedParams {
 
   /**
    * Create a new NotifyRejectedParams.
+   *
+   * @param uuids the unique identifiers of the rejected completions.
    */
   public NotifyRejectedParams(List<String> uuids) {
     this.uuids = uuids;

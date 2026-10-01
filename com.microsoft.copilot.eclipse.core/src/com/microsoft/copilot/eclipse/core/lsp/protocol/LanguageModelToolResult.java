@@ -34,6 +34,9 @@ public class LanguageModelToolResult {
 
   /**
    * Creates a new LanguageModelToolResult with content and ToolInvocationStatus.
+   *
+   * @param resultContent the text content returned by the tool invocation.
+   * @param status the status of the tool invocation.
    */
   public LanguageModelToolResult(String resultContent, ToolInvocationStatus status) {
     this.status = status.toString();

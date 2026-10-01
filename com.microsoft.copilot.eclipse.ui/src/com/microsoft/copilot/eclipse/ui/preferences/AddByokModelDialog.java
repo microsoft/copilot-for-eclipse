@@ -51,6 +51,10 @@ public class AddByokModelDialog extends TrayDialog {
 
   /**
    * Create the dialog.
+   *
+   * @param parentShell the parent shell for the dialog.
+   * @param providerName the provider name for the model being added.
+   * @param onSave the callback invoked with the saved BYOK model.
    */
   public AddByokModelDialog(Shell parentShell, String providerName, Consumer<ByokModel> onSave) {
     super(parentShell);

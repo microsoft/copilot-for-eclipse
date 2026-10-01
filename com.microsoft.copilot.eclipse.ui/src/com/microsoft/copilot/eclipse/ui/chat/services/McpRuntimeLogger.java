@@ -107,6 +107,8 @@ public class McpRuntimeLogger {
 
   /**
    * Print a message to the MCP Runtime console.
+   *
+   * @param mcpRuntimeLog the MCP runtime log entry to print.
    */
   public void println(McpRuntimeLog mcpRuntimeLog) {
     Objects.requireNonNull(mcpRuntimeLog, "McpRuntimeLog entry cannot be null");

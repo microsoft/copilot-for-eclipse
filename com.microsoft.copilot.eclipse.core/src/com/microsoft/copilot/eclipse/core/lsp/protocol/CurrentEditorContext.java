@@ -20,6 +20,8 @@ public class CurrentEditorContext {
 
   /**
    * Creates a new ConversationContextResult.
+   *
+   * @param uri the URI of the current editor document.
    */
   public CurrentEditorContext(String uri) {
     this.uri = uri;

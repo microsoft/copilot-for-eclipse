@@ -15,6 +15,8 @@ public class LanguageModelToolConfirmationResult {
 
   /**
    * Construct a new LanguageModelToolConfirmationResult by ToolConfirmationResult.
+   *
+   * @param result the tool confirmation result.
    */
   public LanguageModelToolConfirmationResult(ToolConfirmationResult result) {
     this.result = result.toString();
