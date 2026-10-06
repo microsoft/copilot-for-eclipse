@@ -23,7 +23,6 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.event.EventHandler;
 
-import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -37,7 +36,6 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
-import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
