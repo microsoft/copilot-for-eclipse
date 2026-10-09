@@ -64,9 +64,8 @@ public class ProbeRunner {
 
   /**
    * Pre-populates the Copilot UI plugin's configuration-scope preferences so the
-   * workbench-startup logic in {@code CopilotUi#showHintIfNecessary} and
-   * {@code MissingTerminalDependenciesDialog#showIfNotSuppressed} skip their
-   * "first run" dialogs (Quick Start, What's New, Terminal Support Unavailable).
+   * workbench-startup logic in {@code CopilotUi#showHintIfNecessary} skips its
+   * "first run" dialogs (Quick Start, What's New).
    * Runs before the workbench bot exists; best-effort — any failure is logged
    * and the probe continues.
    */
@@ -76,7 +75,6 @@ public class ProbeRunner {
       prefs.putInt(Constants.COPILOT_QUICK_START_VERSION, Constants.CURRENT_COPILOT_QUICK_START_VERSION);
       prefs.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, false);
       prefs.put(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, currentUiBundleMajorMinor());
-      prefs.putBoolean(Constants.SUPPRESS_TERMINAL_DEPENDENCY_DIALOG, true);
       prefs.flush();
     } catch (BackingStoreException | RuntimeException e) {
       System.err.println("[ProbeRunner] Failed to preset nuisance-dialog preferences: " + e);
