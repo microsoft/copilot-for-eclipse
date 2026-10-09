@@ -31,6 +31,7 @@ import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.FileOperationAutoApproveRule;
 import com.microsoft.copilot.eclipse.core.chat.TerminalAutoApproveRule;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.mcp.McpServerToolsStatusCollection;
@@ -182,6 +183,11 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         singleSetting = updateWorkspaceInstructionEnabled(
             preferenceStore.getBoolean(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE_ENABLED));
         break;
+      case Constants.CUSTOM_INSTRUCTIONS_PARENT_REPO_ENABLED:
+        for (CustomizationType type : CustomizationType.values()) {
+          eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, type);
+        }
+        return;
       case Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT:
         String gitCommitInstructions = preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_GIT_COMMIT);
         settings.getGithubSettings().setGitCommitCopilotInstructions(gitCommitInstructions);
@@ -416,7 +422,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     UpdateMcpToolsStatusParams mcpParams = new UpdateMcpToolsStatusParams();
     List<McpServerToolsStatusCollection> serverList = new ArrayList<>();
     mcpParams.setServers(serverList);
-    mcpParams.setWorkspaceFolders(WorkspaceUtils.listWorkspaceFolders());
+    mcpParams.setWorkspaceFolders(WorkspaceUtils.listCustomizationFolders());
 
     // Set custom mode ID only if this is for a custom mode (ID starts with "file://")
     // For built-in agent mode, customChatModeId should not be set
@@ -469,7 +475,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     if (builtInTools != null && !builtInTools.isEmpty()) {
       UpdateConversationToolsStatusParams conversationParams = new UpdateConversationToolsStatusParams();
       conversationParams.setChatModeKind("Agent");
-      conversationParams.setWorkspaceFolders(WorkspaceUtils.listWorkspaceFolders());
+      conversationParams.setWorkspaceFolders(WorkspaceUtils.listCustomizationFolders());
 
       // Set custom mode ID only if this is for a custom mode (ID starts with "file://")
       // For built-in agent mode, customChatModeId should not be set

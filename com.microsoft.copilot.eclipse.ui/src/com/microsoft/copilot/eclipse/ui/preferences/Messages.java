@@ -96,6 +96,7 @@ public class Messages extends NLS {
   public static String preferences_page_custom_instructions_project_table_fileLocation;
   public static String preferences_page_custom_instructions_project_table_editButton;
   public static String preferences_page_custom_instructions_project_table_note;
+  public static String preferences_page_parent_repository_folder;
   public static String preferences_page_custom_instructions_project_editDialog_title;
   public static String preferences_page_custom_instructions_project_editDialog_message;
   public static String preferences_page_custom_instructions_project_editDialog_button_close;
@@ -109,6 +110,8 @@ public class Messages extends NLS {
   public static String preferences_page_custom_instructions_chat_load_scope_all;
   public static String preferences_page_custom_instructions_chat_load_scope_referenced;
   public static String preferences_page_custom_instructions_chat_load_scope_combo_tooltip;
+  public static String preferences_page_custom_instructions_include_parent_repository;
+  public static String preferences_page_custom_instructions_include_parent_repository_tooltip;
   public static String preferences_page_note_prefix;
   public static String preferences_page_note_content;
 
