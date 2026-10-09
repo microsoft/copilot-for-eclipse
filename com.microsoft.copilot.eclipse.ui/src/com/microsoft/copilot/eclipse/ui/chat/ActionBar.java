@@ -3,10 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,15 +11,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceDialog;
@@ -34,7 +27,6 @@ import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.jface.text.contentassist.ICompletionListener;
 import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContentAssistant;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -929,34 +921,6 @@ public class ActionBar extends Composite implements NewConversationListener {
       sendToJobButton.setEnabled(enable);
       sendToJobButton.setImage(enable ? sendToJobImage : sendToJobDisabledImage);
     }, sendToJobButton);
-  }
-
-  /**
-   * Popup a file picker dialog to select files. It's guaranteed that the selected files are unique.
-   */
-  @NonNull
-  private List<IFile> selectFile() {
-    Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-    IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-    IContainer container = root.getContainerForLocation(root.getLocation());
-    AttachFileSelectionDialog dialog = new AttachFileSelectionDialog(shell, true, container);
-    dialog.setTitle(Messages.chat_filePicker_title);
-    dialog.setMessage(Messages.chat_filePicker_message);
-    List<IFile> result = new ArrayList<>();
-    if (dialog.open() == Window.OK) {
-      Object[] selectedFiles = dialog.getResult();
-      Set<String> selectedFileUris = new HashSet<>();
-      for (Object selectedFile : selectedFiles) {
-        if (selectedFile instanceof IFile file) {
-          URI fileUri = file.getLocationURI();
-          if (fileUri != null && selectedFileUris.add(fileUri.toASCIIString())) {
-            result.add(file);
-          }
-        }
-      }
-      return result;
-    }
-    return result;
   }
 
   /**

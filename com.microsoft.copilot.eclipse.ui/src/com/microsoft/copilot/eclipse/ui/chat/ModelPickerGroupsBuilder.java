@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
@@ -22,7 +21,6 @@ import com.microsoft.copilot.eclipse.ui.swt.DropdownItemGroup;
 import com.microsoft.copilot.eclipse.ui.swt.ModelHoverContentProvider;
 import com.microsoft.copilot.eclipse.ui.utils.ModelUtils;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
-import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
