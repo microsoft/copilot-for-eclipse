@@ -73,6 +73,8 @@ public class QuotaTextCalculator {
   /**
    * Returns the tooltip used for the premium requests row. CFI (Copilot for Individuals) plans get
    * the "included credits" tooltip; all other paid plans get the "monthly limit" tooltip.
+   *
+   * @return the tooltip text for the premium requests row.
    */
   public String getPremiumRequestsTooltip() {
     if (MenuUtils.isCfiPlan(quotaResult.copilotPlan())) {
@@ -83,6 +85,8 @@ public class QuotaTextCalculator {
 
   /**
    * Returns the aligned text for code completions quota.
+   *
+   * @return the aligned code completions quota text.
    */
   public String getCompletionText() {
     return getAlignedQuotaText(Messages.menu_quota_codeCompletions, getPercentUsed(quotaResult.completions()));
@@ -90,6 +94,8 @@ public class QuotaTextCalculator {
 
   /**
    * Returns the aligned text for chat messages quota.
+   *
+   * @return the aligned chat messages quota text.
    */
   public String getChatText() {
     return getAlignedQuotaText(Messages.menu_quota_chatMessages, getPercentUsed(quotaResult.chat()));
@@ -99,6 +105,8 @@ public class QuotaTextCalculator {
    * Returns the aligned text for the monthly limit row, sourced from the premium interactions quota.
    * CFI (Copilot for Individuals) plans label this row "Included credits" and display the absolute
    * "{used}/{entitlement} AI credits used" suffix instead of a percentage.
+   *
+   * @return the aligned premium requests quota text.
    */
   public String getPremiumRequestsText() {
     return getAlignedQuotaText(getPremiumRequestsLabel(), getPremiumRequestsSuffix());
@@ -109,6 +117,8 @@ public class QuotaTextCalculator {
    * Returns the aligned text for the legacy "Premium Requests" row used when token-based billing is
    * not enabled on the language server. Preserves the original main-branch label and "{percent}%"
    * suffix.
+   *
+   * @return the aligned legacy premium requests quota text.
    */
   public String getPremiumText() {
     return getAlignedQuotaText(Messages.menu_quota_premiumRequests,

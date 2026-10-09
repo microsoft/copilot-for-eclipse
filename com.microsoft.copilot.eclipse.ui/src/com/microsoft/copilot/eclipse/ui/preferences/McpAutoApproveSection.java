@@ -55,7 +55,12 @@ public class McpAutoApproveSection extends Composite {
   private final Set<String> checkedServers = new HashSet<>();
   private final Set<String> checkedTools = new HashSet<>();
 
-  /** Creates the MCP auto-approve section inside the given parent. */
+  /**
+   * Creates the MCP auto-approve section inside the given parent.
+   *
+   * @param parent the parent composite for this section.
+   * @param style the SWT style bits for this section.
+   */
   public McpAutoApproveSection(Composite parent, int style) {
     super(parent, style);
     setLayout(new GridLayout(1, false));
@@ -102,7 +107,11 @@ public class McpAutoApproveSection extends Composite {
     treeViewer.setInput(serverCollections);
   }
 
-  /** Loads MCP auto-approve settings from the preference store. */
+  /**
+   * Loads MCP auto-approve settings from the preference store.
+   *
+   * @param store the preference store to load settings from.
+   */
   public void loadFromPreferences(IPreferenceStore store) {
     trustAnnotationsCheckbox.setSelection(
         store.getBoolean(Constants.AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS));
@@ -125,7 +134,11 @@ public class McpAutoApproveSection extends Composite {
     refreshTreeCheckState();
   }
 
-  /** Saves MCP auto-approve settings to the preference store. */
+  /**
+   * Saves MCP auto-approve settings to the preference store.
+   *
+   * @param store the preference store to save settings to.
+   */
   public void saveToPreferences(IPreferenceStore store) {
     store.setValue(Constants.AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS,
         trustAnnotationsCheckbox.getSelection());
@@ -139,6 +152,8 @@ public class McpAutoApproveSection extends Composite {
   /**
    * Updates the server/tool collections displayed in the tree viewer.
    * Called from the MCP config service when server data changes.
+   *
+   * @param collections the server and tool collections to display.
    */
   public void updateServerCollections(
       List<McpServerToolsCollection> collections) {

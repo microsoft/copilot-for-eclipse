@@ -29,6 +29,10 @@ public class GenerateCommitMessageParams {
 
   /**
    * Creates a new GenerateCommitMessageParams.
+   *
+   * @param changes the changes to summarize in the commit message.
+   * @param userCommits the user's previous commit messages.
+   * @param recentCommits recent commit messages from the repository.
    */
   public GenerateCommitMessageParams(List<String> changes, List<String> userCommits, List<String> recentCommits) {
     super();

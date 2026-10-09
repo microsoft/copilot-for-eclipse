@@ -126,6 +126,10 @@ public class ActionBar extends Composite implements NewConversationListener {
 
   /**
    * Creates a new InputArea.
+   *
+   * @param parent the parent composite.
+   * @param style the widget style.
+   * @param chatServiceManager the chat service manager for the action bar.
    */
   public ActionBar(Composite parent, int style, ChatServiceManager chatServiceManager) {
     super(parent, SWT.NONE);
@@ -839,6 +843,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   /**
    * Returns the current action bar conversation state. Return true if the conversation is stand by or cancelled, false
    * otherwise
+   *
+   * @return {@code true} when the action bar is in send-button state; {@code false} otherwise.
    */
   public boolean isSendButton() {
     return isSendButton;
@@ -977,6 +983,8 @@ public class ActionBar extends Composite implements NewConversationListener {
   /**
    * Returns the input-area wrapper that owns {@code TodoListBar}, {@code WorkingSetBar}, and the bordered chat input.
    * Services creating those top bars should parent them here so the sibling {@code StaticBanner} stays above.
+   *
+   * @return the input-area composite.
    */
   public Composite getInputArea() {
     return this.inputArea;

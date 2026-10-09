@@ -19,6 +19,9 @@ public class InlineGhostText extends GhostText {
 
   /**
    * Creates a new InlineGhostText.
+   *
+   * @param text the ghost text to display.
+   * @param modelOffset the model offset where the ghost text starts.
    */
   public InlineGhostText(String text, int modelOffset) {
     super(text, modelOffset, GhostTextType.IN_LINE);

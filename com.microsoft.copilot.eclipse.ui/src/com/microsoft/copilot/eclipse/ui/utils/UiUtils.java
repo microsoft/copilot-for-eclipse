@@ -111,6 +111,8 @@ public class UiUtils {
 
   /**
    * Get the active workbench page.
+   *
+   * @return the active workbench page, or {@code null} when none is active.
    */
   @Nullable
   public static IWorkbenchPage getActivePage() {
@@ -127,6 +129,8 @@ public class UiUtils {
 
   /**
    * Returns the file that is currently opened in the editor.
+   *
+   * @return the file from the active editor, or {@code null} when none is available.
    */
   @Nullable
   public static IFile getCurrentFile() {
@@ -154,6 +158,9 @@ public class UiUtils {
 
   /**
    * Return the IFile from the given editor part.
+   *
+   * @param editor the editor part to inspect.
+   * @return the file associated with the editor, or {@code null} when none is available.
    */
   @Nullable
   public static IFile getFileFromEditorPart(IEditorPart editor) {
@@ -178,6 +185,9 @@ public class UiUtils {
 
   /**
    * Gets the file opened in the given text editor.
+   *
+   * @param editor the text editor to inspect.
+   * @return the file opened in the text editor, or {@code null} when none is available.
    */
   @Nullable
   public static IFile getFileFromTextEditor(ITextEditor editor) {
@@ -190,6 +200,9 @@ public class UiUtils {
 
   /**
    * Gets the relative file opened in the given compare editor.
+   *
+   * @param editor the compare editor to inspect.
+   * @return the file from the compare editor, or {@code null} when none is available.
    */
   @Nullable
   public static IFile getFileFromCompareEditor(CompareEditor editor) {
@@ -206,6 +219,9 @@ public class UiUtils {
 
   /**
    * Opens the given file in an editor.
+   *
+   * @param file the workspace file to open.
+   * @return the opened editor part, or {@code null} if the file could not be opened.
    */
   public static IEditorPart openInEditor(IFile file) {
     if (file == null || !file.exists()) {
@@ -226,6 +242,9 @@ public class UiUtils {
 
   /**
    * Opens the given local filesystem file in an editor.
+   *
+   * @param file the local filesystem path to open.
+   * @return the opened editor part, or {@code null} if the file could not be opened.
    */
   public static IEditorPart openLocalFileInEditor(Path file) {
     if (file == null || !Files.exists(file)) {
@@ -247,6 +266,8 @@ public class UiUtils {
 
   /**
    * Opens the file in the editor.
+   *
+   * @return the workspace files currently opened in editors.
    */
   public static List<IFile> getOpenedFiles() {
     IWorkbenchPage page = getActivePage();
@@ -277,6 +298,8 @@ public class UiUtils {
 
   /**
    * Returns the part service.
+   *
+   * @return the active workbench window's part service, or {@code null} when unavailable.
    */
   public static IPartService getPartService() {
     IWorkbench workbench = PlatformUI.getWorkbench();
@@ -292,6 +315,9 @@ public class UiUtils {
 
   /**
    * Open the given link in a new browser page.
+   *
+   * @param link the link to open.
+   * @return {@code true} when the link was opened successfully.
    */
   public static boolean openLink(String link) {
     String encodedUrl = PlatformUtils.escapeSpaceInUrl(link);
@@ -330,6 +356,12 @@ public class UiUtils {
 
   /**
    * Resizes the given image to the given width and height.
+   *
+   * @param display the display used to create the resized image.
+   * @param originalImage the image to resize.
+   * @param width the target width in pixels.
+   * @param height the target height in pixels.
+   * @return the resized image.
    */
   public static Image resizeImage(Display display, Image originalImage, int width, int height) {
     ImageData originalData = originalImage.getImageData();
@@ -340,6 +372,10 @@ public class UiUtils {
   /**
    * Returns the widget offset that corresponds to the given offset in the viewer's input document or <code>-1</code> if
    * there is no such offset.
+   *
+   * @param textViewer the text viewer containing the input document.
+   * @param offset the model offset to convert.
+   * @return the corresponding widget offset, or <code>-1</code> when none exists.
    */
   public static int modelOffset2WidgetOffset(ITextViewer textViewer, int offset) {
     return textViewer instanceof ITextViewerExtension5 extension ? extension.modelOffset2WidgetOffset(offset) : offset;
@@ -348,6 +384,10 @@ public class UiUtils {
   /**
    * Returns the offset of the viewer's input document that corresponds to the given widget offset or <code>-1</code> if
    * there is no such offset.
+   *
+   * @param textViewer the text viewer containing the widget.
+   * @param offset the widget offset to convert.
+   * @return the corresponding model offset, or <code>-1</code> when none exists.
    */
   public static int widgetOffset2ModelOffset(ITextViewer textViewer, int offset) {
     return textViewer instanceof ITextViewerExtension5 extension ? extension.widgetOffset2ModelOffset(offset) : offset;
@@ -402,6 +442,9 @@ public class UiUtils {
 
   /**
    * Returns the index of the first word in the given text.
+   *
+   * @param text the text to inspect.
+   * @return the start and end indexes of the first word.
    */
   public static Point getFirstWordIndex(String text) {
     int start = 0;
@@ -419,6 +462,8 @@ public class UiUtils {
   /**
    * Returns the theme color with the given ID.
    *
+   * @param colorId the theme color ID to look up.
+   * @return the theme color for the ID.
    */
   public static Color getThemeColor(String colorId) {
     return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry().get(colorId);
@@ -486,6 +531,7 @@ public class UiUtils {
   /**
    * Returns the view with the given ID and type.
    *
+   * @param <T> the expected view type.
    * @param viewId the ID of the view
    * @param viewType the type of the view
    * @return the view or <code>null</code> if the view is not found
@@ -506,6 +552,10 @@ public class UiUtils {
   /**
    * Create a button only with an icon. As Button is NOT intended to be subclassed, use a factory method to create a
    * custom button.
+   *
+   * @param parent the parent composite for the button.
+   * @param style the SWT style bits for the button.
+   * @return the created icon button.
    */
   public static Button createIconButton(Composite parent, int style) {
     Button result = new Button(parent, style);
@@ -561,6 +611,10 @@ public class UiUtils {
 
   /**
    * Returns a bold version of the given font.
+   *
+   * @param display the display used to create the bold font.
+   * @param originalFont the font to copy with bold styling.
+   * @return the new bold font.
    */
   public static Font getBoldFont(Display display, Font originalFont) {
     FontData[] fontData = originalFont.getFontData();
@@ -615,6 +669,7 @@ public class UiUtils {
    * @param suffix the suffix to append to each line
    * @param initialSpaceNumber the number of initial spaces to add
    * @param maxWidth the maximum width of the aligned text
+   * @return the aligned text padded to the requested width.
    */
   public static String getAlignedText(GC gc, String originalText, String fineTuneCharacter, String suffix,
       int initialSpaceNumber, int maxWidth) {

@@ -56,6 +56,13 @@ public class DiffPopup {
 
   /**
    * Update popup position and show it.
+   *
+   * @param text the styled text containing the suggestion.
+   * @param editorViewer the text viewer for the editor.
+   * @param file the file whose content is shown in the popup.
+   * @param range the LSP range covered by the suggestion.
+   * @param indentPos the editor position used to apply vertical indentation.
+   * @param model the diff model to display in the popup.
    */
   public void updatePosition(StyledText text, ITextViewer editorViewer, IFile file, Range range, Position indentPos,
       RenderManager.DiffModel model) {
@@ -86,6 +93,10 @@ public class DiffPopup {
 
   /**
    * Hide popup and clear editor indentation.
+   *
+   * @param text the styled text whose indentation should be cleared.
+   * @param editorViewer the text viewer for the editor.
+   * @param indentPos the editor position used for indentation.
    */
   public void hideAndClearIndent(StyledText text, ITextViewer editorViewer, Position indentPos) {
     if (text == null || text.isDisposed()) {
@@ -400,7 +411,10 @@ public class DiffPopup {
   /**
    * Get current indentation info for RulerColumn to clear. Calculates based on current position.
    *
-   * @return int array [widgetLine, height], or null if no indentation applied
+   * @param text the styled text containing the applied indentation.
+   * @param viewer the text viewer used to map indentation positions.
+   * @param indentPos the editor position where indentation was applied.
+   * @return int array [widgetLine, height], or null if no indentation applied.
    */
   public int[] getAppliedIndentInfo(StyledText text, ITextViewer viewer, Position indentPos) {
     if (appliedIndentHeight <= 0) {

@@ -14,6 +14,9 @@ import com.microsoft.copilot.eclipse.core.lsp.mcp.McpOauthRequest;
 public interface IMcpConfigService {
   /**
    * Handles the Dynamic OAuth request from MCP servers.
+   *
+   * @param request the OAuth request from the MCP server.
+   * @return the OAuth response values.
    */
   Map<String, String> mcpOauth(McpOauthRequest request);
 }

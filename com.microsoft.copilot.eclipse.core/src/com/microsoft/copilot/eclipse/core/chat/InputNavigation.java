@@ -51,6 +51,8 @@ public class InputNavigation {
 
   /**
    * Add a new input to the history and update the cursor.
+   *
+   * @param input the input text to add.
    */
   public void add(String input) {
     if (StringUtils.isBlank(input) || Objects.equals(input, getLatestInput())) {
@@ -66,6 +68,8 @@ public class InputNavigation {
 
   /**
    * Navigate to the last input in the history.
+   *
+   * @return the previous input in the history, or an empty string if unavailable.
    */
   public String navigateUp() {
     if (inputHistory.isEmpty() || atTop()) {
@@ -79,6 +83,8 @@ public class InputNavigation {
 
   /**
    * Navigate to the next input in the history.
+   *
+   * @return the next input in the history, or an empty string if unavailable.
    */
   public String navigateDown() {
     if (inputHistory.isEmpty() || atBottom()) {
@@ -92,6 +98,8 @@ public class InputNavigation {
 
   /**
    * Check if the current position is at the bottom(latest) of the history.
+   *
+   * @return true if the current position is at the bottom of the history.
    */
   public boolean atBottom() {
     return inputHistory.isEmpty() || currentPosition == inputHistory.size();
@@ -99,6 +107,8 @@ public class InputNavigation {
 
   /**
    * Check if the current position is at the top(oldest) of the history.
+   *
+   * @return true if the current position is at the top of the history.
    */
   public boolean atTop() {
     return inputHistory.isEmpty() || currentPosition == 0;
@@ -106,6 +116,8 @@ public class InputNavigation {
 
   /**
    * Get the latest input from the history.
+   *
+   * @return the latest input, or an empty string if the history is empty.
    */
   public String getLatestInput() {
     if (inputHistory.isEmpty()) {
@@ -116,6 +128,8 @@ public class InputNavigation {
 
   /**
    * Get the size of the input history.
+   *
+   * @return the number of inputs in the history.
    */
   public int size() {
     return inputHistory.size();
@@ -123,6 +137,8 @@ public class InputNavigation {
 
   /**
    * Update the current cursor position in the input history.
+   *
+   * @param position the new cursor position.
    */
   public void updateCursorPosition(int position) {
     if (position < 0 || position > inputHistory.size()) {

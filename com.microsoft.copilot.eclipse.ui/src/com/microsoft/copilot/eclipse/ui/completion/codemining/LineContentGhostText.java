@@ -16,6 +16,11 @@ public class LineContentGhostText extends LineContentCodeMining {
 
   /**
    * Creates a new LineContentCodeMining.
+   *
+   * @param position the position where the line content ghost text is displayed.
+   * @param afterPosition whether the ghost text is displayed after the position.
+   * @param provider the code mining provider creating this ghost text.
+   * @param text the ghost text to display.
    */
   public LineContentGhostText(Position position, boolean afterPosition, ICodeMiningProvider provider, String text)
       throws BadLocationException {

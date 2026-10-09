@@ -65,6 +65,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
 
   /**
    * Constructor for AgentToolService.
+   *
+   * @param lsConnection the language server connection used to register and invoke tools.
    */
   public AgentToolService(CopilotLanguageServerConnection lsConnection) {
     this.tools = new ConcurrentHashMap<>();
@@ -196,6 +198,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
 
   /**
    * Bind the chat view to the auth status.
+   *
+   * @param chatView the chat view to bind to this service.
    */
   public void bindChatView(ChatView chatView) {
     if (chatView == null) {
@@ -218,6 +222,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
    * Invoke a tool by its name.
    *
    * @param toolName The name of the tool to invoke
+   * @param input the input payload to pass to the tool.
+   * @param chatView the chat view associated with the invocation, or null if none.
    * @return The result of the tool invocation, or null if the tool was not found
    */
   public CompletableFuture<LanguageModelToolResult[]> invokeTool(String toolName, @Nullable Map<String, Object> input,
@@ -343,7 +349,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     return confirmationService;
   }
 
-  /** Returns the registry of user-attached context files. */
+  /**
+   * Returns the registry of user-attached context files.
+   *
+   * @return the registry of user-attached context files.
+   */
   public AttachedFileRegistry getAttachedFileRegistry() {
     return attachedFileRegistry;
   }

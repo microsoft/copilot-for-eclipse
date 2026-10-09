@@ -20,6 +20,8 @@ public class NotifyAcceptedParams {
 
   /**
    * Create a new NotifyAcceptedParams.
+   *
+   * @param uuid the unique identifier of the accepted completion.
    */
   public NotifyAcceptedParams(String uuid) {
     super();

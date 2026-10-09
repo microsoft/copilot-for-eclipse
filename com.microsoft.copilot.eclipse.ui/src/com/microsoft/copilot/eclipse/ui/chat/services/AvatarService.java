@@ -43,6 +43,8 @@ public class AvatarService {
 
   /**
    * Avatar Service.
+   *
+   * @param authStatusManager the authentication status manager used to resolve the current user.
    */
   public AvatarService(AuthStatusManager authStatusManager) {
     this.authStatusManager = authStatusManager;
@@ -78,6 +80,8 @@ public class AvatarService {
 
   /**
    * Gets the avatar for the copilot.
+   *
+   * @return the default Copilot avatar image.
    */
   public Image getAvatarForCopilot() {
     return defaultGithubAvatar;
