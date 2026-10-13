@@ -11,6 +11,10 @@ Before the bot starts, the runner pre-populates configuration-scope preferences
 so Quick Start, What's New, Welcome, and "Terminal Support Unavailable" dialogs
 do not block normal probes.
 
+Normal probes also suppress the compatibility announcement and close it if it
+opened before the runner initialized. Scripts named `compatibility-notice-*.json`
+retain that announcement so they can exercise the real startup flow.
+
 `screenshot` and failure screenshots capture the active workbench shell with
 `java.awt.Robot`, then fall back to SWTBot's full-display capture if needed.
 Screenshots are diagnostic artifacts only; JSON assertions drive pass/fail.
@@ -127,6 +131,7 @@ extend `Locator` and `StepExecutor` when the existing vocabulary is not enough.
 | `viewId` | `id` | Eclipse view by ID (`bot.viewById`). |
 | `label` | `text` | First label with the given text. |
 | `button` | `text` | First button with the given text. |
+| `checkBox` | `text` | Checkbox with the given text; supports `click` and `waitForMethod` with `isChecked`. |
 | `buttonWithTooltip` | `tooltip` | First button whose tooltip matches; useful for icon-only buttons like Send. |
 | `text` | `index` default `0` | Nth text field. |
 | `styledText` | - | First `StyledText`. |

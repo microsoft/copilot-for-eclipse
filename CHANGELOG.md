@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.22.0 (Unreleased)
+### Added
+- Announce that 0.23.0 will require Eclipse 2025-12 (4.38) or later and Java 21 or later to run Eclipse.
+  The 0.22.0 release retains existing environment compatibility and TM Terminal support.
+- Show a startup reminder on affected environments, with a persistent "Don't remind me again" option.
+  This notice does not depend on sign-in or the automatic What's New setting.
+- Document how users who cannot upgrade can install the last compatible 0.22.x release ZIP.
+
 ## 0.21.0
 ### Added
 - Support Ollama as a custom (BYOK) model provider. [#93](https://github.com/microsoft/copilot-for-eclipse/issues/93)

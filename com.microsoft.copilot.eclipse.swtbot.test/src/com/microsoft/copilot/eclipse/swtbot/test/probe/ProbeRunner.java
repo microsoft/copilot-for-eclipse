@@ -21,6 +21,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.swtbot.eclipse.finder.SWTWorkbenchBot;
 import org.eclipse.swtbot.swt.finder.junit.SWTBotJunit4ClassRunner;
 import org.eclipse.swtbot.swt.finder.utils.SWTBotPreferences;
+import org.eclipse.swtbot.swt.finder.widgets.SWTBotShell;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -67,6 +68,7 @@ public class ProbeRunner {
    * workbench-startup logic in {@code CopilotUi#showHintIfNecessary} and
    * {@code MissingTerminalDependenciesDialog#showIfNotSuppressed} skip their
    * "first run" dialogs (Quick Start, What's New, Terminal Support Unavailable).
+   * Compatibility notices are suppressed except for their dedicated probes.
    * Runs before the workbench bot exists; best-effort — any failure is logged
    * and the probe continues.
    */
@@ -77,6 +79,9 @@ public class ProbeRunner {
       prefs.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, false);
       prefs.put(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, currentUiBundleMajorMinor());
       prefs.putBoolean(Constants.SUPPRESS_TERMINAL_DEPENDENCY_DIALOG, true);
+      if (!isCompatibilityNoticeProbe()) {
+        prefs.putBoolean(Constants.SUPPRESS_COMPATIBILITY_NOTICE_0_23, true);
+      }
       prefs.flush();
     } catch (BackingStoreException | RuntimeException e) {
       System.err.println("[ProbeRunner] Failed to preset nuisance-dialog preferences: " + e);
@@ -92,11 +97,22 @@ public class ProbeRunner {
     return v.getMajor() + "." + v.getMinor();
   }
 
+  private static boolean isCompatibilityNoticeProbe() {
+    return Paths.get(System.getProperty(SYSPROP)).getFileName().toString().startsWith("compatibility-notice-");
+  }
+
   @Before
   public void setUp() {
     // SWTBot defaults to JPEG; pin to PNG so the .png filenames we produce are truthful.
     SWTBotPreferences.SCREENSHOT_FORMAT = "png";
     bot = new SWTWorkbenchBot();
+    if (!isCompatibilityNoticeProbe()) {
+      for (SWTBotShell shell : bot.shells()) {
+        if ("GitHub Copilot Compatibility Update".equals(shell.getText())) {
+          shell.close();
+        }
+      }
+    }
     try {
       bot.viewByTitle("Welcome").close();
     } catch (Exception ignored) {

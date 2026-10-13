@@ -500,6 +500,8 @@ final class StepExecutor {
         return bot.label(required(locator.text, "locator.text"));
       case "button":
         return bot.button(required(locator.text, "locator.text"));
+      case "checkBox":
+        return bot.checkBox(required(locator.text, "locator.text"));
       case "buttonWithTooltip":
         return bot.buttonWithTooltip(required(locator.tooltip, "locator.tooltip"));
       case "text": {
