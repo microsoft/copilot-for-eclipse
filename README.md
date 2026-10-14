@@ -49,9 +49,8 @@ If you cannot upgrade your environment, you can continue using the last compatib
 version. Once published, its `GithubCopilotForEclipse.zip` installation archive will remain
 available from [GitHub Releases](https://github.com/microsoft/copilot-for-eclipse/releases).
 Download the ZIP from the selected 0.22.x release, then use **Help > Install New Software... >
-Add... > Archive...** to select it and install GitHub Copilot. Eclipse may need access to update
-sites for required dependencies; the ZIP is not a self-contained offline installer. The legacy
-version will not have a separate online update site or a commitment to long-term maintenance.
+Add... > Archive...** to select it and install GitHub Copilot. The legacy version will not have
+a separate online update site.
 
 ## Install and set up
 

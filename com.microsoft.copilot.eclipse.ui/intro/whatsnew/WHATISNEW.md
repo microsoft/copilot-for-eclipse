@@ -15,8 +15,6 @@ also stops the reminder.
 If you cannot upgrade, the last compatible 0.22.x installation ZIP will remain available in
 [GitHub Releases](https://github.com/microsoft/copilot-for-eclipse/releases) once published.
 See the [requirements and installation guidance](https://github.com/microsoft/copilot-for-eclipse#upcoming-requirements-in-0230).
-The ZIP is not a self-contained offline installer, and the legacy version has no commitment to
-long-term maintenance.
 
 ---
 

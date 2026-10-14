@@ -60,11 +60,6 @@
 				<configuration>
 					<dependency-resolution>
 						<extraRequirements>
-							<requirement>
-								<type>eclipse-plugin</type>
-								<id>org.eclipse.platform</id>
-								<versionRange>0.0.0</versionRange>
-							</requirement>
 							<!-- Pulls the platform-appropriate Copilot LS agent fragment into the
 							     provisioned test runtime so the language server can actually start.
 							     The feature itself carries the per-OS/arch filters, so we avoid
