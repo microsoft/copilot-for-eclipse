@@ -53,19 +53,20 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   private static final String POWERSHELL_SCRIPT_ENV = "COPILOT_POWERSHELL_INTEGRATION_SCRIPT";
   private static final String COMMAND_CANCELLED_MESSAGE = "Terminal command cancelled.";
   private static final String COMMAND_INTERRUPTED_MESSAGE = "Terminal command interrupted by a new command.";
+  private static final String TERMINAL_CLOSED_MESSAGE = "Terminal was closed before the command finished.";
 
   // Non-background terminal field
-  private ITerminalViewControl persistentTerminalViewControl;
+  private volatile ITerminalViewControl persistentTerminalViewControl;
 
   // Terminal UI-related fields
   private ITerminalControl terminalControl;
   private CTabFolder tabFolder;
-  private CTabItem copilotTabItem;
+  private volatile CTabItem copilotTabItem;
   private Supplier<Image> terminalIconSupplier;
 
   // Output and command state
   private StringBuilder sb;
-  private volatile ForegroundCommand foregroundCommand;
+  private final AtomicReference<ForegroundCommand> foregroundCommand = new AtomicReference<>();
 
   /**
    * Constructor for RunInTerminalTool.
@@ -89,7 +90,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
         : new ForegroundCommand(commandFuture, hasShellIntegrationMarker());
 
     if (commandState != null) {
-      foregroundCommand = commandState;
+      foregroundCommand.set(commandState);
       if (!commandState.useMarker()) {
         // Retain only the last line (prompt) in the output buffer
         if (!sb.isEmpty()) {
@@ -108,9 +109,10 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     final String finalCommand = TerminalCommandProcessor.formatForExecution(command, useBracketedPaste());
 
     synchronized (lock) {
-      if (!isBackground && this.persistentTerminalViewControl != null) {
+      ITerminalViewControl persistentControl = this.persistentTerminalViewControl;
+      if (!isBackground && persistentControl != null) {
         revealTerminal();
-        sendCommand(this.persistentTerminalViewControl, finalCommand);
+        sendCommand(persistentControl, finalCommand);
         return commandFuture;
       }
 
@@ -216,7 +218,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   }
 
   private void closeRunningForegroundTerminal(String completionMessage) {
-    ForegroundCommand commandState = foregroundCommand;
+    ForegroundCommand commandState = foregroundCommand.get();
     if (commandState != null && !commandState.future().isDone()) {
       closeCurrentForegroundTerminal(completionMessage);
     }
@@ -226,8 +228,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     ForegroundCommand commandState = null;
     CTabItem tabItem = null;
     synchronized (lock) {
-      commandState = foregroundCommand;
-      foregroundCommand = null;
+      commandState = foregroundCommand.getAndSet(null);
       persistentTerminalViewControl = null;
       tabItem = copilotTabItem;
       copilotTabItem = null;
@@ -249,8 +250,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   }
 
   private void clearForegroundCommand(ForegroundCommand commandState) {
-    if (commandState != null && foregroundCommand == commandState) {
-      foregroundCommand = null;
+    if (commandState != null) {
+      foregroundCommand.compareAndSet(commandState, null);
     }
   }
 
@@ -346,7 +347,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
       output.append(content);
 
       // Detect completion based on platform strategy
-      ForegroundCommand commandState = foregroundCommand;
+      ForegroundCommand commandState = foregroundCommand.get();
       if (!isBackground && commandState != null && !commandState.future().isDone()) {
         CompletionCheckResult completionResult = commandState.useMarker()
             ? TerminalCommandProcessor.tryCompleteWithMarker(output)
@@ -360,9 +361,7 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     if (completionResult.state() == CompletionCheckState.INCOMPLETE) {
       return;
     }
-    if (foregroundCommand == commandState) {
-      foregroundCommand = null;
-    }
+    foregroundCommand.compareAndSet(commandState, null);
     if (!commandState.future().isDone()) {
       commandState.future().complete(completionResult.output());
     }
@@ -372,8 +371,15 @@ public class RunInTerminalTool implements IRunInTerminalTool {
     return e -> {
       if (isBackground) {
         backgroundCommandOutputs.remove(executionId);
-      } else {
+      } else if (e.widget == copilotTabItem) {
+        // No lock here: this runs on the UI thread and lock holders wait on syncExec.
+        copilotTabItem = null;
         persistentTerminalViewControl = null;
+        sb.setLength(0);
+        ForegroundCommand commandState = foregroundCommand.getAndSet(null);
+        if (commandState != null && !commandState.future().isDone()) {
+          commandState.future().complete(TERMINAL_CLOSED_MESSAGE);
+        }
       }
 
       if (backgroundCommandOutputs.isEmpty() && persistentTerminalViewControl == null) {
@@ -383,7 +389,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
   }
 
   private void revealTerminal() {
-    if (tabFolder != null && copilotTabItem != null) {
+    CTabItem tabItem = copilotTabItem;
+    if (tabFolder != null && tabItem != null) {
       Display.getDefault().syncExec(() -> {
         try {
           IWorkbenchPage page = getActivePage();
@@ -393,8 +400,8 @@ public class RunInTerminalTool implements IRunInTerminalTool {
               tabFolder = view.getAdapter(CTabFolder.class);
             }
           }
-          if (tabFolder != null && !tabFolder.isDisposed()) {
-            tabFolder.setSelection(copilotTabItem);
+          if (tabFolder != null && !tabFolder.isDisposed() && !tabItem.isDisposed()) {
+            tabFolder.setSelection(tabItem);
           }
         } catch (PartInitException e) {
           // Skip exception
