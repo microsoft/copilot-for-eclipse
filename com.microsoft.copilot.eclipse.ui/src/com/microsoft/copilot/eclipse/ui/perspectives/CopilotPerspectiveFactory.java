@@ -40,7 +40,7 @@ public class CopilotPerspectiveFactory implements IPerspectiveFactory {
     IFolderLayout consoleLayout = layout.createFolder("bottom", IPageLayout.BOTTOM, 0.8f, editorArea);
     consoleLayout.addView(IPageLayout.ID_PROBLEM_VIEW);
     consoleLayout.addView(IConsoleConstants.ID_CONSOLE_VIEW);
-    consoleLayout.addView("org.eclipse.tm.terminal.view.ui.TerminalsView");
+    consoleLayout.addView("org.eclipse.terminal.view.ui.TerminalsView");
 
     consoleLayout.addPlaceholder(IPageLayout.ID_BOOKMARKS);
     consoleLayout.addPlaceholder(IProgressConstants.PROGRESS_VIEW_ID);
@@ -55,7 +55,7 @@ public class CopilotPerspectiveFactory implements IPerspectiveFactory {
     layout.addShowViewShortcut(IProgressConstants.PROGRESS_VIEW_ID);
     layout.addShowViewShortcut(IPageLayout.ID_PROJECT_EXPLORER);
     layout.addShowViewShortcut(TemplatesView.ID);
-    layout.addShowViewShortcut("org.eclipse.tm.terminal.view.ui.TerminalsView");
+    layout.addShowViewShortcut("org.eclipse.terminal.view.ui.TerminalsView");
     layout.addShowViewShortcut("org.eclipse.pde.runtime.LogView");
     layout.addShowViewShortcut("org.eclipse.search.ui.views.SearchView");
     layout.addShowViewShortcut(Constants.GITHUB_JOBS_VIEW_ID);

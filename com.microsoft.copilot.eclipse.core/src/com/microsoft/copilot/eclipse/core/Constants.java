@@ -50,7 +50,6 @@ public class Constants {
   public static final String AUTO_SHOW_WHAT_IS_NEW = "autoShowWhatsNew";
   public static final String AUTO_BREAKPOINT_RESPONSE = "autoBreakpointResponse";
   public static final String GITHUB_JOBS_VIEW_ID = "com.microsoft.copilot.eclipse.ui.jobs.JobsView";
-  public static final String SUPPRESS_TERMINAL_DEPENDENCY_DIALOG = "suppressTerminalDependencyDialog";
 
   // Auto-Approve settings
   public static final String AUTO_APPROVE_TERMINAL_RULES = "autoApproveTerminalRules";
