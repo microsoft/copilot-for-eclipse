@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.core.nes;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.core.resources.IFile;
@@ -66,5 +68,29 @@ class NextEditSuggestionProviderTests {
     // Assert
     latch.await(1, TimeUnit.SECONDS);
     assertNotNull(receivedEdit.get());
+  }
+
+  @Test
+  void testShouldNotifyAllListenersWhenListenerRemovesItselfDuringNotification() {
+    IFile mockFile = mock(IFile.class);
+    when(mockFile.getLocation()).thenReturn(new Path("/test/file.java"));
+    when(mockLsConnection.getDocumentVersion(any(URI.class))).thenReturn(1);
+    NextEditSuggestionsResult result = new NextEditSuggestionsResult();
+    result.setEdits(List.of(mock(CopilotInlineEdit.class)));
+    when(mockLsConnection.getNextEditSuggestions(any(NextEditSuggestionsParams.class)))
+        .thenReturn(CompletableFuture.completedFuture(result));
+    AtomicInteger secondListenerCalls = new AtomicInteger();
+    NextEditSuggestionListener selfRemovingListener = new NextEditSuggestionListener() {
+      @Override
+      public void onNextEditSuggestion(IFile file, CopilotInlineEdit edit) {
+        provider.removeListener(this);
+      }
+    };
+    provider.addListener(selfRemovingListener);
+    provider.addListener((file, edit) -> secondListenerCalls.incrementAndGet());
+
+    provider.fetchSuggestion(mockFile, new Position(1, 1));
+
+    assertEquals(1, secondListenerCalls.get());
   }
 }
