@@ -1478,22 +1478,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     return this.chatContentViewer;
   }
 
-  /**
-   * Get the content section of the chat view.
-   */
-  public Composite getContentWrapper() {
-    return this.contentWrapper;
-  }
-
   public ActionBar getActionBar() {
     return this.actionBar;
-  }
-
-  /**
-   * Register a new conversation listener to the action bar.
-   */
-  public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
-    this.topBanner.registerNewConversationListener(listener);
   }
 
   /**
