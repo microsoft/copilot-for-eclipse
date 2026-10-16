@@ -83,6 +83,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessa
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
@@ -1229,8 +1230,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   List<WorkspaceFolder> deriveWorkspaceFolders(IFile currentFile, List<IResource> references) {
-    String chatInstrScope = CopilotUi.getPlugin().getPreferenceStore().getString(
-        Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE);
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+    String chatInstrScope = preferenceStore.getString(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE);
     CustomInstructionsChatLoadScope scope;
     try {
       scope = CustomInstructionsChatLoadScope.fromValue(chatInstrScope);
@@ -1239,7 +1240,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           "Failed parsing custom instructions load scope for chat preference, using default value", e);
       scope = CustomInstructionsChatLoadScope.DEFAULT_VALUE;
     }
-    return switch (scope) {
+    List<WorkspaceFolder> workspaceFolders = switch (scope) {
       // take all projects from Eclipse workspace
       case ALL_PROJECTS -> LSPEclipseUtils.getWorkspaceFolders();
 
@@ -1247,6 +1248,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       case REFERENCED_PROJECTS -> ResourceUtils.deriveWorkspaceFoldersFrom(
           Stream.concat(references.stream(), Stream.of(currentFile)).toList());
     };
+    return WorkspaceUtils.withParentRepositoryFoldersIfEnabled(workspaceFolders);
   }
 
   /**

@@ -4,9 +4,15 @@
 package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.function.Consumer;
 
+import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -19,6 +25,8 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
+import com.microsoft.copilot.eclipse.core.chat.CustomChatMode;
+import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 
 /**
  * Utility class for Copilot preference pages.
@@ -107,5 +115,41 @@ public final class PreferencePageUtils {
    */
   private static void openPreferencePage(Shell shell, String preferenceId, SelectionEvent event) {
     PreferencesUtil.createPreferenceDialogOn(shell, preferenceId, null, event);
+  }
+
+  /**
+   * Returns the name of the workspace folder containing the given custom agent: the name of the project, or for a
+   * folder of a parent git repository its name marked as parent repository. If several parent repository folders
+   * have the same name, the folder path is returned instead to keep them distinguishable.
+   *
+   * @param mode the custom agent
+   * @return the folder name, or an empty string if the agent is not located in a known folder
+   */
+  public static String getCustomAgentFolderName(CustomChatMode mode) {
+    try {
+      Path modePath = Paths.get(URI.create(mode.getId()));
+      List<WorkspaceFolder> projectFolders = WorkspaceUtils.listWorkspaceFolders();
+      for (WorkspaceFolder folder : projectFolders) {
+        if (modePath.startsWith(Paths.get(URI.create(folder.getUri())))) {
+          return folder.getName();
+        }
+      }
+      if (!WorkspaceUtils.isParentRepositoryEnabled()) {
+        return "";
+      }
+
+      List<WorkspaceFolder> parentFolders = WorkspaceUtils.listParentRepositoryFolders(projectFolders);
+      for (WorkspaceFolder folder : parentFolders) {
+        Path folderPath = Paths.get(URI.create(folder.getUri()));
+        if (modePath.startsWith(folderPath)) {
+          long sameNameCount = parentFolders.stream().filter(f -> f.getName().equals(folder.getName())).count();
+          return sameNameCount > 1 ? folderPath.toString()
+              : NLS.bind(Messages.preferences_page_parent_repository_folder, folder.getName());
+        }
+      }
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to get the folder name for custom agent id=" + mode.getId(), e);
+    }
+    return "";
   }
 }
