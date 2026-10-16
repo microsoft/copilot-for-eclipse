@@ -3,6 +3,9 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.net.URI;
+
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -82,9 +85,26 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     ctnGhe.setLayout(gl);
     ctnGhe.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     StringFieldEditor sftGhe = new StringFieldEditor(Constants.GITHUB_ENTERPRISE,
-        Messages.preferences_page_github_enterprise, ctnGhe);
+        Messages.preferences_page_github_enterprise, ctnGhe) {
+      @Override
+      protected boolean doCheckState() {
+        String endpoint = getStringValue();
+        if (StringUtils.isEmpty(endpoint)) {
+          return true;
+        }
+        try {
+          URI uri = URI.create(endpoint);
+          return "https".equalsIgnoreCase(uri.getScheme()) && StringUtils.isNotBlank(uri.getHost());
+        } catch (IllegalArgumentException e) {
+          return false;
+        }
+      }
+    };
+    sftGhe.setErrorMessage(Messages.preferences_page_github_enterprise_validation_error);
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
     addField(sftGhe);
+    new WrappableNoteLabel(grpAuth, Messages.preferences_page_note_prefix + " ",
+        Messages.preferences_page_github_enterprise_hint);
 
     // What's new group
     Group whatsNewGroup = new Group(parent, SWT.NONE);
