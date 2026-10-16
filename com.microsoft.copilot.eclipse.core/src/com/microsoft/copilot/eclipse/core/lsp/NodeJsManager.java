@@ -304,12 +304,19 @@ public class NodeJsManager {
    */
   private static String executeCommand(String[] command) {
     String result = null;
-    try (BufferedReader reader = new BufferedReader(
-        new InputStreamReader(Runtime.getRuntime().exec(command).getInputStream()))) {
-      result = reader.readLine();
+    Process process = null;
+    try {
+      process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        result = reader.readLine();
+      }
     } catch (IOException e) {
       Activator.getDefault().getLog()
           .log(new Status(IStatus.ERROR, Activator.getDefault().getBundle().getSymbolicName(), e.getMessage(), e));
+    } finally {
+      if (process != null) {
+        process.destroy();
+      }
     }
     return result;
   }
