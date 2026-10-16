@@ -14,6 +14,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
@@ -110,7 +111,7 @@ public class AvatarService {
               try (var stream = url.openStream()) {
                 downloadedImage = new Image(display, stream);
               }
-            } catch (IOException e) {
+            } catch (IOException | SWTException e) {
               CopilotCore.LOGGER.error(e);
             }
             if (downloadedImage != null) {
@@ -121,8 +122,8 @@ public class AvatarService {
                 downloadedImage.dispose();
               }
               avatarCache.put(user, result);
-              jobs.remove(user);
             }
+            jobs.remove(user);
             return Status.OK_STATUS;
           }
         };
