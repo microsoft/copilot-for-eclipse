@@ -311,9 +311,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
           // Restore all turns from the conversation
           if (historyConversation.getTurns() != null && !historyConversation.getTurns().isEmpty()) {
-            for (AbstractTurnData turn : historyConversation.getTurns()) {
-              restoreTurn(turn);
-            }
+            restoreTurns(historyConversation.getTurns());
 
             // Restore the mode from the last user turn
             restoreModeFromLastUserTurn(historyConversation.getTurns());
@@ -1914,9 +1912,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     // Create user turn widget and populate with user message
     if (turn instanceof UserTurnData userTurn) {
-      if (userTurn.getMessage() == null || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
+      UserTurnData.MessageData message = userTurn.getMessage();
+      if (message == null) {
+        CopilotCore.LOGGER.info("Skipping user turn with missing message: " + userTurn.getTurnId());
+        return;
+      }
+      if (StringUtils.isNotBlank(message.getText())) {
         BaseTurnWidget userTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
-        userTurnWidget.appendMessage(userTurn.getMessage().getText());
+        userTurnWidget.appendMessage(message.getText());
         userTurnWidget.flushMessageBuffer();
         return;
       }
@@ -1935,6 +1938,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier(),
             replyData.getReasoningEffort());
       }
+    }
+  }
+
+  private void restoreTurns(List<AbstractTurnData> turns) {
+    for (AbstractTurnData turn : turns) {
+      restoreTurn(turn);
     }
   }
 
