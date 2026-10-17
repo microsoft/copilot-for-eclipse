@@ -11,6 +11,14 @@ A delegated agent that the main agent spawns to carry out a scoped sub-task on
 its behalf. The main agent invokes it through the `run_subagent` tool and
 receives the sub-agent's result back as part of its own turn.
 
+### Top-level turn
+A user-initiated unit of chat work that owns the chat-wide cancellation and
+completion lifecycle.
+
+### Sub-agent turn
+A delegated unit of chat work nested within a top-level turn. Its completion
+returns control to the parent and does not complete the top-level turn.
+
 ### Sub-agent policy
 Organization-level governance that decides whether sub-agents are permitted for
 a user. It is authoritative and is **enforced by the language server**, not by
