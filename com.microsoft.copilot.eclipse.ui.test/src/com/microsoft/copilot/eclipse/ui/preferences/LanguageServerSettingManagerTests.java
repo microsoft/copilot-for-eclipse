@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -21,9 +22,13 @@ import com.google.gson.JsonObject;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.preference.PreferenceStore;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -50,6 +55,64 @@ class LanguageServerSettingManagerTests {
 
   @Mock
   private IProxyService mockProxyService;
+
+  @ParameterizedTest
+  @CsvSource({
+      "company.ghe.com, https://company.ghe.com",
+      "http://company.ghe.com/, https://company.ghe.com/",
+      "HTTPS://company.ghe.com, https://company.ghe.com",
+      "' http://github.company.example:8443/copilot%2Flogin ', https://github.company.example:8443/copilot%2Flogin",
+      "'', ''"
+  })
+  void testEnterpriseEndpoint_initialization_syncsNormalizedEndpoint(String endpoint, String expected) {
+    when(mockPreferenceStore.getString(Constants.GITHUB_ENTERPRISE)).thenReturn(endpoint);
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService,
+        mockPreferenceStore);
+    manager.syncConfiguration();
+
+    ArgumentCaptor<DidChangeConfigurationParams> paramsCaptor = ArgumentCaptor
+        .forClass(DidChangeConfigurationParams.class);
+    verify(mockLsConnection).updateConfig(paramsCaptor.capture());
+    CopilotLanguageServerSettings capturedSettings = (CopilotLanguageServerSettings) paramsCaptor.getValue()
+        .getSettings();
+    assertEquals(expected, capturedSettings.getGithubEnterprise().getUri());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "company.ghe.com, https://company.ghe.com",
+      "http://company.ghe.com/, https://company.ghe.com/",
+      "HTTPS://company.ghe.com, https://company.ghe.com",
+      "' http://github.company.example:8443/copilot%2Flogin ', https://github.company.example:8443/copilot%2Flogin",
+      "'', ''"
+  })
+  void testEnterpriseEndpoint_preferenceChange_syncsNormalizedEndpoint(String endpoint, String expected) {
+    PreferenceStore store = new PreferenceStore();
+    store.setValue(Constants.GITHUB_ENTERPRISE, "https://old-company.ghe.com");
+    new LanguageServerSettingManager(mockLsConnection, mockProxyService, store);
+
+    store.setValue(Constants.GITHUB_ENTERPRISE, endpoint);
+
+    ArgumentCaptor<DidChangeConfigurationParams> paramsCaptor = ArgumentCaptor
+        .forClass(DidChangeConfigurationParams.class);
+    verify(mockLsConnection).updateConfig(paramsCaptor.capture());
+    CopilotLanguageServerSettings capturedSettings = (CopilotLanguageServerSettings) paramsCaptor.getValue()
+        .getSettings();
+    assertEquals(expected, capturedSettings.getGithubEnterprise().getUri());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ftp://company.ghe.com", "https://", "company ghe.com"})
+  void testEnterpriseEndpoint_invalidChange_keepsPreviousEndpointWithoutSyncing(String endpoint) {
+    PreferenceStore store = new PreferenceStore();
+    store.setValue(Constants.GITHUB_ENTERPRISE, "https://company.ghe.com");
+    LanguageServerSettingManager manager = new LanguageServerSettingManager(mockLsConnection, mockProxyService, store);
+
+    store.setValue(Constants.GITHUB_ENTERPRISE, endpoint);
+
+    assertEquals("https://company.ghe.com", manager.getSettings().getGithubEnterprise().getUri());
+    verify(mockLsConnection, never()).updateConfig(any());
+  }
 
   @Test
   void testNoProxy() {
