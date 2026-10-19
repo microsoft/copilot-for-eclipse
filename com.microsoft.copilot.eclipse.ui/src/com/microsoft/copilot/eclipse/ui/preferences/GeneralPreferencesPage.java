@@ -17,6 +17,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.osgi.service.prefs.BackingStoreException;
@@ -102,9 +103,10 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     };
     sftGhe.setErrorMessage(Messages.preferences_page_github_enterprise_validation_error);
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
+    Text endpointText = sftGhe.getTextControl(ctnGhe);
+    endpointText.setMessage(Messages.preferences_page_github_enterprise_placeholder);
+    endpointText.setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
     addField(sftGhe);
-    new WrappableNoteLabel(grpAuth, Messages.preferences_page_note_prefix + " ",
-        Messages.preferences_page_github_enterprise_hint);
 
     // What's new group
     Group whatsNewGroup = new Group(parent, SWT.NONE);
