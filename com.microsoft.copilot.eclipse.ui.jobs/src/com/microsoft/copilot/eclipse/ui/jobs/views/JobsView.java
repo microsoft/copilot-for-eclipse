@@ -396,8 +396,8 @@ public class JobsView {
    * just expand them. For projects not yet loaded, load PRs first then expand.
    */
   private void expandAllProjects() {
-    // Iterate through all projects in the tree
-    for (String projectName : repoToPullRequestsMap.keySet()) {
+    // Iterate over a copy: the refresh job clears and fills the map concurrently
+    for (String projectName : new ArrayList<>(repoToPullRequestsMap.keySet())) {
       // Skip special nodes like "No open projects"
       if (!projectNameToProjectMap.containsKey(projectName)) {
         continue;
