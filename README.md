@@ -68,14 +68,6 @@ a separate online update site.
 3. Select **GitHub Copilot** and complete installation.
 4. Restart Eclipse and sign in.
 
-### GitHub Enterprise authentication
-
-In **Window > Preferences > Copilot > General**, enter your GitHub Enterprise hostname
-(for example, `your-company.ghe.com`) or an HTTP/HTTPS URL. The page previews the HTTPS
-address that will be saved and used for authentication. Hostnames receive an `https://`
-prefix, and HTTP URLs are upgraded to HTTPS before use, preserving ports and paths.
-Malformed addresses are rejected. Leave the endpoint blank to sign in to GitHub.com.
-
 ## Core capabilities
 
 ### Code completions

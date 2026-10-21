@@ -12,17 +12,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.eclipse.jface.preference.FieldEditor;
 import org.eclipse.jface.preference.PreferenceStore;
 import org.eclipse.jface.preference.StringFieldEditor;
-import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.microsoft.copilot.eclipse.core.Constants;
@@ -46,47 +43,31 @@ class GeneralPreferencesPageTest {
   }
 
   @ParameterizedTest
-  @CsvSource({
-      "'', ''",
-      "'   ', ''",
-      "company.ghe.com, https://company.ghe.com",
-      "http://company.ghe.com/, https://company.ghe.com/",
-      "https://company.ghe.com, https://company.ghe.com",
-      "HTTPS://company.ghe.com, https://company.ghe.com",
-      "' https://company.ghe.com ', https://company.ghe.com",
-      "github.company.example:8443/copilot%2Flogin, https://github.company.example:8443/copilot%2Flogin",
-      "http://company.ghe.com/login?a=1&b=2, https://company.ghe.com/login?a=1&b=2"
-  })
-  void testEnterpriseEndpoint_validStoredValue_previewsAndStoresHttps(String endpoint, String expected) {
+  @ValueSource(strings = {"", "https://company.ghe.com", "https://company.ghe.com/",
+      "https://github.company.example:8443", "HTTPS://company.ghe.com", "HtTpS://company.ghe.com"})
+  void testEnterpriseEndpoint_validStoredValue_pageIsValid(String endpoint) {
     SwtUtils.invokeOnDisplayThread(() -> {
       createPage(endpoint);
       assertTrue(page.isValid());
       assertNull(page.getErrorMessage());
-      assertPreview(expected);
-
-      page.endpointField.store();
-      assertEquals(expected, page.getPreferenceStore().getString(Constants.GITHUB_ENTERPRISE));
-      assertEquals(expected, page.endpointField.getStringValue());
     });
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"ftp://company.ghe.com", "http://", "company ghe.com",
+  @ValueSource(strings = {"http://company.ghe.com/", "company.ghe.com", "ftp://company.ghe.com",
       "https://", "https:///company.ghe.com", "https://company ghe.com", "https://company.ghe.com/%",
-      "company.ghe.com:invalid"})
+      " ", " https://company.ghe.com", "https://company.ghe.com "})
   void testEnterpriseEndpoint_invalidStoredValue_pageShowsError(String endpoint) {
     SwtUtils.invokeOnDisplayThread(() -> {
       createPage(endpoint);
       assertFalse(page.isValid());
       assertEquals(Messages.preferences_page_github_enterprise_validation_error, page.getErrorMessage());
-      assertNotNull(findLabel((Composite) page.getControl(),
-          Messages.preferences_page_github_enterprise_validation_error));
     });
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", "https://company.ghe.com", "http://company.ghe.com", "company.ghe.com"})
-  void testEnterpriseEndpoint_nativeHints_preserveValueUntilSave(String endpoint) {
+  @ValueSource(strings = {"", "https://company.ghe.com"})
+  void testEnterpriseEndpoint_nativeHints_preserveValue(String endpoint) {
     SwtUtils.invokeOnDisplayThread(() -> {
       createPage(endpoint);
       Text endpointText = findTextControl((Composite) page.getControl());
@@ -95,6 +76,7 @@ class GeneralPreferencesPageTest {
       assertEquals(Messages.preferences_page_github_enterprise_tooltip, endpointText.getToolTipText());
       assertEquals(endpoint, endpointText.getText());
 
+      page.endpointField.store();
       assertEquals(endpoint, page.getPreferenceStore().getString(Constants.GITHUB_ENTERPRISE));
     });
   }
@@ -104,44 +86,17 @@ class GeneralPreferencesPageTest {
     SwtUtils.invokeOnDisplayThread(() -> {
       createPage("");
       page.endpointField.setStringValue("http://company.ghe.com/");
-      assertTrue(page.isValid());
-      assertNull(page.getErrorMessage());
-      assertPreview("https://company.ghe.com/");
-
-      page.endpointField.setStringValue("ftp://company.ghe.com/");
       assertFalse(page.isValid());
       assertEquals(Messages.preferences_page_github_enterprise_validation_error, page.getErrorMessage());
 
-      page.endpointField.setStringValue("company.ghe.com");
+      page.endpointField.setStringValue("https://company.ghe.com/");
       assertTrue(page.isValid());
       assertNull(page.getErrorMessage());
-      assertPreview("https://company.ghe.com");
 
       page.endpointField.setStringValue("");
       assertTrue(page.isValid());
       assertNull(page.getErrorMessage());
-      assertPreview("");
     });
-  }
-
-  @Test
-  void testEnterpriseEndpoint_restoreDefaults_resetsValidationAndPreview() {
-    SwtUtils.invokeOnDisplayThread(() -> {
-      createPage("ftp://company.ghe.com");
-      assertFalse(page.isValid());
-
-      page.restoreDefaults();
-      assertTrue(page.isValid());
-      assertNull(page.getErrorMessage());
-      assertEquals("", page.endpointField.getStringValue());
-      assertPreview("");
-    });
-  }
-
-  private void assertPreview(String endpoint) {
-    String expected = endpoint.isEmpty() ? Messages.preferences_page_github_enterprise_default
-        : NLS.bind(Messages.preferences_page_github_enterprise_preview, endpoint.replace("&", "&&"));
-    assertNotNull(findLabel((Composite) page.getControl(), expected));
   }
 
   private void createPage(String endpoint) {
@@ -168,21 +123,6 @@ class GeneralPreferencesPageTest {
     return null;
   }
 
-  private Label findLabel(Composite parent, String text) {
-    for (Control child : parent.getChildren()) {
-      if (child instanceof Label label && text.equals(label.getText())) {
-        return label;
-      }
-      if (child instanceof Composite composite) {
-        Label label = findLabel(composite, text);
-        if (label != null) {
-          return label;
-        }
-      }
-    }
-    return null;
-  }
-
   private static class TestPreferencesPage extends GeneralPreferencesPage {
     private StringFieldEditor endpointField;
 
@@ -192,10 +132,6 @@ class GeneralPreferencesPageTest {
       if (Constants.GITHUB_ENTERPRISE.equals(editor.getPreferenceName())) {
         endpointField = (StringFieldEditor) editor;
       }
-    }
-
-    private void restoreDefaults() {
-      performDefaults();
     }
   }
 }

@@ -3,6 +3,8 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.net.URI;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -10,13 +12,11 @@ import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.StringFieldEditor;
-import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
@@ -89,18 +89,16 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
         Messages.preferences_page_github_enterprise, ctnGhe) {
       @Override
       protected boolean doCheckState() {
-        try {
-          GitHubEnterpriseEndpoint.normalize(getStringValue());
+        String endpoint = getStringValue();
+        if (StringUtils.isEmpty(endpoint)) {
           return true;
+        }
+        try {
+          URI uri = URI.create(endpoint);
+          return "https".equalsIgnoreCase(uri.getScheme()) && StringUtils.isNotBlank(uri.getHost());
         } catch (IllegalArgumentException e) {
           return false;
         }
-      }
-
-      @Override
-      protected void doStore() {
-        setStringValue(GitHubEnterpriseEndpoint.normalize(getStringValue()));
-        super.doStore();
       }
     };
     sftGhe.setErrorMessage(Messages.preferences_page_github_enterprise_validation_error);
@@ -108,10 +106,6 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     Text endpointText = sftGhe.getTextControl(ctnGhe);
     endpointText.setMessage(Messages.preferences_page_github_enterprise_placeholder);
     endpointText.setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
-    Label endpointPreview = new Label(ctnGhe, SWT.WRAP);
-    GridDataFactory.fillDefaults().span(2, 1).grab(true, false).hint(400, SWT.DEFAULT).applyTo(endpointPreview);
-    endpointText.addModifyListener(event -> updateEnterpriseEndpointPreview(endpointText.getText(), endpointPreview));
-    updateEnterpriseEndpointPreview(endpointText.getText(), endpointPreview);
     addField(sftGhe);
 
     // What's new group
@@ -129,17 +123,6 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     showWhatsNewField.getDescriptionControl(whatsNewComposite)
         .setToolTipText(Messages.preferences_page_enable_whats_new_tooltip);
     addField(showWhatsNewField);
-  }
-
-  private void updateEnterpriseEndpointPreview(String input, Label preview) {
-    try {
-      String endpoint = GitHubEnterpriseEndpoint.normalize(input);
-      preview.setText(StringUtils.isEmpty(endpoint) ? Messages.preferences_page_github_enterprise_default
-          : NLS.bind(Messages.preferences_page_github_enterprise_preview, endpoint.replace("&", "&&")));
-    } catch (IllegalArgumentException e) {
-      preview.setText(Messages.preferences_page_github_enterprise_validation_error);
-    }
-    preview.requestLayout();
   }
 
   @Override

@@ -85,7 +85,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     getSettings().setEnableAutoCompletions(preferenceStore.getBoolean(Constants.AUTO_SHOW_COMPLETION));
     getSettings().getHttp().setProxyStrictSsl(preferenceStore.getBoolean(Constants.ENABLE_STRICT_SSL));
     getSettings().getHttp().setProxyKerberosServicePrincipal(preferenceStore.getString(Constants.PROXY_KERBEROS_SP));
-    updateGitHubEnterpriseEndpoint();
+    getSettings().getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
 
     // agent related settings
     getSettings().getGithubSettings().getCopilotSettings().getAgent()
@@ -161,9 +161,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         singleSetting = new CopilotLanguageServerSettings(null, settings.getHttp(), null, null);
         break;
       case Constants.GITHUB_ENTERPRISE:
-        if (!updateGitHubEnterpriseEndpoint()) {
-          return;
-        }
+        settings.getGithubEnterprise().setUri(preferenceStore.getString(Constants.GITHUB_ENTERPRISE));
         singleSetting = new CopilotLanguageServerSettings(null, null, settings.getGithubEnterprise(), null);
         break;
       case Constants.MCP:
@@ -224,18 +222,6 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
     }
 
     syncSingleConfiguration(singleSetting);
-  }
-
-  private boolean updateGitHubEnterpriseEndpoint() {
-    try {
-      settings.getGithubEnterprise()
-          .setUri(GitHubEnterpriseEndpoint.normalize(preferenceStore.getString(Constants.GITHUB_ENTERPRISE)));
-      return true;
-    } catch (IllegalArgumentException e) {
-      CopilotCore.LOGGER.error(
-          "Invalid GitHub Enterprise authentication endpoint. Update it in Copilot preferences.", e);
-      return false;
-    }
   }
 
   /**
