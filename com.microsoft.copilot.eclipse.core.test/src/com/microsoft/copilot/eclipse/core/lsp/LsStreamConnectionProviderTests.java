@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +31,7 @@ class LsStreamConnectionProviderTests {
 
     assertEquals(LsStreamConnectionProvider.EDITOR_NAME, options.getEditorInfo().getName());
     assertEquals(LsStreamConnectionProvider.EDITOR_PLUGIN_NAME, options.getEditorPluginInfo().getName());
+    assertTrue(options.getCopilotCapabilities().isMcpSampling());
   }
 
   @Test

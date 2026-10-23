@@ -18,6 +18,12 @@ public class ConfirmationAction {
   /** Metadata key for the action type enum name. */
   public static final String META_ACTION = "action";
 
+  /** Metadata key for actions handled entirely by the confirmation UI. */
+  public static final String META_UI_ACTION = "uiAction";
+
+  /** UI action that reveals the prompt associated with a sampling request. */
+  public static final String UI_ACTION_REVIEW_PROMPT = "reviewPrompt";
+
   private final String label;
   private final boolean accept;
   private final ConfirmationActionScope scope;
@@ -72,6 +78,12 @@ public class ConfirmationAction {
   /** Creates a dismiss action. */
   public static ConfirmationAction skip(String label) {
     return new ConfirmationAction(label, false, null, null, false);
+  }
+
+  /** Creates an action that reveals the sampling prompt without resolving the confirmation. */
+  public static ConfirmationAction reviewPrompt(String label) {
+    return new ConfirmationAction(label, false, null,
+        Map.of(META_UI_ACTION, UI_ACTION_REVIEW_PROMPT), false);
   }
 
   @Override
