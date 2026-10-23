@@ -98,6 +98,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image sendImage;
   private Image sendDisabledImage;
   private boolean isSendButton = true;
+  private boolean modelAvailable;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
   private Image mcpToolImage;
@@ -206,6 +207,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindActionBarForSupportVisionChange(this);
+    modelService.bindActionBarForModelAvailability(this);
 
     ChatInputTextViewer tv = new ChatInputTextViewer(borderedActionBar, chatServiceManager);
     tv.setEditable(true);
@@ -229,15 +231,11 @@ public class ActionBar extends Composite implements NewConversationListener {
         if (!isSendButton) {
           return;
         }
-        if (tv.getDocument().get().equals(StringUtils.EMPTY)) {
-          updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-        } else {
-          updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-        }
+        refreshSendButtonState();
       }
     });
     tv.setSendMessageHandler((message) -> {
-      if (isSendButton) {
+      if (isSendButton && modelAvailable) {
         handleSendMessage();
       }
     });
@@ -448,7 +446,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND);
       this.sendDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_DISABLED);
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-      boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
+      boolean isEnabled = modelAvailable && !StringUtils.isBlank(this.inputTextViewer.getContent());
       this.btnMsgToggle.setEnabled(isEnabled);
       this.btnMsgToggle.setImage(isEnabled ? this.sendImage : this.sendDisabledImage);
       this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
@@ -713,12 +711,31 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Handles the cancel message event.
    */
   public void resetSendButton() {
-    if (this.inputTextViewer.getContent().isEmpty()) {
-      updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-    } else {
-      updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-    }
+    refreshSendButtonState();
     this.chatServiceManager.getFileToolService().setWorkingSetBarButtonStatus(true);
+  }
+
+  /**
+   * Updates whether a chat model is available. Sending is disabled while no model is available.
+   *
+   * @param available true if an active model is set
+   */
+  public void setModelAvailable(boolean available) {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      modelAvailable = available;
+      if (isSendButton) {
+        refreshSendButtonState();
+      }
+      refreshPlaceholder();
+    }, this);
+  }
+
+  private void refreshSendButtonState() {
+    if (modelAvailable && !this.inputTextViewer.getContent().isEmpty()) {
+      updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
+    } else {
+      updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
+    }
   }
 
   /**
@@ -794,11 +811,7 @@ public class ActionBar extends Composite implements NewConversationListener {
           notifySendWithSlug(workDoneToken, message, UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG, selectedProjectPath);
         } else {
           // Dialog was cancelled, reset button state based on current input content
-          if (this.inputTextViewer.getContent().isEmpty()) {
-            updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-          } else {
-            updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-          }
+          refreshSendButtonState();
         }
       }
     }

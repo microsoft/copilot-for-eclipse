@@ -65,6 +65,7 @@ public class ModelService extends ChatBaseService {
 
   private final Map<DropdownButton, ISideEffect[]> modelButtonSideEffects = new HashMap<>();
   private ISideEffect actionBarSideEffect;
+  private ISideEffect modelAvailabilitySideEffect;
 
   // Event communication
   private IEventBroker eventBroker;
@@ -414,6 +415,15 @@ public class ModelService extends ChatBaseService {
    */
   public CopilotModel getActiveModel() {
     return activeModelObservable.getValue();
+  }
+
+  /**
+   * Check if an active model is set. Chat requests require one.
+   *
+   * @return true if an active model is set
+   */
+  public boolean hasActiveModel() {
+    return getActiveModel() != null;
   }
 
   /**
@@ -802,6 +812,36 @@ public class ModelService extends ChatBaseService {
     if (actionBarSideEffect != null) {
       actionBarSideEffect.dispose();
       actionBarSideEffect = null;
+    }
+  }
+
+  /**
+   * Bind the action bar to enable sending only while an active model is set.
+   *
+   * @param actionBar the action bar to bind
+   */
+  public void bindActionBarForModelAvailability(ActionBar actionBar) {
+    unbindActionBarForModelAvailability(actionBar);
+
+    ensureRealm(() -> {
+      modelAvailabilitySideEffect = ISideEffect.create(this::hasActiveModel, (Boolean available) -> {
+        if (!actionBar.isDisposed()) {
+          actionBar.setModelAvailable(available);
+        }
+      });
+      actionBar.addDisposeListener(e -> unbindActionBarForModelAvailability(actionBar));
+    });
+  }
+
+  /**
+   * Unbind the model availability side effect for a specific action bar.
+   *
+   * @param actionBar the action bar to unbind
+   */
+  public void unbindActionBarForModelAvailability(ActionBar actionBar) {
+    if (modelAvailabilitySideEffect != null) {
+      modelAvailabilitySideEffect.dispose();
+      modelAvailabilitySideEffect = null;
     }
   }
 
