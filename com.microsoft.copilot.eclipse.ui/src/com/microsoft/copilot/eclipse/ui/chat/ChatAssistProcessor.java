@@ -105,7 +105,9 @@ class ChatAssistProcessor implements IContentAssistProcessor {
     public StyledString getStyledDisplayString() {
       StyledString styledString = new StyledString();
       styledString.append(triggerCharacter + displayName);
-      styledString.append(" - " + description, StyledString.QUALIFIER_STYLER);
+      if (StringUtils.isNotBlank(description)) {
+        styledString.append(" - " + description, StyledString.QUALIFIER_STYLER);
+      }
       return styledString;
     }
   }
@@ -121,14 +123,15 @@ class ChatAssistProcessor implements IContentAssistProcessor {
     String lowerPrefix = prefix.toLowerCase();
 
     // Sort results by match quality, then build proposals.
-    return Arrays.stream(templates).filter(t -> StringUtils.isNotBlank(t.id()))
+    return Arrays.stream(templates).filter(t -> StringUtils.isNotBlank(t.commandName()))
         .map(t -> new SimpleEntry<>(t, getMatchPriority(t, lowerPrefix)))
         .filter(e -> e.getValue() >= 0).sorted(Comparator.comparingInt(Entry::getValue)).map(e -> {
           ConversationTemplate t = e.getKey();
           boolean isSkill = t.source() == TemplateSource.SKILL;
-          String displayName = isSkill && StringUtils.isNotBlank(t.shortDescription()) ? t.shortDescription() : t.id();
-          return (ICompletionProposal) new ChatCompletionProposal(ChatCompletionService.TEMPLATE_MARK, t.id(),
-              displayName, t.description());
+          String displayName = isSkill && StringUtils.isNotBlank(t.shortDescription()) ? t.shortDescription()
+              : t.commandName();
+          return (ICompletionProposal) new ChatCompletionProposal(ChatCompletionService.TEMPLATE_MARK,
+              t.commandName(), displayName, t.description());
         }).toArray(ICompletionProposal[]::new);
   }
 
@@ -137,8 +140,8 @@ class ChatAssistProcessor implements IContentAssistProcessor {
    * or -1 if it does not match at all.
    *
    * <p>Priority buckets:
-   * 0 – id starts with prefix (or prefix is empty)
-   * 1 – id contains prefix (or skill shortDescription contains prefix)
+   * 0 – command name starts with prefix (or prefix is empty)
+   * 1 – command name contains prefix (or skill shortDescription contains prefix)
    * 2 – description starts with prefix
    * 3 – description contains prefix
    */
@@ -147,13 +150,13 @@ class ChatAssistProcessor implements IContentAssistProcessor {
       return 0;
     }
     boolean isSkill = template.source() == TemplateSource.SKILL;
-    String id = template.id() != null ? template.id().toLowerCase() : "";
+    String command = template.commandName() != null ? template.commandName().toLowerCase() : "";
     String desc = template.description() != null ? template.description().toLowerCase() : "";
     String shortDesc = template.shortDescription() != null ? template.shortDescription().toLowerCase() : "";
 
-    if (id.startsWith(lowerPrefix)) {
+    if (command.startsWith(lowerPrefix)) {
       return 0;
-    } else if (id.contains(lowerPrefix) || (isSkill && shortDesc.contains(lowerPrefix))) {
+    } else if (command.contains(lowerPrefix) || (isSkill && shortDesc.contains(lowerPrefix))) {
       return 1;
     } else if (desc.startsWith(lowerPrefix)) {
       return 2;
