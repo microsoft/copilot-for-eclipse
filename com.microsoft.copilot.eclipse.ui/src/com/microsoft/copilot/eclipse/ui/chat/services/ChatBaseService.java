@@ -5,7 +5,11 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -53,7 +57,7 @@ public abstract class ChatBaseService {
       return userPreference;
     }
 
-    Path path = getPersistentFilePath();
+    Path path = getPersistentFilePath(null);
     if (path != null) {
       try {
         String jsonContent = PlatformUtils.readFileContent(path);
@@ -83,7 +87,16 @@ public abstract class ChatBaseService {
    * Persist User Preference.
    */
   public synchronized void persistUserPreference() {
-    Path path = getPersistentFilePath();
+    persistUserPreference(null);
+  }
+
+  /**
+   * Persist User Preference, waiting at most the given time for the language server to provide the storage path.
+   *
+   * @param timeout the maximum time to wait, or {@code null} to wait without limit
+   */
+  protected synchronized void persistUserPreference(@Nullable Duration timeout) {
+    Path path = getPersistentFilePath(timeout);
     if (path == null) {
       return;
     }
@@ -116,16 +129,21 @@ public abstract class ChatBaseService {
   /**
    * Get the path for the persistent file.
    */
-  private @Nullable Path getPersistentFilePath() {
+  private @Nullable Path getPersistentFilePath(@Nullable Duration timeout) {
     if (!this.authStatusManager.isSignedIn()) {
       return null;
     }
     if (this.persistentPath == null) {
       try {
-        ChatPersistence chatPersistence = this.lsConnection.persistence().get();
+        CompletableFuture<ChatPersistence> request = this.lsConnection.persistence();
+        ChatPersistence chatPersistence = timeout == null ? request.get()
+            : request.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         this.persistentPath = chatPersistence.getPath();
       } catch (InterruptedException | ExecutionException e) {
         CopilotCore.LOGGER.error("Failed to get persistent path", e);
+        return null;
+      } catch (TimeoutException e) {
+        CopilotCore.LOGGER.info("Language server did not provide the persistent path in time, skipping");
         return null;
       }
     }

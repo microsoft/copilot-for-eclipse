@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,6 +48,8 @@ import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
  * Service for managing chat modes and input navigation.
  */
 public class UserPreferenceService extends ChatBaseService implements CopilotAuthStatusListener {
+  private static final Duration SHUTDOWN_PERSIST_TIMEOUT = Duration.ofSeconds(2);
+
   private IObservableValue<String[]> chatModeObservable;
   private IObservableValue<ChatMode> activeChatModeObservable; // Controls which view to show: Ask or Agent
   private IObservableValue<String> activeModeNameOrIdObservable; // Tracks current mode name/ID for UI elements
@@ -574,7 +577,8 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * Dispose of the service.
    */
   public void dispose() {
-    persistUserPreference();
+    // A busy CLS must not block IDE shutdown, otherwise the CLS is not stopped either
+    persistUserPreference(SHUTDOWN_PERSIST_TIMEOUT);
     // Ideally we should dispose all side effects and observable here. But since the service is
     // singleton and will only be disposed when the bundle is stopped. So right now they are not
     // explicitly disposed here.
