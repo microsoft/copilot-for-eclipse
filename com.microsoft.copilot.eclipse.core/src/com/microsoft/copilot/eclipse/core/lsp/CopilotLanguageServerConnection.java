@@ -6,6 +6,9 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
@@ -94,6 +97,9 @@ import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 public class CopilotLanguageServerConnection {
 
   public static final String SERVER_ID = "com.microsoft.copilot.eclipse.ls";
+
+  // LSP4E waits up to 5 s for the shutdown response before sending exit.
+  private static final long STOP_GRACE_PERIOD_MILLIS = 6_000;
 
   private LanguageServerWrapper languageServerWrapper;
 
@@ -726,10 +732,36 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Stop the language server.
+   * Stop the language server and force-kill its process tree if it does not exit within a grace period.
    */
   public void stop() {
+    ProcessHandle process = this.languageServerWrapper.getProcessHandle();
+    // Capture descendants before stopping, they are re-parented once the server exits.
+    List<ProcessHandle> descendants = process == null ? List.of() : process.descendants().toList();
     this.languageServerWrapper.stop();
+    if (process != null) {
+      terminate(process, descendants);
+    }
+  }
+
+  // Blocking on purpose: LSP4E stops asynchronously and a busy CLS ignores shutdown, so it would outlive the IDE.
+  private static void terminate(ProcessHandle process, List<ProcessHandle> descendants) {
+    awaitExit(process, STOP_GRACE_PERIOD_MILLIS);
+    if (process.isAlive()) {
+      CopilotCore.LOGGER.info("Copilot language server did not exit in time, killing it");
+      process.destroyForcibly();
+    }
+    descendants.stream().filter(ProcessHandle::isAlive).forEach(ProcessHandle::destroyForcibly);
+  }
+
+  private static void awaitExit(ProcessHandle process, long timeoutMillis) {
+    try {
+      process.onExit().get(timeoutMillis, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException | ExecutionException e) {
+      // checked by the caller via isAlive()
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   private String getModelName(CopilotModel activeModel) {
