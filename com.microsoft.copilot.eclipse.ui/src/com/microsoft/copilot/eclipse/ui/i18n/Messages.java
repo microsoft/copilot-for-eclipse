@@ -92,6 +92,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_initialContent;
   public static String chat_actionBar_initialContentForAgent;
   public static String chat_actionBar_sendButton_Tooltip;
+  public static String chat_actionBar_noModel_placeholder;
   public static String chat_actionBar_sendToJobButton_Tooltip;
   public static String chat_actionBar_sendToJob_noProject;
   public static String chat_actionBar_cancelButton_Tooltip;

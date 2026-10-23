@@ -9,6 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -42,6 +46,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
 
 @ExtendWith(MockitoExtension.class)
 class ModelServiceTests {
@@ -229,6 +234,23 @@ class ModelServiceTests {
     assertSame(defaultModel, activeModel.get());
     Thread.sleep(100);
     assertFalse(Files.exists(getPreferenceFile()));
+  }
+
+  @Test
+  void testBindActionBarForModelAvailability_modelsPending_enablesSendOnlyAfterModelSet() {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    CompletableFuture<CopilotModel[]> copilotModels = new CompletableFuture<>();
+    when(lsConnection.listModels()).thenReturn(copilotModels);
+    ActionBar actionBar = mock(ActionBar.class);
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+    modelService.bindActionBarForModelAvailability(actionBar);
+
+    verify(actionBar, timeout(5000)).setModelAvailable(false);
+    verify(actionBar, never()).setModelAvailable(true);
+
+    copilotModels.complete(new CopilotModel[] { defaultModel });
+    verify(actionBar, timeout(5000)).setModelAvailable(true);
   }
 
   private static CopilotModel createModel(String id, String name, boolean isChatDefault) {
