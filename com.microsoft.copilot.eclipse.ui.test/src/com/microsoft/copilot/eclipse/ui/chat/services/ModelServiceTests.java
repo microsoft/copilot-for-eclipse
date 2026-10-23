@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -77,8 +78,9 @@ class ModelServiceTests {
     byokModels.setModels(List.of());
 
     when(authStatusManager.isSignedIn()).thenReturn(true);
-    when(authStatusManager.getUserName()).thenReturn(TEST_USER);
-    when(lsConnection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence));
+    // Lenient: the static preference cache may be refilled by a previous test's job.
+    lenient().when(authStatusManager.getUserName()).thenReturn(TEST_USER);
+    lenient().when(lsConnection.persistence()).thenReturn(CompletableFuture.completedFuture(persistence));
     when(lsConnection.listByokModels(any())).thenReturn(CompletableFuture.completedFuture(byokModels));
 
     featureFlags = CopilotCore.getPlugin().getFeatureFlags();
