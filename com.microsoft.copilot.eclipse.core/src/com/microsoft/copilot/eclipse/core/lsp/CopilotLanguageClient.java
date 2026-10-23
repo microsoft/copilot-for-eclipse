@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -23,6 +24,7 @@ import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.ShowDocumentParams;
 import org.eclipse.lsp4j.ShowDocumentResult;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -179,6 +181,19 @@ public class CopilotLanguageClient extends LanguageClientImpl {
       return new Object[] { null, new ResponseError(ResponseErrorCode.RequestFailed,
           "Failed to get the confirmation from user due to exception", cause) };
     });
+  }
+
+  /**
+   * Announces only the workspace root instead of every project. The language server processes each announced folder
+   * separately, which keeps it busy for minutes in workspaces with many projects. Chat requests pass their relevant
+   * project folders explicitly.
+   */
+  @Override
+  public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
+    WorkspaceFolder folder = new WorkspaceFolder();
+    folder.setUri(FileUtils.getResourceUri(ResourcesPlugin.getWorkspace().getRoot()));
+    folder.setName("workspace-root"); //$NON-NLS-1$
+    return CompletableFuture.completedFuture(List.of(folder));
   }
 
   @Override
