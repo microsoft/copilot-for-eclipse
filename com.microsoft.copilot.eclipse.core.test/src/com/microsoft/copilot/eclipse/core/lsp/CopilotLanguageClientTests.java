@@ -12,7 +12,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -23,8 +26,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.gson.Gson;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.e4.core.contexts.EclipseContextFactory;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -191,6 +199,23 @@ class CopilotLanguageClientTests {
       assertEquals(1, eventCount.get());
     } finally {
       eventBroker.unsubscribe(eventHandler);
+    }
+  }
+
+  @Test
+  void testWorkspaceFolders_withProjects_returnsOnlyWorkspaceRoot() throws Exception {
+    IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+    IProject project = root.getProject("WorkspaceFoldersTestProject");
+    project.create(new NullProgressMonitor());
+    project.open(new NullProgressMonitor());
+
+    try {
+      List<WorkspaceFolder> folders = client.workspaceFolders().get(5, TimeUnit.SECONDS);
+
+      assertEquals(1, folders.size());
+      assertEquals(root.getLocation().toFile().toPath(), Path.of(URI.create(folders.get(0).getUri())));
+    } finally {
+      project.delete(true, true, new NullProgressMonitor());
     }
   }
 }
