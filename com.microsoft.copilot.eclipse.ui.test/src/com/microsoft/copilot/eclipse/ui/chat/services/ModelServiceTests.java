@@ -6,9 +6,12 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -42,6 +45,8 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModelCapabilities;
 
 @ExtendWith(MockitoExtension.class)
 class ModelServiceTests {
@@ -229,6 +234,82 @@ class ModelServiceTests {
     assertSame(defaultModel, activeModel.get());
     Thread.sleep(100);
     assertFalse(Files.exists(getPreferenceFile()));
+  }
+
+  @Test
+  void testInitializeModels_byokModelsFail_setsActiveCopilotModel() throws InterruptedException {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }));
+    when(lsConnection.listByokModels(any()))
+        .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("BYOK unavailable")));
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+
+    waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
+  }
+
+  @Test
+  void testInitializeModels_copilotModelsFail_setsActiveByokModel() throws InterruptedException {
+    ByokModelCapabilities capabilities = new ByokModelCapabilities();
+    capabilities.setName("My BYOK Model");
+    capabilities.setToolCalling(true);
+    ByokModel byokModel = new ByokModel();
+    byokModel.setModelId("byok-model");
+    byokModel.setProviderName("Azure");
+    byokModel.setRegistered(true);
+    byokModel.setModelCapabilities(capabilities);
+    ByokListModelResponse response = new ByokListModelResponse();
+    response.setModels(List.of(byokModel));
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("Copilot models unavailable")));
+    when(lsConnection.listByokModels(any())).thenReturn(CompletableFuture.completedFuture(response));
+    boolean byokEnabled = featureFlags.isByokEnabled();
+    featureFlags.setByokEnabled(true);
+
+    try {
+      modelService = new ModelService(lsConnection, authStatusManager);
+
+      waitUntil(() -> byokModel.getModelId().equals(getActiveModelId()));
+    } finally {
+      featureFlags.setByokEnabled(byokEnabled);
+    }
+  }
+
+  @Test
+  void testInitializeModels_copilotModelsPending_requestsByokModelsInParallel() throws InterruptedException {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    CompletableFuture<CopilotModel[]> copilotModels = new CompletableFuture<>();
+    when(lsConnection.listModels()).thenReturn(copilotModels);
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+
+    try {
+      verify(lsConnection, timeout(5000)).listByokModels(any());
+    } finally {
+      copilotModels.complete(new CopilotModel[] { defaultModel });
+    }
+    waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
+  }
+
+  @Test
+  void testInitializeModels_byokModelsPending_setsActiveModelOnlyAfterBothLists() throws InterruptedException {
+    CopilotModel defaultModel = createModel("gpt-4o", "GPT-4o", true);
+    CompletableFuture<ByokListModelResponse> byokModels = new CompletableFuture<>();
+    when(lsConnection.listModels())
+        .thenReturn(CompletableFuture.completedFuture(new CopilotModel[] { defaultModel }));
+    when(lsConnection.listByokModels(any())).thenReturn(byokModels);
+
+    modelService = new ModelService(lsConnection, authStatusManager);
+
+    verify(lsConnection, timeout(5000)).listByokModels(any());
+    Thread.sleep(200);
+    assertNull(getActiveModelId());
+
+    ByokListModelResponse response = new ByokListModelResponse();
+    response.setModels(List.of());
+    byokModels.complete(response);
+    waitUntil(() -> defaultModel.getId().equals(getActiveModelId()));
   }
 
   private static CopilotModel createModel(String id, String name, boolean isChatDefault) {
