@@ -1027,6 +1027,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
+    if (!chatServiceManager.getModelService().hasActiveModel()) {
+      // Send is disabled without a model; keep the input if a request slips through.
+      CopilotCore.LOGGER.info("Chat message not sent: no active model available");
+      SwtUtils.invokeOnDisplayThread(() -> {
+        actionBar.setInputTextViewerContent(message);
+        actionBar.resetSendButton();
+      }, parent);
+      return;
+    }
+
     // Persist the user input to history
     chatServiceManager.getUserPreferenceService().addInputToHistory(message);
 

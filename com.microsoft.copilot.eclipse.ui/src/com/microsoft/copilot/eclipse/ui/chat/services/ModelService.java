@@ -35,7 +35,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeFeatureFlagsParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.chat.ActionBar;
@@ -66,6 +65,7 @@ public class ModelService extends ChatBaseService {
 
   private final Map<DropdownButton, ISideEffect[]> modelButtonSideEffects = new HashMap<>();
   private ISideEffect actionBarSideEffect;
+  private ISideEffect modelAvailabilitySideEffect;
 
   // Event communication
   private IEventBroker eventBroker;
@@ -187,18 +187,28 @@ public class ModelService extends ChatBaseService {
       Job job = new Job("Fetching all models...") {
         @Override
         protected IStatus run(IProgressMonitor monitor) {
+          // Fetch in parallel; one failing list must not block the other.
+          CompletableFuture<Void> copilotFuture = fetchCopilotModels().exceptionally(e -> {
+            CopilotCore.LOGGER.error("Failed to fetch Copilot models", e);
+            return null;
+          });
+          CompletableFuture<Void> byokFuture = fetchByokModels().exceptionally(e -> {
+            CopilotCore.LOGGER.error("Failed to fetch BYOK models", e);
+            return null;
+          });
           try {
-            fetchCopilotModels();
-            fetchByokModels();
-            reconcileReasoningEfforts();
-            reconcileContextWindows();
-            ensureRealm(() -> {
-              updateModelsForChatMode(currentChatMode);
-            });
-
-          } catch (InterruptedException | ExecutionException e) {
+            CompletableFuture.allOf(copilotFuture, byokFuture).get();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return Status.CANCEL_STATUS;
+          } catch (ExecutionException e) {
             CopilotCore.LOGGER.error("Failed to initialize models", e);
           }
+          reconcileReasoningEfforts();
+          reconcileContextWindows();
+          ensureRealm(() -> {
+            updateModelsForChatMode(currentChatMode);
+          });
           return Status.OK_STATUS;
         }
       };
@@ -207,8 +217,11 @@ public class ModelService extends ChatBaseService {
     }
   }
 
-  private void fetchCopilotModels() throws InterruptedException, ExecutionException {
-    CopilotModel[] modelArray = lsConnection.listModels().get();
+  private CompletableFuture<Void> fetchCopilotModels() {
+    return lsConnection.listModels().thenAccept(this::saveCopilotModels);
+  }
+
+  private void saveCopilotModels(CopilotModel[] modelArray) {
     Map<String, CopilotModel> newModels = new HashMap<>();
     CopilotModel newDefaultModel = null;
     CopilotModel newFallbackModel = null;
@@ -232,13 +245,14 @@ public class ModelService extends ChatBaseService {
     fallbackModel = newFallbackModel;
   }
 
-  private void fetchByokModels() throws InterruptedException, ExecutionException {
-    ByokListModelResponse response = lsConnection.listByokModels(new ByokListModelParams(null, false)).get();
-    if (response != null && response.getModels() != null) {
-      Map<String, List<ByokModel>> modelsByProvider = response.getModels().stream()
-          .collect(java.util.stream.Collectors.groupingBy(ByokModel::getProviderName));
-      saveRegisteredByokModels(modelsByProvider);
-    }
+  private CompletableFuture<Void> fetchByokModels() {
+    return lsConnection.listByokModels(new ByokListModelParams(null, false)).thenAccept(response -> {
+      if (response != null && response.getModels() != null) {
+        Map<String, List<ByokModel>> modelsByProvider = response.getModels().stream()
+            .collect(java.util.stream.Collectors.groupingBy(ByokModel::getProviderName));
+        saveRegisteredByokModels(modelsByProvider);
+      }
+    });
   }
 
   private void saveRegisteredByokModels(Map<String, List<ByokModel>> byokModels) {
@@ -401,6 +415,15 @@ public class ModelService extends ChatBaseService {
    */
   public CopilotModel getActiveModel() {
     return activeModelObservable.getValue();
+  }
+
+  /**
+   * Check if an active model is set. Chat requests require one.
+   *
+   * @return true if an active model is set
+   */
+  public boolean hasActiveModel() {
+    return getActiveModel() != null;
   }
 
   /**
@@ -789,6 +812,36 @@ public class ModelService extends ChatBaseService {
     if (actionBarSideEffect != null) {
       actionBarSideEffect.dispose();
       actionBarSideEffect = null;
+    }
+  }
+
+  /**
+   * Bind the action bar to enable sending only while an active model is set.
+   *
+   * @param actionBar the action bar to bind
+   */
+  public void bindActionBarForModelAvailability(ActionBar actionBar) {
+    unbindActionBarForModelAvailability(actionBar);
+
+    ensureRealm(() -> {
+      modelAvailabilitySideEffect = ISideEffect.create(this::hasActiveModel, (Boolean available) -> {
+        if (!actionBar.isDisposed()) {
+          actionBar.setModelAvailable(available);
+        }
+      });
+      actionBar.addDisposeListener(e -> unbindActionBarForModelAvailability(actionBar));
+    });
+  }
+
+  /**
+   * Unbind the model availability side effect for a specific action bar.
+   *
+   * @param actionBar the action bar to unbind
+   */
+  public void unbindActionBarForModelAvailability(ActionBar actionBar) {
+    if (modelAvailabilitySideEffect != null) {
+      modelAvailabilitySideEffect.dispose();
+      modelAvailabilitySideEffect = null;
     }
   }
 
