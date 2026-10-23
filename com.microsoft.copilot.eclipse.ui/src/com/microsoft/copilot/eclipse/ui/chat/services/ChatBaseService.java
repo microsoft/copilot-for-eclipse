@@ -5,7 +5,12 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -34,8 +39,10 @@ public abstract class ChatBaseService {
   protected CopilotLanguageServerConnection lsConnection;
   protected AuthStatusManager authStatusManager;
 
-  protected String persistentPath;
+  protected volatile String persistentPath;
   private static UserPreference userPreference;
+  // Not a monitor, so that shutdown can give up waiting while a preference load waits for the CLS
+  private final ReentrantLock preferenceLock = new ReentrantLock();
 
   /**
    * Constructor for the ChatBaseService.
@@ -48,7 +55,16 @@ public abstract class ChatBaseService {
   /**
    * Get User Preference.
    */
-  protected synchronized UserPreference getUserPreference() {
+  protected UserPreference getUserPreference() {
+    preferenceLock.lock();
+    try {
+      return loadUserPreference();
+    } finally {
+      preferenceLock.unlock();
+    }
+  }
+
+  private UserPreference loadUserPreference() {
     if (userPreference != null) {
       return userPreference;
     }
@@ -82,14 +98,40 @@ public abstract class ChatBaseService {
   /**
    * Persist User Preference.
    */
-  public synchronized void persistUserPreference() {
-    Path path = getPersistentFilePath();
+  public void persistUserPreference() {
+    persistUserPreference(null);
+  }
+
+  /**
+   * Persist User Preference, waiting at most the given time for the language server to provide the storage path.
+   *
+   * @param timeout the maximum time to wait, or {@code null} to wait without limit
+   */
+  protected void persistUserPreference(@Nullable Duration timeout) {
+    long deadline = timeout == null ? 0 : System.nanoTime() + timeout.toNanos();
+    // Resolve the path outside the lock, a pending preference load may hold it while waiting for the CLS
+    Path path = getPersistentFilePath(timeout);
     if (path == null) {
       return;
     }
 
-    String jsonContent = gson.toJson(userPreference);
-    PlatformUtils.writeFileContent(path, jsonContent);
+    try {
+      if (timeout == null) {
+        preferenceLock.lock();
+      } else if (!preferenceLock.tryLock(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)) {
+        CopilotCore.LOGGER.info("User preference is still loading, skipping save");
+        return;
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return;
+    }
+    try {
+      String jsonContent = gson.toJson(userPreference);
+      PlatformUtils.writeFileContent(path, jsonContent);
+    } finally {
+      preferenceLock.unlock();
+    }
   }
 
   /**
@@ -117,15 +159,29 @@ public abstract class ChatBaseService {
    * Get the path for the persistent file.
    */
   private @Nullable Path getPersistentFilePath() {
+    return getPersistentFilePath(null);
+  }
+
+  /**
+   * Get the path for the persistent file, waiting at most the given time for the language server to provide it.
+   *
+   * @param timeout the maximum time to wait, or {@code null} to wait without limit
+   */
+  private @Nullable Path getPersistentFilePath(@Nullable Duration timeout) {
     if (!this.authStatusManager.isSignedIn()) {
       return null;
     }
     if (this.persistentPath == null) {
       try {
-        ChatPersistence chatPersistence = this.lsConnection.persistence().get();
+        CompletableFuture<ChatPersistence> request = this.lsConnection.persistence();
+        ChatPersistence chatPersistence = timeout == null ? request.get()
+            : request.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         this.persistentPath = chatPersistence.getPath();
       } catch (InterruptedException | ExecutionException e) {
         CopilotCore.LOGGER.error("Failed to get persistent path", e);
+        return null;
+      } catch (TimeoutException e) {
+        CopilotCore.LOGGER.info("Language server did not provide the persistent path in time, skipping");
         return null;
       }
     }
