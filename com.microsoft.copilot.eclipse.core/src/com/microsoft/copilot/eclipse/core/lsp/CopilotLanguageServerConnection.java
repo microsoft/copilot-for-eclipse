@@ -273,6 +273,9 @@ public class CopilotLanguageServerConnection {
       String reasoningEffort, Integer contextSize, String chatModeName, String customChatModeId, List<TodoItem> todos,
       String agentSlug, String agentJobWorkspaceFolder, String conversationId, String restoreToTurnId,
       List<WorkspaceFolder> workspaceFolders) {
+    if (activeModel == null) {
+      return noActiveModelFailure();
+    }
 
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
@@ -331,6 +334,9 @@ public class CopilotLanguageServerConnection {
       String reasoningEffort, Integer contextSize, String chatModeName, String customChatModeId,
       List<TodoItem> todoList, String agentSlug, String agentJobWorkspaceFolder,
       List<WorkspaceFolder> workspaceFolders) {
+    if (activeModel == null) {
+      return noActiveModelFailure();
+    }
 
     boolean supportVision = activeModel.getCapabilities().supports().vision();
     Either<String, List<ChatCompletionContentPart>> messageWithImages = ChatMessageUtils
@@ -730,6 +736,11 @@ public class CopilotLanguageServerConnection {
    */
   public void stop() {
     this.languageServerWrapper.stop();
+  }
+
+  private static <T> CompletableFuture<T> noActiveModelFailure() {
+    // The language server rejects chat requests without a model.
+    return CompletableFuture.failedFuture(new IllegalStateException("No active chat model available"));
   }
 
   private String getModelName(CopilotModel activeModel) {
