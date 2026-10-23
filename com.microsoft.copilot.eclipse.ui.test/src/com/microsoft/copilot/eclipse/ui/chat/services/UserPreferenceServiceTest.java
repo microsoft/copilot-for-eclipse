@@ -6,12 +6,15 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.junit.jupiter.api.AfterEach;
@@ -117,6 +120,18 @@ class UserPreferenceServiceTest {
     // we primarily verify that the event handler doesn't throw exceptions when reloading modes.
     // The actual reloading functionality is tested through integration tests.
     assertNotNull(authHandler, "Auth handler should still be functional after handling sign-in event");
+  }
+
+  @Test
+  void testDispose_LanguageServerBusy_DoesNotBlockShutdown() {
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    when(mockAuthStatusManager.isSignedIn()).thenReturn(true);
+    // A busy CLS never answers conversation/persistence
+    when(mockLsConnection.persistence()).thenReturn(new CompletableFuture<>());
+
+    UserPreferenceService service = userPreferenceService;
+    userPreferenceService = null;
+    assertTimeoutPreemptively(Duration.ofSeconds(10), service::dispose);
   }
 
   /**
