@@ -18,7 +18,7 @@
 				<version>${tycho-version}</version>
 				<configuration>
 					<target>
-						<file>../target-terminal.target</file>
+						<file>../target-platforms/2025-12.target</file>
 					</target>
 				</configuration>
 			</plugin>
