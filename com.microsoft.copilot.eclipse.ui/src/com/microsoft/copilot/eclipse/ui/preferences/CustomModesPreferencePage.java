@@ -177,35 +177,12 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
     for (CustomChatMode mode : customModes) {
       TableItem item = new TableItem(modesTable, SWT.NONE);
       item.setText(0, mode.getDisplayName());
-      item.setText(1, getWorkspaceNameForMode(mode));
+      item.setText(1, PreferencePageUtils.getCustomAgentFolderName(mode));
       item.setText(2, mode.getDescription() != null ? mode.getDescription() : "");
       item.setData(mode);
     }
 
     modesTable.update();
-  }
-
-  /**
-   * Get the workspace name for a custom agent based on its file path.
-   */
-  private String getWorkspaceNameForMode(CustomChatMode mode) {
-    try {
-      String modeId = mode.getId();
-      Path modePath = Paths.get(java.net.URI.create(modeId));
-
-      List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
-      if (workspaceFolders != null) {
-        for (WorkspaceFolder folder : workspaceFolders) {
-          Path folderPath = Paths.get(java.net.URI.create(folder.getUri()));
-          if (modePath.startsWith(folderPath)) {
-            return folder.getName();
-          }
-        }
-      }
-    } catch (Exception e) {
-      CopilotCore.LOGGER.error("Failed to get workspace name for mode", e);
-    }
-    return "";
   }
 
   /**
