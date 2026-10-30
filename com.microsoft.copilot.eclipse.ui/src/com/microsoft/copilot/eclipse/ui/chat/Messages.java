@@ -67,6 +67,13 @@ public final class Messages extends NLS {
   public static String confirmation_title_mcpToolDefault;
   public static String confirmation_action_allowServerSession;
   public static String confirmation_action_alwaysAllowServer;
+  public static String confirmation_sampling_title;
+  public static String confirmation_sampling_message;
+  public static String confirmation_sampling_action_yes;
+  public static String confirmation_sampling_action_alwaysAllow;
+  public static String confirmation_sampling_action_reviewPrompt;
+  public static String confirmation_sampling_action_no;
+  public static String confirmation_sampling_unknownServer;
 
   // Confirmation dialog titles
   public static String confirmation_title_terminal;

@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.core.chat;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
@@ -11,6 +12,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmat
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolConfirmationResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.McpSamplingConfig;
 
 /**
  * Provider for chat progress.
@@ -26,6 +28,11 @@ public class ChatEventsManager {
    * List of agent tool listeners.
    */
   public ToolInvocationListener agentToolListener;
+
+  /**
+   * Provider of persisted MCP sampling approval preferences.
+   */
+  private McpSamplingConfigProvider mcpSamplingConfigProvider;
 
   /**
    * Creates a new chat progress provider.
@@ -100,5 +107,39 @@ public class ChatEventsManager {
           new IllegalStateException("No agent tool listener registered"));
     }
     return this.agentToolListener.onToolInvocation(params);
+  }
+
+  /**
+   * Registers the provider of persisted MCP sampling approval preferences.
+   *
+   * @param provider the provider to register
+   */
+  public void registerMcpSamplingConfigProvider(McpSamplingConfigProvider provider) {
+    this.mcpSamplingConfigProvider = provider;
+  }
+
+  /**
+   * Unregisters the MCP sampling config provider.
+   *
+   * @param provider the provider to unregister
+   */
+  public void unregisterMcpSamplingConfigProvider(McpSamplingConfigProvider provider) {
+    if (this.mcpSamplingConfigProvider == provider) {
+      this.mcpSamplingConfigProvider = null;
+    }
+  }
+
+  /**
+   * Reads the persisted sampling preferences for an MCP server. Returns a config with no
+   * auto-decision (requires confirmation, allows all models) when no provider is registered.
+   *
+   * @param serverName the MCP server name
+   * @return the sampling config for the server
+   */
+  public McpSamplingConfig getMcpSamplingConfig(String serverName) {
+    if (this.mcpSamplingConfigProvider == null) {
+      return new McpSamplingConfig(false, false, List.of());
+    }
+    return this.mcpSamplingConfigProvider.getMcpSamplingConfig(serverName);
   }
 }
