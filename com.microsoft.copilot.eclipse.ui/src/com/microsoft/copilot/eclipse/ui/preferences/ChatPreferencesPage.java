@@ -39,6 +39,17 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
 
     GridDataFactory gdf = GridDataFactory.fillDefaults().span(2, 1).align(SWT.FILL, SWT.FILL).grab(true, false);
 
+    // checkbox: choose the conversation renderer (browser-based vs. StyledText-based).
+    Composite appearanceComposite = createSectionComposite(parent, gdf);
+    BooleanFieldEditor browserRendererField = new BooleanFieldEditor(Constants.USE_BROWSER_BASED_CHAT_RENDERER,
+        Messages.preferences_page_browser_renderer, SWT.WRAP, appearanceComposite);
+    applyFieldWidthHint(browserRendererField, appearanceComposite);
+    browserRendererField.getDescriptionControl(appearanceComposite)
+        .setToolTipText(Messages.preferences_page_browser_renderer_tooltip);
+    addField(browserRendererField);
+
+    addSeparator(parent);
+
     Composite skillsComposite = createSectionComposite(parent, gdf);
     BooleanFieldEditor skillsField = new BooleanFieldEditor(Constants.ENABLE_SKILLS,
         Messages.preferences_page_skills_enabled, SWT.WRAP, skillsComposite);

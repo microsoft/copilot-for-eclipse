@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +26,7 @@ import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.WorkspaceFolder;
@@ -147,6 +149,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private EventHandler quotaWarningHandler;
   private EventHandler compressionStartedHandler;
   private EventHandler compressionCompletedHandler;
+
+  /** Listener that rebuilds the conversation page when the chat renderer preference is toggled. */
+  private IPropertyChangeListener rendererPreferenceListener;
 
   // Context activation for chat view keyboard shortcuts
   private static final String CHAT_VIEW_CONTEXT = "com.microsoft.copilot.eclipse.chatViewContext";
@@ -441,6 +446,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     // Register part listener to activate/deactivate chat view context for keyboard shortcuts
     registerPartListener();
+
+    // Rebuild the conversation page in place when the chat renderer preference is toggled.
+    registerRendererPreferenceListener();
   }
 
   /**
@@ -784,7 +792,83 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   private IConversationWidget createConversationWidget(Composite parent) {
+    boolean useBrowser = CopilotUi.getPlugin().getPreferenceStore()
+        .getBoolean(Constants.USE_BROWSER_BASED_CHAT_RENDERER);
+    if (useBrowser) {
+      return new BrowserConversationWidget(parent, this.chatServiceManager);
+    }
     return new StyledTextConversationWidget(parent, this.chatServiceManager);
+  }
+
+  /**
+   * Register a preference listener that rebuilds the conversation page in place when the
+   * {@link Constants#USE_BROWSER_BASED_CHAT_RENDERER} preference changes, so a renderer switch takes
+   * effect on an already-open chat view without requiring an IDE restart.
+   */
+  private void registerRendererPreferenceListener() {
+    IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
+    this.rendererPreferenceListener = event -> {
+      if (!Constants.USE_BROWSER_BASED_CHAT_RENDERER.equals(event.getProperty())) {
+        return;
+      }
+      if (Objects.equals(event.getOldValue(), event.getNewValue())) {
+        return;
+      }
+      SwtUtils.invokeOnDisplayThreadAsync(this::reloadConversationRenderer, parent);
+    };
+    preferenceStore.addPropertyChangeListener(this.rendererPreferenceListener);
+  }
+
+  /**
+   * Rebuilds the conversation page using the renderer currently selected by the
+   * {@link Constants#USE_BROWSER_BASED_CHAT_RENDERER} preference, preserving the active conversation.
+   *
+   * <p>The current conversation (if any) is reloaded from persistence so the visible history is not
+   * lost. The reload is skipped while a response is streaming, because the in-flight turn is not yet
+   * persisted and would be dropped by the widget swap; the new renderer then takes effect the next
+   * time the page is rebuilt. Must be invoked on the UI thread.
+   */
+  public void reloadConversationRenderer() {
+    if (this.contentWrapper == null || this.contentWrapper.isDisposed() || this.conversationWidget == null) {
+      return;
+    }
+
+    // Avoid swapping the widget mid-stream; the in-flight turn is not yet persisted and would be lost.
+    if (this.actionBar != null && !this.actionBar.isSendButton()) {
+      return;
+    }
+
+    String currentConversationId = this.conversationId;
+
+    createConversationPage();
+
+    // Re-restore the active conversation's turns so the visible history survives the renderer swap.
+    if (StringUtils.isNotBlank(currentConversationId) && this.persistenceManager != null) {
+      this.persistenceManager.loadConversation(currentConversationId).thenAccept(historyConversation -> {
+        if (historyConversation == null) {
+          return;
+        }
+        SwtUtils.invokeOnDisplayThreadAsync(() -> {
+          if (this.conversationWidget == null || this.conversationWidget.isDisposed()) {
+            return;
+          }
+          if (historyConversation.getTurns() != null && !historyConversation.getTurns().isEmpty()) {
+            for (AbstractTurnData turn : historyConversation.getTurns()) {
+              restoreTurn(turn);
+            }
+          }
+          List<TodoItem> todos = historyConversation.getTodos();
+          TodoListService todoService = chatServiceManager.getTodoListService();
+          if (todoService != null && todos != null && !todos.isEmpty()) {
+            todoService.setTodoList(todos);
+          }
+          this.conversationWidget.scrollToBottom();
+        }, contentWrapper);
+      }).exceptionally(ex -> {
+        CopilotCore.LOGGER.error("Failed to reload conversation after renderer change: " + currentConversationId, ex);
+        return null;
+      });
+    }
   }
 
   /**
@@ -1643,6 +1727,11 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         this.eventBroker.unsubscribe(this.compressionCompletedHandler);
         compressionCompletedHandler = null;
       }
+    }
+
+    if (this.rendererPreferenceListener != null) {
+      CopilotUi.getPlugin().getPreferenceStore().removePropertyChangeListener(this.rendererPreferenceListener);
+      this.rendererPreferenceListener = null;
     }
 
     if (this.chatServiceManager != null) {
