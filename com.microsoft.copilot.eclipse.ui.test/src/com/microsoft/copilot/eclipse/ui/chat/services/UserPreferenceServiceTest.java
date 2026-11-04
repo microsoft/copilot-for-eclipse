@@ -3,15 +3,22 @@
 
 package com.microsoft.copilot.eclipse.ui.chat.services;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.junit.jupiter.api.AfterEach;
@@ -24,10 +31,14 @@ import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatModeManager;
 import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 @ExtendWith(MockitoExtension.class)
 class UserPreferenceServiceTest {
@@ -38,11 +49,16 @@ class UserPreferenceServiceTest {
   @Mock
   private AuthStatusManager mockAuthStatusManager;
 
+  @Mock
+  private BuiltInChatModeManager mockBuiltInChatModeManager;
+
   private UserPreferenceService userPreferenceService;
+  private final AtomicReference<List<BuiltInChatMode>> builtInModes = new AtomicReference<>(List.of());
 
   @BeforeEach
   void setUp() {
     when(mockAuthStatusManager.isSignedIn()).thenReturn(false);
+    when(mockBuiltInChatModeManager.getBuiltInModes()).thenAnswer(invocation -> builtInModes.get());
   }
 
   @AfterEach
@@ -55,7 +71,8 @@ class UserPreferenceServiceTest {
   @Test
   void testAuthStatusChangedEventHandler_UserSignsOut_ClearsUserPreferenceCache() {
     // Arrange
-    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager,
+        mockBuiltInChatModeManager);
 
     // Set up initial state with input navigation
     setInputNavigationForService(new InputNavigation());
@@ -72,12 +89,15 @@ class UserPreferenceServiceTest {
 
     // Assert
     assertNull(getInputNavigationFromService(), "Input navigation should be cleared when user signs out");
+    verify(mockBuiltInChatModeManager).clearModes();
   }
 
   @Test
   void testAuthStatusChangedEventHandler_SignOutThenSignIn() {
     // Arrange
-    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    when(mockBuiltInChatModeManager.reloadModes()).thenReturn(CompletableFuture.completedFuture(null));
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager,
+        mockBuiltInChatModeManager);
 
     EventHandler authHandler = getAuthStatusChangedEventHandler();
     assertNotNull(authHandler, "Auth status changed event handler should be available");
@@ -97,12 +117,17 @@ class UserPreferenceServiceTest {
     // Assert - After sign in, input navigation should be restored
     assertNotNull(getInputNavigationFromService(), "Input navigation should be restored after sign in");
     assertEquals("input2", getInputNavigationFromService().getLatestInput(), "Input navigation should be restored");
+    verify(mockBuiltInChatModeManager).clearModes();
+    verify(mockBuiltInChatModeManager).reloadModes();
   }
 
   @Test
-  void testAuthStatusChangedEventHandler_UserSignsIn_ReloadsBuiltInModes() {
+  void testAuthStatusChangedEventHandler_UserSignsIn_ReloadsBuiltInModesWithoutBlocking() {
     // Arrange
-    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    CompletableFuture<Void> pendingReload = new CompletableFuture<>();
+    when(mockBuiltInChatModeManager.reloadModes()).thenReturn(pendingReload);
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager,
+        mockBuiltInChatModeManager);
 
     EventHandler authHandler = getAuthStatusChangedEventHandler();
     assertNotNull(authHandler, "Auth status changed event handler should be available");
@@ -110,13 +135,15 @@ class UserPreferenceServiceTest {
     Event signInEvent = createAuthStatusEvent(CopilotStatusResult.OK, "test-user");
 
     // Act - Simulate user sign in
-    authHandler.handleEvent(signInEvent);
+    assertTimeoutPreemptively(Duration.ofSeconds(1), () -> authHandler.handleEvent(signInEvent));
 
-    // Assert - No exception should be thrown and the handler should complete successfully
-    // Note: Since BuiltInChatModeManager is a singleton and we can't easily mock it in this test,
-    // we primarily verify that the event handler doesn't throw exceptions when reloading modes.
-    // The actual reloading functionality is tested through integration tests.
-    assertNotNull(authHandler, "Auth handler should still be functional after handling sign-in event");
+    // Assert
+    assertFalse(pendingReload.isDone(), "The event handler should not wait for the mode reload");
+    verify(mockBuiltInChatModeManager).reloadModes();
+
+    builtInModes.set(List.of(createBuiltInMode("Agent")));
+    pendingReload.complete(null);
+    assertArrayEquals(new String[] { "Agent" }, getAvailableChatModesFromObservable());
   }
 
   /**
@@ -141,6 +168,16 @@ class UserPreferenceServiceTest {
     return new Event(CopilotEventConstants.TOPIC_AUTH_STATUS_CHANGED, eventProperties);
   }
 
+  private BuiltInChatMode createBuiltInMode(String name) {
+    ConversationMode mode = new ConversationMode();
+    mode.setId(name);
+    mode.setName(name);
+    mode.setKind(name);
+    mode.setBuiltIn(true);
+    mode.setDescription(name + " mode");
+    return new BuiltInChatMode(mode);
+  }
+
   /**
    * Helper method to access private authStatusChangedEventHandler field for
    * testing
@@ -153,6 +190,21 @@ class UserPreferenceServiceTest {
     } catch (Exception e) {
       throw new RuntimeException("Failed to access authStatusChangedEventHandler field", e);
     }
+  }
+
+  private String[] getAvailableChatModesFromObservable() {
+    AtomicReference<String[]> availableModes = new AtomicReference<>();
+    SwtUtils.invokeOnDisplayThread(() -> {
+      try {
+        Field field = UserPreferenceService.class.getDeclaredField("chatModeObservable");
+        field.setAccessible(true);
+        Object observable = field.get(userPreferenceService);
+        availableModes.set((String[]) observable.getClass().getMethod("getValue").invoke(observable));
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to read chatModeObservable", e);
+      }
+    });
+    return availableModes.get();
   }
 
   /**
