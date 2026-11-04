@@ -1,0 +1,238 @@
+<!-- Copyright (c) Microsoft Corporation. -->
+<!-- Licensed under the MIT license.      -->
+
+<!-- Template for rendering a GitHub copilot conversation -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Copilot Chat View</title>
+
+  <!-- CSS colors should be in sync with e4 CSS files in css folder. -->
+  <link rel="stylesheet" href="css/chat-browser-base.css">
+  <link rel="stylesheet" href="css/chat-browser-dark.css">
+  <link rel="stylesheet" href="css/chat-browser-light.css">
+</head>
+<body class="light">
+
+  <div id="chat-container"></div>
+
+  <script>
+    // Generic API for inserting, replacing, or removing HTML blocks by ID.
+    // All copilot / LSP domain knowledge stays in Java code.
+
+    // Auto-scroll model: while enabled, every content mutation keeps the view pinned to the bottom
+    // so streamed output stays visible. A scroll listener re-derives the flag from the live position
+    // (leaving the bottom disables it, returning re-enables it), so user and programmatic scrolls
+    // need not be told apart - our own scrolls always land at the bottom. forceScrollToBottom()
+    // re-arms the flag and jumps to the bottom regardless of position.
+    const BOTTOM_EPSILON = 8;
+
+    let autoScroll = true;
+
+    // Returns the total scrollable height of the document. On WebKitGTK (Linux) the scroll model
+    // may live on document.body rather than document.documentElement, so we take the max of both.
+    function getScrollHeight() {
+      return Math.max(
+        document.documentElement.scrollHeight || 0,
+        document.body.scrollHeight || 0
+      );
+    }
+
+    // Returns the current vertical scroll position. WebKitGTK may report it on document.body
+    // rather than via window.scrollY / documentElement.scrollTop, so we try all three sources.
+    function getScrollTop() {
+      if (window.scrollY > 0) return window.scrollY;
+      if (document.documentElement.scrollTop > 0) return document.documentElement.scrollTop;
+      if (document.body.scrollTop > 0) return document.body.scrollTop;
+      return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    }
+
+    // Returns the visible viewport height across all engines.
+    function getClientHeight() {
+      return window.innerHeight
+        || document.documentElement.clientHeight
+        || document.body.clientHeight
+        || 0;
+    }
+
+    function distanceFromBottom() {
+      return getScrollHeight() - (getScrollTop() + getClientHeight());
+    }
+
+    // Scrolls to the bottom by setting scrollTop on all candidates. Setting it on both
+    // document.documentElement and document.body is necessary because WebKitGTK (Linux) honours
+    // body.scrollTop while Edge/WebView2 (Windows) and standard WebKit honour documentElement.
+    function scrollNow() {
+      const h = getScrollHeight();
+      window.scrollTo(0, h);
+      document.documentElement.scrollTop = h;
+      document.body.scrollTop = h;
+    }
+
+    // Pin the view to the bottom when auto-scroll is enabled. Called after every content mutation.
+    // Re-checks the flag inside the deferred callback because the user may scroll up in between.
+    function scrollToBottom() {
+      if (!autoScroll) {
+        return;
+      }
+      setTimeout(() => {
+        if (autoScroll) {
+          scrollNow();
+        }
+      }, 0);
+    }
+
+    // Re-arm auto-scroll and jump to the bottom regardless of the current position.
+    window.forceScrollToBottom = () => {
+      autoScroll = true;
+      scrollNow();
+    };
+
+    // Listen on both window and document: WebKitGTK fires scroll on document, not window.
+    function onScroll() {
+      autoScroll = distanceFromBottom() <= BOTTOM_EPSILON;
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true });
+
+    // Suppress the native browser context menu. Conversation content is injected imperatively into
+    // the live DOM and is not part of this document, so any menu entry that navigates or reloads
+    // (Refresh, Back, Forward) would blank the view. Killing the menu at the DOM level is the most
+    // reliable approach across the WebKit (Linux) and Edge/WebView2 (Windows) engines SWT uses.
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Swallow reload shortcuts (F5, Ctrl/Cmd+R, Ctrl/Cmd+Shift+R). A reload discards the injected
+    // DOM and reloads this static shell with an empty chat container, blanking the conversation.
+    document.addEventListener('keydown', (e) => {
+      const isReloadKey =
+        e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'));
+      if (isReloadKey) {
+        e.preventDefault();
+      }
+    });
+
+    /** Inserts an HTML block as the last child of the parent with parentId. */
+    window.insertBlock = (parentId, html) => {
+      const parent = document.getElementById(parentId);
+      if (!parent) {
+        if (window.copilotLogError) {
+          window.copilotLogError('insertBlock: parent element not found: ' + parentId);
+        }
+        return false;
+      }
+      parent.insertAdjacentHTML('beforeend', html);
+      scrollToBottom();
+      return true;
+    };
+
+    /**
+     * Inserts HTML before a reference sibling, or appends to the parent when the reference is
+     * missing. Returns false (and logs) only when the parent itself is missing.
+     */
+    window.insertBlockBefore = (parentId, html, beforeId) => {
+      const parent = document.getElementById(parentId);
+      if (!parent) {
+        if (window.copilotLogError) {
+          window.copilotLogError('insertBlockBefore: parent element not found: ' + parentId);
+        }
+        return false;
+      }
+      const ref = beforeId ? document.getElementById(beforeId) : null;
+      if (ref && ref.parentNode === parent) {
+        ref.insertAdjacentHTML('beforebegin', html);
+      } else {
+        parent.insertAdjacentHTML('beforeend', html);
+      }
+      scrollToBottom();
+      return true;
+    };
+
+    /** Replaces the block identified by blockId. */
+    window.replaceBlock = (blockId, html) => {
+      const block = document.getElementById(blockId);
+      if (block) {
+        block.outerHTML = html;
+        scrollToBottom();
+      }
+    };
+
+    /** Removes the block identified by blockId. */
+    window.removeBlock = (blockId) => {
+      const block = document.getElementById(blockId);
+      if (block && block.parentNode) {
+        block.remove();
+      }
+    };
+
+    /** Sets the theme class (dark/light) on the body element. */
+    window.setTheme = (theme) => {
+      document.body.className = theme;
+    };
+
+    // Closes every open split-button dropdown menu and resets its toggle's aria state.
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-menu:not([hidden])').forEach((menu) => {
+        menu.setAttribute('hidden', '');
+        const toggle = menu.parentNode
+          && menu.parentNode.querySelector('[data-dropdown-toggle]');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    // Event delegation for buttons injected by Java.
+    document.addEventListener('click', (e) => {
+      // Split-button dropdown toggle for tool-confirmation blocks.
+      const toggle = e.target.closest('[data-dropdown-toggle]');
+      if (toggle) {
+        const menu = toggle.parentNode.querySelector('.dropdown-menu');
+        const willOpen = menu && menu.hasAttribute('hidden');
+        closeAllDropdowns();
+        if (willOpen) {
+          menu.removeAttribute('hidden');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+        return;
+      }
+      // Any other click (outside the caret, or on a menu item) closes open dropdowns.
+      closeAllDropdowns();
+
+      const actionBtn = e.target.closest('[data-copilot-action]');
+      if (actionBtn) {
+        window.copilotAction(
+          actionBtn.dataset.copilotAction,
+          actionBtn.dataset.copilotParam || ''
+        );
+        return;
+      }
+
+      const btn = e.target.closest('.code-action-btn');
+      if (!btn) return;
+      const pre = btn.closest('pre');
+      if (!pre) return;
+      const code = pre.querySelector('code');
+      if (!code) return;
+      const text = code.textContent;
+      const action = btn.dataset.action;
+      if (action === 'copy') {
+        window.copyToClipboard(text);
+        // Preserve the original icon markup so it can be restored after the "Copied!"
+        // confirmation, instead of leaving plain text in place of the icon.
+        if (btn._iconHtml == null) {
+          btn._iconHtml = btn.innerHTML;
+        }
+        if (btn._copyResetTimer) {
+          clearTimeout(btn._copyResetTimer);
+        }
+        btn.textContent = 'Copied!';
+        btn._copyResetTimer = setTimeout(() => {
+          btn.innerHTML = btn._iconHtml;
+          btn._copyResetTimer = null;
+        }, 2000);
+      } else if (action === 'insert') {
+        window.insertAtCursor(text);
+      }
+    });
+  </script>
+</body>
+</html>
