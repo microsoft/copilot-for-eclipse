@@ -47,7 +47,7 @@ public class FileBasedCustomModeService implements ICustomModeService {
   @Override
   public CompletableFuture<List<CustomChatMode>> loadCustomModes() {
     // Get workspace folders for LSP call
-    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listWorkspaceFolders();
+    List<WorkspaceFolder> workspaceFolders = WorkspaceUtils.listCustomizationFolders();
     ConversationModesParams params = new ConversationModesParams(workspaceFolders);
 
     // Call LSP to get modes from all projects
