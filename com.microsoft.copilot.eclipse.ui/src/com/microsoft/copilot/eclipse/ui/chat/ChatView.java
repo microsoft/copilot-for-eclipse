@@ -69,19 +69,13 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.RateLimitWarningParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ToolSpecificData;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.codingagent.CodingAgentMessageRequestParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.QuotaWarningParams;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.ConversationXmlData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.AgentMessageData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentRoundData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ErrorMessageData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
-import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
@@ -115,7 +109,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   private Composite contentWrapper;
   private HandoffContainer handoffContainer;
   private ActionBar actionBar;
-  private ChatContentViewer chatContentViewer;
+  private IConversationWidget conversationWidget;
   private Composite loadingViewer;
   private Composite noSubscriptionViewer;
   private Composite beforeLoginWelcomeViewer;
@@ -296,8 +290,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
 
           // Clear existing content by recreating the chat content viewer
-          if (chatContentViewer != null) {
-            chatContentViewer.dispose();
+          if (conversationWidget != null) {
+            conversationWidget.dispose();
             createConversationPage();
           }
 
@@ -325,7 +319,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
 
           // Scroll to bottom after restoring all turns
-          SwtUtils.invokeOnDisplayThreadAsync(this::scrollContentToBottom, chatContentViewer);
+          if (conversationWidget != null) {
+            conversationWidget.scrollToBottom();
+          }
 
           // Hide chat history and show restored conversation
           hideChatHistory();
@@ -413,10 +409,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         return;
       }
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
+        if (this.conversationWidget == null || this.conversationWidget.isDisposed()) {
           return;
         }
-        this.chatContentViewer.showCompactingStatusOnLatestCopilotTurn();
+        this.conversationWidget.showCompactingStatusOnLatestCopilotTurn();
       }, parent);
     };
     this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_COMPRESSION_STARTED,
@@ -431,10 +427,10 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         return;
       }
       SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        if (this.chatContentViewer == null || this.chatContentViewer.isDisposed()) {
+        if (this.conversationWidget == null || this.conversationWidget.isDisposed()) {
           return;
         }
-        this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
+        this.conversationWidget.hideCompactingStatusOnLatestCopilotTurn();
         if (params.contextInfo() != null) {
           this.chatServiceManager.getContextWindowService().updateContextSize(params.contextInfo());
         }
@@ -783,8 +779,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   private void createConversationPage() {
     clearChatView(this.contentWrapper);
-    this.chatContentViewer = new ChatContentViewer(this.contentWrapper, SWT.NONE, this.chatServiceManager);
-    this.chatContentViewer.requestLayout();
+    this.conversationWidget = createConversationWidget(this.contentWrapper);
+    this.conversationWidget.requestLayout();
+  }
+
+  private IConversationWidget createConversationWidget(Composite parent) {
+    return new StyledTextConversationWidget(parent, this.chatServiceManager);
   }
 
   /**
@@ -833,9 +833,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.agentModeViewer.dispose();
       this.agentModeViewer = null;
     }
-    if (this.chatContentViewer != null) {
-      this.chatContentViewer.dispose();
-      this.chatContentViewer = null;
+    if (this.conversationWidget != null) {
+      this.conversationWidget.dispose();
+      this.conversationWidget = null;
     }
     if (this.noSubscriptionViewer != null) {
       this.noSubscriptionViewer.dispose();
@@ -852,13 +852,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   @Override
   public void onChatProgress(ChatProgressValue value) {
-    if (this.actionBar.isSendButton()) {
+    if (this.actionBar == null || this.actionBar.isSendButton()) {
       return;
     }
     switch (value.getKind()) {
       case begin:
-        if (this.chatContentViewer != null) {
-          this.chatContentViewer.getLatestOrCreateNewTurnWidget(value.getTurnId(), true, false);
+        if (this.conversationWidget != null) {
+          this.conversationWidget.beginTurn(value.getTurnId(), true, false);
         }
 
         // Handle subagent conversation ID management
@@ -882,8 +882,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
             this.conversationState = ConversationState.CONTINUED_CONVERSATION;
           }
           // Always sync conversationId — chatContentViewer may have been recreated
-          if (this.chatContentViewer != null) {
-            this.chatContentViewer.setConversationId(this.conversationId);
+          if (this.conversationWidget != null) {
+            this.conversationWidget.setConversationId(this.conversationId);
           }
         }
 
@@ -931,14 +931,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         }
         if ((value.getAgentRounds() == null || value.getAgentRounds().isEmpty())
             && (value.getReply() == null || value.getReply().isEmpty())
-            && (value.getThinking() == null || StringUtils.isBlank(value.getThinking().text()))) {
+            && (value.getThinking() == null || StringUtils.isBlank(value.getThinking().text()))
+            && StringUtils.isEmpty(value.getErrorMessage())) {
           return;
         }
-        if (this.chatContentViewer != null) {
-          this.chatContentViewer.processTurnEvent(value);
+        if (this.conversationWidget != null) {
+          this.conversationWidget.processTurnEvent(value);
         }
-        String thinkingBlockId = this.chatContentViewer != null
-            ? this.chatContentViewer.getActiveThinkingBlockId(value.getTurnId()) : null;
+
+        // Update the todo list from any todo-writing tool calls in this report.
+        updateTodoListFromReport(value);
+
+        String thinkingBlockId = this.conversationWidget != null
+            ? this.conversationWidget.getActiveThinkingBlockId(value.getTurnId()) : null;
 
         // Track run_subagent tool call ID for associating subagent turns
         if (StringUtils.isBlank(value.getParentTurnId()) && value.getAgentRounds() != null) {
@@ -980,13 +985,13 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           return;
         }
 
-        if (this.chatContentViewer != null) {
-          this.chatContentViewer.processTurnEvent(value);
+        if (this.conversationWidget != null) {
+          this.conversationWidget.processTurnEvent(value);
           this.actionBar.resetSendButton();
           this.topBanner.updateTitle(value.getSuggestedTitle());
         }
-        String endThinkingBlockId = this.chatContentViewer != null
-            ? this.chatContentViewer.getActiveThinkingBlockId(value.getTurnId()) : null;
+        String endThinkingBlockId = this.conversationWidget != null
+            ? this.conversationWidget.getActiveThinkingBlockId(value.getTurnId()) : null;
 
         // Persist final conversation state and conversation title on end
         if (persistenceManager != null) {
@@ -1232,7 +1237,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (createNewTurn) {
       // TODO: Move to createPartControl...eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_ON_SEND...(line 114)
       // after the refactor.
-      this.chatContentViewer.startNewTurn(workDoneToken, message);
+      if (this.conversationWidget != null) {
+        this.conversationWidget.startNewUserTurn(workDoneToken, message);
+      }
     }
   }
 
@@ -1284,13 +1291,15 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
     String content = String.format(Messages.chat_chatContentView_errorTemplate, message, workDoneToken);
     SwtUtils.invokeOnDisplayThread(() -> {
-      chatContentViewer.renderErrorMessage(content);
+      if (conversationWidget != null) {
+        conversationWidget.renderErrorMessage(content);
+      }
       actionBar.resetSendButton();
     }, parent);
   }
 
   private void handleCodingAgentMessage(CodingAgentMessageRequestParams params) {
-    if (params == null || this.chatContentViewer == null) {
+    if (params == null) {
       return;
     }
 
@@ -1304,14 +1313,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       persistenceManager.addCodingAgentMessage(params, UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG);
     }
 
-    SwtUtils.invokeOnDisplayThread(() -> {
-      if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
-        BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(params.getTurnId());
-        if (turnWidget != null && !turnWidget.isDisposed()) {
-          turnWidget.createAgentMessageWidget(params);
-        }
-      }
-    }, parent);
+    if (this.conversationWidget != null && !this.conversationWidget.isDisposed()) {
+      this.conversationWidget.renderAgentMessage(params);
+    }
   }
 
   /**
@@ -1428,8 +1432,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (this.actionBar != null && !this.actionBar.isDisposed()) {
       this.actionBar.resetSendButton();
     }
-    if (this.chatContentViewer != null && !this.chatContentViewer.isDisposed()) {
-      this.chatContentViewer.hideCompactingStatusOnLatestCopilotTurn();
+    if (this.conversationWidget != null && !this.conversationWidget.isDisposed()) {
+      this.conversationWidget.hideCompactingStatusOnLatestCopilotTurn();
     }
   }
 
@@ -1480,10 +1484,36 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
   }
 
   /**
-   * Get the current chat content viewer.
+   * Returns the active conversation widget.
    */
-  public ChatContentViewer getChatContentViewer() {
-    return this.chatContentViewer;
+  public IConversationWidget getConversationWidget() {
+    return this.conversationWidget;
+  }
+
+  /**
+   * Updates the {@link TodoListService} from any todo-writing tool calls carried by a report
+   * progress event. Kept in the view (not a widget) because it is renderer-agnostic domain logic
+   * shared by both the SWT and browser conversation widgets.
+   */
+  private void updateTodoListFromReport(ChatProgressValue value) {
+    if (value == null || value.getAgentRounds() == null || value.getAgentRounds().isEmpty()) {
+      return;
+    }
+    TodoListService todoListService = chatServiceManager.getTodoListService();
+    if (todoListService == null) {
+      return;
+    }
+    for (AgentRound round : value.getAgentRounds()) {
+      if (round.getToolCalls() == null) {
+        continue;
+      }
+      for (AgentToolCall toolCall : round.getToolCalls()) {
+        ToolSpecificData toolSpecificData = toolCall.getToolSpecificData();
+        if (toolSpecificData != null && toolSpecificData.getTodoList() != null) {
+          todoListService.setTodoList(new ArrayList<>(toolSpecificData.getTodoList()));
+        }
+      }
+    }
   }
 
   public ActionBar getActionBar() {
@@ -1648,9 +1678,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       this.chatHistoryViewer.dispose();
       this.chatHistoryViewer = null;
     }
-    if (this.chatContentViewer != null) {
-      this.chatContentViewer.dispose();
-      this.chatContentViewer = null;
+    if (this.conversationWidget != null) {
+      this.conversationWidget.dispose();
+      this.conversationWidget = null;
     }
     if (this.afterLoginWelcomeViewer != null) {
       this.afterLoginWelcomeViewer.dispose();
@@ -1859,21 +1889,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    * Scroll the chat content viewer to the bottom.
    */
   public void scrollContentToBottom() {
-    if (chatContentViewer == null || chatContentViewer.isDisposed()) {
+    if (conversationWidget == null || conversationWidget.isDisposed()) {
       return;
     }
-
-    SwtUtils.invokeOnDisplayThreadAsync(() -> {
-      chatContentViewer.refreshLayoutFull();
-      chatContentViewer.scrollToBottomIfAutoScroll();
-    }, chatContentViewer);
+    conversationWidget.scrollToBottom();
   }
 
   /**
-   * Render model information in the Copilot turn widget.
+   * Render model information in the conversation widget.
    *
    * @param turnId the turn ID
-   * @param conversationId the conversation ID to use for persistence
    * @param modelName the model name
    * @param billingMultiplier the billing multiplier
    * @param reasoningEffort the reasoning effort sent for this turn (may be {@code null} when the model does not
@@ -1881,144 +1906,28 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
    */
   private void renderModelInfoInTurnWidget(String turnId, String modelName, double billingMultiplier,
       String reasoningEffort) {
-    BaseTurnWidget turnWidget = this.chatContentViewer.getTurnWidget(turnId);
-    if (turnWidget instanceof CopilotTurnWidget copilotWidget) {
-      copilotWidget.renderModelInfo(modelName, billingMultiplier, reasoningEffort);
-
-      // Refresh the scroller layout to ensure the footer is visible.
-      SwtUtils.invokeOnDisplayThreadAsync(() -> {
-        this.chatContentViewer.refreshLayoutFull();
-        this.chatContentViewer.scrollToBottomIfAutoScroll();
-      }, this.chatContentViewer);
+    if (this.conversationWidget == null || this.conversationWidget.isDisposed()) {
+      return;
     }
+    this.conversationWidget.renderModelInfo(turnId, modelName, billingMultiplier, reasoningEffort);
   }
 
   /**
-   * Restore a single turn from persisted conversation data.
+   * Restore a single turn from persisted conversation data. Delegates to the active
+   * {@link IConversationWidget} implementation.
    *
    * @param turn the turn data to restore
    */
   private void restoreTurn(AbstractTurnData turn) {
-    if (turn == null || chatContentViewer == null) {
+    if (turn == null || conversationWidget == null || conversationWidget.isDisposed()) {
       return;
     }
-
-    // Subagent turns: render their content inside the parent turn's subagent block
-    if (turn instanceof CopilotTurnData copilotTurn
-        && StringUtils.isNotBlank(copilotTurn.getParentTurnId())) {
-      BaseTurnWidget parentWidget = chatContentViewer.getTurnWidget(copilotTurn.getParentTurnId());
-      if (parentWidget != null) {
-        String toolCallId = copilotTurn.getSubagentToolCallId();
-        if (StringUtils.isNotBlank(toolCallId)) {
-          // Restore subagent content into the SubagentMessageBlock identified by the tool call ID
-          parentWidget.restoreSubagentContent(toolCallId, copilotTurn, persistenceManager.getDataFactory());
-        } else {
-          // Fallback: append to parent widget directly (legacy data without subagentToolCallId)
-          restoreCopilotTurnContent(copilotTurn, parentWidget);
-        }
-      }
-      return;
-    }
-
-    // Create user turn widget and populate with user message
-    if (turn instanceof UserTurnData userTurn) {
-      UserTurnData.MessageData message = userTurn.getMessage();
-      if (message == null) {
-        CopilotCore.LOGGER.info("Skipping user turn with missing message: " + userTurn.getTurnId());
-        return;
-      }
-      if (StringUtils.isNotBlank(message.getText())) {
-        BaseTurnWidget userTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
-        userTurnWidget.appendMessage(message.getText());
-        userTurnWidget.flushMessageBuffer();
-        return;
-      }
-    } else if (turn instanceof CopilotTurnData copilotTurn) {
-      BaseTurnWidget copilotTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), true, true);
-      restoreCopilotTurnContent(copilotTurn, copilotTurnWidget);
-
-      copilotTurnWidget.flushMessageBuffer();
-
-      // Restore model info footer if model name is present
-      // This must be done AFTER flushMessageBuffer() to ensure footer appears at the bottom
-      ReplyData replyData = copilotTurn.getReply();
-      if (replyData != null && StringUtils.isNotBlank(replyData.getModelName())) {
-        // Reasoning effort was captured and persisted at send time so the footer reflects what was actually used
-        // for this turn, not whatever the user has selected now.
-        renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier(),
-            replyData.getReasoningEffort());
-      }
-    }
+    conversationWidget.restoreTurn(turn, persistenceManager.getDataFactory());
   }
 
   private void restoreTurns(List<AbstractTurnData> turns) {
     for (AbstractTurnData turn : turns) {
       restoreTurn(turn);
-    }
-  }
-
-  /**
-   * Restores the content of a CopilotTurnData (reply text, agent rounds, tool calls, errors, agent messages) into the
-   * given turn widget. Used for both main copilot turns and subagent turns.
-   */
-  private void restoreCopilotTurnContent(CopilotTurnData copilotTurn, BaseTurnWidget turnWidget) {
-    ReplyData replyData = copilotTurn.getReply();
-    if (replyData == null) {
-      return;
-    }
-
-    ThinkingTurnWidget thinkingWidget =
-        turnWidget instanceof ThinkingTurnWidget ? (ThinkingTurnWidget) turnWidget : null;
-
-    if (StringUtils.isNotBlank(replyData.getText())) {
-      turnWidget.appendMessage(replyData.getText());
-    }
-
-    if (replyData.getEditAgentRounds() != null && !replyData.getEditAgentRounds().isEmpty()) {
-      for (EditAgentRoundData round : replyData.getEditAgentRounds()) {
-        // Restore thinking block before the round's reply and tool calls
-        if (thinkingWidget != null && round.getThinkingBlock() != null) {
-          thinkingWidget.restoreThinkingBlock(round.getThinkingBlock());
-        }
-        if (round.getReply() != null && !round.getReply().isEmpty()) {
-          turnWidget.appendMessage(round.getReply());
-        }
-        if (round.getToolCalls() != null && !round.getToolCalls().isEmpty()) {
-          for (ToolCallData toolCallData : round.getToolCalls()) {
-            AgentToolCall agentToolCall = persistenceManager.getDataFactory()
-                .convertToolCallDataToAgentToolCall(toolCallData);
-            turnWidget.appendToolCallStatus(agentToolCall);
-          }
-        }
-      }
-    }
-
-    if (replyData.getErrorMessages() != null && !replyData.getErrorMessages().isEmpty()) {
-      for (ErrorMessageData errorMessageData : replyData.getErrorMessages()) {
-        ErrorData errorData = errorMessageData.getError();
-        SwtUtils.invokeOnDisplayThread(() -> {
-          String errorMessage = errorData != null ? errorData.getMessage() : Messages.chat_warnWidget_defaultErrorMsg;
-          int errorCode = errorData != null ? errorData.getCode() : 0;
-          String modelProviderName = errorData != null ? errorData.getModelProviderName() : null;
-          turnWidget.createWarnDialog(errorMessage, errorCode, modelProviderName);
-        }, parent);
-      }
-    }
-
-    if (replyData.getAgentMessages() != null && !replyData.getAgentMessages().isEmpty()) {
-      for (AgentMessageData agentMessageData : replyData.getAgentMessages()) {
-        if (StringUtils.equals(agentMessageData.getAgentSlug(), UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG)) {
-          SwtUtils.invokeOnDisplayThread(() -> {
-            CodingAgentMessageRequestParams params = new CodingAgentMessageRequestParams();
-            params.setTitle(agentMessageData.getTitle());
-            params.setDescription(agentMessageData.getDescription());
-            params.setPrLink(agentMessageData.getPrLink());
-            params.setConversationId(this.conversationId);
-            params.setTurnId(copilotTurn.getTurnId());
-            turnWidget.createAgentMessageWidget(params);
-          }, parent);
-        }
-      }
     }
   }
 
