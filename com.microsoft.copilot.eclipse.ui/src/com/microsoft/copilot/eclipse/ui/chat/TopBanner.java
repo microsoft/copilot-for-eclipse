@@ -118,18 +118,6 @@ public class TopBanner extends Composite {
   }
 
   /**
-   * Get the current chat title text.
-   *
-   * @return the current chat title text, or null if chatTitle is not available
-   */
-  public String getChatTitle() {
-    if (chatTitle != null && !chatTitle.isDisposed()) {
-      return chatTitle.getText();
-    }
-    return null;
-  }
-
-  /**
    * Add a new conversation listener.
    *
    * @param listener the listener

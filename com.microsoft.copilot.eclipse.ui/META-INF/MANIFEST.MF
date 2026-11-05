@@ -5,19 +5,19 @@ Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui;singleton:=true
 Bundle-Version: 0.21.0.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-Localization: plugin
-Export-Package: com.microsoft.copilot.eclipse.ui,
- com.microsoft.copilot.eclipse.ui.chat,
+Export-Package: com.microsoft.copilot.eclipse.ui;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.chat;x-friends:="com.microsoft.copilot.eclipse.ui.test",
  com.microsoft.copilot.eclipse.ui.chat.confirmation;x-friends:="com.microsoft.copilot.eclipse.ui.test",
- com.microsoft.copilot.eclipse.ui.chat.services,
- com.microsoft.copilot.eclipse.ui.chat.tools,
- com.microsoft.copilot.eclipse.ui.completion,
- com.microsoft.copilot.eclipse.ui.completion.codemining,
- com.microsoft.copilot.eclipse.ui.dialogs,
- com.microsoft.copilot.eclipse.ui.handlers,
- com.microsoft.copilot.eclipse.ui.i18n,
- com.microsoft.copilot.eclipse.ui.preferences,
- com.microsoft.copilot.eclipse.ui.testers,
- com.microsoft.copilot.eclipse.ui.utils,
+ com.microsoft.copilot.eclipse.ui.chat.services;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.chat.tools;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.completion;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.completion.codemining;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.dialogs;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.handlers;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.i18n;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.preferences;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.testers;x-friends:="com.microsoft.copilot.eclipse.ui.test",
+ com.microsoft.copilot.eclipse.ui.utils;x-friends:="com.microsoft.copilot.eclipse.ui.test",
  com.microsoft.copilot.eclipse.ui.extensions,
  com.microsoft.copilot.eclipse.ui.nes;x-friends:="com.microsoft.copilot.eclipse.ui.test"
 Bundle-Activator: com.microsoft.copilot.eclipse.ui.CopilotUi

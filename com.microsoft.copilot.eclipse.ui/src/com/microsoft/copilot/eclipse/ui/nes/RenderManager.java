@@ -33,6 +33,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
+import org.osgi.service.event.EventHandler;
 
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
@@ -106,6 +107,8 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   // Listener references for cleanup
   private IPropertyChangeListener nesPropertyListener;
   private IEventBroker eventBroker;
+  private EventHandler acceptHandler;
+  private EventHandler rejectHandler;
 
   // Cache suggestion viewport state
   private boolean suggestionInViewport = false;
@@ -141,18 +144,20 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
     // Subscribe to ActionMenu events via event bus
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (this.eventBroker != null) {
-      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_NES_ACCEPT_SUGGESTION, event -> {
+      this.acceptHandler = event -> {
         Object data = event.getProperty(IEventBroker.DATA);
         if (data == this.text) {
           acceptSuggestion();
         }
-      });
-      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_NES_REJECT_SUGGESTION, event -> {
+      };
+      this.rejectHandler = event -> {
         Object data = event.getProperty(IEventBroker.DATA);
         if (data == this.text) {
           clearSuggestion();
         }
-      });
+      };
+      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_NES_ACCEPT_SUGGESTION, acceptHandler);
+      this.eventBroker.subscribe(CopilotEventConstants.TOPIC_NES_REJECT_SUGGESTION, rejectHandler);
     }
 
     // Late attach: if column was created earlier (before controller) attach now via registry.
@@ -245,6 +250,14 @@ public class RenderManager implements NextEditSuggestionListener, ITextListener,
   public void dispose() {
     if (nesProvider != null) {
       nesProvider.removeListener(this);
+    }
+    if (eventBroker != null) {
+      eventBroker.unsubscribe(acceptHandler);
+      eventBroker.unsubscribe(rejectHandler);
+    }
+    if (nesPropertyListener != null) {
+      CopilotUi.getPlugin().getPreferenceStore().removePropertyChangeListener(nesPropertyListener);
+      nesPropertyListener = null;
     }
     if (text != null && !text.isDisposed()) {
       SwtUtils.invokeOnDisplayThread(() -> {

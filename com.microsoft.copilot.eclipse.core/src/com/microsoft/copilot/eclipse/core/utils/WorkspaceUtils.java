@@ -89,7 +89,7 @@ public class WorkspaceUtils {
 
     List<WorkspaceFolder> folders = new ArrayList<>();
     for (IProject project : projects) {
-      URI uri = project.getLocationURI();
+      URI uri = FileUtils.getResourceAsUri(project);
       if (uri != null) {
         WorkspaceFolder folder = new WorkspaceFolder();
         folder.setUri(uri.toASCIIString());

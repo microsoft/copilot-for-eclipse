@@ -3,6 +3,9 @@
 
 package com.microsoft.copilot.eclipse.ui.preferences;
 
+import java.net.URI;
+
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -14,6 +17,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.osgi.service.prefs.BackingStoreException;
@@ -82,8 +86,26 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     ctnGhe.setLayout(gl);
     ctnGhe.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     StringFieldEditor sftGhe = new StringFieldEditor(Constants.GITHUB_ENTERPRISE,
-        Messages.preferences_page_github_enterprise, ctnGhe);
+        Messages.preferences_page_github_enterprise, ctnGhe) {
+      @Override
+      protected boolean doCheckState() {
+        String endpoint = getStringValue();
+        if (StringUtils.isEmpty(endpoint)) {
+          return true;
+        }
+        try {
+          URI uri = URI.create(endpoint);
+          return "https".equalsIgnoreCase(uri.getScheme()) && StringUtils.isNotBlank(uri.getHost());
+        } catch (IllegalArgumentException e) {
+          return false;
+        }
+      }
+    };
+    sftGhe.setErrorMessage(Messages.preferences_page_github_enterprise_validation_error);
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
+    Text endpointText = sftGhe.getTextControl(ctnGhe);
+    endpointText.setMessage(Messages.preferences_page_github_enterprise_placeholder);
+    endpointText.setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
     addField(sftGhe);
 
     // What's new group

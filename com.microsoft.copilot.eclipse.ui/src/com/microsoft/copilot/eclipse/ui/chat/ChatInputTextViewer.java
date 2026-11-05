@@ -355,6 +355,9 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
   }
 
   private String getPlaceholderText() {
+    if (!chatServiceManager.getModelService().hasActiveModel()) {
+      return Messages.chat_actionBar_noModel_placeholder;
+    }
     switch (userPreferenceService.getActiveChatMode()) {
       case Agent:
         // Get the active mode name or ID from observable (not from disk to avoid stale data)

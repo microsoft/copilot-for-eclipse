@@ -28,6 +28,30 @@ To use GitHub Copilot, an active subscription is required. Learn more about busi
 - [Eclipse IDE](https://www.eclipse.org/downloads/)
 - An active [GitHub Copilot subscription](https://github.com/features/copilot)
 
+### Upcoming requirements in 0.23.0
+
+Starting with **GitHub Copilot for Eclipse 0.23.0**, the minimum supported environment will be
+**Eclipse IDE 2025-12 (4.38)** and **Java 21** to run Eclipse. This does not require changing the
+Java version used by your projects.
+
+**0.22.0 is the advance-notice release and retains the existing environment compatibility,
+including TM Terminal support.** On affected environments (Eclipse older than 4.38 or an Eclipse
+Java runtime older than 21), a startup notice explains the upcoming requirements. It appears at
+most once per Eclipse startup until you select **Don't remind me again** or upgrade your
+environment. Dismissal applies to this announcement in the same Eclipse configuration, including
+when switching workspaces, and is independent of the automatic What's New setting.
+
+Before upgrading to 0.23.0, update Eclipse and the Java runtime used to launch it. If necessary,
+set the Eclipse launcher runtime using the `-vm` option in `eclipse.ini`; keep it before `-vmargs`.
+Your project JDK and compiler settings can remain unchanged.
+
+If you cannot upgrade your environment, you can continue using the last compatible **0.22.x**
+version. Once published, its `GithubCopilotForEclipse.zip` installation archive will remain
+available from [GitHub Releases](https://github.com/microsoft/copilot-for-eclipse/releases).
+Download the ZIP from the selected 0.22.x release, then use **Help > Install New Software... >
+Add... > Archive...** to select it and install GitHub Copilot. The legacy version will not have
+a separate online update site.
+
 ## Install and set up
 
 ### Option 1: Eclipse Marketplace

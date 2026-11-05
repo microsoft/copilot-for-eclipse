@@ -12,9 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.annotation.Nullable;
-import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;

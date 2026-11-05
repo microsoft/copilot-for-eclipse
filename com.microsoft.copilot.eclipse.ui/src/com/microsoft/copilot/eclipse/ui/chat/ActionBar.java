@@ -3,10 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,15 +11,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.e4.core.services.events.IEventBroker;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceDialog;
@@ -34,7 +27,6 @@ import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.jface.text.contentassist.ICompletionListener;
 import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContentAssistant;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -106,6 +98,7 @@ public class ActionBar extends Composite implements NewConversationListener {
   private Image sendImage;
   private Image sendDisabledImage;
   private boolean isSendButton = true;
+  private boolean modelAvailable;
   private LinkedHashSet<MessageListener> messageListeners = new LinkedHashSet<>();
   private Button mcpToolButton;
   private Image mcpToolImage;
@@ -214,6 +207,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindActionBarForSupportVisionChange(this);
+    modelService.bindActionBarForModelAvailability(this);
 
     ChatInputTextViewer tv = new ChatInputTextViewer(borderedActionBar, chatServiceManager);
     tv.setEditable(true);
@@ -237,15 +231,11 @@ public class ActionBar extends Composite implements NewConversationListener {
         if (!isSendButton) {
           return;
         }
-        if (tv.getDocument().get().equals(StringUtils.EMPTY)) {
-          updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-        } else {
-          updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-        }
+        refreshSendButtonState();
       }
     });
     tv.setSendMessageHandler((message) -> {
-      if (isSendButton) {
+      if (isSendButton && modelAvailable) {
         handleSendMessage();
       }
     });
@@ -432,9 +422,9 @@ public class ActionBar extends Composite implements NewConversationListener {
 
       this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
 
-      boolean hasText = !StringUtils.isBlank(this.inputTextViewer.getContent());
-      this.sendToJobButton.setEnabled(hasText);
-      this.sendToJobButton.setImage(hasText ? sendToJobImage : sendToJobDisabledImage);
+      boolean isEnabled = canSend();
+      this.sendToJobButton.setEnabled(isEnabled);
+      this.sendToJobButton.setImage(isEnabled ? sendToJobImage : sendToJobDisabledImage);
       this.sendToJobButton.setToolTipText(Messages.chat_actionBar_sendToJobButton_Tooltip);
       AccessibilityUtils.addAccessibilityNameForUiComponent(this.sendToJobButton,
           Messages.chat_actionBar_sendToJobButton_Tooltip);
@@ -456,7 +446,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND);
       this.sendDisabledImage = CopilotImages.getImage(CopilotImages.IMG_CHAT_SEND_DISABLED);
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
-      boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
+      boolean isEnabled = canSend();
       this.btnMsgToggle.setEnabled(isEnabled);
       this.btnMsgToggle.setImage(isEnabled ? this.sendImage : this.sendDisabledImage);
       this.btnMsgToggle.setToolTipText(Messages.chat_actionBar_sendButton_Tooltip);
@@ -721,12 +711,38 @@ public class ActionBar extends Composite implements NewConversationListener {
    * Handles the cancel message event.
    */
   public void resetSendButton() {
-    if (this.inputTextViewer.getContent().isEmpty()) {
-      updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-    } else {
-      updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-    }
+    refreshSendButtonState();
     this.chatServiceManager.getFileToolService().setWorkingSetBarButtonStatus(true);
+  }
+
+  /**
+   * Updates whether a chat model is available. Sending is disabled while no model is available.
+   *
+   * @param available true if an active model is set
+   */
+  public void setModelAvailable(boolean available) {
+    SwtUtils.invokeOnDisplayThreadAsync(() -> {
+      if (isDisposed()) {
+        return;
+      }
+      modelAvailable = available;
+      if (isSendButton) {
+        refreshSendButtonState();
+      }
+      refreshPlaceholder();
+    }, this);
+  }
+
+  private void refreshSendButtonState() {
+    if (canSend()) {
+      updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
+    } else {
+      updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
+    }
+  }
+
+  private boolean canSend() {
+    return modelAvailable && !StringUtils.isBlank(this.inputTextViewer.getContent());
   }
 
   /**
@@ -802,11 +818,7 @@ public class ActionBar extends Composite implements NewConversationListener {
           notifySendWithSlug(workDoneToken, message, UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG, selectedProjectPath);
         } else {
           // Dialog was cancelled, reset button state based on current input content
-          if (this.inputTextViewer.getContent().isEmpty()) {
-            updateButtonState(SendOrCancelButtonStates.SEND_DISABLED);
-          } else {
-            updateButtonState(SendOrCancelButtonStates.SEND_ENABLED);
-          }
+          refreshSendButtonState();
         }
       }
     }
@@ -929,34 +941,6 @@ public class ActionBar extends Composite implements NewConversationListener {
       sendToJobButton.setEnabled(enable);
       sendToJobButton.setImage(enable ? sendToJobImage : sendToJobDisabledImage);
     }, sendToJobButton);
-  }
-
-  /**
-   * Popup a file picker dialog to select files. It's guaranteed that the selected files are unique.
-   */
-  @NonNull
-  private List<IFile> selectFile() {
-    Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-    IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-    IContainer container = root.getContainerForLocation(root.getLocation());
-    AttachFileSelectionDialog dialog = new AttachFileSelectionDialog(shell, true, container);
-    dialog.setTitle(Messages.chat_filePicker_title);
-    dialog.setMessage(Messages.chat_filePicker_message);
-    List<IFile> result = new ArrayList<>();
-    if (dialog.open() == Window.OK) {
-      Object[] selectedFiles = dialog.getResult();
-      Set<String> selectedFileUris = new HashSet<>();
-      for (Object selectedFile : selectedFiles) {
-        if (selectedFile instanceof IFile file) {
-          URI fileUri = file.getLocationURI();
-          if (fileUri != null && selectedFileUris.add(fileUri.toASCIIString())) {
-            result.add(file);
-          }
-        }
-      }
-      return result;
-    }
-    return result;
   }
 
   /**

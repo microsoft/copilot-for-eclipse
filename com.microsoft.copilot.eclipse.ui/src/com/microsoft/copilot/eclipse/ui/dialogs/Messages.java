@@ -30,6 +30,11 @@ public final class Messages extends NLS {
   public static String terminalDependencyDialog_helpLink;
   public static String terminalDependencyDialog_dontShowAgain;
 
+  public static String compatibilityNotice_title;
+  public static String compatibilityNotice_message;
+  public static String compatibilityNotice_dontRemindAgain;
+  public static String compatibilityNotice_saveJobName;
+
   static {
     // initialize resource bundle
     NLS.initializeMessages("com.microsoft.copilot.eclipse.ui.dialogs.messages", Messages.class);

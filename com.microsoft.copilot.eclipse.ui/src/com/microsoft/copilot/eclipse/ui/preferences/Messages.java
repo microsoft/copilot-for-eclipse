@@ -69,6 +69,8 @@ public class Messages extends NLS {
   public static String preferences_page_enable_strict_ssl_tooltip;
   public static String preferences_page_proxy_config_link_tooltip;
   public static String preferences_page_github_enterprise_tooltip;
+  public static String preferences_page_github_enterprise_placeholder;
+  public static String preferences_page_github_enterprise_validation_error;
   public static String preferences_page_mcp_tooltip;
   public static String preferences_page_mcp_note_content;
   public static String preferences_page_mcp_disabled_tip;

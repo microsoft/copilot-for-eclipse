@@ -311,9 +311,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
           // Restore all turns from the conversation
           if (historyConversation.getTurns() != null && !historyConversation.getTurns().isEmpty()) {
-            for (AbstractTurnData turn : historyConversation.getTurns()) {
-              restoreTurn(turn);
-            }
+            restoreTurns(historyConversation.getTurns());
 
             // Restore the mode from the last user turn
             restoreModeFromLastUserTurn(historyConversation.getTurns());
@@ -1029,6 +1027,16 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
+    if (!chatServiceManager.getModelService().hasActiveModel()) {
+      // Send is disabled without a model; keep the input if a request slips through.
+      CopilotCore.LOGGER.info("Chat message not sent: no active model available");
+      SwtUtils.invokeOnDisplayThread(() -> {
+        actionBar.setInputTextViewerContent(message);
+        actionBar.resetSendButton();
+      }, parent);
+      return;
+    }
+
     // Persist the user input to history
     chatServiceManager.getUserPreferenceService().addInputToHistory(message);
 
@@ -1478,22 +1486,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     return this.chatContentViewer;
   }
 
-  /**
-   * Get the content section of the chat view.
-   */
-  public Composite getContentWrapper() {
-    return this.contentWrapper;
-  }
-
   public ActionBar getActionBar() {
     return this.actionBar;
-  }
-
-  /**
-   * Register a new conversation listener to the action bar.
-   */
-  public void registerNewConversationListenerToTheTopBanner(NewConversationListener listener) {
-    this.topBanner.registerNewConversationListener(listener);
   }
 
   /**
@@ -1928,9 +1922,14 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
     // Create user turn widget and populate with user message
     if (turn instanceof UserTurnData userTurn) {
-      if (userTurn.getMessage() == null || StringUtils.isNotBlank(userTurn.getMessage().getText())) {
+      UserTurnData.MessageData message = userTurn.getMessage();
+      if (message == null) {
+        CopilotCore.LOGGER.info("Skipping user turn with missing message: " + userTurn.getTurnId());
+        return;
+      }
+      if (StringUtils.isNotBlank(message.getText())) {
         BaseTurnWidget userTurnWidget = chatContentViewer.getLatestOrCreateNewTurnWidget(turn.getTurnId(), false, true);
-        userTurnWidget.appendMessage(userTurn.getMessage().getText());
+        userTurnWidget.appendMessage(message.getText());
         userTurnWidget.flushMessageBuffer();
         return;
       }
@@ -1949,6 +1948,12 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         renderModelInfoInTurnWidget(turn.getTurnId(), replyData.getModelName(), replyData.getBillingMultiplier(),
             replyData.getReasoningEffort());
       }
+    }
+  }
+
+  private void restoreTurns(List<AbstractTurnData> turns) {
+    for (AbstractTurnData turn : turns) {
+      restoreTurn(turn);
     }
   }
 

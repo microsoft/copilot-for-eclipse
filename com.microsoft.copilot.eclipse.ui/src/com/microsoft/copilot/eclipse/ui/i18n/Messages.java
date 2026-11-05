@@ -92,6 +92,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_initialContent;
   public static String chat_actionBar_initialContentForAgent;
   public static String chat_actionBar_sendButton_Tooltip;
+  public static String chat_actionBar_noModel_placeholder;
   public static String chat_actionBar_sendToJobButton_Tooltip;
   public static String chat_actionBar_sendToJob_noProject;
   public static String chat_actionBar_cancelButton_Tooltip;
@@ -169,6 +170,7 @@ public final class Messages extends NLS {
   public static String chat_customModels;
   public static String chat_addPremiumModels;
   public static String chat_referencedFile_noVision_tooltip;
+  public static String chat_referencedFile_noModel_tooltip;
   public static String agent_tool_compareEditor_titlePrefix;
   public static String agent_tool_compareEditor_proposedChangesTitle;
   public static String agentFileEditor_contentAssist_statusMessage;

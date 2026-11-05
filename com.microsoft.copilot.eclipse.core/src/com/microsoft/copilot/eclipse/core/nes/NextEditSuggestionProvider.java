@@ -4,10 +4,9 @@
 package com.microsoft.copilot.eclipse.core.nes;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.resources.IFile;
@@ -26,7 +25,7 @@ import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 public class NextEditSuggestionProvider {
 
   private static final int NES_TIMEOUT_MILLIS = 5000;
-  private final Set<NextEditSuggestionListener> listeners = Collections.synchronizedSet(new LinkedHashSet<>());
+  private final Set<NextEditSuggestionListener> listeners = new CopyOnWriteArraySet<>();
   private final CopilotLanguageServerConnection lsConnection;
   private volatile CompletableFuture<Void> currentRequest;
 

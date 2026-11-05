@@ -48,6 +48,7 @@ import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.GitHubPullRequestItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.githubapi.SearchPrResponse;
+import com.microsoft.copilot.eclipse.core.utils.FileUtils;
 import com.microsoft.copilot.eclipse.core.utils.WorkspaceUtils;
 import com.microsoft.copilot.eclipse.ui.jobs.CopilotJobsImages;
 import com.microsoft.copilot.eclipse.ui.jobs.events.JobsViewEvents;
@@ -324,7 +325,7 @@ public class JobsView {
    */
   private void loadPullRequestsForProject(IProject project) {
     String projectName = project.getName();
-    URI projectUri = project.getLocationURI();
+    URI projectUri = FileUtils.getResourceAsUri(project);
     if (projectUri == null) {
       return;
     }
@@ -396,8 +397,8 @@ public class JobsView {
    * just expand them. For projects not yet loaded, load PRs first then expand.
    */
   private void expandAllProjects() {
-    // Iterate through all projects in the tree
-    for (String projectName : repoToPullRequestsMap.keySet()) {
+    // Iterate over a copy: the refresh job clears and fills the map concurrently
+    for (String projectName : new ArrayList<>(repoToPullRequestsMap.keySet())) {
       // Skip special nodes like "No open projects"
       if (!projectNameToProjectMap.containsKey(projectName)) {
         continue;
