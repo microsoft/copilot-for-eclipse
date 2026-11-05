@@ -72,12 +72,10 @@ class RunInTerminalToolAdapterTest {
     LanguageModelToolResult[] results = future.get();
 
     // Assert
-    // In test environment with no terminal service, the "no terminal" error is returned
-    // before command validation. This is the actual behavior of the implementation.
     assertNotNull(results);
     assertEquals(1, results.length);
     assertEquals(ToolInvocationStatus.error, results[0].getStatus());
-    assertEquals("No terminal implementation available. Terminal service not yet loaded or failed to load.",
+    assertEquals("The tool cannot be invoked due to the command is null or empty.",
       results[0].getContent().get(0).getValue());
   }
 
