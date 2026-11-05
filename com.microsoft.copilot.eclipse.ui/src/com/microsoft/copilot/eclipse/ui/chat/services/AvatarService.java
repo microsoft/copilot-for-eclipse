@@ -5,6 +5,8 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,6 +16,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
@@ -32,8 +35,10 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class AvatarService {
   private static final String AVATAR_URL = "https://avatars.githubusercontent.com/%s?s=24&v=4";
+  private static final Duration RETRY_DELAY = Duration.ofMinutes(5);
   private Map<String, Image> avatarCache = new ConcurrentHashMap<>();
   private Map<String, Job> jobs = new ConcurrentHashMap<>();
+  private Map<String, Instant> retryTimes = new ConcurrentHashMap<>();
 
   private Image defaultGithubAvatar;
   private Image defaultUserAvatar;
@@ -100,20 +105,17 @@ public class AvatarService {
     if (image != null) {
       return image;
     } else {
-      if (!jobs.containsKey(user)) {
+      Instant retryTime = retryTimes.get(user);
+      if (!jobs.containsKey(user) && (retryTime == null || !Instant.now().isBefore(retryTime))) {
         Job downloadJob = new Job("Download avatar for " + user) {
           @Override
           protected IStatus run(IProgressMonitor monitor) {
-            Image downloadedImage = null;
             try {
               URL url = new URL(String.format(AVATAR_URL, user));
+              Image downloadedImage;
               try (var stream = url.openStream()) {
                 downloadedImage = new Image(display, stream);
               }
-            } catch (IOException e) {
-              CopilotCore.LOGGER.error(e);
-            }
-            if (downloadedImage != null) {
               Image result = downloadedImage;
               // as the image is not always 24x24 even we set it in parameters, resize here if not
               if (result.getBounds().width != 24 || result.getBounds().height != 24) {
@@ -121,12 +123,16 @@ public class AvatarService {
                 downloadedImage.dispose();
               }
               avatarCache.put(user, result);
+            } catch (IOException | SWTException e) {
+              CopilotCore.LOGGER.error(e);
+            } finally {
               jobs.remove(user);
             }
             return Status.OK_STATUS;
           }
         };
         jobs.put(user, downloadJob);
+        retryTimes.put(user, Instant.now().plus(RETRY_DELAY));
         downloadJob.schedule();
       }
       return defaultUserAvatar;
