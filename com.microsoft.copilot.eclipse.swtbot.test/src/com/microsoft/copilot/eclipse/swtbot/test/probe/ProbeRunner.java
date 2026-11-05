@@ -48,6 +48,7 @@ import org.osgi.service.prefs.BackingStoreException;
 @RunWith(SWTBotJunit4ClassRunner.class)
 public class ProbeRunner {
   private static final String SYSPROP = "probe.script";
+  private static final String RENDERER_SYSPROP = "probe.renderer";
   private static final Path RESULTS_DIR = Paths.get("target", "probe-results");
   private static final String UI_BUNDLE_ID = "com.microsoft.copilot.eclipse.ui";
 
@@ -77,6 +78,13 @@ public class ProbeRunner {
       prefs.putBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, false);
       prefs.put(Constants.LAST_USED_COPILOT_PLUGIN_VERSION, currentUiBundleMajorMinor());
       prefs.putBoolean(Constants.SUPPRESS_TERMINAL_DEPENDENCY_DIALOG, true);
+      // Select the chat renderer per launch so the same probe flow can be run against both
+      // renderers: pass -Dprobe.renderer=browser for the browser-based (HTML) renderer, or
+      // omit it (or -Dprobe.renderer=styledtext) for the seasoned StyledText renderer. The
+      // default matches production (StyledText), so plain runs exercise the SWT widget tree.
+      boolean useBrowserRenderer =
+          "browser".equalsIgnoreCase(System.getProperty(RENDERER_SYSPROP, "styledtext"));
+      prefs.putBoolean(Constants.USE_BROWSER_BASED_CHAT_RENDERER, useBrowserRenderer);
       prefs.flush();
     } catch (BackingStoreException | RuntimeException e) {
       System.err.println("[ProbeRunner] Failed to preset nuisance-dialog preferences: " + e);

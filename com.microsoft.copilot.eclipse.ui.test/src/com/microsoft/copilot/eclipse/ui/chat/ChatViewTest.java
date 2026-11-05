@@ -3,6 +3,8 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.persistence.AbstractTurnData;
+import com.microsoft.copilot.eclipse.core.persistence.ConversationPersistenceManager;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.chat.services.McpConfigService;
@@ -53,6 +56,8 @@ class ChatViewTest {
   private ChatContentViewer mockChatContentViewer;
   @Mock
   private BaseTurnWidget mockTurnWidget;
+  @Mock
+  private ConversationPersistenceManager mockPersistenceManager;
 
   @BeforeEach
   void setUp() {
@@ -76,7 +81,10 @@ class ChatViewTest {
 
   @Test
   void restoreTurnsSkipsUserTurnWithoutMessageAndRestoresFollowingTurn() throws Exception {
-    setFieldValue(chatView, "chatContentViewer", mockChatContentViewer);
+    StyledTextConversationWidget conversationWidget = mock(StyledTextConversationWidget.class, CALLS_REAL_METHODS);
+    setFieldValue(conversationWidget, "viewer", mockChatContentViewer);
+    setFieldValue(chatView, "conversationWidget", conversationWidget);
+    setFieldValue(chatView, "persistenceManager", mockPersistenceManager);
     when(mockChatContentViewer.getLatestOrCreateNewTurnWidget("valid-turn", false, true)).thenReturn(mockTurnWidget);
 
     UserTurnData invalidTurn = new UserTurnData();
@@ -97,12 +105,23 @@ class ChatViewTest {
 
   private void setFieldValue(Object target, String fieldName, Object value) {
     try {
-      Field field = target.getClass().getDeclaredField(fieldName);
+      Field field = findField(target.getClass(), fieldName);
       field.setAccessible(true);
       field.set(target, value);
     } catch (Exception e) {
       throw new RuntimeException("Failed to set field " + fieldName, e);
     }
+  }
+
+  private static Field findField(Class<?> type, String fieldName) throws NoSuchFieldException {
+    for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+      try {
+        return current.getDeclaredField(fieldName);
+      } catch (NoSuchFieldException e) {
+        // continue with the superclass, e.g. when the target is a Mockito subclass mock
+      }
+    }
+    throw new NoSuchFieldException(fieldName);
   }
 
   @AfterEach

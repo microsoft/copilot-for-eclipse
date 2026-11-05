@@ -23,4 +23,29 @@
             name="Editor for Refactor Rename Tests"/>
    </extension>
 
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            id="copilot.test.compareRenderers"
+            name="Compare Chat View Rendering Alternatives"/>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="com.microsoft.copilot.eclipse.ui.chat.ConversationRendererVisualDemoSideBySide"
+            commandId="copilot.test.compareRenderers"/>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="menu:com.microsoft.copilot.eclipse.ui.menuBar?after=additions">
+         <command
+               commandId="copilot.test.compareRenderers"
+               label="Compare Chat View Rendering Alternatives"
+               style="push"/>
+      </menuContribution>
+   </extension>
+
 </plugin>

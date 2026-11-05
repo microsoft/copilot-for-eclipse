@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CheckQuotaResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
@@ -32,6 +33,51 @@ public final class QuotaActions {
   }
 
   private QuotaActions() {
+  }
+
+  /**
+   * The plan inputs needed to build quota actions, extracted from a {@link CheckQuotaResult}. Shared
+   * by the browser renderer and the StyledText {@link WarnWidget} path so the {@code CheckQuotaResult}
+   * decomposition lives in one place.
+   *
+   * @param plan the user's Copilot plan, or {@code null} when unknown
+   * @param overageEnabled {@code true} when additional paid usage is already enabled for the user
+   * @param canUpgradePlan whether the user can upgrade their plan, or {@code null} when the language
+   *     server did not supply this field
+   */
+  public record QuotaPlanContext(CopilotPlan plan, boolean overageEnabled, Boolean canUpgradePlan) {
+
+    /** Extracts the plan inputs from a language-server {@link CheckQuotaResult}. */
+    public static QuotaPlanContext from(CheckQuotaResult quotaStatus) {
+      boolean overageEnabled = quotaStatus.premiumInteractions() != null
+          && quotaStatus.premiumInteractions().overagePermitted();
+      return new QuotaPlanContext(quotaStatus.copilotPlan(), overageEnabled,
+          quotaStatus.canUpgradePlan());
+    }
+  }
+
+  /**
+   * Resolves the {@link QuotaAction}s for a quota-exceeded error given the current quota status.
+   * Returns an empty list for non-{@code 402} errors, BYOK quota errors, when token-based billing is
+   * not enabled, or when {@code quotaStatus} is {@code null}. Otherwise delegates to
+   * {@link #forPlan(CopilotPlan, boolean, Boolean)} with the inputs from
+   * {@link QuotaPlanContext#from(CheckQuotaResult)}.
+   *
+   * @param quotaStatus the current quota status, or {@code null}
+   * @param code the language-server error code
+   * @param modelProviderName the BYOK model-provider name, or {@code null}
+   * @return an immutable, possibly empty list; never {@code null}
+   */
+  public static List<QuotaAction> forQuotaStatus(CheckQuotaResult quotaStatus, int code,
+      String modelProviderName) {
+    if (code != 402 || isByokQuotaExceeded(code, modelProviderName)) {
+      return List.of();
+    }
+    if (quotaStatus == null || !quotaStatus.tokenBasedBillingEnabled()) {
+      return List.of();
+    }
+    QuotaPlanContext context = QuotaPlanContext.from(quotaStatus);
+    return forPlan(context.plan(), context.overageEnabled(), context.canUpgradePlan());
   }
 
   /**

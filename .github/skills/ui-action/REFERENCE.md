@@ -34,6 +34,29 @@ The module-only shortcut can fail dependency resolution or reuse stale bundles,
 especially after source edits. If widget markers or other code changes appear to
 be ignored, run the root `clean verify` command.
 
+### Selecting the chat renderer
+
+The plugin ships two chat renderers behind the `useBrowserBasedChatRenderer`
+preference, and probes can target either one via the `-Dprobe.renderer` launch
+property (read once by `ProbeRunner` before the ChatView opens):
+
+- omit it, or pass `-Dprobe.renderer=styledtext`, to run against the seasoned
+  StyledText renderer (the production default). These probes assert the SWT
+  widget tree (`user-turn`, `copilot-turn`, `model-info-label`).
+- pass `-Dprobe.renderer=browser` to run against the browser-based (HTML)
+  renderer. Its conversation content lives in an SWT `Browser` DOM that is opaque
+  to SWTBot widget locators, so those probes assert the `Browser` widget exists
+  and fall back to `sleep` + `screenshot` for visual verification.
+
+Because the renderer is chosen per launch, cover both by running the two probes:
+
+```bash
+# StyledText renderer (default)
+./mvnw clean verify -Dprobe.script=probe-scripts/chat-send-receive-001.json
+# Browser renderer
+./mvnw clean verify -Dprobe.script=probe-scripts/chat-send-receive-browser-001.json -Dprobe.renderer=browser
+```
+
 Platform notes:
 
 - Linux headless: prefix the command with `xvfb-run -a`.
