@@ -42,6 +42,25 @@
 		<plugins>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho-version}</version>
+				<configuration>
+					<dependency-resolution>
+						<extraRequirements>
+							<!-- No bundle requires the terminal implementation; it only provides the
+							     IRunInTerminalTool OSGi service. Add it explicitly so the test runtime
+							     matches an installed feature. -->
+							<requirement>
+								<type>eclipse-plugin</type>
+								<id>com.microsoft.copilot.eclipse.ui.terminal</id>
+								<versionRange>0.0.0</versionRange>
+							</requirement>
+						</extraRequirements>
+					</dependency-resolution>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-surefire-plugin</artifactId>
 				<version>${tycho-version}</version>
 				<configuration>
