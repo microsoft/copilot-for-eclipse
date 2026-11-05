@@ -80,9 +80,8 @@ class RunInTerminalToolAdapterTest {
   }
 
   @Test
-  void testInvokeWithNoTerminalServiceReturnsErrorStatus() throws InterruptedException, ExecutionException {
-    // Arrange - Since we can't mock the singleton, this test verifies error handling
-    // when no terminal service is available (which is the typical case in unit tests)
+  void testInvokeWithCommandReturnsWellFormedResult() throws InterruptedException, ExecutionException {
+    // Arrange
     Map<String, Object> input = new HashMap<>();
     input.put("command", "echo test");
     input.put("isBackground", false);
@@ -91,11 +90,9 @@ class RunInTerminalToolAdapterTest {
     CompletableFuture<LanguageModelToolResult[]> future = runInTerminalToolAdapter.invoke(input, null);
     LanguageModelToolResult[] results = future.get();
 
-    // Assert - When no terminal service is available, we expect an error
+    // Assert - the outcome depends on the host's terminal, so only the result's shape is verified
     assertNotNull(results);
     assertEquals(1, results.length);
-    // The result will be either error (no terminal service) or success (if service is available)
-    // We just verify the result is properly formed
     assertNotNull(results[0].getStatus());
     assertNotNull(results[0].getContent());
   }
@@ -113,7 +110,7 @@ class RunInTerminalToolAdapterTest {
   }
 
   @Test
-  void testGetTerminalOutputToolWithNoTerminalServiceReturnsErrorStatus()
+  void testGetTerminalOutputToolWithUnknownIdReturnsErrorStatus()
       throws InterruptedException, ExecutionException {
     // Arrange
     RunInTerminalToolAdapter.GetTerminalOutputTool getTool = new RunInTerminalToolAdapter.GetTerminalOutputTool();
@@ -124,13 +121,11 @@ class RunInTerminalToolAdapterTest {
     CompletableFuture<LanguageModelToolResult[]> future = getTool.invoke(input, null);
     LanguageModelToolResult[] results = future.get();
 
-    // Assert - When no terminal service is available, we expect an error
+    // Assert
     assertNotNull(results);
     assertEquals(1, results.length);
-    // The result will be either error (no terminal service or invalid ID)
-    // We just verify the result is properly formed
-    assertNotNull(results[0].getStatus());
-    assertNotNull(results[0].getContent());
+    assertEquals(ToolInvocationStatus.error, results[0].getStatus());
+    assertEquals("Invalid terminal ID terminal-123", results[0].getContent().get(0).getValue());
   }
 
   @Test
