@@ -4,6 +4,8 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,9 +51,9 @@ public class GetErrorsTool extends BaseTool {
     // Set the name and description of the tool
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDescription("""
-        Get any compile or lint errors in a code file.
-        If the user mentions errors or problems in a file, they may be referring to these.
-        Use the tool to see the same errors that the user is seeing.
+        Get the compile and lint problems (errors, warnings and infos) of code files, as shown in the Problems view.
+        If the user mentions errors, warnings or problems in a file, they may be referring to these.
+        Use the tool to see the same problems that the user is seeing.
         Also use this tool after editing a file to validate the change.
         """);
 
@@ -61,9 +63,9 @@ public class GetErrorsTool extends BaseTool {
 
     // Define the properties of the input schema
     InputSchemaPropertyValue filePathsProperty = new InputSchemaPropertyValue("array",
-        "Array of absolute file paths to check for errors");
+        "Array of absolute file paths to check for problems");
     filePathsProperty.setItems(new InputSchemaPropertyValue("string",
-        "The absolute path of a file to check for compile/lint errors"));
+        "The absolute path of a file to check for compile/lint problems"));
     Map<String, InputSchemaPropertyValue> properties = new HashMap<>();
     properties.put(FILE_PATHS, filePathsProperty);
 
@@ -160,7 +162,7 @@ public class GetErrorsTool extends BaseTool {
   }
 
   /**
-   * Retrieves errors from the Problems view for the given file URIs.
+   * Retrieves the problems shown in the Problems view for the given file paths.
    *
    * @param filePaths The list of file paths to check for errors.
    * @return A GetErrorsResult containing the errors found and whether any exceptions occurred.
@@ -179,11 +181,7 @@ public class GetErrorsTool extends BaseTool {
         }
 
         IMarker[] markers = file.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
-        for (IMarker marker : markers) {
-          if (marker.getAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO) == IMarker.SEVERITY_ERROR) {
-            toolResult.append(marker.toString()).append(StringUtils.LF);
-          }
-        }
+        toolResult.append(formatProblems(filePath, markers));
       } catch (CoreException e) {
         toolResult.append("Failed on file: ").append(filePath).append(e.getMessage()).append(StringUtils.LF);
         hasException = true;
@@ -191,6 +189,44 @@ public class GetErrorsTool extends BaseTool {
     }
 
     return new GetErrorsResult(toolResult.toString(), hasException);
+  }
+
+  /**
+   * Formats the problem markers of a file, errors first, then warnings and infos, each ordered by line.
+   */
+  static String formatProblems(String filePath, IMarker[] markers) {
+    if (markers.length == 0) {
+      return "No problems found in " + filePath + StringUtils.LF;
+    }
+    StringBuilder result = new StringBuilder("Problems in ").append(filePath).append(':').append(StringUtils.LF);
+    Arrays.stream(markers)
+        .sorted(Comparator.comparingInt(GetErrorsTool::getSeverity).reversed()
+            .thenComparingInt(GetErrorsTool::getLineNumber))
+        .forEach(marker -> {
+          result.append(getSeverityLabel(getSeverity(marker)));
+          int lineNumber = getLineNumber(marker);
+          if (lineNumber > 0) {
+            result.append(" at line ").append(lineNumber);
+          }
+          result.append(": ").append(marker.getAttribute(IMarker.MESSAGE, StringUtils.EMPTY)).append(StringUtils.LF);
+        });
+    return result.toString();
+  }
+
+  private static int getSeverity(IMarker marker) {
+    return marker.getAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
+  }
+
+  private static int getLineNumber(IMarker marker) {
+    return marker.getAttribute(IMarker.LINE_NUMBER, -1);
+  }
+
+  private static String getSeverityLabel(int severity) {
+    return switch (severity) {
+      case IMarker.SEVERITY_ERROR -> "ERROR";
+      case IMarker.SEVERITY_WARNING -> "WARNING";
+      default -> "INFO";
+    };
   }
 
 }
