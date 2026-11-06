@@ -6,11 +6,14 @@ package com.microsoft.copilot.eclipse.ui.chat.tools;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.eclipse.core.resources.IMarker;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -91,5 +94,51 @@ class GetErrorsToolTests {
 		// Assert that the result contains the expected message
 		assertTrue(result.content().contains("Resource not found for filePath: invalidPath1"));
 		assertTrue(result.content().contains("Resource not found for filePath: invalidPath2"));
+	}
+
+	@Test
+	void testFormatProblemsListsAllSeveritiesErrorsFirst() {
+		IMarker[] markers = {
+				mockMarker(IMarker.SEVERITY_INFO, 3, "Info message"),
+				mockMarker(IMarker.SEVERITY_WARNING, 20, "Later warning"),
+				mockMarker(IMarker.SEVERITY_ERROR, 7, "Error message"),
+				mockMarker(IMarker.SEVERITY_WARNING, 5, "Earlier warning") };
+
+		String result = GetErrorsTool.formatProblems("/project/A.java", markers);
+
+		assertEquals("""
+				Problems in /project/A.java:
+				ERROR at line 7: Error message
+				WARNING at line 5: Earlier warning
+				WARNING at line 20: Later warning
+				INFO at line 3: Info message
+				""", result);
+	}
+
+	@Test
+	void testFormatProblemsWithoutLineNumber() {
+		IMarker[] markers = { mockMarker(IMarker.SEVERITY_ERROR, -1, "Build path is incomplete") };
+
+		String result = GetErrorsTool.formatProblems("/project/A.java", markers);
+
+		assertEquals("""
+				Problems in /project/A.java:
+				ERROR: Build path is incomplete
+				""", result);
+	}
+
+	@Test
+	void testFormatProblemsWithoutMarkers() {
+		String result = GetErrorsTool.formatProblems("/project/A.java", new IMarker[0]);
+
+		assertEquals("No problems found in /project/A.java\n", result);
+	}
+
+	private static IMarker mockMarker(int severity, int lineNumber, String message) {
+		IMarker marker = mock(IMarker.class);
+		when(marker.getAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO)).thenReturn(severity);
+		when(marker.getAttribute(IMarker.LINE_NUMBER, -1)).thenReturn(lineNumber);
+		when(marker.getAttribute(IMarker.MESSAGE, "")).thenReturn(message);
+		return marker;
 	}
 }
