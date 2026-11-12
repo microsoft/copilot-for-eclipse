@@ -53,8 +53,8 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
   private ChatServiceManager chatServiceManager;
   private ContentAssistant contentAssistant;
 
-  private boolean caretLineOffsetChanged = false;
-  private int lastCursorLineOffset = 0;
+  private boolean caretOnFirstVisualLine = true;
+  private boolean caretOnLastVisualLine = true;
 
   private Color placeholderColor;
 
@@ -137,6 +137,16 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
       if (e.detail == SWT.TRAVERSE_TAB_PREVIOUS || e.detail == SWT.TRAVERSE_TAB_NEXT) {
         e.doit = true;
       }
+    });
+
+    // Runs before StyledText handles the key, which it does before notifying the key listeners.
+    tvw.addVerifyKeyListener(e -> {
+      if (e.keyCode != SWT.ARROW_UP && e.keyCode != SWT.ARROW_DOWN) {
+        return;
+      }
+      int caretY = tvw.getLocationAtOffset(tvw.getCaretOffset()).y;
+      caretOnFirstVisualLine = caretY == tvw.getLocationAtOffset(0).y;
+      caretOnLastVisualLine = caretY == tvw.getLocationAtOffset(tvw.getCharCount()).y;
     });
 
     tvw.addKeyListener(new KeyAdapter() {
@@ -235,11 +245,7 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     }
 
     String text = this.getContent();
-    // check the caret status so that we know if this is moving caret through multiple lines, or it's a switching
-    this.updateCaretLineOffsetStatus();
     if (handleArrowKeyEvent(e, text)) {
-      // caret status need update since arrow key event may change the position via switching input history
-      this.updateCaretLineOffsetStatus();
       return;
     }
     // If current char is not line break, it means assistant pop up is visible and assistant listener handle it
@@ -290,7 +296,12 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
    * Return true if the event is handled, false otherwise.
    */
   private boolean handleArrowKeyEvent(KeyEvent e, String text) {
-    if (this.caretLineOffsetChanged || this.isProposalPopupActive()) {
+    if (this.isProposalPopupActive()) {
+      return false;
+    }
+    // Switch the input history only from the first or last visual line, otherwise the key navigates the text.
+    if ((e.keyCode == SWT.ARROW_UP && !caretOnFirstVisualLine)
+        || (e.keyCode == SWT.ARROW_DOWN && !caretOnLastVisualLine)) {
       return false;
     }
     if (e.keyCode == SWT.ARROW_UP) {
@@ -350,7 +361,6 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
   }
 
   private void handleSendMessage() {
-    resetCaretLineOffsetStatus();
     Optional.ofNullable(this.sendMessageHandler).ifPresent(handler -> handler.accept(this.getContent()));
   }
 
@@ -382,23 +392,6 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
       default:
         return Messages.chat_actionBar_initialContent;
     }
-  }
-
-  private void updateCaretLineOffsetStatus() {
-    StyledText textWidget = this.getTextWidget();
-    int caretOffset = textWidget.getCaretOffset();
-    int offset = textWidget.getLineAtOffset(caretOffset);
-    if (lastCursorLineOffset != offset) {
-      lastCursorLineOffset = offset;
-      caretLineOffsetChanged = true;
-    } else {
-      caretLineOffsetChanged = false;
-    }
-  }
-
-  private void resetCaretLineOffsetStatus() {
-    lastCursorLineOffset = 0;
-    caretLineOffsetChanged = false;
   }
 
   public void setContentAssistProcessor(ContentAssistant ca) {
