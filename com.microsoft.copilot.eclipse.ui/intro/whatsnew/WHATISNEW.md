@@ -18,6 +18,16 @@ See the [requirements and installation guidance](https://github.com/microsoft/co
 
 ---
 
+### Context Window Size Selection
+For models that offer multiple context window tiers, you can now choose the context window size directly from the model picker in Copilot Chat — switching between the default window and a larger context window when working with broader codebase context.
+
+---
+
+### Copilot Quick Assist for Java
+In Java editors, invoking Quick Assist (`Ctrl+1` / `Cmd+1`) on problem markers now offers **Suggest fix with GitHub Copilot**. Selecting it opens Copilot Chat with the active file attached and a diagnostic prompt prefilled so you can review or customize the request before sending.
+
+---
+
 # GitHub Copilot 0.21.0 Release Notes
 
 ### Use Ollama Models with BYOK
@@ -60,35 +70,3 @@ This release also includes chat fixes so long conversations scroll correctly to 
 
 ### Copilot Menu on the Left
 The Copilot menu has moved to the left side of the Eclipse menu bar, immediately before the Help menu.
-
----
-
-# GitHub Copilot 0.19.0 Release Notes
-
-### Agent Tool Auto-Approve Controls
-Agent Mode now supports auto-approve controls for tool confirmations. Configure rules for terminal commands, file operations, and MCP tools from Copilot preferences, or use the confirmation dialog's **Allow for Session** and **Always Allow** actions to keep trusted workflows moving without repeated prompts.
-
-Default file safety rules, MCP tool annotations, and the global auto-approve toggle are supported, so you can reduce friction while keeping risky actions visible.
-
-![Tool Auto Approve](0.19.0/auto-approve.png)
-
----
-
-### Automatic Chat Context Compression
-Copilot can now automatically compress chat context as conversations grow. When a session approaches the context limit, older conversation context is summarized so longer agent runs can continue with fewer interruptions.
-
-The chat view also shows compression status while Copilot is compacting the conversation, making long-running sessions easier to follow.
-
----
-
-### Create and Edit Local Files Outside the Workspace
-Agent Mode can now create and edit local files by absolute path even when they are outside the Eclipse workspace. This helps when your code spans external folders, linked resources, or files that are not loaded as Eclipse projects.
-
-Local file changes are tracked alongside workspace edits in the changed-files bar, with support for **View Diff**, **Keep**, and **Undo** flows, including empty-baseline diffs for newly created files.
-
----
-
-### More Reliable Terminal Command Execution on Windows and Linux
-Terminal command execution is more reliable across Windows and Linux. Copilot now runs commands through PowerShell on Windows and Bash on Linux, uses shell-integration markers to detect command completion and exit codes, and handles multiline commands with bracketed paste formatting.
-
-Copilot also interrupts previous foreground commands before starting new ones, stops active terminal work when a chat request is canceled, truncates long terminal output before sending it back to the model, and chooses a better working directory from the current file or referenced files.
