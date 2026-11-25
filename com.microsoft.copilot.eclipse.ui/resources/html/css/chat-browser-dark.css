@@ -1,0 +1,47 @@
+/* Copyright (c) Microsoft Corporation. */
+/* Licensed under the MIT license. */
+
+/*
+ * Dark theme colors for the browser-based chat view.
+ * Values are synchronized with css/dark.css - update together.
+ */
+
+body.dark {
+  background: #1e1f22;
+  color: #dee1e5;
+  --accent: #0078d4;
+  --muted: #a4a4a4;
+  --bg-primary: #1e1f22;
+  --bg-secondary: #2a2a2a;
+  --bg-hover: #3d3d3d;
+  --fg-primary: #dee1e5;
+  --fg-on-accent: #ffffff;
+  --border: #3d3d3d;
+  --code-color: #e0c576;
+}
+
+body.dark .turn-user { background: #26282b; }
+body.dark .turn-copilot { background: #1e1f22; }
+body.dark .turn-error { background: #3d2020; border-left: 3px solid #f44747; }
+body.dark .turn-name { color: #dee1e5; }
+body.dark .tool-call { color: #a4a4a4; }
+body.dark .tool-call-name { color: #0078d4; }
+body.dark .thinking-block summary { color: #a4a4a4; }
+body.dark .thinking-block .thinking-body { color: #a4a4a4; border-left-color: #505050; }
+body.dark .turn-content a { color: #0078d4; }
+body.dark .turn-content code { background: #2a2a2a; color: var(--code-color); }
+body.dark .turn-content pre { background: #2a2a2a; }
+body.dark .turn-content pre code { color: var(--code-color); }
+body.dark .turn-content th,
+body.dark .turn-content td { border: 1px solid #3d3d3d; }
+body.dark .turn-content th { background: #2a2d2e; }
+body.dark .turn-content tr:nth-child(even) td { background: #252729; }
+body.dark .turn-content blockquote { border-left: 3px solid #E0C576; color: #E0C576; }
+body.dark .turn-content hr { border-top: 1px solid #3d3d3d; }
+body.dark .code-action-btn { background: #3d3d3d; color: #dee1e5; }
+body.dark .code-action-btn:hover { background: #505050; }
+body.dark .model-info { color: #808080; }
+body.dark .error-message { background: #3d2020; color: #f44747; }
+body.dark .warning-message { background: #3d3520; border-color: #e6a817; color: #f5c518; }
+body.dark .agent-message { }
+body.dark .compacting-status { color: #808080; }

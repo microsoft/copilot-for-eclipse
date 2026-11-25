@@ -61,6 +61,8 @@ public class Messages extends NLS {
   public static String preferences_page_enable_whats_new;
   public static String preferences_page_enable_whats_new_tooltip;
   public static String preferences_page_github_enterprise;
+  public static String preferences_page_browser_renderer;
+  public static String preferences_page_browser_renderer_tooltip;
   public static String preferences_page_mcp;
   public static String preferences_page_proxy_config_link;
   public static String preferences_page_proxy_settings;

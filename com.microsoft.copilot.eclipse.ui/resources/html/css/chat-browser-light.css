@@ -1,0 +1,47 @@
+/* Copyright (c) Microsoft Corporation. */
+/* Licensed under the MIT license. */
+
+/*
+ * Light theme colors for the browser-based chat view.
+ * Values are synchronized with css/light.css - update together.
+ */
+
+body.light {
+  background: #f8f8f8;
+  color: #000000;
+  --accent: #0078d4;
+  --muted: #808080;
+  --bg-primary: #f8f8f8;
+  --bg-secondary: #f0f0f0;
+  --bg-hover: #e0e0e0;
+  --fg-primary: #000000;
+  --fg-on-accent: #ffffff;
+  --border: #d0d0d0;
+  --code-color: rgb(38, 86, 145);
+}
+
+body.light .turn-user { background: #efefee; }
+body.light .turn-copilot { background: #f8f8f8; }
+body.light .turn-error { background: #fde7e7; border-left: 3px solid #d32f2f; }
+body.light .turn-name { color: #000000; }
+body.light .tool-call { color: #808080; }
+body.light .tool-call-name { color: #0078d4; }
+body.light .thinking-block summary { color: #808080; }
+body.light .thinking-block .thinking-body { color: #808080; border-left-color: #c0c0c0; }
+body.light .turn-content a { color: #0078d4; }
+body.light .turn-content code { background: #f0f0f0; color: var(--code-color); }
+body.light .turn-content pre { background: #f0f0f0; }
+body.light .turn-content pre code { color: var(--code-color); }
+body.light .turn-content th,
+body.light .turn-content td { border: 1px solid #d0d0d0; }
+body.light .turn-content th { background: #e8e8e8; }
+body.light .turn-content tr:nth-child(even) td { background: #f4f4f4; }
+body.light .turn-content blockquote { border-left: 3px solid rgb(38, 86, 145); color: rgb(38, 86, 145); }
+body.light .turn-content hr { border-top: 1px solid #d0d0d0; }
+body.light .code-action-btn { background: #e0e0e0; color: #333333; }
+body.light .code-action-btn:hover { background: #d0d0d0; }
+body.light .model-info { color: #808080; }
+body.light .error-message { background: #fde7e7; color: #d32f2f; }
+body.light .warning-message { background: #fef9e7; border-color: #e6a817; color: #795600; }
+body.light .agent-message { }
+body.light .compacting-status { color: #808080; }

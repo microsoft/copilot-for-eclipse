@@ -115,10 +115,7 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
       return;
     }
     String[] titles = target.getExtractedTitles();
-    // Server schema rejects null entries inside extractedTitles, so we send one of the two fields, never both.
-    boolean hasTitles = titles.length > 0;
-    GenerateThinkingTitleParams params = new GenerateThinkingTitleParams(hasTitles ? null : content,
-        hasTitles ? titles : null);
+    GenerateThinkingTitleParams params = ThinkingTitles.buildTitleParams(content, titles);
     String thinkingBlockId = target.getThinkingId();
     ls.generateThinkingTitle(params)
         .thenAccept(resp -> SwtUtils.invokeOnDisplayThread(() -> {
@@ -182,11 +179,11 @@ public abstract class ThinkingTurnWidget extends BaseTurnWidget {
   }
 
   private void persistThinkingTitle(String conversationId, String persistTurnId, String thinkingBlockId, String title) {
-    if (conversationId == null || serviceManager == null) {
+    if (serviceManager == null) {
       return;
     }
-    serviceManager.getPersistenceManager()
-        .updateThinkingBlockTitle(conversationId, persistTurnId, thinkingBlockId, title);
+    ThinkingTitles.persistTitle(serviceManager.getPersistenceManager(), conversationId, persistTurnId,
+        thinkingBlockId, title);
   }
 
   /**

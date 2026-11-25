@@ -503,10 +503,12 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
    * Unbind the currently bound chat view if any.
    */
   public void unbindChatView() {
-    if (chatViewSideEffect != null) {
-      chatViewSideEffect.dispose();
-      chatViewSideEffect = null;
-    }
+    ensureRealm(() -> {
+      if (chatViewSideEffect != null) {
+        chatViewSideEffect.dispose();
+        chatViewSideEffect = null;
+      }
+    });
   }
 
   /**

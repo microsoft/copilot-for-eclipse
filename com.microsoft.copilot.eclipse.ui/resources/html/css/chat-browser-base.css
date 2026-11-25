@@ -1,0 +1,427 @@
+/* Copyright (c) Microsoft Corporation. */
+/* Licensed under the MIT license. */
+
+/*
+ * Base structural CSS for the browser-based chat view.
+ * Colors are applied via body.dark / body.light classes defined in the theme CSS files.
+ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  padding: 8px;
+  line-height: 1.5;
+}
+
+.chat-container { display: flex; flex-direction: column; gap: 12px; }
+
+.turn { padding: 8px 12px; border-radius: 6px; word-wrap: break-word; }
+
+.turn-user { box-shadow: inset 3px 0 0 var(--accent); }
+
+.turn-content { line-height: 1.5; }
+
+.tool-calls { margin-bottom: 6px; }
+
+.tool-call { font-size: 12px; padding: 2px 0; display: flex; align-items: flex-start; gap: 4px; }
+
+.tool-call-name { font-family: var(--font-mono); }
+
+.tool-call-progress { font-style: italic; }
+
+.tool-call-icon { display: inline-flex; align-items: center; font-weight: bold; }
+.tool-call-icon.tc-success { color: #28a745 !important; }
+.tool-call-icon.tc-error { color: #d73a49 !important; }
+.tool-call-icon.tc-cancelled { color: var(--muted); }
+.tool-call-icon.tc-running {
+  display: inline-flex;
+  align-items: center;
+}
+.tool-call-icon.tc-running .thinking-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--muted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Shared box styling for message cards (agent messages, tool confirmations, subagent calls).
+   Individual card classes add only their own element-specific rules. */
+.message-card {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+}
+
+/* Nested subagent turn (mirrors SWT SubagentMessageBlock). Border/accent use themed variables. */
+.subagent-content { display: flex; flex-direction: column; }
+
+.subagent-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.thinking-block { margin: 4px 0; font-size: 12px; }
+
+.thinking-block details { margin: 0; }
+
+.thinking-block summary {
+  cursor: pointer;
+  font-style: italic;
+  list-style: none;
+  display: flex;
+  align-items: center;
+}
+
+.thinking-block summary .thinking-chevron {
+  font-style: normal;
+  margin-right: 4px;
+}
+
+.thinking-block summary .thinking-chevron::after {
+  content: '\25B8';
+}
+
+.thinking-block details[open] > summary .thinking-chevron::after {
+  content: '\25BE';
+}
+
+.thinking-block summary .thinking-icon {
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.thinking-block summary .thinking-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.thinking-block .thinking-body {
+  margin: 4px 0;
+  padding: 4px 0 4px 10px;
+  border-left: 2px solid currentColor;
+  white-space: normal;
+  font-size: 11px;
+  max-height: 180px;
+  overflow-y: auto;
+  opacity: 0.85;
+}
+
+.turn-content p { margin: 4px 0; }
+
+.turn-content a { text-decoration: none; }
+
+.turn-content a:hover { text-decoration: underline; }
+
+.turn-content code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.turn-content pre {
+  position: relative;
+  margin: 8px 0;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.turn-content pre code { background: none; padding: 0; }
+
+.turn-content table { border-collapse: collapse; margin: 8px 0; width: auto; }
+
+.turn-content th,
+.turn-content td { padding: 4px 8px; text-align: left; }
+
+.turn-content th { font-weight: 600; }
+
+.turn-content ul,
+.turn-content ol { margin: 4px 0 4px 20px; }
+
+.turn-content li { margin: 2px 0; }
+
+.turn-content blockquote { padding-left: 10px; margin: 6px 0; }
+
+.turn-content hr { border: none; margin: 8px 0; }
+
+/* Turn header with avatar and name */
+.turn-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.turn-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.turn-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Code block action buttons */
+.code-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+pre:hover .code-actions { opacity: 1; }
+
+.code-action-btn {
+  font-size: 11px;
+  padding: 3px 5px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Model info footer */
+.model-info {
+  margin-top: 8px;
+  font-size: 11px;
+  font-style: italic;
+  text-align: right;
+}
+
+/* Error messages */
+.error-message {
+  padding: 6px 8px;
+  margin: 6px 0;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Warning messages with icon + optional action buttons */
+.warning-message {
+  padding: 8px;
+  margin: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.warning-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.warning-content span {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.warning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  margin-left: 18px;
+}
+
+/* Agent messages (PR links) */
+/* Box styling (margin, padding, border, radius, background, font-size) comes from
+   the shared .message-card class; keep only element-specific rules here. */
+
+.block-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.agent-message-desc {
+  margin: 4px 0 8px 0;
+  color: var(--muted);
+}
+
+.agent-message-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.agent-message a { word-break: break-all; }
+
+/* Compacting status */
+.compacting-status {
+  margin-top: 8px;
+  font-size: 12px;
+  font-style: italic;
+  animation: blink 1s step-end infinite;
+}
+
+/* Streaming indicator (animated dots) */
+.streaming-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.streaming-indicator .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+  animation: dot-pulse 1.4s ease-in-out infinite;
+}
+
+.streaming-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+
+.streaming-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-pulse {
+  0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ═══════════════════ Tool Confirmation Block ═══════════════════ */
+/* Shared box styling comes from .message-card; keep only element-specific rules. */
+.confirmation-block {
+  min-width: fit-content;
+}
+
+.confirmation-message {
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.confirmation-command {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--code-color);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.confirmation-explanation {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.confirmation-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-confirm {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-confirm:hover {
+  background: var(--bg-hover);
+}
+
+.btn-confirm.btn-primary {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border-color: var(--accent);
+}
+
+.btn-confirm.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Split-button (primary accept action + caret opening a dropdown of alternatives). */
+.split-button {
+  position: relative;
+  display: inline-flex;
+}
+
+.btn-confirm.split-primary {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.btn-confirm.split-caret {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  padding-left: 6px;
+  padding-right: 6px;
+  line-height: 1;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.dropdown-menu[hidden] {
+  display: none;
+}
+
+.dropdown-item {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--fg-primary);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}

@@ -20,6 +20,7 @@ import com.microsoft.copilot.eclipse.ui.TestImageRegistrySupport;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatFontService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -46,6 +47,8 @@ abstract class BaseTurnWidgetTestSupport {
     lenient().when(mockChatServiceManager.getAvatarService()).thenReturn(mockAvatarService);
     lenient().when(mockChatServiceManager.getChatFontService()).thenReturn(mockChatFontService);
     lenient().when(mockAvatarService.getAvatarForCopilot()).thenReturn(null);
+    lenient().when(mockAvatarService.getCopilotName()).thenReturn(Messages.chat_turnWidget_copilot);
+    lenient().when(mockAvatarService.getUserName()).thenReturn(Messages.chat_turnWidget_user);
 
     SwtUtils.invokeOnDisplayThread(() -> {
       shell = new Shell(Display.getDefault());

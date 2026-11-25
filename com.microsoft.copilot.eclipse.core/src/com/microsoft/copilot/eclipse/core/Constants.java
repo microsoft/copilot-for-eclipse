@@ -52,6 +52,7 @@ public class Constants {
   public static final String GITHUB_JOBS_VIEW_ID = "com.microsoft.copilot.eclipse.ui.jobs.JobsView";
   public static final String SUPPRESS_TERMINAL_DEPENDENCY_DIALOG = "suppressTerminalDependencyDialog";
   public static final String SUPPRESS_COMPATIBILITY_NOTICE_0_23 = "suppressCompatibilityNotice0.23";
+  public static final String USE_BROWSER_BASED_CHAT_RENDERER = "useBrowserBasedChatRenderer";
 
   // Auto-Approve settings
   public static final String AUTO_APPROVE_TERMINAL_RULES = "autoApproveTerminalRules";
