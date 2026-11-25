@@ -6,18 +6,23 @@ package com.microsoft.copilot.eclipse.ui.chat.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.osgi.service.event.Event;
@@ -27,6 +32,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.chat.InputNavigation;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatPersistence;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 
 @ExtendWith(MockitoExtension.class)
@@ -117,6 +123,75 @@ class UserPreferenceServiceTest {
     // we primarily verify that the event handler doesn't throw exceptions when reloading modes.
     // The actual reloading functionality is tested through integration tests.
     assertNotNull(authHandler, "Auth handler should still be functional after handling sign-in event");
+  }
+
+  @Test
+  void testDispose_LanguageServerBusy_DoesNotBlockShutdown() {
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    when(mockAuthStatusManager.isSignedIn()).thenReturn(true);
+    // A busy CLS never answers conversation/persistence
+    when(mockLsConnection.persistence()).thenReturn(new CompletableFuture<>());
+
+    UserPreferenceService service = userPreferenceService;
+    userPreferenceService = null;
+    assertTimeoutPreemptively(Duration.ofSeconds(10), service::dispose);
+  }
+
+  @Test
+  void testDispose_PreferenceLoadPending_DoesNotBlockShutdown() throws InterruptedException {
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    when(mockAuthStatusManager.isSignedIn()).thenReturn(true);
+    CompletableFuture<ChatPersistence> persistence = new CompletableFuture<>();
+    when(mockLsConnection.persistence()).thenReturn(persistence);
+    UserPreferenceService service = userPreferenceService;
+    userPreferenceService = null;
+    service.clearUserPreferenceCache();
+
+    // Loading the preferences waits for the busy CLS while holding the service lock
+    Thread loader = new Thread(service::isSkipGitHubJobConfirmDialog);
+    loader.setDaemon(true);
+    loader.start();
+    while (loader.getState() != Thread.State.WAITING) {
+      Thread.sleep(10);
+    }
+    try {
+      assertTimeoutPreemptively(Duration.ofSeconds(10), service::dispose);
+    } finally {
+      persistence.completeExceptionally(new IllegalStateException("CLS stopped"));
+      loader.join(5000);
+      service.clearUserPreferenceCache();
+    }
+  }
+
+  @Test
+  void testDispose_PreferenceLoadPendingButPathAvailable_DoesNotBlockShutdown(@TempDir Path tempDir)
+      throws InterruptedException {
+    userPreferenceService = new UserPreferenceService(mockLsConnection, mockAuthStatusManager);
+    when(mockAuthStatusManager.isSignedIn()).thenReturn(true);
+    when(mockAuthStatusManager.getUserName()).thenReturn("test-user");
+    CompletableFuture<ChatPersistence> loadPersistence = new CompletableFuture<>();
+    ChatPersistence shutdownPersistence = new ChatPersistence();
+    shutdownPersistence.setPath(tempDir.toString());
+    // The load's request stays pending, but shutdown's separate request returns a valid path
+    when(mockLsConnection.persistence()).thenReturn(loadPersistence,
+        CompletableFuture.completedFuture(shutdownPersistence));
+    UserPreferenceService service = userPreferenceService;
+    userPreferenceService = null;
+    service.clearUserPreferenceCache();
+
+    Thread loader = new Thread(service::isSkipGitHubJobConfirmDialog);
+    loader.setDaemon(true);
+    loader.start();
+    while (loader.getState() != Thread.State.WAITING) {
+      Thread.sleep(10);
+    }
+    try {
+      assertTimeoutPreemptively(Duration.ofSeconds(10), service::dispose);
+    } finally {
+      loadPersistence.completeExceptionally(new IllegalStateException("CLS stopped"));
+      loader.join(5000);
+      service.clearUserPreferenceCache();
+    }
   }
 
   /**

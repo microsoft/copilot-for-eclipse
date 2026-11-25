@@ -6,6 +6,8 @@ package com.microsoft.copilot.eclipse.core.lsp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +71,16 @@ class LsStreamConnectionProviderTests {
     assertFalse(process.isAlive(), "the language server must not outlive the test");
   }
 
+  @Test
+  void testStart_coreStopping_doesNotStartLanguageServer() {
+    StoppingLsStreamConnectionProvider provider = new StoppingLsStreamConnectionProvider();
+
+    assertThrows(IOException.class, provider::start);
+    Process process = provider.process();
+    forceTerminate(process);
+    assertNull(process, "no language server must be started while Copilot core is stopping");
+  }
+
   /**
    * Makes sure the language server is really gone before the test JVM exits.
    *
@@ -107,9 +119,16 @@ class LsStreamConnectionProviderTests {
   /**
    * Exposes the language server process so the test can assert on the real operating system process.
    */
-  private static final class TestableLsStreamConnectionProvider extends LsStreamConnectionProvider {
+  private static class TestableLsStreamConnectionProvider extends LsStreamConnectionProvider {
     Process process() {
       return getProcess();
+    }
+  }
+
+  private static final class StoppingLsStreamConnectionProvider extends TestableLsStreamConnectionProvider {
+    @Override
+    protected boolean isCoreStopping() {
+      return true;
     }
   }
 }

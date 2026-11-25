@@ -59,6 +59,10 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   @Override
   public void start() throws IOException {
+    // LSP4E restarts a stopped server on any late request, which would orphan a new CLS on IDE exit.
+    if (isCoreStopping()) {
+      throw new IOException("Copilot core is stopping, not starting the language server");
+    }
     if ("true".equalsIgnoreCase(System.getenv("COPILOT_DEBUG_LOCAL"))) {
       CopilotCore.LOGGER.info("Forcing JS LSP agent start due to environment variable.");
       startJsLspAgent();
@@ -85,6 +89,14 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       CopilotCore.LOGGER.error("Binary LSP agent start failed. Retrying with JS agent.", e);
       startJsLspAgent();
     }
+  }
+
+  /**
+   * Returns whether the Copilot core bundle is stopping or already stopped.
+   */
+  protected boolean isCoreStopping() {
+    int state = CopilotCore.getPlugin().getBundle().getState();
+    return state != Bundle.ACTIVE && state != Bundle.STARTING;
   }
 
   @Override
