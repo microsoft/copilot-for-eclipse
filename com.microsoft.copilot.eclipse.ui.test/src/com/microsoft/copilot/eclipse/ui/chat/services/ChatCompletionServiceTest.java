@@ -31,10 +31,13 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.preferences.LanguageServerSettingManager;
 
 class ChatCompletionServiceTest {
+
+  private static final String PROMPT_FILE_URI = "file:///c%3A/repo/.github/prompts/review.prompt.md";
 
   private static CopilotLanguageServerConnection mockLsConnection;
 
@@ -66,9 +69,11 @@ class ChatCompletionServiceTest {
     platformUiMock = Mockito.mockStatic(PlatformUI.class);
     platformUiMock.when(PlatformUI::getWorkbench).thenReturn(mockWorkbench);
 
-    ConversationTemplate template = new ConversationTemplate("test", null, null,
+    ConversationTemplate template = new ConversationTemplate("test", null, null, null,
         List.of(CopilotScope.CHAT_PANEL), null);
-    ConversationTemplate[] templates = new ConversationTemplate[] { template };
+    ConversationTemplate promptTemplate = new ConversationTemplate(PROMPT_FILE_URI, "review", "", "",
+        List.of(CopilotScope.AGENT_PANEL), TemplateSource.PROMPT);
+    ConversationTemplate[] templates = new ConversationTemplate[] { template, promptTemplate };
     when(mockLsConnection.listConversationTemplates(any())).thenReturn(CompletableFuture.completedFuture(templates));
     when(mockAuthStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.OK);
     chatCompletionService = new ChatCompletionService(mockLsConnection, mockAuthStatusManager);
@@ -115,6 +120,12 @@ class ChatCompletionServiceTest {
     assertFalse(chatCompletionService.isCommand("/invalid"));
     assertFalse(chatCompletionService.isCommand("@workspace"));
     assertFalse(chatCompletionService.isCommand("@project"));
+  }
+
+  @Test
+  void testIsCommand_promptFileUsesNameInsteadOfUri() {
+    assertTrue(chatCompletionService.isCommand("/review"));
+    assertFalse(chatCompletionService.isCommand("/" + PROMPT_FILE_URI));
   }
 
   @Test

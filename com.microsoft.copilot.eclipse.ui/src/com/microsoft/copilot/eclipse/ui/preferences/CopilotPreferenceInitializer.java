@@ -36,6 +36,7 @@ public class CopilotPreferenceInitializer extends AbstractPreferenceInitializer 
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_WORKSPACE, "");
     pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_CHAT_LOAD_SCOPE,
         CustomInstructionsChatLoadScope.DEFAULT_VALUE.getValue());
+    pref.setDefault(Constants.CUSTOM_INSTRUCTIONS_PARENT_REPO_ENABLED, true);
     pref.setDefault(Constants.AUTO_BREAKPOINT_RESPONSE, false);
     pref.setDefault(Constants.MCP, """
         {
