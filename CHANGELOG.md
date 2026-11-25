@@ -5,13 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.22.0 (Unreleased)
+## 0.22.0
 ### Added
-- Announce that 0.23.0 will require Eclipse 2025-12 (4.38) or later and Java 21 or later to run Eclipse.
-  The 0.22.0 release retains existing environment compatibility and TM Terminal support.
-- Show a startup reminder on affected environments, with a persistent "Don't remind me again" option.
-  This notice does not depend on sign-in or the automatic What's New setting.
-- Document how users who cannot upgrade can install the last compatible 0.22.x release ZIP.
+- Announce upcoming Eclipse 2025-12 (4.38)+ and Java 21+ runtime requirements for 0.23.0, with a startup reminder on affected environments. [PR#482](https://github.com/microsoft/copilot-for-eclipse/pull/482)
+- Support selecting context window size in the model picker. [#314](https://github.com/microsoft/copilot-for-eclipse/issues/314)
+- Add Copilot Java quick assist for problem markers. [#70](https://github.com/microsoft/copilot-for-eclipse/issues/70), contributed by [@lytreallynb](https://github.com/lytreallynb)
+
+### Fixed
+- Rendering of the What's New page is broken on WebKit. [#406](https://github.com/microsoft/copilot-for-eclipse/issues/406), contributed by [@iloveeclipse](https://github.com/iloveeclipse)
+- Copilot Free users receive "No model configuration found" when selecting the Auto model. [#443](https://github.com/microsoft/copilot-for-eclipse/issues/443)
+- Clarify the confirmation warning message when changing an API key. [#460](https://github.com/microsoft/copilot-for-eclipse/issues/460)
+- Unregister Next Edit Suggestion RenderManager listeners on editor disposal. [PR#487](https://github.com/microsoft/copilot-for-eclipse/pull/487), contributed by [@vogella](https://github.com/vogella)
+- Prevent ConcurrentModificationException when notifying Next Edit Suggestion listeners. [PR#490](https://github.com/microsoft/copilot-for-eclipse/pull/490), contributed by [@vogella](https://github.com/vogella)
+- Destroy the helper process in NodeJsManager.executeCommand. [PR#497](https://github.com/microsoft/copilot-for-eclipse/pull/497), contributed by [@vogella](https://github.com/vogella)
+- Prevent ConcurrentModificationException in JobsView.expandAllProjects during refresh. [PR#496](https://github.com/microsoft/copilot-for-eclipse/pull/496), contributed by [@vogella](https://github.com/vogella)
+- Skip persisted user turns without messages during conversation restoration. [#420](https://github.com/microsoft/copilot-for-eclipse/issues/420), contributed by [@mikemikimike](https://github.com/mikemikimike)
+- Normalize GitHub Enterprise authentication endpoints to HTTPS. [#480](https://github.com/microsoft/copilot-for-eclipse/issues/480)
+- Fix workspace folder URI resolution for SCM-backed projects. [PR#448](https://github.com/microsoft/copilot-for-eclipse/pull/448), contributed by [@HHartvig](https://github.com/HHartvig)
+- Fix NPE and lost chat requests while models are not loaded yet. [PR#503](https://github.com/microsoft/copilot-for-eclipse/pull/503), contributed by [@travkin79](https://github.com/travkin79)
+- Announce only the workspace root as workspace folder to the Copilot language server. [PR#504](https://github.com/microsoft/copilot-for-eclipse/pull/504), contributed by [@travkin79](https://github.com/travkin79)
+
+### Engineering
+- Remove unused GitHub panic error reporter. [PR#400](https://github.com/microsoft/copilot-for-eclipse/pull/400)
+- Pin GitHub Actions to full-length commit SHAs. [PR#426](https://github.com/microsoft/copilot-for-eclipse/pull/426), contributed by [@danfiedler-msft](https://github.com/danfiedler-msft)
+- Remove dead code in core and ui.chat. [PR#475](https://github.com/microsoft/copilot-for-eclipse/pull/475), contributed by [@vogella](https://github.com/vogella)
+- Remove unused ToolConfigurationContextMenuHandler. [PR#478](https://github.com/microsoft/copilot-for-eclipse/pull/478), contributed by [@vogella](https://github.com/vogella)
+- Remove unused CopilotUsageBar. [PR#479](https://github.com/microsoft/copilot-for-eclipse/pull/479), contributed by [@vogella](https://github.com/vogella)
+- Mark internal UI packages as x-friends of the test bundle. [PR#484](https://github.com/microsoft/copilot-for-eclipse/pull/484), contributed by [@vogella](https://github.com/vogella)
+- Remove unused accessors from ChatView and TopBanner. [PR#483](https://github.com/microsoft/copilot-for-eclipse/pull/483), contributed by [@vogella](https://github.com/vogella)
 
 ## 0.21.0
 ### Added
