@@ -2,24 +2,18 @@
 
 ### Upcoming Eclipse and Java Requirements
 
-Starting with **GitHub Copilot for Eclipse 0.23.0**, you will need **Eclipse IDE 2025-12 (4.38) or
-later** and **Java 21 or later to run Eclipse**. Your projects can continue using their existing
-Java versions.
+Starting with **GitHub Copilot for Eclipse 0.23.0**, you will need **Eclipse IDE 2025-12 (4.38) or later** and **Java 21 or later to run Eclipse**. Your projects can continue using their existing Java versions.
 
-**0.22.0 keeps the existing environment compatibility, including TM Terminal support**, so you
-have one release to prepare. If your Eclipse or its Java runtime is below the future minimum, a
-reminder appears at most once per Eclipse startup. Select **Don't remind me again** to stop
-reminders for this announcement in the same Eclipse configuration. Upgrading your environment
-also stops the reminder.
+**0.22.0 keeps the existing environment compatibility, including TM Terminal support**, so you have one release to prepare. If your Eclipse or its Java runtime is below the future minimum, a reminder appears at most once per Eclipse startup. Select **Don't remind me again** to stop reminders for this announcement in the same Eclipse configuration. Upgrading your environment also stops the reminder.
 
-If you cannot upgrade, the last compatible 0.22.x installation ZIP will remain available in
-[GitHub Releases](https://github.com/microsoft/copilot-for-eclipse/releases) once published.
-See the [requirements and installation guidance](https://github.com/microsoft/copilot-for-eclipse#upcoming-requirements-in-0230).
+If you cannot upgrade, the last compatible 0.22.x installation ZIP will remain available in [GitHub Releases](https://github.com/microsoft/copilot-for-eclipse/releases) once published. See the [requirements and installation guidance](https://github.com/microsoft/copilot-for-eclipse#upcoming-requirements-in-0230).
 
 ---
 
 ### Context Window Size Selection
 For models that offer multiple context window tiers, you can now choose the context window size directly from the model picker in Copilot Chat — switching between the default window and a larger context window when working with broader codebase context.
+
+<img src="0.22.0/context-window.png" alt="Context Window Size Selection" width="400"/>
 
 ---
 
