@@ -74,10 +74,9 @@ public class TerminalServiceManager {
   }
 
   private final BundleContext bundleContext;
-  private ServiceTracker<IRunInTerminalTool, IRunInTerminalTool> serviceTracker;
+  private volatile ServiceTracker<IRunInTerminalTool, IRunInTerminalTool> serviceTracker;
   private final AtomicBoolean installationAttempted = new AtomicBoolean(false);
   private final CopyOnWriteArrayList<TerminalServiceListener> listeners = new CopyOnWriteArrayList<>();
-  private volatile IRunInTerminalTool currentService = null;
   private volatile List<String> cachedMissingDependencies = null;
   private final boolean isModernTerminal;
 
@@ -121,8 +120,9 @@ public class TerminalServiceManager {
       listeners.add(listener);
 
       // If service is already available, notify immediately
-      if (currentService != null) {
-        listener.onServiceAvailable(currentService);
+      IRunInTerminalTool service = getCurrentService();
+      if (service != null) {
+        listener.onServiceAvailable(service);
       }
 
       // Notify with cached missing dependencies if available
@@ -144,7 +144,8 @@ public class TerminalServiceManager {
    * Get the current terminal service if available.
    */
   public IRunInTerminalTool getCurrentService() {
-    return currentService;
+    ServiceTracker<IRunInTerminalTool, IRunInTerminalTool> tracker = serviceTracker;
+    return tracker != null ? tracker.getService() : null;
   }
 
   /**
@@ -156,7 +157,6 @@ public class TerminalServiceManager {
       public IRunInTerminalTool addingService(ServiceReference<IRunInTerminalTool> reference) {
         IRunInTerminalTool service = bundleContext.getService(reference);
         if (service != null) {
-          currentService = service;
           notifyServiceAvailable(service);
         }
         return service;
@@ -165,23 +165,19 @@ public class TerminalServiceManager {
       @Override
       public void modifiedService(ServiceReference<IRunInTerminalTool> reference, IRunInTerminalTool service) {
         if (service != null) {
-          currentService = service;
           notifyServiceAvailable(service);
         }
       }
 
       @Override
       public void removedService(ServiceReference<IRunInTerminalTool> reference, IRunInTerminalTool service) {
+        bundleContext.ungetService(reference);
       }
     };
 
     serviceTracker = new ServiceTracker<>(bundleContext, IRunInTerminalTool.class, customizer);
     serviceTracker.open();
 
-    IRunInTerminalTool[] services = serviceTracker.getServices(new IRunInTerminalTool[0]);
-    if (services != null && services.length > 0) {
-      currentService = services[0];
-    }
     // Check if bundle needs to be installed or updated
     attemptTerminalBundleInstallation();
   }
@@ -190,11 +186,11 @@ public class TerminalServiceManager {
    * Stop the service manager.
    */
   public void stop() {
-    if (serviceTracker != null) {
-      serviceTracker.close();
+    ServiceTracker<IRunInTerminalTool, IRunInTerminalTool> tracker = serviceTracker;
+    if (tracker != null) {
       serviceTracker = null;
+      tracker.close();
     }
-    currentService = null;
     listeners.clear();
   }
 
